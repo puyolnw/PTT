@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================================
+   Design Tokens (CSS Variables)
+   Light Theme = พื้นขาว | Dark Theme = เดิม (ดำฟุ้ง)
+   ===================================================== */
+
+/* =====================================================
+   View Transitions API - Creative Theme Switching
+   ===================================================== */
+@supports (view-transition-name: none) {
+  /* Smooth fade cross-fade for everything */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.5s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Slide + Fade effect */
+  ::view-transition-old(root) {
+    animation-name: theme-fade-out;
+  }
+  
+  ::view-transition-new(root) {
+    animation-name: theme-fade-in;
+  }
+}
+
+@keyframes theme-fade-out {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes theme-fade-in {
+  0% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Gradient Animation for Theme Toggle Button */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Smooth transition สำหรับ Dark Mode (Fallback) */
+html {
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* เฉพาะสี ไม่รวม transform/scale เพื่อไม่ให้ conflict กับ animations */
+:where(*) {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+:root {
+  /* Light Theme (White UI) */
+  --bg: #ffffff;           /* พื้นหลังหน้า */
+  --bg-soft: #f7f8fa;      /* content/panel เบา */
+  --panel: rgba(2,6,23,0.04);  /* การ์ดเบา */
+  --text: #2c3d6b;         /* ตัวอักษรหลักเข้ม - สีน้ำเงินเข้ม */
+  --muted: #1e293b;        /* ตัวอักษรรอง - เข้มขึ้นเพื่อให้อ่านง่าย */
+  --border: rgba(2,6,23,0.12);
+
+  /* PTT Brand (เหมือนเดิมทุกธีม) */
+  --primary: #2867E0;   /* Blue */
+  --accent:  #19B7FF;   /* Cyan */
+  --danger:  #E41F2B;   /* Red */
+  --ring:    #2867E0;
+
+  --shadow: 0 10px 24px rgba(2,6,23,.10);
+}
+
+.dark {
+  /* Dark Theme (คงเดิม) */
+  --bg: #0A0F1C;           /* ink-950 */
+  --bg-soft: #0C1220;      /* ink-900 */
+  --panel: rgba(255,255,255,0.05);
+  --text: #E6EAF2;
+  --muted: #94A3B8;
+  --border: rgba(255,255,255,0.10);
+
+  /* Brand — คงเดิม */
+  --primary: #2867E0;
+  --accent:  #19B7FF;
+  --danger:  #E41F2B;
+  --ring:    #19B7FF;
+
+  --shadow: 0 10px 24px rgba(15,23,42,.30);
+}
+
+/* Utility Classes (ใช้แทนสี hardcode) */
+.bg-app   { background: var(--bg); }
+.bg-soft  { background: var(--bg-soft); }
+.text-app { color: var(--text); }
+.text-muted { color: var(--muted); }
+.panel    { background: var(--panel); border: 1px solid var(--border); }
+.border-app { border-color: var(--border); }
+.shadow-app { box-shadow: var(--shadow); }
+.btn-ptt  { background: var(--primary); color: #fff; }
+.btn-ptt:hover { filter: brightness(.95); }
+.link-ptt { color: var(--primary); }
+.link-ptt:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ===================================================== */
+
+body {
+  margin: 0;
+  font-family: 'IBM Plex Sans Thai', 'Prompt', -apple-system, BlinkMacSystemFont, 
+    'Segoe UI', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Mobile Drawer Animation */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease-out forwards;
+}
+
+/* Prevent body scroll when mobile menu is open */
+body.mobile-menu-open {
+  overflow: hidden;
+}
+

@@ -1,0 +1,74 @@
+import { Outlet } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import SidebarHR from "@/components/SidebarHR";
+import Navbar from "@/components/Navbar";
+
+export default function LayoutHR() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.classList.add("mobile-menu-open");
+    } else {
+      document.body.classList.remove("mobile-menu-open");
+    }
+    
+    return () => {
+      document.body.classList.remove("mobile-menu-open");
+    };
+  }, [isMobileMenuOpen]);
+
+  return (
+    <>
+      {/* Desktop Sidebar - Full Height with Animation */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.3 }}
+        className="hidden md:flex"
+      >
+        <SidebarHR />
+      </motion.div>
+
+      {/* Mobile Sidebar Drawer - Overlay */}
+      {isMobileMenuOpen && (
+        <>
+          {/* Dark Scrim/Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+            onClick={closeMobileMenu}
+            aria-hidden="true"
+          />
+
+          {/* Mobile Drawer */}
+          <div
+            className="fixed left-0 top-0 bottom-0 z-50 md:hidden animate-slide-in-left"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobile menu"
+          >
+            <SidebarHR onClose={closeMobileMenu} isMobile={true} />
+          </div>
+        </>
+      )}
+
+      {/* Right Side: Navbar + Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Navbar */}
+        <Navbar />
+        
+        {/* Main Content Area */}
+        <main className="flex-1 px-4 py-4 md:px-8 md:py-8 bg-app overflow-auto">
+          <Outlet />
+        </main>
+      </div>
+    </>
+  );
+}
