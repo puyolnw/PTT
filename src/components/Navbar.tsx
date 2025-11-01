@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { Users, PiggyBank, BarChart3, Bell, LogOut } from "lucide-react";
+import { Users, PiggyBank, BarChart3, Bell, LogOut, Menu } from "lucide-react";
 import { logout } from "@/lib/auth";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -9,7 +9,11 @@ const modules = [
   { name: "รายงานและสถิติ", path: "/app/reports", icon: BarChart3 },
 ];
 
-export default function Navbar() {
+interface NavbarProps {
+  onMenuClick?: () => void;
+}
+
+export default function Navbar({ onMenuClick }: NavbarProps) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -19,8 +23,19 @@ export default function Navbar() {
 
   return (
     <header className="flex items-center justify-between h-14 px-4 md:px-6 bg-[var(--bg)] border-b border-app">
-      {/* Left Spacer - สำหรับดันให้ nav อยู่ตรงกลาง */}
-      <div className="flex-1"></div>
+      {/* Left: Hamburger Menu (Mobile only) */}
+      <div className="flex-1 flex items-center">
+        {onMenuClick && (
+          <button
+            onClick={onMenuClick}
+            className="md:hidden p-2 hover:bg-soft rounded-lg transition-all hover:scale-110 active:scale-95"
+            aria-label="เปิดเมนู"
+            title="เปิดเมนู"
+          >
+            <Menu className="w-5 h-5 text-muted" />
+          </button>
+        )}
+      </div>
 
       {/* Center: Module Navigation */}
       <nav className="flex gap-1 md:gap-2">
@@ -29,12 +44,15 @@ export default function Navbar() {
             key={mod.path}
             to={mod.path}
             className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 text-sm ${
+              `flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
                 isActive
                   ? "bg-[var(--primary)] text-white font-medium shadow-md hover:shadow-lg hover:brightness-110 active:scale-95"
                   : "text-muted hover:bg-soft hover:text-app hover:scale-105 active:scale-95"
               }`
             }
+            style={{
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
           >
             <mod.icon className="w-4 h-4" strokeWidth={2} />
             <span className="hidden md:inline">{mod.name}</span>

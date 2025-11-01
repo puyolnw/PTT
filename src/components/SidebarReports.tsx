@@ -34,6 +34,7 @@ export default function SidebarReports({ onClose, isMobile = false }: SidebarRep
         py-4 
         border-r border-app
         h-full
+        ${isMobile ? 'overflow-y-auto scrollbar-hide' : ''}
       `}
     >
       {/* Header - Logo/Brand + Close button (mobile) */}
@@ -83,7 +84,7 @@ export default function SidebarReports({ onClose, isMobile = false }: SidebarRep
       </div>
 
       {/* Navigation Items */}
-      <div className={`flex-1 flex flex-col space-y-2 ${isMobile ? 'w-full' : ''}`}>
+      <div className={`flex-1 flex flex-col space-y-2 ${isMobile ? 'w-full pb-6' : ''}`}>
         {items.map(({ to, icon: Icon, label, end }) => (
           <NavLink
             key={to}
@@ -93,10 +94,13 @@ export default function SidebarReports({ onClose, isMobile = false }: SidebarRep
             aria-label={label}
             onClick={isMobile ? onClose : undefined}
             className={({ isActive }) =>
-              `p-3 rounded-xl hover:panel transition-all duration-200 relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-ptt-blue/30 ${
+              `p-3 rounded-xl hover:panel relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-ptt-blue/30 ${
                 isActive ? "panel shadow-md" : ""
               } ${isMobile ? 'flex items-center gap-3 w-full' : ''}`
             }
+            style={{
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
           >
             {({ isActive }) => (
               <>
@@ -107,17 +111,25 @@ export default function SidebarReports({ onClose, isMobile = false }: SidebarRep
                 
                 {/* Icon */}
                 <Icon
-                  className={`w-5 h-5 transition-all group-hover:scale-110 ${
+                  className={`w-5 h-5 group-hover:scale-110 ${
                     isActive ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
                   }`}
                   strokeWidth={1.5}
+                  style={{
+                    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  }}
                 />
 
                 {/* Label - Mobile only */}
                 {isMobile && (
-                  <span className={`text-sm font-medium transition-colors ${
-                    isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
-                  }`}>
+                  <span 
+                    className={`text-sm font-medium ${
+                      isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
+                    }`}
+                    style={{
+                      transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                    }}
+                  >
                     {label}
                   </span>
                 )}

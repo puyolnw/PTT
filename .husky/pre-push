@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Bumping version before push..."
+
+# รัน script เพิ่ม version
+node scripts/bump-version.cjs
+
+# เพิ่มไฟล์ที่เปลี่ยนแปลง
+git add package.json src/version.json
+
+# Commit version ใหม่
+git commit -m "chore: bump version to $(node -p "require('./package.json').version")" --no-verify
+
+echo "✅ Version updated and committed!"
+

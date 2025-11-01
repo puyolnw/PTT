@@ -4,6 +4,7 @@ import { useState } from "react";
 import { login } from "@/lib/auth";
 import { Lock, User, Building2 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import AppVersion from "@/components/AppVersion";
 
 export default function LayoutAuth() {
   const navigate = useNavigate();
@@ -31,6 +32,9 @@ export default function LayoutAuth() {
       <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50">
         <ThemeToggle />
       </div>
+
+      {/* App Version - Bottom Right */}
+      <AppVersion />
 
       {/* Login Card */}
       <motion.div
