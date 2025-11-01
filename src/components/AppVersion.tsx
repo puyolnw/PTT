@@ -11,7 +11,7 @@ export default function AppVersion() {
 
   useEffect(() => {
     // โหลด version info จาก version.json
-    fetch('/src/version.json')
+    fetch('/version.json')
       .then(r => r.json())
       .then(data => setVersionInfo(data))
       .catch(() => {

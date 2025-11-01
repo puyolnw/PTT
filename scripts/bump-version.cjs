@@ -19,7 +19,7 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
 console.log(`\n✅ Version bumped: ${currentVersion} → ${newVersion}\n`);
 
 // สร้างหรืออัปเดตไฟล์ version.json (สำหรับเก็บข้อมูลเพิ่มเติม)
-const versionInfoPath = path.join(__dirname, '../src/version.json');
+const versionInfoPath = path.join(__dirname, '../public/version.json');
 const versionInfo = {
   version: newVersion,
   lastUpdate: new Date().toISOString(),

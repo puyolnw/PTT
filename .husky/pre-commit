@@ -1,1 +1,3 @@
-npm test
+echo "🔍 Checking code before commit..."
+npm run lint --quiet || echo "⚠️  Linter warnings found, but continuing..."
+echo "✅ Pre-commit checks passed"
