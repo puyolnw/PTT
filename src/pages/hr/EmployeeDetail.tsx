@@ -118,15 +118,6 @@ export default function EmployeeDetail() {
   const monthlyLeavesSummary = Object.values(monthlyLeaves)
     .sort((a, b) => b.month.localeCompare(a.month));
 
-  // Calculate leave balance (approximate - should be from actual leave balance system)
-  const leaveTypes = ["ลาพักร้อน", "ลาป่วย", "ลากิจ", "ลาคลอด"] as const;
-  const leaveTypeLabels: Record<string, string> = {
-    "ลาพักร้อน": "ลาพักร้อน",
-    "ลาป่วย": "ลาป่วย",
-    "ลากิจ": "ลากิจ",
-    "ลาคลอด": "ลาคลอด"
-  };
-  
   // Payroll statistics
   const avgSalary = allPayroll.length > 0 
     ? allPayroll.reduce((sum, p) => sum + p.salary, 0) / allPayroll.length 
@@ -138,12 +129,6 @@ export default function EmployeeDetail() {
     ? allPayroll.reduce((sum, p) => sum + p.net, 0) / allPayroll.length
     : 0;
   
-  // Calculate working days (excluding weekends, approximate)
-  const workingDaysSinceStart = Math.floor(
-    (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  const expectedWorkingDays = Math.floor(workingDaysSinceStart * 5 / 7); // Approximate: 5 working days per week
-
   // Calculate working hours from attendance logs
   const calculateWorkingHours = (checkIn: string, checkOut: string): number => {
     if (checkIn === "-" || checkOut === "-") return 0;

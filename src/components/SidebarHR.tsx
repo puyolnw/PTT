@@ -6,11 +6,7 @@ import {
   Clock,
   Calendar,
   Wallet,
-  Target,
-  FileSearch,
-  GraduationCap,
   GitBranch,
-  Megaphone,
   BarChart3
 } from "lucide-react";
 import { NavLink } from "react-router-dom";

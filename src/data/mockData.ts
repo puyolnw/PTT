@@ -140,7 +140,7 @@ export interface AttendanceLog {
   date: string;
   checkIn: string;
   checkOut: string;
-  status: "ตรงเวลา" | "สาย 1 นาที" | "สาย 15 นาที" | "ขาดงาน" | "ลา";
+  status: "ตรงเวลา" | "สาย 1 นาที" | "สาย 5 นาที" | "สาย 15 นาที" | "ขาดงาน" | "ลา";
   lateMinutes?: number;
   otHours?: number; // ชั่วโมง OT
   otAmount?: number; // เงิน OT (บาท)
