@@ -12,6 +12,7 @@ export default function Attendance() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [shiftFilter, setShiftFilter] = useState<number | "">("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<AttendanceLog | null>(null);
@@ -152,13 +153,20 @@ export default function Attendance() {
       });
     }
 
+    if (categoryFilter) {
+      filtered = filtered.filter((log) => {
+        const employee = employees.find(e => e.code === log.empCode);
+        return employee?.category === categoryFilter;
+      });
+    }
+
     setFilteredLogs(filtered);
   };
 
   useEffect(() => {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attendanceLogs, searchQuery, statusFilter, shiftFilter]);
+  }, [attendanceLogs, searchQuery, statusFilter, shiftFilter, categoryFilter]);
 
   const statuses = Array.from(new Set(attendanceLogs.map((l) => l.status)));
 
@@ -701,6 +709,18 @@ export default function Attendance() {
             ],
             onChange: (value) => {
               setShiftFilter(value === "" ? "" : Number(value));
+              handleFilter();
+            },
+          },
+          {
+            label: "ทุกหมวดหมู่",
+            value: categoryFilter,
+            options: [
+              { label: "ทุกหมวดหมู่", value: "" },
+              ...Array.from(new Set(employees.map(e => e.category).filter(Boolean))).map((c) => ({ label: c || "", value: c || "" })),
+            ],
+            onChange: (value) => {
+              setCategoryFilter(value);
               handleFilter();
             },
           },

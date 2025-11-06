@@ -13,6 +13,7 @@ export default function Employees() {
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -23,7 +24,8 @@ export default function Employees() {
     startDate: "",
     status: "Active" as Employee["status"],
     shiftId: "",
-    otRate: ""
+    otRate: "",
+    category: ""
   });
 
   // Handle filtering
@@ -46,6 +48,10 @@ export default function Employees() {
       filtered = filtered.filter((emp) => emp.status === statusFilter);
     }
 
+    if (categoryFilter) {
+      filtered = filtered.filter((emp) => emp.category === categoryFilter);
+    }
+
     setFilteredEmployees(filtered);
   };
 
@@ -53,7 +59,7 @@ export default function Employees() {
   useEffect(() => {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [employees, searchQuery, deptFilter, statusFilter]);
+  }, [employees, searchQuery, deptFilter, statusFilter, categoryFilter]);
 
   const departments = Array.from(new Set(employees.map((e) => e.dept)));
   const statuses = Array.from(new Set(employees.map((e) => e.status)));
@@ -90,7 +96,8 @@ export default function Employees() {
       phone: formData.phone || undefined,
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=2867e0&color=fff`,
       shiftId: formData.shiftId ? Number(formData.shiftId) : undefined,
-      otRate: formData.otRate ? Number(formData.otRate) : undefined
+      otRate: formData.otRate ? Number(formData.otRate) : undefined,
+      category: formData.category || undefined
     };
 
     setEmployees([...employees, newEmployee]);
@@ -105,7 +112,8 @@ export default function Employees() {
       startDate: "",
       status: "Active",
       shiftId: "",
-      otRate: ""
+      otRate: "",
+      category: ""
     });
     setIsAddModalOpen(false);
     
@@ -162,6 +170,18 @@ export default function Employees() {
               handleFilter();
             },
           },
+          {
+            label: "ทุกหมวดหมู่",
+            value: categoryFilter,
+            options: [
+              { label: "ทุกหมวดหมู่", value: "" },
+              ...Array.from(new Set(employees.map(e => e.category).filter(Boolean))).map((c) => ({ label: c || "", value: c || "" })),
+            ],
+            onChange: (value) => {
+              setCategoryFilter(value);
+              handleFilter();
+            },
+          },
         ]}
       />
 
@@ -186,6 +206,9 @@ export default function Employees() {
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-app">
                   ตำแหน่ง
+                </th>
+                <th className="px-6 py-4 text-center text-sm font-semibold text-app">
+                  หมวดหมู่
                 </th>
                 <th className="px-6 py-4 text-center text-sm font-semibold text-app">
                   กะ
@@ -230,6 +253,16 @@ export default function Employees() {
                   </td>
                   <td className="px-6 py-4 text-sm text-app font-light">
                     {employee.position}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {employee.category ? (
+                      <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium
+                                     bg-ptt-cyan/20 text-ptt-cyan border border-ptt-cyan/30">
+                        {employee.category}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-center">
                     {employee.shiftId ? (
@@ -293,7 +326,8 @@ export default function Employees() {
             startDate: "",
             status: "Active",
             shiftId: "",
-            otRate: ""
+            otRate: "",
+            category: ""
           });
         }}
         title="เพิ่มพนักงานใหม่"
@@ -451,8 +485,33 @@ export default function Employees() {
               />
             </div>
 
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">
+                หมวดหมู่
+              </label>
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleFormChange}
+                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              >
+                <option value="">ไม่ระบุ</option>
+                <option value="ปั๊ม">ปั๊ม</option>
+                <option value="เซเว่น">เซเว่น</option>
+                <option value="ปึงหงี่เชียง">ปึงหงี่เชียง</option>
+                <option value="เจ้าสัว">เจ้าสัว</option>
+                <option value="ร้านเจียง">ร้านเจียง</option>
+                <option value="ร้านเชสเตอร์">ร้านเชสเตอร์</option>
+                <option value="ร้านไดโซ">ร้านไดโซ</option>
+                <option value="ร้านมอไซด์ไฟฟ้า">ร้านมอไซด์ไฟฟ้า</option>
+                <option value="ร้าน Quick">ร้าน Quick</option>
+              </select>
+            </div>
+
             {/* Status */}
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-app mb-2">
                 สถานะ
               </label>

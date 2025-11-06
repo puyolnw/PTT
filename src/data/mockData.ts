@@ -15,6 +15,7 @@ export interface Employee {
   avatar?: string;
   shiftId?: number; // Reference to shift
   otRate?: number; // OT Rate (บาท/ชั่วโมง)
+  category?: string; // หมวดหมู่พนักงาน (ปั๊ม, เซเว่น, ปึงหงี่เชียง, ฯลฯ)
 }
 
 export const employees: Employee[] = [
@@ -30,7 +31,8 @@ export const employees: Employee[] = [
     phone: "081-234-5678",
     avatar: "https://ui-avatars.com/api/?name=สมชาย+ใจดี&background=2867e0&color=fff",
     shiftId: 1, // กะเช้า
-    otRate: 250 // 250 บาท/ชั่วโมง
+    otRate: 250, // 250 บาท/ชั่วโมง
+    category: "ปั๊ม"
   },
   {
     id: 2,
@@ -44,7 +46,8 @@ export const employees: Employee[] = [
     phone: "082-345-6789",
     avatar: "https://ui-avatars.com/api/?name=สมหญิง+รักงาน&background=19b7ff&color=fff",
     shiftId: 1, // กะเช้า
-    otRate: 200 // 200 บาท/ชั่วโมง
+    otRate: 200, // 200 บาท/ชั่วโมง
+    category: "ปั๊ม"
   },
   {
     id: 3,
@@ -58,7 +61,8 @@ export const employees: Employee[] = [
     phone: "083-456-7890",
     avatar: "https://ui-avatars.com/api/?name=วรพล+ตั้งใจ&background=e41f2b&color=fff",
     shiftId: 1, // กะเช้า
-    otRate: 220 // 220 บาท/ชั่วโมง
+    otRate: 220, // 220 บาท/ชั่วโมง
+    category: "ปั๊ม"
   },
   {
     id: 4,
@@ -72,7 +76,8 @@ export const employees: Employee[] = [
     phone: "084-567-8901",
     avatar: "https://ui-avatars.com/api/?name=กิตติคุณ+ใฝ่รู้&background=2867e0&color=fff",
     shiftId: 1, // กะเช้า
-    otRate: 180 // 180 บาท/ชั่วโมง
+    otRate: 180, // 180 บาท/ชั่วโมง
+    category: "เซเว่น"
   },
   {
     id: 5,
@@ -86,7 +91,8 @@ export const employees: Employee[] = [
     phone: "085-678-9012",
     avatar: "https://ui-avatars.com/api/?name=พิมพ์ชนก+สมใจ&background=19b7ff&color=fff",
     shiftId: 1, // กะเช้า
-    otRate: 300 // 300 บาท/ชั่วโมง
+    otRate: 300, // 300 บาท/ชั่วโมง
+    category: "ปึงหงี่เชียง"
   },
   {
     id: 6,
@@ -100,7 +106,8 @@ export const employees: Employee[] = [
     phone: "086-789-0123",
     avatar: "https://ui-avatars.com/api/?name=ธีรภัทร+แข็งแรง&background=2867e0&color=fff",
     shiftId: 2, // กะบ่าย
-    otRate: 190 // 190 บาท/ชั่วโมง
+    otRate: 190, // 190 บาท/ชั่วโมง
+    category: "เจ้าสัว"
   },
   {
     id: 7,
@@ -114,7 +121,8 @@ export const employees: Employee[] = [
     phone: "087-890-1234",
     avatar: "https://ui-avatars.com/api/?name=ประเสริฐ+ดีงาม&background=e41f2b&color=fff",
     shiftId: 2, // กะบ่าย
-    otRate: 200 // 200 บาท/ชั่วโมง
+    otRate: 200, // 200 บาท/ชั่วโมง
+    category: "ร้านเจียง"
   },
   {
     id: 8,
@@ -128,7 +136,8 @@ export const employees: Employee[] = [
     phone: "088-901-2345",
     avatar: "https://ui-avatars.com/api/?name=อัญชลี+มีชัย&background=19b7ff&color=fff",
     shiftId: 3, // กะดึก
-    otRate: 250 // 250 บาท/ชั่วโมง
+    otRate: 250, // 250 บาท/ชั่วโมง
+    category: "ร้านเชสเตอร์"
   }
 ];
 

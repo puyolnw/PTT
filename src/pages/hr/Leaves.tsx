@@ -13,6 +13,7 @@ export default function Leaves() {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   
   // Modal states
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -67,6 +68,13 @@ export default function Leaves() {
       filtered = filtered.filter((leave) => leave.status === statusFilter);
     }
 
+    if (categoryFilter) {
+      filtered = filtered.filter((leave) => {
+        const employee = employees.find(e => e.code === leave.empCode);
+        return employee?.category === categoryFilter;
+      });
+    }
+
     // Sort by fromDate (most recent first) and limit to 10
     filtered = filtered
       .sort((a, b) => new Date(b.fromDate).getTime() - new Date(a.fromDate).getTime())
@@ -78,7 +86,7 @@ export default function Leaves() {
   useEffect(() => {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leaves, searchQuery, typeFilter, statusFilter]);
+  }, [leaves, searchQuery, typeFilter, statusFilter, categoryFilter]);
 
   const types = Array.from(new Set(leaves.map((l) => l.type)));
   // Filter out "รออนุมัติ" from status filter options
@@ -532,6 +540,18 @@ export default function Leaves() {
             options: statuses.map((s) => ({ label: s, value: s })),
             onChange: (value) => {
               setStatusFilter(value);
+              handleFilter();
+            },
+          },
+          {
+            label: "ทุกหมวดหมู่",
+            value: categoryFilter,
+            options: [
+              { label: "ทุกหมวดหมู่", value: "" },
+              ...Array.from(new Set(employees.map(e => e.category).filter(Boolean))).map((c) => ({ label: c || "", value: c || "" })),
+            ],
+            onChange: (value) => {
+              setCategoryFilter(value);
               handleFilter();
             },
           },
