@@ -1,20 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { UserPlus, Calendar, CheckCircle, Clock, TrendingUp, Edit } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
-import { leaves, type Leave } from "@/data/mockData";
+import { leaves as initialLeaves, attendanceLogs as initialAttendanceLogs, employees, type Leave, type AttendanceLog } from "@/data/mockData";
 
 export default function Leaves() {
+  const [leaves, setLeaves] = useState<Leave[]>(initialLeaves);
+  const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>(initialAttendanceLogs);
   const [filteredLeaves, setFilteredLeaves] = useState<Leave[]>(leaves);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Modal states
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Form states for record leave
+  const [recordForm, setRecordForm] = useState({
+    empCode: "",
+    empName: "",
+    type: "" as Leave["type"] | "",
+    fromDate: "",
+    toDate: "",
+    reason: ""
+  });
+
+  // Form states for edit leave
+  const [editForm, setEditForm] = useState<{
+    id: number | null;
+    empCode: string;
+    empName: string;
+    type: Leave["type"];
+    fromDate: string;
+    toDate: string;
+    reason: string;
+  }>({
+    id: null,
+    empCode: "",
+    empName: "",
+    type: "ลาพักร้อน",
+    fromDate: "",
+    toDate: "",
+    reason: ""
+  });
 
   const handleFilter = () => {
-    let filtered = leaves;
+    // Filter out "รออนุมัติ" status from the table
+    let filtered = leaves.filter((leave) => leave.status !== "รออนุมัติ");
 
     if (searchQuery) {
       filtered = filtered.filter(
@@ -32,15 +67,267 @@ export default function Leaves() {
       filtered = filtered.filter((leave) => leave.status === statusFilter);
     }
 
+    // Sort by fromDate (most recent first) and limit to 10
+    filtered = filtered
+      .sort((a, b) => new Date(b.fromDate).getTime() - new Date(a.fromDate).getTime())
+      .slice(0, 10);
+
     setFilteredLeaves(filtered);
   };
 
-  const types = Array.from(new Set(leaves.map((l) => l.type)));
-  const statuses = Array.from(new Set(leaves.map((l) => l.status)));
+  useEffect(() => {
+    handleFilter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaves, searchQuery, typeFilter, statusFilter]);
 
-  const handleRequestLeave = () => {
-    alert("ขออนุมัติลาใหม่ (Mock)");
-    setIsModalOpen(false);
+  const types = Array.from(new Set(leaves.map((l) => l.type)));
+  // Filter out "รออนุมัติ" from status filter options
+  const statuses = Array.from(new Set(leaves.map((l) => l.status))).filter(s => s !== "รออนุมัติ");
+
+  // Calculate statistics
+  const totalLeaves = leaves.length;
+  const approvedLeaves = leaves.filter(l => l.status === "อนุมัติแล้ว");
+  const totalLeaveDays = leaves.reduce((sum, l) => sum + l.days, 0);
+  const approvedDays = approvedLeaves.reduce((sum, l) => sum + l.days, 0);
+
+  // Group leaves by type
+  const leavesByType = leaves.reduce((acc, leave) => {
+    if (!acc[leave.type]) {
+      acc[leave.type] = { count: 0, days: 0, approved: 0, rejected: 0 };
+    }
+    acc[leave.type].count++;
+    acc[leave.type].days += leave.days;
+    if (leave.status === "อนุมัติแล้ว") acc[leave.type].approved++;
+    else if (leave.status === "ไม่อนุมัติ") acc[leave.type].rejected++;
+    return acc;
+  }, {} as Record<string, { count: number; days: number; approved: number; rejected: number }>);
+
+  // Group leaves by month
+  const monthlyLeaves = leaves.reduce((acc, leave) => {
+    const month = leave.fromDate.substring(0, 7); // YYYY-MM
+    if (!acc[month]) {
+      acc[month] = {
+        month,
+        total: 0,
+        days: 0,
+        byType: {} as Record<string, number>
+      };
+    }
+    acc[month].total++;
+    acc[month].days += leave.days;
+    if (!acc[month].byType[leave.type]) {
+      acc[month].byType[leave.type] = 0;
+    }
+    acc[month].byType[leave.type] += leave.days;
+    return acc;
+  }, {} as Record<string, {
+    month: string;
+    total: number;
+    days: number;
+    byType: Record<string, number>;
+  }>);
+
+  const monthlyLeavesSummary = Object.values(monthlyLeaves)
+    .sort((a, b) => b.month.localeCompare(a.month))
+    .slice(0, 6); // Show last 6 months
+
+  // Check if leave is current (today is between fromDate and toDate)
+  const isLeaveCurrent = (leave: Leave): boolean => {
+    const today = new Date();
+    const from = new Date(leave.fromDate);
+    const to = new Date(leave.toDate);
+    return from <= today && to >= today;
+  };
+
+  // Check if leave is upcoming (fromDate is in the future)
+  const isLeaveUpcoming = (leave: Leave): boolean => {
+    const today = new Date();
+    const from = new Date(leave.fromDate);
+    return from > today;
+  };
+
+  // Get current and upcoming leaves
+  const currentLeaves = leaves.filter(l => isLeaveCurrent(l));
+  const upcomingLeaves = leaves.filter(l => isLeaveUpcoming(l));
+
+  // Calculate days between dates
+  const calculateDays = (fromDate: string, toDate: string): number => {
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+    const diffTime = Math.abs(to.getTime() - from.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays + 1; // Include both start and end date
+  };
+
+  // Generate dates between fromDate and toDate
+  const generateDateRange = (fromDate: string, toDate: string): string[] => {
+    const dates: string[] = [];
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+    const current = new Date(from);
+    
+    while (current <= to) {
+      dates.push(current.toISOString().split('T')[0]);
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return dates;
+  };
+
+  // Handle record leave for employee (HR records directly)
+  const handleRecordLeave = () => {
+    if (!recordForm.empCode || !recordForm.type || !recordForm.fromDate || !recordForm.toDate) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+
+    const days = calculateDays(recordForm.fromDate, recordForm.toDate);
+    
+    const newLeave: Leave = {
+      id: Math.max(...leaves.map(l => l.id), 0) + 1,
+      empCode: recordForm.empCode,
+      empName: recordForm.empName,
+      type: recordForm.type as Leave["type"],
+      fromDate: recordForm.fromDate,
+      toDate: recordForm.toDate,
+      days: days,
+      status: "อนุมัติแล้ว", // Auto-approved when HR records
+      reason: recordForm.reason || ""
+    };
+
+    setLeaves([...leaves, newLeave]);
+
+    // Update attendance logs
+    const dates = generateDateRange(recordForm.fromDate, recordForm.toDate);
+    const updatedLogs = [...attendanceLogs];
+    
+    dates.forEach((date) => {
+      const existingLog = updatedLogs.find(
+        (log) => log.empCode === recordForm.empCode && log.date === date
+      );
+
+      if (existingLog) {
+        existingLog.status = "ลา";
+        existingLog.checkIn = "-";
+        existingLog.checkOut = "-";
+      } else {
+        const newLog: AttendanceLog = {
+          id: Math.max(...updatedLogs.map(l => l.id), 0) + 1,
+          empCode: recordForm.empCode,
+          empName: recordForm.empName,
+          date: date,
+          checkIn: "-",
+          checkOut: "-",
+          status: "ลา"
+        };
+        updatedLogs.push(newLog);
+      }
+    });
+
+    setAttendanceLogs(updatedLogs);
+
+    // Reset form
+    setRecordForm({
+      empCode: "",
+      empName: "",
+      type: "",
+      fromDate: "",
+      toDate: "",
+      reason: ""
+    });
+    setIsRecordModalOpen(false);
+    
+    // Show success message
+    alert(`บันทึกการลาสำเร็จ! บันทึกการลา ${days} วันสำหรับ ${recordForm.empName}`);
+  };
+
+  // Handle employee selection for record leave
+  const handleEmployeeSelect = (empCode: string) => {
+    const employee = employees.find(e => e.code === empCode);
+    if (employee) {
+      setRecordForm({
+        ...recordForm,
+        empCode: employee.code,
+        empName: employee.name
+      });
+    }
+  };
+
+  // Handle edit leave (for early return)
+  const handleEditLeave = (leave: Leave) => {
+    setEditForm({
+      id: leave.id,
+      empCode: leave.empCode,
+      empName: leave.empName,
+      type: leave.type,
+      fromDate: leave.fromDate,
+      toDate: leave.toDate,
+      reason: leave.reason || ""
+    });
+    setIsEditModalOpen(true);
+  };
+
+  // Handle update leave
+  const handleUpdateLeave = () => {
+    if (!editForm.id || !editForm.toDate) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+
+    const newDays = calculateDays(editForm.fromDate, editForm.toDate);
+    
+    // Update leave
+    const updatedLeaves = leaves.map(leave => {
+      if (leave.id === editForm.id) {
+        return {
+          ...leave,
+          toDate: editForm.toDate,
+          days: newDays,
+          reason: editForm.reason || leave.reason
+        };
+      }
+      return leave;
+    });
+
+    setLeaves(updatedLeaves);
+
+    // Update attendance logs - remove "ลา" status for dates after new toDate
+    const oldLeave = leaves.find(l => l.id === editForm.id);
+    if (oldLeave) {
+      const oldDates = generateDateRange(oldLeave.fromDate, oldLeave.toDate);
+      const newDates = generateDateRange(editForm.fromDate, editForm.toDate);
+      const datesToRemove = oldDates.filter(date => !newDates.includes(date));
+
+      const updatedLogs = attendanceLogs.map(log => {
+        if (log.empCode === editForm.empCode && datesToRemove.includes(log.date) && log.status === "ลา") {
+          // Remove leave status for dates that are no longer in leave period
+          return {
+            ...log,
+            status: "ขาดงาน" as AttendanceLog["status"],
+            checkIn: "-",
+            checkOut: "-"
+          };
+        }
+        return log;
+      });
+
+      setAttendanceLogs(updatedLogs);
+    }
+
+    // Reset form and close modal
+    setEditForm({
+      id: null,
+      empCode: "",
+      empName: "",
+      type: "ลาพักร้อน",
+      fromDate: "",
+      toDate: "",
+      reason: ""
+    });
+    setIsEditModalOpen(false);
+    
+    // Show success message
+    alert(`แก้ไขการลาสำเร็จ! วันที่สิ้นสุดเปลี่ยนเป็น ${editForm.toDate} (${newDays} วัน)`);
   };
 
   return (
@@ -52,20 +339,175 @@ export default function Leaves() {
             การลา
           </h1>
           <p className="text-muted font-light">
-            รายการคำขอลาทั้งหมด {filteredLeaves.length} รายการ
+            รายการพนักงานที่ลาทั้งหมด 10 คนล่าสุด
           </p>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-ptt-blue hover:bg-ptt-blue/80 
-                   text-app rounded-xl transition-all duration-200 font-semibold 
-                   shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-        >
-          <Plus className="w-5 h-5" />
-          ขออนุมัติลา
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setIsRecordModalOpen(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-ptt-cyan hover:bg-ptt-cyan/80 
+                     text-app rounded-xl transition-all duration-200 font-semibold 
+                     shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+          >
+            <UserPlus className="w-5 h-5" />
+            บันทึกการลาแทนพนักงาน
+          </button>
+        </div>
       </div>
+
+      {/* Summary Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-soft border border-app rounded-xl p-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-ptt-cyan/20 rounded-lg">
+              <Calendar className="w-5 h-5 text-ptt-cyan" />
+            </div>
+            <div>
+              <p className="text-xs text-muted">การลาทั้งหมด</p>
+              <p className="text-lg font-bold text-app">{totalLeaves} รายการ</p>
+              <p className="text-xs text-muted mt-1">{totalLeaveDays} วัน</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-soft border border-app rounded-xl p-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-500/20 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-400" />
+            </div>
+            <div>
+              <p className="text-xs text-muted">อนุมัติแล้ว</p>
+              <p className="text-lg font-bold text-green-400">{approvedLeaves.length} รายการ</p>
+              <p className="text-xs text-muted mt-1">{approvedDays} วัน</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-soft border border-app rounded-xl p-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-500/20 rounded-lg">
+              <Clock className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-xs text-muted">กำลังลา / กำลังจะลา</p>
+              <p className="text-lg font-bold text-blue-400">
+                {currentLeaves.length} / {upcomingLeaves.length}
+              </p>
+              <p className="text-xs text-muted mt-1">
+                {currentLeaves.reduce((sum, l) => sum + l.days, 0)} วัน / {upcomingLeaves.reduce((sum, l) => sum + l.days, 0)} วัน
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Leave by Type Summary */}
+      {Object.keys(leavesByType).length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-soft border border-app rounded-xl p-6"
+        >
+          <h3 className="text-lg font-semibold text-app mb-4 font-display flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-ptt-cyan" />
+            สรุปการลาตามประเภท
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Object.entries(leavesByType).map(([type, data]) => (
+              <div key={type} className="p-4 bg-ink-800/50 rounded-lg border border-app">
+                <p className="text-sm text-muted mb-2">{type}</p>
+                <p className="text-xl font-bold text-app">{data.count} รายการ</p>
+                <p className="text-sm text-ptt-cyan mt-1">{data.days} วัน</p>
+                <div className="mt-3 space-y-1">
+                  {data.approved > 0 && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-green-400">อนุมัติ</span>
+                      <span className="text-app">{data.approved} รายการ</span>
+                    </div>
+                  )}
+                  {data.rejected > 0 && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-red-400">ปฏิเสธ</span>
+                      <span className="text-app">{data.rejected} รายการ</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Monthly Summary */}
+      {monthlyLeavesSummary.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-soft border border-app rounded-xl p-6"
+        >
+          <h3 className="text-lg font-semibold text-app mb-4 font-display flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-ptt-cyan" />
+            สรุปการลารายเดือน (6 เดือนล่าสุด)
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-ink-800/50 border-b border-app">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-app">เดือน</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">จำนวนรายการ</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">วันลา</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-app">ประเภท</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {monthlyLeavesSummary.map((month) => (
+                  <tr key={month.month} className="hover:bg-ink-800/30 transition-colors">
+                    <td className="px-4 py-3 text-sm text-app font-medium">
+                      {new Date(month.month + "-01").toLocaleDateString("th-TH", { 
+                        year: "numeric", 
+                        month: "long" 
+                      })}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-app font-semibold">
+                      {month.total}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-ptt-cyan font-semibold">
+                      {month.days} วัน
+                    </td>
+                    <td className="px-4 py-3 text-sm text-muted">
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(month.byType).map(([type, days]) => (
+                          <span 
+                            key={type}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-ptt-blue/20 text-ptt-cyan border border-ptt-blue/30"
+                          >
+                            {type}: {days} วัน
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      )}
 
       {/* Filter Bar */}
       <FilterBar
@@ -102,6 +544,14 @@ export default function Leaves() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
       >
+        <div className="px-6 py-4 border-b border-app bg-ink-800/50">
+          <h3 className="text-lg font-semibold text-app font-display">
+            รายการพนักงานที่ลา
+          </h3>
+          <p className="text-xs text-muted mt-1">
+            แสดงรายการพนักงานที่ลาทั้งหมด
+          </p>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-soft border-b border-app">
@@ -124,8 +574,14 @@ export default function Leaves() {
                 <th className="px-6 py-4 text-center text-sm font-semibold text-app">
                   จำนวนวัน
                 </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-app">
+                  เหตุผล
+                </th>
                 <th className="px-6 py-4 text-center text-sm font-semibold text-app">
                   สถานะ
+                </th>
+                <th className="px-6 py-4 text-center text-sm font-semibold text-app">
+                  การจัดการ
                 </th>
               </tr>
             </thead>
@@ -154,12 +610,37 @@ export default function Leaves() {
                     {leave.toDate}
                   </td>
                   <td className="px-6 py-4 text-center text-sm text-app font-semibold">
-                    {leave.days}
+                    {leave.days} วัน
+                  </td>
+                  <td className="px-6 py-4 text-sm text-muted max-w-xs">
+                    <div className="truncate" title={leave.reason || "-"}>
+                      {leave.reason || "-"}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <StatusTag variant={getStatusVariant(leave.status)}>
-                      {leave.status}
-                    </StatusTag>
+                    <div className="flex flex-col items-center gap-1">
+                      <StatusTag variant={getStatusVariant(leave.status)}>
+                        {leave.status}
+                      </StatusTag>
+                      {isLeaveCurrent(leave) && (
+                        <span className="text-xs text-blue-400">● กำลังลา</span>
+                      )}
+                      {isLeaveUpcoming(leave) && (
+                        <span className="text-xs text-yellow-400">● กำลังจะลา</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button
+                      onClick={() => handleEditLeave(leave)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-ptt-blue/20 hover:bg-ptt-blue/30 
+                               text-ptt-cyan rounded-lg transition-all duration-200 text-sm font-medium
+                               border border-ptt-blue/30 hover:border-ptt-blue/50"
+                      title="แก้ไขการลา (กรณีกลับมาก่อนกำหนด)"
+                    >
+                      <Edit className="w-4 h-4" />
+                      แก้ไข
+                    </button>
                   </td>
                 </motion.tr>
               ))}
@@ -171,25 +652,163 @@ export default function Leaves() {
               <p className="text-muted font-light">ไม่พบข้อมูล</p>
             </div>
           )}
+
+          {filteredLeaves.length > 0 && (
+            <div className="text-center py-4 border-t border-app bg-ink-800/30">
+              <p className="text-xs text-muted">
+                แสดง {filteredLeaves.length} คนจากทั้งหมด{" "}
+                {leaves.filter((l) => l.status !== "รออนุมัติ").length} คน
+                {filteredLeaves.length >= 10 && " (จำกัด 10 คนแรก)"}
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
 
-      {/* Request Leave Modal */}
+      {/* Edit Leave Modal */}
       <ModalForm
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="ขออนุมัติลา"
-        onSubmit={handleRequestLeave}
-        submitLabel="ส่งคำขอ"
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="แก้ไขการลา (กรณีกลับมาก่อนกำหนด)"
+        onSubmit={handleUpdateLeave}
+        submitLabel="บันทึกการแก้ไข"
       >
         <div className="space-y-4">
+          <div className="p-3 bg-ink-800/50 rounded-lg border border-app">
+            <p className="text-sm text-muted mb-1">พนักงาน</p>
+            <p className="text-app font-semibold">{editForm.empName}</p>
+            <p className="text-xs text-ptt-cyan">{editForm.empCode}</p>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-app mb-2">
               ประเภทการลา
             </label>
+            <input
+              type="text"
+              value={editForm.type}
+              disabled
+              className="w-full px-4 py-2.5 bg-ink-800/50 border border-app rounded-xl
+                       text-muted cursor-not-allowed"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">
+                วันที่เริ่ม
+              </label>
+              <input
+                type="date"
+                value={editForm.fromDate}
+                disabled
+                className="w-full px-4 py-2.5 bg-ink-800/50 border border-app rounded-xl
+                         text-muted cursor-not-allowed"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">
+                วันที่สิ้นสุด <span className="text-red-400">*</span>
+                <span className="text-xs text-yellow-400 ml-2">(แก้ไขได้)</span>
+              </label>
+              <input
+                type="date"
+                value={editForm.toDate}
+                onChange={(e) => setEditForm({ ...editForm, toDate: e.target.value })}
+                min={editForm.fromDate}
+                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-app mb-2">
+              เหตุผลการลา
+            </label>
+            <textarea
+              rows={4}
+              value={editForm.reason}
+              onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
+              placeholder="ระบุเหตุผล (ถ้ามี)..."
+              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                       text-app placeholder:text-muted
+                       focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
+            />
+          </div>
+
+          {editForm.fromDate && editForm.toDate && (
+            <div className="p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
+              <p className="text-sm text-ptt-cyan">
+                จำนวนวันลาใหม่: <span className="font-semibold">{calculateDays(editForm.fromDate, editForm.toDate)} วัน</span>
+              </p>
+              {editForm.id && (() => {
+                const oldLeave = leaves.find(l => l.id === editForm.id);
+                if (oldLeave) {
+                  const oldDays = oldLeave.days;
+                  const newDays = calculateDays(editForm.fromDate, editForm.toDate);
+                  const diff = oldDays - newDays;
+                  if (diff > 0) {
+                    return (
+                      <p className="text-xs text-green-400 mt-1">
+                        ลดลง {diff} วัน (จาก {oldDays} วัน เป็น {newDays} วัน)
+                      </p>
+                    );
+                  }
+                }
+                return null;
+              })()}
+            </div>
+          )}
+
+          <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <p className="text-xs text-yellow-400">
+              ⚠️ การแก้ไขนี้จะอัปเดตวันที่สิ้นสุดการลาและจำนวนวันลาให้ตรงกับวันที่ที่พนักงานกลับมาทำงานจริง
+            </p>
+          </div>
+        </div>
+      </ModalForm>
+
+      {/* Record Leave Modal (HR records directly) */}
+      <ModalForm
+        isOpen={isRecordModalOpen}
+        onClose={() => setIsRecordModalOpen(false)}
+        title="บันทึกการลาแทนพนักงาน"
+        onSubmit={handleRecordLeave}
+        submitLabel="บันทึก"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-app mb-2">
+              เลือกพนักงาน <span className="text-red-400">*</span>
+            </label>
             <select
+              value={recordForm.empCode}
+              onChange={(e) => handleEmployeeSelect(e.target.value)}
               className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              required
+            >
+              <option value="">เลือกพนักงาน</option>
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.code}>
+                  {emp.code} - {emp.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-app mb-2">
+              ประเภทการลา <span className="text-red-400">*</span>
+            </label>
+            <select
+              value={recordForm.type}
+              onChange={(e) => setRecordForm({ ...recordForm, type: e.target.value as Leave["type"] | "" })}
+              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              required
             >
               <option value="">เลือกประเภท</option>
               <option value="ลาพักร้อน">ลาพักร้อน</option>
@@ -202,22 +821,28 @@ export default function Leaves() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-app mb-2">
-                วันที่เริ่ม
+                วันที่เริ่ม <span className="text-red-400">*</span>
               </label>
               <input
                 type="date"
+                value={recordForm.fromDate}
+                onChange={(e) => setRecordForm({ ...recordForm, fromDate: e.target.value })}
                 className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-app mb-2">
-                วันที่สิ้นสุด
+                วันที่สิ้นสุด <span className="text-red-400">*</span>
               </label>
               <input
                 type="date"
+                value={recordForm.toDate}
+                onChange={(e) => setRecordForm({ ...recordForm, toDate: e.target.value })}
                 className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                required
               />
             </div>
           </div>
@@ -228,14 +853,25 @@ export default function Leaves() {
             </label>
             <textarea
               rows={4}
-              placeholder="ระบุเหตุผล..."
+              value={recordForm.reason}
+              onChange={(e) => setRecordForm({ ...recordForm, reason: e.target.value })}
+              placeholder="ระบุเหตุผล (ถ้ามี)..."
               className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
             />
           </div>
+
+          {recordForm.fromDate && recordForm.toDate && (
+            <div className="p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
+              <p className="text-sm text-ptt-cyan">
+                จำนวนวันลา: <span className="font-semibold">{calculateDays(recordForm.fromDate, recordForm.toDate)} วัน</span>
+              </p>
+            </div>
+          )}
         </div>
       </ModalForm>
+
     </div>
   );
 }

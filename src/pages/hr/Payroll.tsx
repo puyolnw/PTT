@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { FileText } from "lucide-react";
+import { FileText, Printer, Send, Download } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import { payroll, type Payroll as PayrollType } from "@/data/mockData";
 
 export default function Payroll() {
   const [selectedPayslip, setSelectedPayslip] = useState<PayrollType | null>(null);
+  const [isPrintMenuOpen, setIsPrintMenuOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("th-TH", {
@@ -14,16 +16,122 @@ export default function Payroll() {
     }).format(amount);
   };
 
+  // Handle print document
+  const handlePrintDocument = (docType: string) => {
+    if (!selectedPayslip) return;
+    
+    const docNames: Record<string, string> = {
+      payslip: "สลิปเงินเดือน",
+      pnd1: "ภ.ง.ด.1",
+      pnd91: "ภ.ง.ด.91",
+      sso1: "สปส.1",
+      sso2: "สปส.2",
+      sso3: "สปส.3",
+      sso4: "สปส.4",
+      sso5: "สปส.5",
+      sso6: "สปส.6",
+      sso7: "สปส.7",
+      sso8: "สปส.8",
+      sso9: "สปส.9",
+      sso10: "สปส.10"
+    };
+
+    alert(`กำลังพิมพ์${docNames[docType] || docType} สำหรับ ${selectedPayslip.empName} (Mock)`);
+    setIsPrintMenuOpen(false);
+  };
+
+  // Handle send to M6
+  const handleSendToM6 = () => {
+    // Calculate summary data
+    const totalSalary = payroll.reduce((sum, p) => sum + p.salary, 0);
+    const totalOT = payroll.reduce((sum, p) => sum + p.ot, 0);
+    const totalDeduction = payroll.reduce((sum, p) => sum + p.deduction, 0);
+    const totalNet = payroll.reduce((sum, p) => sum + p.net, 0);
+    
+    // Estimate tax and social security (mock calculation)
+    const estimatedTax = totalSalary * 0.05; // 5% tax estimate
+    const estimatedSSO = totalSalary * 0.05; // 5% SSO estimate
+
+    alert(`ส่งข้อมูลเงินเดือนไปบัญชี (M6) สำเร็จ!\n\nสรุป:\n- เงินเดือนรวม: ${formatCurrency(totalSalary)}\n- OT รวม: ${formatCurrency(totalOT)}\n- หักลา/อื่นๆ: ${formatCurrency(totalDeduction)}\n- ภาษี: ${formatCurrency(estimatedTax)}\n- ประกันสังคม: ${formatCurrency(estimatedSSO)}\n- สุทธิรวม: ${formatCurrency(totalNet)}`);
+    setIsSendModalOpen(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-app mb-2 font-display">
-          เงินเดือน
-        </h1>
-        <p className="text-muted font-light">
-          รายการเงินเดือนประจำเดือน ตุลาคม 2025
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-app mb-2 font-display">
+            เงินเดือน
+          </h1>
+          <p className="text-muted font-light">
+            รายการเงินเดือนประจำเดือน ตุลาคม 2025
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <div className="relative">
+            <button
+              onClick={() => setIsPrintMenuOpen(!isPrintMenuOpen)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-ptt-cyan hover:bg-ptt-cyan/80 
+                       text-app rounded-xl transition-all duration-200 font-semibold 
+                       shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+            >
+              <Printer className="w-5 h-5" />
+              พิมพ์เอกสาร
+            </button>
+
+            {/* Print Menu Dropdown */}
+            {isPrintMenuOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-ink-800 border border-app rounded-xl shadow-xl z-50">
+                <div className="p-2">
+                  <div className="px-3 py-2 text-xs text-muted font-semibold mb-1">สลิปเงินเดือน</div>
+                  <button
+                    onClick={() => handlePrintDocument("payslip")}
+                    className="w-full text-left px-3 py-2 text-sm text-app hover:bg-ink-700 rounded-lg transition-colors"
+                  >
+                    สลิปเงินเดือน
+                  </button>
+                  
+                  <div className="px-3 py-2 text-xs text-muted font-semibold mt-2 mb-1">เอกสารภาษี</div>
+                  <button
+                    onClick={() => handlePrintDocument("pnd1")}
+                    className="w-full text-left px-3 py-2 text-sm text-app hover:bg-ink-700 rounded-lg transition-colors"
+                  >
+                    ภ.ง.ด.1
+                  </button>
+                  <button
+                    onClick={() => handlePrintDocument("pnd91")}
+                    className="w-full text-left px-3 py-2 text-sm text-app hover:bg-ink-700 rounded-lg transition-colors"
+                  >
+                    ภ.ง.ด.91
+                  </button>
+                  
+                  <div className="px-3 py-2 text-xs text-muted font-semibold mt-2 mb-1">เอกสารประกันสังคม</div>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => handlePrintDocument(`sso${num}`)}
+                      className="w-full text-left px-3 py-2 text-sm text-app hover:bg-ink-700 rounded-lg transition-colors"
+                    >
+                      สปส.{num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => setIsSendModalOpen(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-500/80 
+                     text-app rounded-xl transition-all duration-200 font-semibold 
+                     shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+          >
+            <Send className="w-5 h-5" />
+            ส่งข้อมูลไป M6
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -132,15 +240,29 @@ export default function Payroll() {
                     {formatCurrency(item.net)}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => setSelectedPayslip(item)}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-sm 
-                               bg-ptt-blue/20 hover:bg-ptt-blue/30 text-ptt-cyan rounded-lg
-                               transition-colors font-medium"
-                    >
-                      <FileText className="w-4 h-4" />
-                      ดูสลิป
-                    </button>
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => setSelectedPayslip(item)}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm 
+                                 bg-ptt-blue/20 hover:bg-ptt-blue/30 text-ptt-cyan rounded-lg
+                                 transition-colors font-medium"
+                      >
+                        <FileText className="w-4 h-4" />
+                        ดูสลิป
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedPayslip(item);
+                          setIsPrintMenuOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-2 text-xs 
+                                 bg-ptt-cyan/20 hover:bg-ptt-cyan/30 text-ptt-cyan rounded-lg
+                                 transition-colors font-medium"
+                        title="พิมพ์เอกสาร"
+                      >
+                        <Printer className="w-3 h-3" />
+                      </button>
+                    </div>
                   </td>
                 </motion.tr>
               ))}
@@ -236,8 +358,100 @@ export default function Payroll() {
                 เอกสารนี้เป็นเอกสารออกโดยระบบอัตโนมัติ
               </p>
             </div>
+
+            {/* Print Buttons */}
+            <div className="pt-4 border-t border-app">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handlePrintDocument("payslip")}
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-sm 
+                           bg-ptt-blue/20 hover:bg-ptt-blue/30 text-ptt-cyan rounded-lg
+                           transition-colors font-medium"
+                >
+                  <Printer className="w-4 h-4" />
+                  พิมพ์สลิป
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedPayslip(null);
+                    setIsPrintMenuOpen(true);
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-sm 
+                           bg-ptt-cyan/20 hover:bg-ptt-cyan/30 text-ptt-cyan rounded-lg
+                           transition-colors font-medium"
+                >
+                  <Download className="w-4 h-4" />
+                  เอกสารอื่นๆ
+                </button>
+              </div>
+            </div>
           </div>
         )}
+      </ModalForm>
+
+      {/* Send to M6 Modal */}
+      <ModalForm
+        isOpen={isSendModalOpen}
+        onClose={() => setIsSendModalOpen(false)}
+        title="ส่งข้อมูลเงินเดือนไปบัญชี (M6)"
+        onSubmit={handleSendToM6}
+        submitLabel="ส่งข้อมูล"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-ink-800/50 rounded-lg">
+            <h3 className="text-lg font-semibold text-app mb-4 font-display">
+              สรุปข้อมูลที่จะส่ง
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted">จำนวนพนักงาน:</span>
+                <span className="text-app font-semibold">{payroll.length} คน</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted">เงินเดือนรวม:</span>
+                <span className="text-app font-semibold font-mono">
+                  {formatCurrency(payroll.reduce((sum, p) => sum + p.salary, 0))}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted">OT รวม:</span>
+                <span className="text-green-400 font-semibold font-mono">
+                  {formatCurrency(payroll.reduce((sum, p) => sum + p.ot, 0))}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted">หักลา/อื่นๆ:</span>
+                <span className="text-red-400 font-semibold font-mono">
+                  {formatCurrency(payroll.reduce((sum, p) => sum + p.deduction, 0))}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted">ภาษี (ประมาณ):</span>
+                <span className="text-yellow-400 font-semibold font-mono">
+                  {formatCurrency(payroll.reduce((sum, p) => sum + p.salary, 0) * 0.05)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted">ประกันสังคม (ประมาณ):</span>
+                <span className="text-yellow-400 font-semibold font-mono">
+                  {formatCurrency(payroll.reduce((sum, p) => sum + p.salary, 0) * 0.05)}
+                </span>
+              </div>
+              <div className="pt-3 border-t border-app flex justify-between text-base">
+                <span className="text-app font-semibold">สุทธิรวม:</span>
+                <span className="text-ptt-cyan font-bold font-mono">
+                  {formatCurrency(payroll.reduce((sum, p) => sum + p.net, 0))}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <p className="text-sm text-yellow-400">
+              ⚠️ ข้อมูลจะถูกส่งไปยังระบบบัญชี (M6) และไม่สามารถแก้ไขได้หลังส่งแล้ว
+            </p>
+          </div>
+        </div>
       </ModalForm>
     </div>
   );

@@ -13,6 +13,8 @@ export interface Employee {
   email?: string;
   phone?: string;
   avatar?: string;
+  shiftId?: number; // Reference to shift
+  otRate?: number; // OT Rate (บาท/ชั่วโมง)
 }
 
 export const employees: Employee[] = [
@@ -26,7 +28,9 @@ export const employees: Employee[] = [
     startDate: "2023-06-01",
     email: "somchai@ptt.co.th",
     phone: "081-234-5678",
-    avatar: "https://ui-avatars.com/api/?name=สมชาย+ใจดี&background=2867e0&color=fff"
+    avatar: "https://ui-avatars.com/api/?name=สมชาย+ใจดี&background=2867e0&color=fff",
+    shiftId: 1, // กะเช้า
+    otRate: 250 // 250 บาท/ชั่วโมง
   },
   {
     id: 2,
@@ -38,7 +42,9 @@ export const employees: Employee[] = [
     startDate: "2022-11-15",
     email: "somying@ptt.co.th",
     phone: "082-345-6789",
-    avatar: "https://ui-avatars.com/api/?name=สมหญิง+รักงาน&background=19b7ff&color=fff"
+    avatar: "https://ui-avatars.com/api/?name=สมหญิง+รักงาน&background=19b7ff&color=fff",
+    shiftId: 1, // กะเช้า
+    otRate: 200 // 200 บาท/ชั่วโมง
   },
   {
     id: 3,
@@ -50,7 +56,9 @@ export const employees: Employee[] = [
     startDate: "2024-01-10",
     email: "worapol@ptt.co.th",
     phone: "083-456-7890",
-    avatar: "https://ui-avatars.com/api/?name=วรพล+ตั้งใจ&background=e41f2b&color=fff"
+    avatar: "https://ui-avatars.com/api/?name=วรพล+ตั้งใจ&background=e41f2b&color=fff",
+    shiftId: 1, // กะเช้า
+    otRate: 220 // 220 บาท/ชั่วโมง
   },
   {
     id: 4,
@@ -62,7 +70,9 @@ export const employees: Employee[] = [
     startDate: "2024-03-20",
     email: "kittikun@ptt.co.th",
     phone: "084-567-8901",
-    avatar: "https://ui-avatars.com/api/?name=กิตติคุณ+ใฝ่รู้&background=2867e0&color=fff"
+    avatar: "https://ui-avatars.com/api/?name=กิตติคุณ+ใฝ่รู้&background=2867e0&color=fff",
+    shiftId: 1, // กะเช้า
+    otRate: 180 // 180 บาท/ชั่วโมง
   },
   {
     id: 5,
@@ -74,7 +84,9 @@ export const employees: Employee[] = [
     startDate: "2021-08-05",
     email: "pimchanok@ptt.co.th",
     phone: "085-678-9012",
-    avatar: "https://ui-avatars.com/api/?name=พิมพ์ชนก+สมใจ&background=19b7ff&color=fff"
+    avatar: "https://ui-avatars.com/api/?name=พิมพ์ชนก+สมใจ&background=19b7ff&color=fff",
+    shiftId: 1, // กะเช้า
+    otRate: 300 // 300 บาท/ชั่วโมง
   },
   {
     id: 6,
@@ -86,7 +98,37 @@ export const employees: Employee[] = [
     startDate: "2023-02-14",
     email: "teerabhat@ptt.co.th",
     phone: "086-789-0123",
-    avatar: "https://ui-avatars.com/api/?name=ธีรภัทร+แข็งแรง&background=2867e0&color=fff"
+    avatar: "https://ui-avatars.com/api/?name=ธีรภัทร+แข็งแรง&background=2867e0&color=fff",
+    shiftId: 2, // กะบ่าย
+    otRate: 190 // 190 บาท/ชั่วโมง
+  },
+  {
+    id: 7,
+    code: "EMP-0007",
+    name: "ประเสริฐ ดีงาม",
+    dept: "Production",
+    position: "Production Operator",
+    status: "Active",
+    startDate: "2024-05-01",
+    email: "prasert@ptt.co.th",
+    phone: "087-890-1234",
+    avatar: "https://ui-avatars.com/api/?name=ประเสริฐ+ดีงาม&background=e41f2b&color=fff",
+    shiftId: 2, // กะบ่าย
+    otRate: 200 // 200 บาท/ชั่วโมง
+  },
+  {
+    id: 8,
+    code: "EMP-0008",
+    name: "อัญชลี มีชัย",
+    dept: "Security",
+    position: "Security Guard",
+    status: "Active",
+    startDate: "2023-09-10",
+    email: "anchalee@ptt.co.th",
+    phone: "088-901-2345",
+    avatar: "https://ui-avatars.com/api/?name=อัญชลี+มีชัย&background=19b7ff&color=fff",
+    shiftId: 3, // กะดึก
+    otRate: 250 // 250 บาท/ชั่วโมง
   }
 ];
 
@@ -100,15 +142,20 @@ export interface AttendanceLog {
   checkOut: string;
   status: "ตรงเวลา" | "สาย 1 นาที" | "สาย 15 นาที" | "ขาดงาน" | "ลา";
   lateMinutes?: number;
+  otHours?: number; // ชั่วโมง OT
+  otAmount?: number; // เงิน OT (บาท)
 }
 
 export const attendanceLogs: AttendanceLog[] = [
-  { id: 1, empCode: "EMP-0001", empName: "สมชาย ใจดี", date: "2025-11-01", checkIn: "08:31", checkOut: "17:02", status: "สาย 1 นาที", lateMinutes: 1 },
-  { id: 2, empCode: "EMP-0002", empName: "สมหญิง รักงาน", date: "2025-11-01", checkIn: "08:28", checkOut: "17:00", status: "ตรงเวลา" },
-  { id: 3, empCode: "EMP-0003", empName: "วรพล ตั้งใจ", date: "2025-11-01", checkIn: "08:25", checkOut: "17:05", status: "ตรงเวลา" },
-  { id: 4, empCode: "EMP-0004", empName: "กิตติคุณ ใฝ่รู้", date: "2025-11-01", checkIn: "08:45", checkOut: "17:10", status: "สาย 15 นาที", lateMinutes: 15 },
-  { id: 5, empCode: "EMP-0005", empName: "พิมพ์ชนก สมใจ", date: "2025-11-01", checkIn: "08:29", checkOut: "17:01", status: "ตรงเวลา" },
-  { id: 6, empCode: "EMP-0006", empName: "ธีรภัทร แข็งแรง", date: "2025-11-01", checkIn: "-", checkOut: "-", status: "ลา" },
+  { id: 1, empCode: "EMP-0001", empName: "สมชาย ใจดี", date: "2025-11-01", checkIn: "08:31", checkOut: "19:30", status: "สาย 1 นาที", lateMinutes: 1, otHours: 2.0, otAmount: 500 },
+  { id: 2, empCode: "EMP-0002", empName: "สมหญิง รักงาน", date: "2025-11-01", checkIn: "08:28", checkOut: "17:00", status: "ตรงเวลา", otHours: 0, otAmount: 0 },
+  { id: 3, empCode: "EMP-0003", empName: "วรพล ตั้งใจ", date: "2025-11-01", checkIn: "08:25", checkOut: "18:30", status: "ตรงเวลา", otHours: 1.5, otAmount: 330 },
+  { id: 4, empCode: "EMP-0004", empName: "กิตติคุณ ใฝ่รู้", date: "2025-11-01", checkIn: "08:45", checkOut: "20:00", status: "สาย 15 นาที", lateMinutes: 15, otHours: 3.25, otAmount: 585 },
+  { id: 5, empCode: "EMP-0005", empName: "พิมพ์ชนก สมใจ", date: "2025-11-01", checkIn: "08:29", checkOut: "17:01", status: "ตรงเวลา", otHours: 0, otAmount: 0 },
+  { id: 6, empCode: "EMP-0006", empName: "ธีรภัทร แข็งแรง", date: "2025-11-01", checkIn: "-", checkOut: "-", status: "ลา", otHours: 0, otAmount: 0 },
+  // เพิ่มข้อมูลสำหรับกะบ่ายและกะดึก
+  { id: 7, empCode: "EMP-0007", empName: "ประเสริฐ ดีงาม", date: "2025-11-01", checkIn: "12:05", checkOut: "21:30", status: "สาย 5 นาที", lateMinutes: 5, otHours: 0.5, otAmount: 100 },
+  { id: 8, empCode: "EMP-0008", empName: "อัญชลี มีชัย", date: "2025-11-01", checkIn: "21:00", checkOut: "06:15", status: "ตรงเวลา", otHours: 0.25, otAmount: 50 },
 ];
 
 // ========== 3) SHIFTS (กะการทำงาน) ==========
@@ -183,6 +230,72 @@ export const leaves: Leave[] = [
     days: 11,
     status: "รออนุมัติ",
     reason: "เที่ยวต่างประเทศ"
+  },
+  {
+    id: 5,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    type: "ลาป่วย",
+    fromDate: "2025-11-10",
+    toDate: "2025-11-12",
+    days: 3,
+    status: "อนุมัติแล้ว",
+    reason: "อาการปวดหลัง"
+  },
+  {
+    id: 6,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    type: "ลากิจ",
+    fromDate: "2025-11-08",
+    toDate: "2025-11-08",
+    days: 1,
+    status: "อนุมัติแล้ว",
+    reason: "ไปธนาคาร"
+  },
+  {
+    id: 7,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    type: "ลากิจ",
+    fromDate: "2025-11-20",
+    toDate: "2025-11-20",
+    days: 1,
+    status: "อนุมัติแล้ว",
+    reason: "ไปทำบัตรประชาชน"
+  },
+  {
+    id: 8,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    type: "ลาพักร้อน",
+    fromDate: "2025-11-25",
+    toDate: "2025-11-27",
+    days: 3,
+    status: "อนุมัติแล้ว",
+    reason: "พักผ่อน"
+  },
+  {
+    id: 9,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    type: "ลากิจ",
+    fromDate: "2025-11-18",
+    toDate: "2025-11-18",
+    days: 1,
+    status: "อนุมัติแล้ว",
+    reason: "ไปทำใบขับขี่"
+  },
+  {
+    id: 10,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    type: "ลาพักร้อน",
+    fromDate: "2025-11-22",
+    toDate: "2025-11-24",
+    days: 3,
+    status: "อนุมัติแล้ว",
+    reason: "พักผ่อน"
   }
 ];
 

@@ -1,10 +1,26 @@
 import { motion } from "framer-motion";
-import { Users, Clock, Calendar, Wallet, TrendingUp, Download } from "lucide-react";
+import { Users, Clock, Calendar, Wallet, TrendingUp, Download, AlertCircle, Timer } from "lucide-react";
 import SummaryStats from "@/components/SummaryStats";
 import ChartCard from "@/components/ChartCard";
-import { reportSummary, attendanceChartData, departmentData } from "@/data/mockData";
+import { reportSummary, attendanceChartData, departmentData, attendanceLogs, leaves, payroll } from "@/data/mockData";
 
 export default function Reports() {
+  // Calculate statistics
+  const totalDays = attendanceLogs.length;
+  const absentCount = attendanceLogs.filter(log => log.status === "ขาดงาน").length;
+  const lateCount = attendanceLogs.filter(log => log.status.includes("สาย")).length;
+  const absentRate = totalDays > 0 ? ((absentCount / totalDays) * 100).toFixed(1) : "0.0";
+  const lateRate = totalDays > 0 ? ((lateCount / totalDays) * 100).toFixed(1) : "0.0";
+  
+  // Calculate OT hours (mock: assume 1 hour OT per 1000 baht OT pay, average OT rate 200 baht/hour)
+  const totalOTAmount = payroll.reduce((sum, p) => sum + p.ot, 0);
+  const avgOTRate = 200; // Average OT rate
+  const totalOTHours = Math.round(totalOTAmount / avgOTRate);
+  
+  // Leave history count
+  const totalLeaves = leaves.length;
+  const approvedLeaves = leaves.filter(l => l.status === "อนุมัติแล้ว").length;
+
   const stats = [
     {
       label: "พนักงานทั้งหมด",
@@ -127,6 +143,117 @@ export default function Reports() {
       </div>
 
       {/* Additional Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-soft border border-app rounded-2xl p-6 shadow-xl"
+        >
+          <h3 className="text-lg font-semibold text-app mb-4 font-display flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-400" />
+            อัตราการขาดงาน
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted">จำนวนครั้งที่ขาด:</span>
+              <span className="text-red-400 font-semibold">{absentCount} ครั้ง</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted">อัตราการขาดงาน:</span>
+              <span className="text-red-400 font-semibold">{absentRate}%</span>
+            </div>
+            <div className="pt-2 border-t border-app">
+              <p className="text-xs text-muted">
+                จากทั้งหมด {totalDays} วัน
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-soft border border-app rounded-2xl p-6 shadow-xl"
+        >
+          <h3 className="text-lg font-semibold text-app mb-4 font-display flex items-center gap-2">
+            <Clock className="w-5 h-5 text-yellow-400" />
+            การมาสาย
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted">จำนวนครั้งที่สาย:</span>
+              <span className="text-yellow-400 font-semibold">{lateCount} ครั้ง</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted">อัตราการมาสาย:</span>
+              <span className="text-yellow-400 font-semibold">{lateRate}%</span>
+            </div>
+            <div className="pt-2 border-t border-app">
+              <p className="text-xs text-muted">
+                จากทั้งหมด {totalDays} วัน
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-soft border border-app rounded-2xl p-6 shadow-xl"
+        >
+          <h3 className="text-lg font-semibold text-app mb-4 font-display flex items-center gap-2">
+            <Timer className="w-5 h-5 text-green-400" />
+            ชั่วโมง OT
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted">ชั่วโมง OT รวม:</span>
+              <span className="text-green-400 font-semibold">{totalOTHours} ชั่วโมง</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted">ยอด OT รวม:</span>
+              <span className="text-green-400 font-semibold font-mono">
+                {formatCurrency(totalOTAmount)}
+              </span>
+            </div>
+            <div className="pt-2 border-t border-app">
+              <p className="text-xs text-muted">
+                เฉลี่ย {totalOTHours > 0 ? Math.round(totalOTHours / payroll.length) : 0} ชม./คน
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-soft border border-app rounded-2xl p-6 shadow-xl"
+        >
+          <h3 className="text-lg font-semibold text-app mb-4 font-display flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-blue-400" />
+            ประวัติการลา
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted">การลาทั้งหมด:</span>
+              <span className="text-blue-400 font-semibold">{totalLeaves} รายการ</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted">อนุมัติแล้ว:</span>
+              <span className="text-green-400 font-semibold">{approvedLeaves} รายการ</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted">รออนุมัติ:</span>
+              <span className="text-yellow-400 font-semibold">{reportSummary.pendingLeaves} รายการ</span>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Additional Stats - Original */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
