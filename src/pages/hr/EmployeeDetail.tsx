@@ -1,11 +1,21 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn, Filter, CalendarDays, CalendarRange } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn, Filter, CalendarDays, CalendarRange, Award, AlertTriangle, ArrowRightLeft, Briefcase, DollarSign, ChevronRight } from "lucide-react";
 import ProfileCard from "@/components/ProfileCard";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import ModalForm from "@/components/ModalForm";
-import { employees, shifts, attendanceLogs, leaves, payroll } from "@/data/mockData";
+import { 
+  employees, 
+  shifts, 
+  attendanceLogs, 
+  leaves, 
+  payroll,
+  salaryHistory,
+  rewardPenaltyHistory,
+  positionTransferHistory,
+  workHistory
+} from "@/data/mockData";
 
 type ViewMode = "day" | "month" | "year";
 
@@ -19,6 +29,12 @@ export default function EmployeeDetail() {
   // View mode states
   const [attendanceViewMode, setAttendanceViewMode] = useState<ViewMode>("day");
   const [leavesViewMode, setLeavesViewMode] = useState<ViewMode>("day");
+  
+  // Modal states for history details
+  const [showWorkHistoryModal, setShowWorkHistoryModal] = useState(false);
+  const [showSalaryHistoryModal, setShowSalaryHistoryModal] = useState(false);
+  const [showRewardPenaltyModal, setShowRewardPenaltyModal] = useState(false);
+  const [showTransferHistoryModal, setShowTransferHistoryModal] = useState(false);
   
   // Date range filters
   const [attendanceDateFrom, setAttendanceDateFrom] = useState("");
@@ -625,23 +641,112 @@ export default function EmployeeDetail() {
             </div>
           )}
 
-          {activeTab === "history" && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-app mb-4 font-display">
-                ประวัติการทำงาน
-              </h3>
-              
-              {/* Work Duration */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-ink-800/50 rounded-xl">
-                  <p className="text-sm text-muted mb-1">เริ่มงานเมื่อ</p>
-                  <p className="text-app font-semibold">{employee.startDate}</p>
+          {activeTab === "history" && (() => {
+            // Filter data for current employee
+            const empSalaryHistory = salaryHistory.filter(s => s.empCode === employee.code)
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            const empRewardPenalty = rewardPenaltyHistory.filter(r => r.empCode === employee.code)
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            const empTransfers = positionTransferHistory.filter(t => t.empCode === employee.code)
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            const empWorkHistory = workHistory.filter(w => w.empCode === employee.code)
+              .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+
+            return (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-app mb-4 font-display">
+                  ประวัติการทำงาน
+                </h3>
+                
+                {/* Work Duration */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-ink-800/50 rounded-xl">
+                    <p className="text-sm text-muted mb-1">เริ่มงานเมื่อ</p>
+                    <p className="text-app font-semibold">{employee.startDate}</p>
+                  </div>
+                  <div className="p-4 bg-ink-800/50 rounded-xl">
+                    <p className="text-sm text-muted mb-1">ระยะเวลาทำงาน</p>
+                    <p className="text-app font-semibold">{workDuration} เดือน</p>
+                  </div>
                 </div>
-                <div className="p-4 bg-ink-800/50 rounded-xl">
-                  <p className="text-sm text-muted mb-1">ระยะเวลาทำงาน</p>
-                  <p className="text-app font-semibold">{workDuration} เดือน</p>
-                </div>
-              </div>
+
+                {/* Work History Timeline */}
+                {empWorkHistory.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-md font-semibold text-app font-display flex items-center gap-2">
+                        <Briefcase className="w-4 h-4" />
+                        ประวัติการทำงานและระยะเวลา
+                      </h4>
+                      <button
+                        onClick={() => setShowWorkHistoryModal(true)}
+                        className="text-sm text-ptt-cyan hover:text-ptt-blue flex items-center gap-1 transition-colors"
+                      >
+                        ดูทั้งหมด ({empWorkHistory.length})
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="space-y-3">
+                      {empWorkHistory.slice(0, 3).map((work) => {
+                        const startDate = new Date(work.startDate);
+                        const endDate = work.endDate ? new Date(work.endDate) : new Date();
+                        const durationMs = endDate.getTime() - startDate.getTime();
+                        const durationDays = Math.floor(durationMs / (1000 * 60 * 60 * 24));
+                        const durationMonths = Math.floor(durationDays / 30);
+                        const durationYears = Math.floor(durationMonths / 12);
+                        const remainingMonths = durationMonths % 12;
+                        const remainingDays = durationDays % 30;
+                        
+                        let durationText = "";
+                        if (durationYears > 0) {
+                          durationText = `${durationYears} ปี`;
+                          if (remainingMonths > 0) {
+                            durationText += ` ${remainingMonths} เดือน`;
+                          }
+                        } else if (durationMonths > 0) {
+                          durationText = `${durationMonths} เดือน`;
+                          if (remainingDays > 0 && durationMonths < 3) {
+                            durationText += ` ${remainingDays} วัน`;
+                          }
+                        } else {
+                          durationText = `${durationDays} วัน`;
+                        }
+                        
+                        return (
+                          <div key={work.id} className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <p className="font-semibold text-app">{work.position}</p>
+                                <p className="text-sm text-muted">{work.dept}</p>
+                              </div>
+                              <StatusTag variant={work.status === "Active" ? "success" : work.status === "Transferred" ? "warning" : "neutral"}>
+                                {work.status === "Active" ? "กำลังทำงาน" : work.status === "Transferred" ? "โยกย้าย" : "เสร็จสิ้น"}
+                              </StatusTag>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted mb-2">
+                              <span>{startDate.toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</span>
+                              {work.endDate && (
+                                <>
+                                  <span>ถึง</span>
+                                  <span>{endDate.toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</span>
+                                </>
+                              )}
+                              {!work.endDate && <span className="text-ptt-cyan">ถึงปัจจุบัน</span>}
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-ptt-blue/20 text-ptt-cyan border border-ptt-blue/30">
+                                อายุการทำงาน: {durationText}
+                              </span>
+                            </div>
+                            {work.description && (
+                              <p className="text-xs text-muted mt-2">{work.description}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
               {/* Attendance Summary */}
               <div>
@@ -758,8 +863,213 @@ export default function EmployeeDetail() {
                   </div>
                 </div>
               </div>
+
+              {/* Salary History */}
+              {empSalaryHistory.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-md font-semibold text-app font-display flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" />
+                      ประวัติการขึ้น-ลดเงินเดือน
+                    </h4>
+                    <button
+                      onClick={() => setShowSalaryHistoryModal(true)}
+                      className="text-sm text-ptt-cyan hover:text-ptt-blue flex items-center gap-1 transition-colors"
+                    >
+                      ดูทั้งหมด ({empSalaryHistory.length})
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {empSalaryHistory.slice(0, 2).map((salary) => (
+                      <div key={salary.id} className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                                salary.type === "ขึ้นเงินเดือน" 
+                                  ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                                  : salary.type === "ลดเงินเดือน"
+                                  ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                  : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                              }`}>
+                                {salary.type}
+                              </span>
+                              <span className="text-sm text-muted">
+                                {new Date(salary.date).toLocaleDateString("th-TH", { 
+                                  year: "numeric", 
+                                  month: "long", 
+                                  day: "numeric" 
+                                })}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted mb-2">{salary.reason}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted">เปลี่ยน</p>
+                            <p className={`text-sm font-semibold ${
+                              salary.changeAmount > 0 ? "text-green-400" : "text-red-400"
+                            }`}>
+                              {salary.changeAmount > 0 ? "+" : ""}{formatCurrency(salary.changeAmount)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="text-xs text-muted">เงินเดือนเดิม</p>
+                            <p className="text-sm font-semibold text-app font-mono">{formatCurrency(salary.oldSalary)}</p>
+                          </div>
+                          <ArrowRightLeft className="w-4 h-4 text-muted" />
+                          <div>
+                            <p className="text-xs text-muted">เงินเดือนใหม่</p>
+                            <p className="text-sm font-semibold text-ptt-cyan font-mono">{formatCurrency(salary.newSalary)}</p>
+                          </div>
+                        </div>
+                        <div className="mt-3 p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
+                          <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
+                          <p className="text-sm text-app">{salary.note}</p>
+                          <p className="text-xs text-muted mt-2">อนุมัติโดย: {salary.approvedBy}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Reward & Penalty History */}
+              {empRewardPenalty.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-md font-semibold text-app font-display flex items-center gap-2">
+                      <Award className="w-4 h-4" />
+                      ประวัติทันบนและการลงโทษ
+                    </h4>
+                    <button
+                      onClick={() => setShowRewardPenaltyModal(true)}
+                      className="text-sm text-ptt-cyan hover:text-ptt-blue flex items-center gap-1 transition-colors"
+                    >
+                      ดูทั้งหมด ({empRewardPenalty.length})
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {empRewardPenalty.slice(0, 2).map((item) => (
+                      <div key={item.id} className={`p-4 rounded-xl border ${
+                        item.type === "ทันบน"
+                          ? "bg-green-500/10 border-green-500/30"
+                          : "bg-red-500/10 border-red-500/30"
+                      }`}>
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              {item.type === "ทันบน" ? (
+                                <Award className="w-4 h-4 text-green-400" />
+                              ) : (
+                                <AlertTriangle className="w-4 h-4 text-red-400" />
+                              )}
+                              <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                                item.type === "ทันบน"
+                                  ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                                  : "bg-red-500/20 text-red-400 border border-red-500/30"
+                              }`}>
+                                {item.category}
+                              </span>
+                              <span className="text-sm text-muted">
+                                {new Date(item.date).toLocaleDateString("th-TH", { 
+                                  year: "numeric", 
+                                  month: "long", 
+                                  day: "numeric" 
+                                })}
+                              </span>
+                            </div>
+                            <p className="text-sm font-semibold text-app mb-1">{item.title}</p>
+                            <p className="text-sm text-muted">{item.description}</p>
+                          </div>
+                          {item.amount && (
+                            <div className="text-right">
+                              <p className="text-xs text-muted">รางวัล</p>
+                              <p className="text-sm font-semibold text-green-400 font-mono">{formatCurrency(item.amount)}</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-3 p-3 bg-ink-800/50 rounded-lg border border-app">
+                          <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
+                          <p className="text-sm text-app">{item.note}</p>
+                          <p className="text-xs text-muted mt-2">ออกโดย: {item.issuedBy}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Position Transfer History */}
+              {empTransfers.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-md font-semibold text-app font-display flex items-center gap-2">
+                      <ArrowRightLeft className="w-4 h-4" />
+                      ประวัติการโยก-ย้ายตำแหน่ง
+                    </h4>
+                    <button
+                      onClick={() => setShowTransferHistoryModal(true)}
+                      className="text-sm text-ptt-cyan hover:text-ptt-blue flex items-center gap-1 transition-colors"
+                    >
+                      ดูทั้งหมด ({empTransfers.length})
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {empTransfers.slice(0, 2).map((transfer) => (
+                      <div key={transfer.id} className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                            transfer.type === "เลื่อนตำแหน่ง"
+                              ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                              : transfer.type === "ลดตำแหน่ง"
+                              ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                              : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                          }`}>
+                            {transfer.type}
+                          </span>
+                          <span className="text-sm text-muted">
+                            {new Date(transfer.date).toLocaleDateString("th-TH", { 
+                              year: "numeric", 
+                              month: "long", 
+                              day: "numeric" 
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 mb-3">
+                          <div className="flex-1 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                            <p className="text-xs text-muted mb-1">เดิม</p>
+                            <p className="text-sm font-semibold text-app">{transfer.oldPosition}</p>
+                            <p className="text-xs text-muted">{transfer.oldDept}</p>
+                          </div>
+                          <ArrowRightLeft className="w-5 h-5 text-muted flex-shrink-0" />
+                          <div className="flex-1 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                            <p className="text-xs text-muted mb-1">ใหม่</p>
+                            <p className="text-sm font-semibold text-ptt-cyan">{transfer.newPosition}</p>
+                            <p className="text-xs text-muted">{transfer.newDept}</p>
+                          </div>
+                        </div>
+                        <div className="mb-2">
+                          <p className="text-sm text-muted mb-1">เหตุผล:</p>
+                          <p className="text-sm text-app">{transfer.reason}</p>
+                        </div>
+                        <div className="mt-3 p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
+                          <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
+                          <p className="text-sm text-app">{transfer.note}</p>
+                          <p className="text-xs text-muted mt-2">อนุมัติโดย: {transfer.approvedBy}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+            );
+          })()}
 
           {activeTab === "leaves" && (
             <div className="space-y-6">
@@ -1414,6 +1724,276 @@ export default function EmployeeDetail() {
               </motion.div>
             </div>
           )}
+
+          {/* Work History Modal */}
+          <ModalForm
+            isOpen={showWorkHistoryModal}
+            onClose={() => setShowWorkHistoryModal(false)}
+            title="ประวัติการทำงานและระยะเวลาทั้งหมด"
+            size="lg"
+          >
+            {(() => {
+              const empWorkHistory = workHistory.filter(w => w.empCode === employee.code)
+                .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+              
+              return (
+                <div className="space-y-4">
+                  {empWorkHistory.map((work) => {
+                    const startDate = new Date(work.startDate);
+                    const endDate = work.endDate ? new Date(work.endDate) : new Date();
+                    const durationMs = endDate.getTime() - startDate.getTime();
+                    const durationDays = Math.floor(durationMs / (1000 * 60 * 60 * 24));
+                    const durationMonths = Math.floor(durationDays / 30);
+                    const durationYears = Math.floor(durationMonths / 12);
+                    const remainingMonths = durationMonths % 12;
+                    const remainingDays = durationDays % 30;
+                    
+                    let durationText = "";
+                    if (durationYears > 0) {
+                      durationText = `${durationYears} ปี`;
+                      if (remainingMonths > 0) {
+                        durationText += ` ${remainingMonths} เดือน`;
+                      }
+                    } else if (durationMonths > 0) {
+                      durationText = `${durationMonths} เดือน`;
+                      if (remainingDays > 0 && durationMonths < 3) {
+                        durationText += ` ${remainingDays} วัน`;
+                      }
+                    } else {
+                      durationText = `${durationDays} วัน`;
+                    }
+                    
+                    return (
+                      <div key={work.id} className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-semibold text-app">{work.position}</p>
+                            <p className="text-sm text-muted">{work.dept}</p>
+                          </div>
+                          <StatusTag variant={work.status === "Active" ? "success" : work.status === "Transferred" ? "warning" : "neutral"}>
+                            {work.status === "Active" ? "กำลังทำงาน" : work.status === "Transferred" ? "โยกย้าย" : "เสร็จสิ้น"}
+                          </StatusTag>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted mb-2">
+                          <span>{startDate.toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</span>
+                          {work.endDate && (
+                            <>
+                              <span>ถึง</span>
+                              <span>{endDate.toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</span>
+                            </>
+                          )}
+                          {!work.endDate && <span className="text-ptt-cyan">ถึงปัจจุบัน</span>}
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-ptt-blue/20 text-ptt-cyan border border-ptt-blue/30">
+                            อายุการทำงาน: {durationText}
+                          </span>
+                        </div>
+                        {work.description && (
+                          <p className="text-xs text-muted mt-2">{work.description}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </ModalForm>
+
+          {/* Salary History Modal */}
+          <ModalForm
+            isOpen={showSalaryHistoryModal}
+            onClose={() => setShowSalaryHistoryModal(false)}
+            title="ประวัติการขึ้น-ลดเงินเดือนทั้งหมด"
+            size="lg"
+          >
+            {(() => {
+              const empSalaryHistory = salaryHistory.filter(s => s.empCode === employee.code)
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              
+              return (
+                <div className="space-y-4">
+                  {empSalaryHistory.map((salary) => (
+                    <div key={salary.id} className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                              salary.type === "ขึ้นเงินเดือน" 
+                                ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                                : salary.type === "ลดเงินเดือน"
+                                ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                            }`}>
+                              {salary.type}
+                            </span>
+                            <span className="text-sm text-muted">
+                              {new Date(salary.date).toLocaleDateString("th-TH", { 
+                                year: "numeric", 
+                                month: "long", 
+                                day: "numeric" 
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted mb-2">{salary.reason}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted">เปลี่ยน</p>
+                          <p className={`text-sm font-semibold ${
+                            salary.changeAmount > 0 ? "text-green-400" : "text-red-400"
+                          }`}>
+                            {salary.changeAmount > 0 ? "+" : ""}{formatCurrency(salary.changeAmount)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="text-xs text-muted">เงินเดือนเดิม</p>
+                          <p className="text-sm font-semibold text-app font-mono">{formatCurrency(salary.oldSalary)}</p>
+                        </div>
+                        <ArrowRightLeft className="w-4 h-4 text-muted" />
+                        <div>
+                          <p className="text-xs text-muted">เงินเดือนใหม่</p>
+                          <p className="text-sm font-semibold text-ptt-cyan font-mono">{formatCurrency(salary.newSalary)}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
+                        <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
+                        <p className="text-sm text-app">{salary.note}</p>
+                        <p className="text-xs text-muted mt-2">อนุมัติโดย: {salary.approvedBy}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </ModalForm>
+
+          {/* Reward & Penalty History Modal */}
+          <ModalForm
+            isOpen={showRewardPenaltyModal}
+            onClose={() => setShowRewardPenaltyModal(false)}
+            title="ประวัติทันบนและการลงโทษทั้งหมด"
+            size="lg"
+          >
+            {(() => {
+              const empRewardPenalty = rewardPenaltyHistory.filter(r => r.empCode === employee.code)
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              
+              return (
+                <div className="space-y-4">
+                  {empRewardPenalty.map((item) => (
+                    <div key={item.id} className={`p-4 rounded-xl border ${
+                      item.type === "ทันบน"
+                        ? "bg-green-500/10 border-green-500/30"
+                        : "bg-red-500/10 border-red-500/30"
+                    }`}>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            {item.type === "ทันบน" ? (
+                              <Award className="w-4 h-4 text-green-400" />
+                            ) : (
+                              <AlertTriangle className="w-4 h-4 text-red-400" />
+                            )}
+                            <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                              item.type === "ทันบน"
+                                ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                                : "bg-red-500/20 text-red-400 border border-red-500/30"
+                            }`}>
+                              {item.category}
+                            </span>
+                            <span className="text-sm text-muted">
+                              {new Date(item.date).toLocaleDateString("th-TH", { 
+                                year: "numeric", 
+                                month: "long", 
+                                day: "numeric" 
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-sm font-semibold text-app mb-1">{item.title}</p>
+                          <p className="text-sm text-muted">{item.description}</p>
+                        </div>
+                        {item.amount && (
+                          <div className="text-right">
+                            <p className="text-xs text-muted">รางวัล</p>
+                            <p className="text-sm font-semibold text-green-400 font-mono">{formatCurrency(item.amount)}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-3 p-3 bg-ink-800/50 rounded-lg border border-app">
+                        <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
+                        <p className="text-sm text-app">{item.note}</p>
+                        <p className="text-xs text-muted mt-2">ออกโดย: {item.issuedBy}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </ModalForm>
+
+          {/* Position Transfer History Modal */}
+          <ModalForm
+            isOpen={showTransferHistoryModal}
+            onClose={() => setShowTransferHistoryModal(false)}
+            title="ประวัติการโยก-ย้ายตำแหน่งทั้งหมด"
+            size="lg"
+          >
+            {(() => {
+              const empTransfers = positionTransferHistory.filter(t => t.empCode === employee.code)
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              
+              return (
+                <div className="space-y-4">
+                  {empTransfers.map((transfer) => (
+                    <div key={transfer.id} className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                          transfer.type === "เลื่อนตำแหน่ง"
+                            ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                            : transfer.type === "ลดตำแหน่ง"
+                            ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                            : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                        }`}>
+                          {transfer.type}
+                        </span>
+                        <span className="text-sm text-muted">
+                          {new Date(transfer.date).toLocaleDateString("th-TH", { 
+                            year: "numeric", 
+                            month: "long", 
+                            day: "numeric" 
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 mb-3">
+                        <div className="flex-1 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                          <p className="text-xs text-muted mb-1">เดิม</p>
+                          <p className="text-sm font-semibold text-app">{transfer.oldPosition}</p>
+                          <p className="text-xs text-muted">{transfer.oldDept}</p>
+                        </div>
+                        <ArrowRightLeft className="w-5 h-5 text-muted flex-shrink-0" />
+                        <div className="flex-1 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                          <p className="text-xs text-muted mb-1">ใหม่</p>
+                          <p className="text-sm font-semibold text-ptt-cyan">{transfer.newPosition}</p>
+                          <p className="text-xs text-muted">{transfer.newDept}</p>
+                        </div>
+                      </div>
+                      <div className="mb-2">
+                        <p className="text-sm text-muted mb-1">เหตุผล:</p>
+                        <p className="text-sm text-app">{transfer.reason}</p>
+                      </div>
+                      <div className="mt-3 p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
+                        <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
+                        <p className="text-sm text-app">{transfer.note}</p>
+                        <p className="text-xs text-muted mt-2">อนุมัติโดย: {transfer.approvedBy}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </ModalForm>
 
           {activeTab === "attendance" && (
             <div className="space-y-6">
