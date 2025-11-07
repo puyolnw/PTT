@@ -81,16 +81,14 @@ export default function Permissions() {
   });
 
   useEffect(() => {
-    let filtered = permissions;
-    if (filterType !== "all") {
-      filtered = filtered.filter(p => {
-        if (filterType === "document") return p.documentId !== undefined;
-        if (filterType === "category") return p.categoryId !== undefined;
-        if (filterType === "user") return p.userId !== undefined;
-        if (filterType === "role") return p.role !== undefined;
-        return true;
-      });
-    }
+    const filtered = permissions.filter(p => {
+      if (filterType === "all") return true;
+      if (filterType === "document") return p.documentId !== undefined;
+      if (filterType === "category") return p.categoryId !== undefined;
+      if (filterType === "user") return p.userId !== undefined;
+      if (filterType === "role") return p.role !== undefined;
+      return true;
+    });
     setFilteredPermissions(filtered);
   }, [filterType, permissions]);
 
@@ -340,7 +338,7 @@ export default function Permissions() {
             </label>
             <select
               value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value as "document" | "category" | "user" | "role" })}
               className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >

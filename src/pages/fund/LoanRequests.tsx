@@ -152,6 +152,7 @@ export default function LoanRequests() {
     // Approval modal can be opened here if needed
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleReject = (_request: LoanRequest) => {
     const reason = prompt("กรุณาระบุเหตุผลที่ไม่อนุมัติ:");
     if (reason) {

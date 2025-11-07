@@ -48,7 +48,7 @@ export default function Expiring() {
 
   // Filter documents by expiry
   useEffect(() => {
-    let filtered = documents.filter(d => {
+    const filtered = documents.filter(d => {
       const days = getDaysUntilExpiry(d.expiryDate);
       if (days === null) return false;
       
