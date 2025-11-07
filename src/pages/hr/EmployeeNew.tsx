@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Save } from "lucide-react";
+import { shifts, type Employee } from "@/data/mockData";
 
 export default function EmployeeNew() {
   const navigate = useNavigate();
@@ -12,7 +13,10 @@ export default function EmployeeNew() {
     email: "",
     phone: "",
     startDate: "",
-    status: "Active",
+    status: "Active" as Employee["status"],
+    shiftId: "",
+    otRate: "",
+    category: ""
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -161,8 +165,73 @@ export default function EmployeeNew() {
             />
           </div>
 
+          {/* Shift */}
+          <div>
+            <label className="block text-sm font-medium text-app mb-2">
+              กะการทำงาน
+            </label>
+            <select
+              name="shiftId"
+              value={formData.shiftId}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 panel border border-app rounded-xl
+                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+            >
+              <option value="">ไม่ระบุ</option>
+              {shifts.map((shift) => (
+                <option key={shift.id} value={shift.id}>
+                  กะ{shift.name} ({shift.startTime} - {shift.endTime})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* OT Rate */}
+          <div>
+            <label className="block text-sm font-medium text-app mb-2">
+              OT Rate (บาท/ชั่วโมง)
+            </label>
+            <input
+              type="number"
+              name="otRate"
+              value={formData.otRate}
+              onChange={handleChange}
+              min="0"
+              step="1"
+              className="w-full px-4 py-2.5 panel border border-app rounded-xl
+                       text-app placeholder:text-muted
+                       focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              placeholder="เช่น 200"
+            />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-app mb-2">
+              หมวดหมู่
+            </label>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 panel border border-app rounded-xl
+                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+            >
+              <option value="">ไม่ระบุ</option>
+              <option value="ปั๊ม">ปั๊ม</option>
+              <option value="เซเว่น">เซเว่น</option>
+              <option value="ปึงหงี่เชียง">ปึงหงี่เชียง</option>
+              <option value="เจ้าสัว">เจ้าสัว</option>
+              <option value="ร้านเจียง">ร้านเจียง</option>
+              <option value="ร้านเชสเตอร์">ร้านเชสเตอร์</option>
+              <option value="ร้านไดโซ">ร้านไดโซ</option>
+              <option value="ร้านมอไซด์ไฟฟ้า">ร้านมอไซด์ไฟฟ้า</option>
+              <option value="ร้าน Quick">ร้าน Quick</option>
+            </select>
+          </div>
+
           {/* Status */}
-          <div className="md:col-span-2">
+          <div>
             <label className="block text-sm font-medium text-app mb-2">
               สถานะ
             </label>

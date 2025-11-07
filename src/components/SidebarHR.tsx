@@ -6,11 +6,7 @@ import {
   Clock,
   Calendar,
   Wallet,
-  Target,
-  FileSearch,
-  GraduationCap,
   GitBranch,
-  Megaphone,
   BarChart3
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
@@ -21,11 +17,11 @@ const items = [
   { to: "/app/hr/attendance", icon: Clock, label: "บันทึกเวลา", end: false },
   { to: "/app/hr/leaves", icon: Calendar, label: "การลา", end: false },
   { to: "/app/hr/payroll", icon: Wallet, label: "เงินเดือน", end: false },
-  { to: "/app/hr/performance", icon: Target, label: "ประเมินผล", end: false },
-  { to: "/app/hr/recruitment", icon: FileSearch, label: "รับสมัครงาน", end: false },
-  { to: "/app/hr/training", icon: GraduationCap, label: "ฝึกอบรม", end: false },
+  // { to: "/app/hr/performance", icon: Target, label: "ประเมินผล", end: false },
+  // { to: "/app/hr/recruitment", icon: FileSearch, label: "รับสมัครงาน", end: false },
+  // { to: "/app/hr/training", icon: GraduationCap, label: "ฝึกอบรม", end: false },
   { to: "/app/hr/organization", icon: GitBranch, label: "โครงสร้าง", end: false },
-  { to: "/app/hr/announcements", icon: Megaphone, label: "ข่าวสาร", end: false },
+  // { to: "/app/hr/announcements", icon: Megaphone, label: "ข่าวสาร", end: false },
   { to: "/app/hr/reports", icon: BarChart3, label: "รายงาน", end: false },
   { to: "/app/hr/settings", icon: SettingsIcon, label: "ตั้งค่า", end: false },
 ];
