@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn, Filter, CalendarDays, CalendarRange } from "lucide-react";
 import ProfileCard from "@/components/ProfileCard";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import ModalForm from "@/components/ModalForm";
 import { employees, shifts, attendanceLogs, leaves, payroll } from "@/data/mockData";
+
+type ViewMode = "day" | "month" | "year";
 
 export default function EmployeeDetail() {
   const { id } = useParams();
@@ -13,55 +15,83 @@ export default function EmployeeDetail() {
   const [activeTab, setActiveTab] = useState("general");
   const [selectedPayslip, setSelectedPayslip] = useState<typeof payroll[0] | null>(null);
   const [selectedReceiptImage, setSelectedReceiptImage] = useState<string | null>(null);
+  
+  // View mode states
+  const [attendanceViewMode, setAttendanceViewMode] = useState<ViewMode>("day");
+  const [leavesViewMode, setLeavesViewMode] = useState<ViewMode>("day");
+  
+  // Date range filters
+  const [attendanceDateFrom, setAttendanceDateFrom] = useState("");
+  const [attendanceDateTo, setAttendanceDateTo] = useState("");
+  const [leavesDateFrom, setLeavesDateFrom] = useState("");
+  const [leavesDateTo, setLeavesDateTo] = useState("");
 
   // Find employee
   const employee = employees.find((e) => e.id === Number(id));
 
-  if (!employee) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-muted">ไม่พบข้อมูลพนักงาน</p>
-      </div>
-    );
-  }
+  // Get employee's shift (safe access)
+  const employeeShift = employee?.shiftId ? shifts.find(s => s.id === employee.shiftId) : null;
 
-  // Get employee's shift
-  const employeeShift = employee.shiftId ? shifts.find(s => s.id === employee.shiftId) : null;
-
-  // Work duration calculation
-  const startDate = new Date(employee.startDate);
+  // Work duration calculation (safe access)
+  const startDate = employee ? new Date(employee.startDate) : new Date();
   const today = new Date();
-  const workDuration = Math.floor(
+  const workDuration = employee ? Math.floor(
     (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
-  );
+  ) : 0;
   
   // Filter data to show only since employee started working
   // Attendance: only from start date onwards
-  const allAttendance = attendanceLogs
+  const allAttendance = employee ? attendanceLogs
     .filter((log) => {
       if (log.empCode !== employee.code) return false;
       const logDate = new Date(log.date);
-      return logDate >= startDate;
+      if (logDate < startDate) return false;
+      
+      // Apply date range filter if set
+      if (attendanceDateFrom) {
+        const fromDate = new Date(attendanceDateFrom);
+        if (logDate < fromDate) return false;
+      }
+      if (attendanceDateTo) {
+        const toDate = new Date(attendanceDateTo);
+        toDate.setHours(23, 59, 59, 999); // Include the entire day
+        if (logDate > toDate) return false;
+      }
+      
+      return true;
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) : [];
 
   // Leaves: only from start date onwards
-  const allLeaves = leaves
+  const allLeaves = employee ? leaves
     .filter((leave) => {
       if (leave.empCode !== employee.code) return false;
       const leaveDate = new Date(leave.fromDate);
-      return leaveDate >= startDate;
+      if (leaveDate < startDate) return false;
+      
+      // Apply date range filter if set
+      if (leavesDateFrom) {
+        const fromDate = new Date(leavesDateFrom);
+        if (leaveDate < fromDate) return false;
+      }
+      if (leavesDateTo) {
+        const toDate = new Date(leavesDateTo);
+        toDate.setHours(23, 59, 59, 999);
+        if (leaveDate > toDate) return false;
+      }
+      
+      return true;
     })
-    .sort((a, b) => new Date(b.fromDate).getTime() - new Date(a.fromDate).getTime());
+    .sort((a, b) => new Date(b.fromDate).getTime() - new Date(a.fromDate).getTime()) : [];
 
   // Payroll: only from start date onwards (compare by month)
-  const allPayroll = payroll
+  const allPayroll = employee ? payroll
     .filter((p) => {
       if (p.empCode !== employee.code) return false;
       const payMonth = new Date(p.month + "-01");
       return payMonth >= startDate;
     })
-    .sort((a, b) => new Date(b.month + "-01").getTime() - new Date(a.month + "-01").getTime());
+    .sort((a, b) => new Date(b.month + "-01").getTime() - new Date(a.month + "-01").getTime()) : [];
 
   // Calculate statistics (only from start date)
   const totalDays = allAttendance.length;
@@ -123,7 +153,7 @@ export default function EmployeeDetail() {
     ? allPayroll.reduce((sum, p) => sum + p.salary, 0) / allPayroll.length 
     : 0;
   const totalOT = allPayroll.reduce((sum, p) => sum + p.ot, 0);
-  const avgOTRate = employee.otRate || 200;
+  const avgOTRate = employee?.otRate || 200;
   const totalOTHours = Math.round(totalOT / avgOTRate);
   const avgNetPay = allPayroll.length > 0
     ? allPayroll.reduce((sum, p) => sum + p.net, 0) / allPayroll.length
@@ -235,6 +265,141 @@ export default function EmployeeDetail() {
     const m = Math.round((hours - h) * 60);
     return `${h} ชม. ${m} นาที`;
   };
+
+  // Group attendance by view mode (must be before early return)
+  const groupedAttendance = useMemo(() => {
+    if (!employee || allAttendance.length === 0) return [];
+    if (attendanceViewMode === "day") {
+      return allAttendance.map(log => ({
+        key: log.date,
+        label: new Date(log.date).toLocaleDateString("th-TH", { 
+          year: "numeric", 
+          month: "short", 
+          day: "numeric",
+          weekday: "short"
+        }),
+        logs: [log],
+        date: log.date
+      }));
+    } else if (attendanceViewMode === "month") {
+      const grouped = allAttendance.reduce((acc, log) => {
+        const month = log.date.substring(0, 7); // YYYY-MM
+        if (!acc[month]) {
+          acc[month] = [];
+        }
+        acc[month].push(log);
+        return acc;
+      }, {} as Record<string, typeof allAttendance>);
+      
+      return Object.entries(grouped)
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .map(([month, logs]) => ({
+          key: month,
+          label: new Date(month + "-01").toLocaleDateString("th-TH", { 
+            year: "numeric", 
+            month: "long" 
+          }),
+          logs,
+          date: month
+        }));
+    } else { // year
+      const grouped = allAttendance.reduce((acc, log) => {
+        const year = log.date.substring(0, 4); // YYYY
+        if (!acc[year]) {
+          acc[year] = [];
+        }
+        acc[year].push(log);
+        return acc;
+      }, {} as Record<string, typeof allAttendance>);
+      
+      return Object.entries(grouped)
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .map(([year, logs]) => ({
+          key: year,
+          label: `ปี ${year}`,
+          logs,
+          date: year
+        }));
+    }
+  }, [allAttendance, attendanceViewMode, employee]);
+
+  // Group leaves by view mode (must be before early return)
+  const groupedLeaves = useMemo(() => {
+    if (!employee || allLeaves.length === 0) return [];
+    if (leavesViewMode === "day") {
+      return allLeaves.map(leave => ({
+        key: leave.id.toString(),
+        label: new Date(leave.fromDate).toLocaleDateString("th-TH", { 
+          year: "numeric", 
+          month: "short", 
+          day: "numeric"
+        }),
+        leaves: [leave],
+        date: leave.fromDate
+      }));
+    } else if (leavesViewMode === "month") {
+      const grouped = allLeaves.reduce((acc, leave) => {
+        const month = leave.fromDate.substring(0, 7); // YYYY-MM
+        if (!acc[month]) {
+          acc[month] = [];
+        }
+        acc[month].push(leave);
+        return acc;
+      }, {} as Record<string, typeof allLeaves>);
+      
+      return Object.entries(grouped)
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .map(([month, leaves]) => ({
+          key: month,
+          label: new Date(month + "-01").toLocaleDateString("th-TH", { 
+            year: "numeric", 
+            month: "long" 
+          }),
+          leaves,
+          date: month
+        }));
+    } else { // year
+      const grouped = allLeaves.reduce((acc, leave) => {
+        const year = leave.fromDate.substring(0, 4); // YYYY
+        if (!acc[year]) {
+          acc[year] = [];
+        }
+        acc[year].push(leave);
+        return acc;
+      }, {} as Record<string, typeof allLeaves>);
+      
+      return Object.entries(grouped)
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .map(([year, leaves]) => ({
+          key: year,
+          label: `ปี ${year}`,
+          leaves,
+          date: year
+        }));
+    }
+  }, [allLeaves, leavesViewMode, employee]);
+
+  // Reset date filters when view mode changes
+  const handleAttendanceViewModeChange = (mode: ViewMode) => {
+    setAttendanceViewMode(mode);
+    setAttendanceDateFrom("");
+    setAttendanceDateTo("");
+  };
+
+  const handleLeavesViewModeChange = (mode: ViewMode) => {
+    setLeavesViewMode(mode);
+    setLeavesDateFrom("");
+    setLeavesDateTo("");
+  };
+
+  // Early return if employee not found (after all hooks)
+  if (!employee) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted">ไม่พบข้อมูลพนักงาน</p>
+      </div>
+    );
+  }
 
   // Handle view payslip
   const handleViewPayslip = (pay: typeof payroll[0]) => {
@@ -445,6 +610,17 @@ export default function EmployeeDetail() {
                     <p className="text-app font-medium">-</p>
                   )}
                 </div>
+                <div>
+                  <p className="text-sm text-muted">หมวดหมู่</p>
+                  {employee.category ? (
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium
+                                     bg-ptt-cyan/20 text-ptt-cyan border border-ptt-cyan/30">
+                      {employee.category}
+                    </span>
+                  ) : (
+                    <p className="text-app font-medium">-</p>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -587,7 +763,7 @@ export default function EmployeeDetail() {
 
           {activeTab === "leaves" && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-semibold text-app font-display">
                     ประวัติการลา
@@ -596,16 +772,103 @@ export default function EmployeeDetail() {
                     ตั้งแต่ {employee.startDate} (ระยะเวลา {workDuration} เดือน)
                   </p>
                 </div>
-                <div className="text-sm text-right">
-                  <div>
-                    <span className="text-muted">รวมทั้งหมด: </span>
-                    <span className="text-app font-semibold">{totalLeaveDays} วัน</span>
-                  </div>
-                  {workDuration > 0 && (
-                    <div className="text-xs text-muted mt-1">
-                      เฉลี่ย {(totalLeaveDays / workDuration).toFixed(1)} วัน/เดือน
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                  {/* View Mode Selector - Button Group */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs text-muted flex items-center gap-1">
+                      <Filter className="w-3 h-3" />
+                      แสดงข้อมูลแบบ:
+                    </label>
+                    <div className="flex items-center gap-1 bg-ink-800/50 p-1 rounded-lg border border-app">
+                      <button
+                        onClick={() => handleLeavesViewModeChange("day")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                          leavesViewMode === "day"
+                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                            : "text-muted hover:text-app hover:bg-ink-800"
+                        }`}
+                        title="แสดงรายละเอียดแต่ละวัน"
+                      >
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        วัน
+                      </button>
+                      <button
+                        onClick={() => handleLeavesViewModeChange("month")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                          leavesViewMode === "month"
+                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                            : "text-muted hover:text-app hover:bg-ink-800"
+                        }`}
+                        title="จัดกลุ่มตามเดือน"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        เดือน
+                      </button>
+                      <button
+                        onClick={() => handleLeavesViewModeChange("year")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                          leavesViewMode === "year"
+                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                            : "text-muted hover:text-app hover:bg-ink-800"
+                        }`}
+                        title="จัดกลุ่มตามปี"
+                      >
+                        <CalendarRange className="w-3.5 h-3.5" />
+                        ปี
+                      </button>
                     </div>
-                  )}
+                  </div>
+                  
+                  {/* Date Range Filters */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs text-muted flex items-center gap-1">
+                      <CalendarRange className="w-3 h-3" />
+                      กรองตามวันที่:
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={leavesDateFrom}
+                        onChange={(e) => setLeavesDateFrom(e.target.value)}
+                        className="px-3 py-1.5 bg-ink-800 border border-app rounded-lg text-sm text-app
+                                 focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                        placeholder="จากวันที่"
+                      />
+                      <span className="text-muted text-sm">ถึง</span>
+                      <input
+                        type="date"
+                        value={leavesDateTo}
+                        onChange={(e) => setLeavesDateTo(e.target.value)}
+                        className="px-3 py-1.5 bg-ink-800 border border-app rounded-lg text-sm text-app
+                                 focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                        placeholder="ถึงวันที่"
+                      />
+                      {(leavesDateFrom || leavesDateTo) && (
+                        <button
+                          onClick={() => {
+                            setLeavesDateFrom("");
+                            setLeavesDateTo("");
+                          }}
+                          className="px-3 py-1.5 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors font-medium"
+                          title="ล้างการกรอง"
+                        >
+                          ล้าง
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-right">
+                    <div>
+                      <span className="text-muted">รวมทั้งหมด: </span>
+                      <span className="text-app font-semibold">{totalLeaveDays} วัน</span>
+                    </div>
+                    {workDuration > 0 && (
+                      <div className="text-xs text-muted mt-1">
+                        เฉลี่ย {(totalLeaveDays / workDuration).toFixed(1)} วัน/เดือน
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -757,79 +1020,116 @@ export default function EmployeeDetail() {
 
               {/* Detailed Table */}
               <div>
-                <h4 className="text-md font-semibold text-app mb-3 font-display">
-                  รายละเอียดการลา
-                </h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-md font-semibold text-app font-display flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    รายละเอียดการลา
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    {leavesViewMode === "day" && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-ptt-blue/20 text-ptt-cyan border border-ptt-blue/30">
+                        <CalendarDays className="w-3 h-3" />
+                        แสดงรายวัน
+                      </span>
+                    )}
+                    {leavesViewMode === "month" && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-ptt-blue/20 text-ptt-cyan border border-ptt-blue/30">
+                        <Calendar className="w-3 h-3" />
+                        จัดกลุ่มตามเดือน
+                      </span>
+                    )}
+                    {leavesViewMode === "year" && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-ptt-blue/20 text-ptt-cyan border border-ptt-blue/30">
+                        <CalendarRange className="w-3 h-3" />
+                        จัดกลุ่มตามปี
+                      </span>
+                    )}
+                  </div>
+                </div>
                 {allLeaves.length > 0 ? (
-                  <div className="space-y-3">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-ink-800/50 border-b border-app">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-app">ประเภท</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-app">วันที่</th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-app">จำนวนวัน</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-app">เหตุผล</th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {allLeaves.map((leave) => {
-                            const fromDate = new Date(leave.fromDate);
-                            const toDate = new Date(leave.toDate);
-                            const isPast = toDate < today;
-                            const isCurrent = fromDate <= today && toDate >= today;
-                            return (
-                              <tr key={leave.id} className="hover:bg-ink-800/30 transition-colors">
-                                <td className="px-4 py-3">
-                                  <span className="text-sm text-app font-medium">{leave.type}</span>
-                                </td>
-                                <td className="px-4 py-3 text-sm text-app">
-                                  <div>
-                                    <div className="font-medium">
-                                      {fromDate.toLocaleDateString("th-TH", { 
-                                        year: "numeric", 
-                                        month: "short", 
-                                        day: "numeric" 
-                                      })}
-                                    </div>
-                                    <div className="text-xs text-muted">
-                                      ถึง {toDate.toLocaleDateString("th-TH", { 
-                                        year: "numeric", 
-                                        month: "short", 
-                                        day: "numeric" 
-                                      })}
-                                    </div>
-                                    {(isPast || isCurrent) && (
-                                      <div className="text-xs mt-1">
-                                        {isCurrent ? (
-                                          <span className="text-blue-400">● กำลังลา</span>
-                                        ) : (
-                                          <span className="text-muted">● ลาเสร็จแล้ว</span>
+                  <div className="space-y-4">
+                    {groupedLeaves.map((group) => (
+                      <div key={group.key} className="border border-app rounded-xl overflow-hidden">
+                        {(leavesViewMode === "month" || leavesViewMode === "year") && (
+                          <div className="px-4 py-3 bg-ink-800/50 border-b border-app">
+                            <h5 className="text-sm font-semibold text-ptt-cyan">
+                              {group.label}
+                              <span className="text-xs text-muted font-normal ml-2">
+                                ({group.leaves.length} รายการ • {group.leaves.reduce((sum, l) => sum + l.days, 0)} วัน)
+                              </span>
+                            </h5>
+                          </div>
+                        )}
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-ink-800/50 border-b border-app">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-app">ประเภท</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-app">วันที่</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold text-app">จำนวนวัน</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-app">เหตุผล</th>
+                                <th className="px-4 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                              {group.leaves.map((leave) => {
+                                const fromDate = new Date(leave.fromDate);
+                                const toDate = new Date(leave.toDate);
+                                const isPast = toDate < today;
+                                const isCurrent = fromDate <= today && toDate >= today;
+                                return (
+                                  <tr key={leave.id} className="hover:bg-ink-800/30 transition-colors">
+                                    <td className="px-4 py-3">
+                                      <span className="text-sm text-app font-medium">{leave.type}</span>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-app">
+                                      <div>
+                                        <div className="font-medium">
+                                          {fromDate.toLocaleDateString("th-TH", { 
+                                            year: "numeric", 
+                                            month: "short", 
+                                            day: "numeric" 
+                                          })}
+                                        </div>
+                                        <div className="text-xs text-muted">
+                                          ถึง {toDate.toLocaleDateString("th-TH", { 
+                                            year: "numeric", 
+                                            month: "short", 
+                                            day: "numeric" 
+                                          })}
+                                        </div>
+                                        {(isPast || isCurrent) && (
+                                          <div className="text-xs mt-1">
+                                            {isCurrent ? (
+                                              <span className="text-blue-400">● กำลังลา</span>
+                                            ) : (
+                                              <span className="text-muted">● ลาเสร็จแล้ว</span>
+                                            )}
+                                          </div>
                                         )}
                                       </div>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <span className="text-sm text-app font-semibold">{leave.days} วัน</span>
-                                </td>
-                                <td className="px-4 py-3 text-sm text-muted max-w-xs">
-                                  <div className="truncate" title={leave.reason || "-"}>
-                                    {leave.reason || "-"}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <StatusTag variant={getStatusVariant(leave.status)}>
-                                    {leave.status}
-                                  </StatusTag>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <span className="text-sm text-app font-semibold">{leave.days} วัน</span>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-muted max-w-xs">
+                                      <div className="truncate" title={leave.reason || "-"}>
+                                        {leave.reason || "-"}
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <StatusTag variant={getStatusVariant(leave.status)}>
+                                        {leave.status}
+                                      </StatusTag>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
                     <div className="text-center pt-4">
                       <p className="text-xs text-muted">
                         แสดงทั้งหมด {allLeaves.length} รายการ • 
@@ -1117,7 +1417,7 @@ export default function EmployeeDetail() {
 
           {activeTab === "attendance" && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-semibold text-app font-display">
                     เวลาเข้าออก
@@ -1126,18 +1426,105 @@ export default function EmployeeDetail() {
                     ตั้งแต่ {employee.startDate} (ระยะเวลา {workDuration} เดือน)
                   </p>
                 </div>
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded"></div>
-                    <span className="text-muted">ตรงเวลา: {onTimeCount}</span>
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                  {/* View Mode Selector - Button Group */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs text-muted flex items-center gap-1">
+                      <Filter className="w-3 h-3" />
+                      แสดงข้อมูลแบบ:
+                    </label>
+                    <div className="flex items-center gap-1 bg-ink-800/50 p-1 rounded-lg border border-app">
+                      <button
+                        onClick={() => handleAttendanceViewModeChange("day")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                          attendanceViewMode === "day"
+                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                            : "text-muted hover:text-app hover:bg-ink-800"
+                        }`}
+                        title="แสดงรายละเอียดแต่ละวัน"
+                      >
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        วัน
+                      </button>
+                      <button
+                        onClick={() => handleAttendanceViewModeChange("month")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                          attendanceViewMode === "month"
+                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                            : "text-muted hover:text-app hover:bg-ink-800"
+                        }`}
+                        title="จัดกลุ่มตามเดือน"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        เดือน
+                      </button>
+                      <button
+                        onClick={() => handleAttendanceViewModeChange("year")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                          attendanceViewMode === "year"
+                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                            : "text-muted hover:text-app hover:bg-ink-800"
+                        }`}
+                        title="จัดกลุ่มตามปี"
+                      >
+                        <CalendarRange className="w-3.5 h-3.5" />
+                        ปี
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-                    <span className="text-muted">สาย: {lateCount}</span>
+                  
+                  {/* Date Range Filters */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs text-muted flex items-center gap-1">
+                      <CalendarRange className="w-3 h-3" />
+                      กรองตามวันที่:
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={attendanceDateFrom}
+                        onChange={(e) => setAttendanceDateFrom(e.target.value)}
+                        className="px-3 py-1.5 bg-ink-800 border border-app rounded-lg text-sm text-app
+                                 focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                        placeholder="จากวันที่"
+                      />
+                      <span className="text-muted text-sm">ถึง</span>
+                      <input
+                        type="date"
+                        value={attendanceDateTo}
+                        onChange={(e) => setAttendanceDateTo(e.target.value)}
+                        className="px-3 py-1.5 bg-ink-800 border border-app rounded-lg text-sm text-app
+                                 focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                        placeholder="ถึงวันที่"
+                      />
+                      {(attendanceDateFrom || attendanceDateTo) && (
+                        <button
+                          onClick={() => {
+                            setAttendanceDateFrom("");
+                            setAttendanceDateTo("");
+                          }}
+                          className="px-3 py-1.5 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors font-medium"
+                          title="ล้างการกรอง"
+                        >
+                          ล้าง
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-500 rounded"></div>
-                    <span className="text-muted">ขาด: {absentCount}</span>
+                  
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-500 rounded"></div>
+                      <span className="text-muted">ตรงเวลา: {onTimeCount}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                      <span className="text-muted">สาย: {lateCount}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-red-500 rounded"></div>
+                      <span className="text-muted">ขาด: {absentCount}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1304,65 +1691,133 @@ export default function EmployeeDetail() {
 
               {/* Detailed Table */}
               <div>
-                <h4 className="text-md font-semibold text-app mb-3 font-display">
-                  รายละเอียดการเข้างาน
-                </h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-md font-semibold text-app font-display flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    รายละเอียดการเข้างาน
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    {attendanceViewMode === "day" && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-ptt-blue/20 text-ptt-cyan border border-ptt-blue/30">
+                        <CalendarDays className="w-3 h-3" />
+                        แสดงรายวัน
+                      </span>
+                    )}
+                    {attendanceViewMode === "month" && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-ptt-blue/20 text-ptt-cyan border border-ptt-blue/30">
+                        <Calendar className="w-3 h-3" />
+                        จัดกลุ่มตามเดือน
+                      </span>
+                    )}
+                    {attendanceViewMode === "year" && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-ptt-blue/20 text-ptt-cyan border border-ptt-blue/30">
+                        <CalendarRange className="w-3 h-3" />
+                        จัดกลุ่มตามปี
+                      </span>
+                    )}
+                  </div>
+                </div>
                 {allAttendance.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-ink-800/50 border-b border-app">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-app">วันที่</th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-app">เวลาเข้า</th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-app">เวลาออก</th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-app">ชั่วโมงทำงาน</th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
-                            {employeeShift && (
-                              <th className="px-4 py-3 text-center text-xs font-semibold text-app">OT</th>
-                            )}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {allAttendance.map((log) => {
-                            const hours = log.checkIn !== "-" && log.checkOut !== "-" 
-                              ? calculateWorkingHours(log.checkIn, log.checkOut) 
-                              : 0;
-                            const otHours = employeeShift && hours > shiftHours ? hours - shiftHours : 0;
-                            return (
-                              <tr key={log.id} className="hover:bg-ink-800/30 transition-colors">
-                                <td className="px-4 py-3 text-sm text-app">{log.date}</td>
-                                <td className="px-4 py-3 text-center text-sm text-app font-mono">
-                                  {log.checkIn !== "-" ? log.checkIn : "-"}
-                                </td>
-                                <td className="px-4 py-3 text-center text-sm text-app font-mono">
-                                  {log.checkOut !== "-" ? log.checkOut : "-"}
-                                </td>
-                                <td className="px-4 py-3 text-center text-sm text-app font-mono">
-                                  {hours > 0 ? formatTime(hours) : "-"}
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <StatusTag variant={getStatusVariant(log.status)}>
-                                    {log.status}
-                                  </StatusTag>
-                                </td>
-                                {employeeShift && (
-                                  <td className="px-4 py-3 text-center">
-                                    {otHours > 0 ? (
-                                      <span className="text-green-400 font-semibold text-xs">
-                                        +{formatTime(otHours)}
-                                      </span>
-                                    ) : (
-                                      <span className="text-muted text-xs">-</span>
-                                    )}
-                                  </td>
-                                )}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                  <div className="space-y-4">
+                    {groupedAttendance.map((group) => {
+                      const groupOnTime = group.logs.filter(l => l.status === "ตรงเวลา").length;
+                      const groupLate = group.logs.filter(l => l.status.includes("สาย")).length;
+                      const groupAbsent = group.logs.filter(l => l.status === "ขาดงาน").length;
+                      const groupLeave = group.logs.filter(l => l.status === "ลา").length;
+                      const groupWorkingHours = group.logs
+                        .filter(l => l.checkIn !== "-" && l.checkOut !== "-")
+                        .reduce((sum, l) => sum + calculateWorkingHours(l.checkIn, l.checkOut), 0);
+                      
+                      return (
+                        <div key={group.key} className="border border-app rounded-xl overflow-hidden">
+                          {(attendanceViewMode === "month" || attendanceViewMode === "year") && (
+                            <div className="px-4 py-3 bg-ink-800/50 border-b border-app">
+                              <div className="flex items-center justify-between">
+                                <h5 className="text-sm font-semibold text-ptt-cyan">
+                                  {group.label}
+                                  <span className="text-xs text-muted font-normal ml-2">
+                                    ({group.logs.length} วัน)
+                                  </span>
+                                </h5>
+                                <div className="flex items-center gap-3 text-xs">
+                                  <span className="text-green-400">ตรงเวลา: {groupOnTime}</span>
+                                  <span className="text-yellow-400">สาย: {groupLate}</span>
+                                  <span className="text-red-400">ขาด: {groupAbsent}</span>
+                                  <span className="text-blue-400">ลา: {groupLeave}</span>
+                                  {groupWorkingHours > 0 && (
+                                    <span className="text-ptt-cyan">ชม.: {formatTime(groupWorkingHours)}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead className="bg-ink-800/50 border-b border-app">
+                                <tr>
+                                  <th className="px-4 py-3 text-left text-xs font-semibold text-app">วันที่</th>
+                                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">เวลาเข้า</th>
+                                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">เวลาออก</th>
+                                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">ชั่วโมงทำงาน</th>
+                                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
+                                  {employeeShift && (
+                                    <th className="px-4 py-3 text-center text-xs font-semibold text-app">OT</th>
+                                  )}
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-white/5">
+                                {group.logs.map((log) => {
+                                  const hours = log.checkIn !== "-" && log.checkOut !== "-" 
+                                    ? calculateWorkingHours(log.checkIn, log.checkOut) 
+                                    : 0;
+                                  const otHours = employeeShift && hours > shiftHours ? hours - shiftHours : 0;
+                                  return (
+                                    <tr key={log.id} className="hover:bg-ink-800/30 transition-colors">
+                                      <td className="px-4 py-3 text-sm text-app">
+                                        {attendanceViewMode === "day" 
+                                          ? new Date(log.date).toLocaleDateString("th-TH", { 
+                                              year: "numeric", 
+                                              month: "short", 
+                                              day: "numeric",
+                                              weekday: "short"
+                                            })
+                                          : log.date
+                                        }
+                                      </td>
+                                      <td className="px-4 py-3 text-center text-sm text-app font-mono">
+                                        {log.checkIn !== "-" ? log.checkIn : "-"}
+                                      </td>
+                                      <td className="px-4 py-3 text-center text-sm text-app font-mono">
+                                        {log.checkOut !== "-" ? log.checkOut : "-"}
+                                      </td>
+                                      <td className="px-4 py-3 text-center text-sm text-app font-mono">
+                                        {hours > 0 ? formatTime(hours) : "-"}
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <StatusTag variant={getStatusVariant(log.status)}>
+                                          {log.status}
+                                        </StatusTag>
+                                      </td>
+                                      {employeeShift && (
+                                        <td className="px-4 py-3 text-center">
+                                          {otHours > 0 ? (
+                                            <span className="text-green-400 font-semibold text-xs">
+                                              +{formatTime(otHours)}
+                                            </span>
+                                          ) : (
+                                            <span className="text-muted text-xs">-</span>
+                                          )}
+                                        </td>
+                                      )}
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })}
                     <div className="text-center pt-4">
                       <p className="text-xs text-muted">
                         แสดงทั้งหมด {allAttendance.length} รายการ • 

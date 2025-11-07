@@ -33,8 +33,8 @@ export default function Attendance() {
   });
 
   // Standard work time: 08:30
-  const STANDARD_CHECK_IN = "08:30";
-  const STANDARD_CHECK_OUT = "17:00";
+  const STANDARD_CHECK_IN = "06:00";
+  const STANDARD_CHECK_OUT = "12:00";
 
   // Get employee's shift
   const getEmployeeShift = (empCode: string) => {
