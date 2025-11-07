@@ -23,8 +23,8 @@ export const employees: Employee[] = [
     id: 1,
     code: "EMP-0001",
     name: "สมชาย ใจดี",
-    dept: "IT",
-    position: "Senior Developer",
+    dept: "ปั๊มน้ำมัน",
+    position: "หัวหน้าปั๊ม",
     status: "Active",
     startDate: "2023-06-01",
     email: "somchai@ptt.co.th",
@@ -38,8 +38,8 @@ export const employees: Employee[] = [
     id: 2,
     code: "EMP-0002",
     name: "สมหญิง รักงาน",
-    dept: "HR",
-    position: "HR Officer",
+    dept: "ปั๊มน้ำมัน",
+    position: "แคชเชียร์",
     status: "Active",
     startDate: "2022-11-15",
     email: "somying@ptt.co.th",
@@ -53,8 +53,8 @@ export const employees: Employee[] = [
     id: 3,
     code: "EMP-0003",
     name: "วรพล ตั้งใจ",
-    dept: "Account",
-    position: "Senior Accountant",
+    dept: "ปั๊มน้ำมัน",
+    position: "พนักงานปั๊ม",
     status: "Active",
     startDate: "2024-01-10",
     email: "worapol@ptt.co.th",
@@ -68,8 +68,8 @@ export const employees: Employee[] = [
     id: 4,
     code: "EMP-0004",
     name: "กิตติคุณ ใฝ่รู้",
-    dept: "IT",
-    position: "Frontend Developer",
+    dept: "เซเว่น",
+    position: "พนักงานร้าน",
     status: "Active",
     startDate: "2024-03-20",
     email: "kittikun@ptt.co.th",
@@ -83,8 +83,8 @@ export const employees: Employee[] = [
     id: 5,
     code: "EMP-0005",
     name: "พิมพ์ชนก สมใจ",
-    dept: "Marketing",
-    position: "Marketing Manager",
+    dept: "ปึงหงี่เชียง",
+    position: "หัวหน้าร้าน",
     status: "Active",
     startDate: "2021-08-05",
     email: "pimchanok@ptt.co.th",
@@ -98,8 +98,8 @@ export const employees: Employee[] = [
     id: 6,
     code: "EMP-0006",
     name: "ธีรภัทร แข็งแรง",
-    dept: "HR",
-    position: "Recruiter",
+    dept: "เจ้าสัว",
+    position: "พนักงานร้าน",
     status: "Leave",
     startDate: "2023-02-14",
     email: "teerabhat@ptt.co.th",
@@ -113,8 +113,8 @@ export const employees: Employee[] = [
     id: 7,
     code: "EMP-0007",
     name: "ประเสริฐ ดีงาม",
-    dept: "Production",
-    position: "Production Operator",
+    dept: "ร้านเจียง",
+    position: "พนักงานร้าน",
     status: "Active",
     startDate: "2024-05-01",
     email: "prasert@ptt.co.th",
@@ -128,8 +128,8 @@ export const employees: Employee[] = [
     id: 8,
     code: "EMP-0008",
     name: "อัญชลี มีชัย",
-    dept: "Security",
-    position: "Security Guard",
+    dept: "ร้านเชสเตอร์",
+    position: "พนักงานร้าน",
     status: "Active",
     startDate: "2023-09-10",
     email: "anchalee@ptt.co.th",
@@ -138,6 +138,66 @@ export const employees: Employee[] = [
     shiftId: 3, // กะดึก
     otRate: 250, // 250 บาท/ชั่วโมง
     category: "ร้านเชสเตอร์"
+  },
+  {
+    id: 9,
+    code: "EMP-0009",
+    name: "วิภา รักษ์สุข",
+    dept: "แม่บ้าน",
+    position: "หัวหน้าแม่บ้าน",
+    status: "Active",
+    startDate: "2022-03-01",
+    email: "wipa@ptt.co.th",
+    phone: "089-012-3456",
+    avatar: "https://ui-avatars.com/api/?name=วิภา+รักษ์สุข&background=19b7ff&color=fff",
+    shiftId: 1, // กะเช้า
+    otRate: 180, // 180 บาท/ชั่วโมง
+    category: "แม่บ้าน"
+  },
+  {
+    id: 10,
+    code: "EMP-0010",
+    name: "สมเกียรติ ใจดี",
+    dept: "ปั๊มน้ำมัน",
+    position: "พนักงานปั๊ม",
+    status: "Active",
+    startDate: "2024-02-15",
+    email: "somkiat@ptt.co.th",
+    phone: "090-123-4567",
+    avatar: "https://ui-avatars.com/api/?name=สมเกียรติ+ใจดี&background=2867e0&color=fff",
+    shiftId: 2, // กะบ่าย
+    otRate: 200, // 200 บาท/ชั่วโมง
+    category: "ปั๊ม"
+  },
+  {
+    id: 11,
+    code: "EMP-0011",
+    name: "นภัสวรรณ สวยงาม",
+    dept: "ยิ้ม",
+    position: "พนักงานร้าน",
+    status: "Active",
+    startDate: "2023-11-20",
+    email: "napasawan@ptt.co.th",
+    phone: "091-234-5678",
+    avatar: "https://ui-avatars.com/api/?name=นภัสวรรณ+สวยงาม&background=19b7ff&color=fff",
+    shiftId: 1, // กะเช้า
+    otRate: 180, // 180 บาท/ชั่วโมง
+    category: "ยิ้ม"
+  },
+  {
+    id: 12,
+    code: "EMP-0012",
+    name: "กมลชนก ใสสะอาด",
+    dept: "แม่บ้าน",
+    position: "แม่บ้าน",
+    status: "Active",
+    startDate: "2023-08-10",
+    email: "kamolchanok@ptt.co.th",
+    phone: "092-345-6789",
+    avatar: "https://ui-avatars.com/api/?name=กมลชนก+ใสสะอาด&background=19b7ff&color=fff",
+    shiftId: 1, // กะเช้า
+    otRate: 170, // 170 บาท/ชั่วโมง
+    category: "แม่บ้าน"
   }
 ];
 
@@ -871,4 +931,833 @@ export const fundSummary = {
   totalExpenditures: 160000,
   pendingApprovals: 2
 };
+
+// ========== 16) EMPLOYEE HISTORY (ประวัติการทำงาน) ==========
+// ประวัติการขึ้น-ลดเงินเดือน
+export interface SalaryHistory {
+  id: number;
+  empCode: string;
+  empName: string;
+  date: string;
+  type: "ขึ้นเงินเดือน" | "ลดเงินเดือน" | "ปรับเงินเดือน";
+  oldSalary: number;
+  newSalary: number;
+  changeAmount: number;
+  reason: string;
+  note: string; // หมายเหตุ
+  approvedBy: string;
+}
+
+export const salaryHistory: SalaryHistory[] = [
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    date: "2024-06-01",
+    type: "ขึ้นเงินเดือน",
+    oldSalary: 40000,
+    newSalary: 45000,
+    changeAmount: 5000,
+    reason: "ครบรอบ 1 ปี และผลงานดีเยี่ยม",
+    note: "ขึ้นเงินเดือนตามนโยบายประจำปี พร้อมปรับ OT Rate เป็น 250 บาท/ชั่วโมง",
+    approvedBy: "ผจก.IT"
+  },
+  {
+    id: 2,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    date: "2023-12-01",
+    type: "ขึ้นเงินเดือน",
+    oldSalary: 35000,
+    newSalary: 40000,
+    changeAmount: 5000,
+    reason: "เลื่อนตำแหน่งเป็น Senior Developer",
+    note: "ขึ้นเงินเดือนพร้อมกับการเลื่อนตำแหน่ง",
+    approvedBy: "ผจก.IT"
+  },
+  {
+    id: 3,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    date: "2023-06-01",
+    type: "ปรับเงินเดือน",
+    oldSalary: 30000,
+    newSalary: 35000,
+    changeAmount: 5000,
+    reason: "เริ่มงานตำแหน่ง Developer",
+    note: "เงินเดือนเริ่มต้นตามตำแหน่ง",
+    approvedBy: "ผจก.IT"
+  },
+  {
+    id: 4,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    date: "2023-11-15",
+    type: "ขึ้นเงินเดือน",
+    oldSalary: 30000,
+    newSalary: 35000,
+    changeAmount: 5000,
+    reason: "ครบรอบ 1 ปี",
+    note: "ขึ้นเงินเดือนตามมาตรฐานการประเมินผลงานประจำปี",
+    approvedBy: "ผจก.HR"
+  },
+  {
+    id: 5,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    date: "2022-11-15",
+    type: "ปรับเงินเดือน",
+    oldSalary: 28000,
+    newSalary: 30000,
+    changeAmount: 2000,
+    reason: "เริ่มงานตำแหน่ง HR Officer",
+    note: "เงินเดือนเริ่มต้นตามตำแหน่ง",
+    approvedBy: "ผจก.HR"
+  },
+  {
+    id: 6,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    date: "2024-07-01",
+    type: "ขึ้นเงินเดือน",
+    oldSalary: 35000,
+    newSalary: 40000,
+    changeAmount: 5000,
+    reason: "เลื่อนตำแหน่งเป็น Senior Accountant",
+    note: "ขึ้นเงินเดือนพร้อมกับการเลื่อนตำแหน่ง เนื่องจากผลงานดีเยี่ยม",
+    approvedBy: "ผู้จัดการฝ่ายบัญชี"
+  },
+  {
+    id: 7,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    date: "2024-01-10",
+    type: "ปรับเงินเดือน",
+    oldSalary: 32000,
+    newSalary: 35000,
+    changeAmount: 3000,
+    reason: "เริ่มงานตำแหน่ง Accountant",
+    note: "เงินเดือนเริ่มต้นตามตำแหน่ง",
+    approvedBy: "ผู้จัดการฝ่ายบัญชี"
+  },
+  {
+    id: 8,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    date: "2024-09-01",
+    type: "ขึ้นเงินเดือน",
+    oldSalary: 35000,
+    newSalary: 38000,
+    changeAmount: 3000,
+    reason: "ครบรอบ 6 เดือน และผลงานดี",
+    note: "ขึ้นเงินเดือนตามผลการประเมิน",
+    approvedBy: "ผจก.IT"
+  },
+  {
+    id: 9,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    date: "2024-03-20",
+    type: "ปรับเงินเดือน",
+    oldSalary: 30000,
+    newSalary: 35000,
+    changeAmount: 5000,
+    reason: "โยกย้ายตำแหน่งเป็น Frontend Developer",
+    note: "ปรับเงินเดือนตามตำแหน่งใหม่",
+    approvedBy: "ผจก.IT"
+  },
+  {
+    id: 10,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    date: "2023-08-05",
+    type: "ขึ้นเงินเดือน",
+    oldSalary: 45000,
+    newSalary: 50000,
+    changeAmount: 5000,
+    reason: "ครบรอบ 2 ปี และผลงานโดดเด่น",
+    note: "ขึ้นเงินเดือนตามผลการประเมินประจำปี และผลงานที่โดดเด่นในโครงการต่างๆ",
+    approvedBy: "ผู้จัดการฝ่ายการตลาด"
+  },
+  {
+    id: 11,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    date: "2022-08-05",
+    type: "ขึ้นเงินเดือน",
+    oldSalary: 40000,
+    newSalary: 45000,
+    changeAmount: 5000,
+    reason: "ครบรอบ 1 ปี",
+    note: "ขึ้นเงินเดือนตามมาตรฐานการประเมินผลงานประจำปี",
+    approvedBy: "ผู้จัดการฝ่ายการตลาด"
+  },
+  {
+    id: 12,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    date: "2021-08-05",
+    type: "ปรับเงินเดือน",
+    oldSalary: 35000,
+    newSalary: 40000,
+    changeAmount: 5000,
+    reason: "เริ่มงานตำแหน่ง Marketing Manager",
+    note: "เงินเดือนเริ่มต้นตามตำแหน่ง",
+    approvedBy: "ผู้จัดการฝ่ายการตลาด"
+  }
+];
+
+// ประวัติทันบนหรือการลงโทษ
+export interface RewardPenaltyHistory {
+  id: number;
+  empCode: string;
+  empName: string;
+  date: string;
+  type: "ทันบน" | "ลงโทษ";
+  category: string; // เช่น "ทันบนผลงาน", "ทันบนความดี", "ตักเตือน", "ใบเหลือง", "ใบแดง"
+  title: string;
+  description: string;
+  note: string; // หมายเหตุ
+  issuedBy: string;
+  amount?: number; // จำนวนเงิน (สำหรับทันบน)
+}
+
+export const rewardPenaltyHistory: RewardPenaltyHistory[] = [
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    date: "2024-09-15",
+    type: "ทันบน",
+    category: "ทันบนผลงาน",
+    title: "ทันบนผลงานดีเยี่ยม Q3 2024",
+    description: "ทำงานดีเยี่ยม มีความรับผิดชอบสูง และช่วยทีมแก้ปัญหาได้อย่างรวดเร็ว",
+    note: "ได้รับรางวัลพนักงานดีเด่นประจำไตรมาส และเงินรางวัล 5,000 บาท",
+    issuedBy: "ผจก.IT",
+    amount: 5000
+  },
+  {
+    id: 2,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    date: "2024-03-20",
+    type: "ทันบน",
+    category: "ทันบนความดี",
+    title: "ทันบนช่วยเหลือเพื่อนร่วมงาน",
+    description: "ช่วยสอนและแนะนำเพื่อนร่วมงานใหม่ให้เข้าใจระบบได้อย่างรวดเร็ว",
+    note: "แสดงให้เห็นถึงจิตใจที่ดีและความพร้อมในการช่วยเหลือทีม",
+    issuedBy: "หัวหน้าทีม IT",
+    amount: 2000
+  },
+  {
+    id: 3,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    date: "2024-12-10",
+    type: "ทันบน",
+    category: "ทันบนผลงาน",
+    title: "ทันบนโครงการสำเร็จลุล่วง",
+    description: "นำทีมพัฒนาโครงการสำคัญให้สำเร็จลุล่วงก่อนกำหนดเวลา",
+    note: "แสดงให้เห็นถึงความสามารถในการเป็นผู้นำและจัดการโครงการ",
+    issuedBy: "ผจก.IT",
+    amount: 3000
+  },
+  {
+    id: 4,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    date: "2024-10-05",
+    type: "ทันบน",
+    category: "ทันบนความดี",
+    title: "ทันบนการช่วยเหลือทีม",
+    description: "ช่วยจัดกิจกรรมและดูแลสวัสดิการพนักงานได้เป็นอย่างดี",
+    note: "แสดงให้เห็นถึงความเอาใจใส่และความรับผิดชอบ",
+    issuedBy: "ผจก.HR",
+    amount: 2000
+  },
+  {
+    id: 5,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    date: "2023-12-20",
+    type: "ทันบน",
+    category: "ทันบนผลงาน",
+    title: "ทันบนการทำงานดีเยี่ยม",
+    description: "ทำงานได้อย่างมีประสิทธิภาพและมีความรับผิดชอบสูง",
+    note: "ได้รับรางวัลพนักงานดีเด่นประจำปี",
+    issuedBy: "ผจก.HR",
+    amount: 5000
+  },
+  {
+    id: 6,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    date: "2024-08-10",
+    type: "ทันบน",
+    category: "ทันบนผลงาน",
+    title: "ทันบนความละเอียดรอบคอบ",
+    description: "ตรวจสอบเอกสารทางการเงินได้อย่างละเอียดและพบข้อผิดพลาดที่สำคัญ",
+    note: "ช่วยป้องกันความเสียหายทางการเงินได้เป็นจำนวนมาก",
+    issuedBy: "ผู้จัดการฝ่ายบัญชี",
+    amount: 3000
+  },
+  {
+    id: 7,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    date: "2024-11-15",
+    type: "ทันบน",
+    category: "ทันบนผลงาน",
+    title: "ทันบนการทำงานเป็นทีม",
+    description: "ทำงานร่วมกับทีมได้อย่างดีและช่วยแก้ปัญหาที่ซับซ้อน",
+    note: "แสดงให้เห็นถึงความสามารถในการทำงานเป็นทีม",
+    issuedBy: "ผู้จัดการฝ่ายบัญชี",
+    amount: 2000
+  },
+  {
+    id: 8,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    date: "2024-05-15",
+    type: "ลงโทษ",
+    category: "ตักเตือน",
+    title: "ตักเตือนเรื่องการมาสาย",
+    description: "มาสายบ่อยครั้งในช่วงเดือนเมษายน-พฤษภาคม 2024",
+    note: "ตักเตือนครั้งแรก กรุณาปรับปรุงการตรงต่อเวลา หากยังมีพฤติกรรมเดิมจะพิจารณาใบเหลือง",
+    issuedBy: "หัวหน้าทีม IT"
+  },
+  {
+    id: 9,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    date: "2024-10-20",
+    type: "ทันบน",
+    category: "ทันบนผลงาน",
+    title: "ทันบนการพัฒนาตนเอง",
+    description: "พัฒนาทักษะการเขียนโปรแกรมได้อย่างรวดเร็วและมีผลงานดีขึ้น",
+    note: "แสดงให้เห็นถึงความมุ่งมั่นในการพัฒนาตนเอง",
+    issuedBy: "หัวหน้าทีม IT",
+    amount: 1500
+  },
+  {
+    id: 10,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    date: "2024-11-01",
+    type: "ทันบน",
+    category: "ทันบนผลงาน",
+    title: "ทันบนโครงการสำเร็จ",
+    description: "นำทีมทำโครงการการตลาดให้สำเร็จและได้ผลตอบรับที่ดี",
+    note: "แสดงให้เห็นถึงความสามารถในการเป็นผู้นำและจัดการโครงการ",
+    issuedBy: "ผู้จัดการฝ่ายการตลาด",
+    amount: 5000
+  },
+  {
+    id: 11,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    date: "2023-12-15",
+    type: "ทันบน",
+    category: "ทันบนผลงาน",
+    title: "ทันบนผลงานดีเยี่ยม",
+    description: "ทำงานได้อย่างมีประสิทธิภาพและมีผลงานโดดเด่น",
+    note: "ได้รับรางวัลพนักงานดีเด่นประจำปี",
+    issuedBy: "ผู้จัดการฝ่ายการตลาด",
+    amount: 5000
+  },
+  {
+    id: 12,
+    empCode: "EMP-0006",
+    empName: "ธีรภัทร แข็งแรง",
+    date: "2024-06-20",
+    type: "ลงโทษ",
+    category: "ใบเหลือง",
+    title: "ใบเหลืองเรื่องการขาดงาน",
+    description: "ขาดงานโดยไม่แจ้งล่วงหน้า 3 ครั้งในเดือนมิถุนายน",
+    note: "ใบเหลืองครั้งที่ 1 หากยังมีพฤติกรรมเดิมจะพิจารณาใบแดงและอาจมีการพิจารณาเลิกจ้าง",
+    issuedBy: "ผจก.HR"
+  },
+  {
+    id: 13,
+    empCode: "EMP-0006",
+    empName: "ธีรภัทร แข็งแรง",
+    date: "2024-04-10",
+    type: "ลงโทษ",
+    category: "ตักเตือน",
+    title: "ตักเตือนเรื่องการมาสาย",
+    description: "มาสายบ่อยครั้งในช่วงเดือนมีนาคม-เมษายน 2024",
+    note: "ตักเตือนครั้งแรก กรุณาปรับปรุงการตรงต่อเวลา",
+    issuedBy: "ผจก.HR"
+  }
+];
+
+// ประวัติการโยก-ย้ายตำแหน่ง
+export interface PositionTransferHistory {
+  id: number;
+  empCode: string;
+  empName: string;
+  date: string;
+  type: "โยกย้าย" | "เลื่อนตำแหน่ง" | "ลดตำแหน่ง" | "เปลี่ยนแผนก";
+  oldDept: string;
+  newDept: string;
+  oldPosition: string;
+  newPosition: string;
+  reason: string;
+  note: string; // หมายเหตุ
+  approvedBy: string;
+}
+
+export const positionTransferHistory: PositionTransferHistory[] = [
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    date: "2023-12-01",
+    type: "เลื่อนตำแหน่ง",
+    oldDept: "ปั๊มน้ำมัน",
+    newDept: "ปั๊มน้ำมัน",
+    oldPosition: "พนักงานปั๊ม",
+    newPosition: "หัวหน้าปั๊ม",
+    reason: "ผลงานดีเยี่ยมและมีทักษะการเป็นผู้นำ",
+    note: "เลื่อนตำแหน่งตามผลการประเมินประจำปี และได้รับมอบหมายให้ดูแลทีมพนักงานปั๊ม",
+    approvedBy: "ผู้จัดการปั๊ม"
+  },
+  {
+    id: 2,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    date: "2023-06-01",
+    type: "เปลี่ยนแผนก",
+    oldDept: "เซเว่น",
+    newDept: "ปั๊มน้ำมัน",
+    oldPosition: "พนักงานร้าน",
+    newPosition: "พนักงานปั๊ม",
+    reason: "เปลี่ยนแผนกตามความสนใจและทักษะ",
+    note: "โยกย้ายจากร้านเซเว่นมาทำงานในปั๊มน้ำมัน เนื่องจากมีความสนใจด้านการบริการน้ำมัน",
+    approvedBy: "ผู้จัดการปั๊ม"
+  },
+  {
+    id: 3,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    date: "2023-05-01",
+    type: "เปลี่ยนแผนก",
+    oldDept: "ปั๊มน้ำมัน",
+    newDept: "ปั๊มน้ำมัน",
+    oldPosition: "พนักงานปั๊ม",
+    newPosition: "แคชเชียร์",
+    reason: "เปลี่ยนตำแหน่งตามความสนใจและทักษะ",
+    note: "เปลี่ยนจากพนักงานปั๊มมาเป็นแคชเชียร์ เนื่องจากมีความสนใจด้านการเงินและการบริการลูกค้า",
+    approvedBy: "ผู้จัดการปั๊ม"
+  },
+  {
+    id: 4,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    date: "2022-11-15",
+    type: "เปลี่ยนแผนก",
+    oldDept: "ยิ้ม",
+    newDept: "ปั๊มน้ำมัน",
+    oldPosition: "พนักงานร้าน",
+    newPosition: "พนักงานปั๊ม",
+    reason: "เปลี่ยนแผนกเพื่อพัฒนาทักษะ",
+    note: "โยกย้ายจากร้านยิ้มมาทำงานในปั๊มน้ำมัน เพื่อพัฒนาทักษะด้านการบริการ",
+    approvedBy: "ผู้จัดการปั๊ม"
+  },
+  {
+    id: 5,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    date: "2024-07-01",
+    type: "เลื่อนตำแหน่ง",
+    oldDept: "ปั๊มน้ำมัน",
+    newDept: "ปั๊มน้ำมัน",
+    oldPosition: "พนักงานปั๊ม",
+    newPosition: "พนักงานปั๊ม",
+    reason: "ผลงานดีเยี่ยมและมีความเชี่ยวชาญสูง",
+    note: "ได้รับมอบหมายให้ดูแลงานเพิ่มเติมและเพิ่มความรับผิดชอบ",
+    approvedBy: "ผู้จัดการปั๊ม"
+  },
+  {
+    id: 6,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    date: "2024-03-20",
+    type: "โยกย้าย",
+    oldDept: "ปึงหงี่เชียง",
+    newDept: "เซเว่น",
+    oldPosition: "พนักงานร้าน",
+    newPosition: "พนักงานร้าน",
+    reason: "เปลี่ยนแผนกตามความสนใจ",
+    note: "โยกย้ายจากร้านปึงหงี่เชียงมาทำงานในร้านเซเว่น เนื่องจากต้องการพัฒนาทักษะด้านการบริการ",
+    approvedBy: "หัวหน้าร้านเซเว่น"
+  },
+  {
+    id: 7,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    date: "2024-01-15",
+    type: "เปลี่ยนแผนก",
+    oldDept: "เจ้าสัว",
+    newDept: "ปึงหงี่เชียง",
+    oldPosition: "พนักงานร้าน",
+    newPosition: "พนักงานร้าน",
+    reason: "เปลี่ยนแผนกเพื่อพัฒนาทักษะ",
+    note: "โยกย้ายจากร้านเจ้าสัวมาทำงานในร้านปึงหงี่เชียง เพื่อพัฒนาทักษะด้านการขาย",
+    approvedBy: "หัวหน้าร้านปึงหงี่เชียง"
+  },
+  {
+    id: 8,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    date: "2022-03-01",
+    type: "เลื่อนตำแหน่ง",
+    oldDept: "ปึงหงี่เชียง",
+    newDept: "ปึงหงี่เชียง",
+    oldPosition: "พนักงานร้าน",
+    newPosition: "หัวหน้าร้าน",
+    reason: "ผลงานดีเยี่ยมและมีทักษะการเป็นผู้นำ",
+    note: "เลื่อนตำแหน่งตามผลการประเมินประจำปี และได้รับมอบหมายให้ดูแลทีมร้านปึงหงี่เชียง",
+    approvedBy: "ผู้จัดการร้าน"
+  },
+  {
+    id: 9,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    date: "2021-08-05",
+    type: "เปลี่ยนแผนก",
+    oldDept: "ร้านเจียง",
+    newDept: "ปึงหงี่เชียง",
+    oldPosition: "พนักงานร้าน",
+    newPosition: "พนักงานร้าน",
+    reason: "เปลี่ยนแผนกตามความสนใจ",
+    note: "โยกย้ายจากร้านเจียงมาทำงานในร้านปึงหงี่เชียง เนื่องจากมีความสนใจด้านการขายสินค้าประเภทนี้",
+    approvedBy: "หัวหน้าร้านปึงหงี่เชียง"
+  },
+  {
+    id: 10,
+    empCode: "EMP-0006",
+    empName: "ธีรภัทร แข็งแรง",
+    date: "2024-01-15",
+    type: "เปลี่ยนแผนก",
+    oldDept: "ร้านเชสเตอร์",
+    newDept: "เจ้าสัว",
+    oldPosition: "พนักงานร้าน",
+    newPosition: "พนักงานร้าน",
+    reason: "เปลี่ยนแผนกตามความสนใจ",
+    note: "โยกย้ายจากร้านเชสเตอร์มาทำงานในร้านเจ้าสัว เนื่องจากมีความสนใจด้านการขายสินค้าประเภทนี้",
+    approvedBy: "หัวหน้าร้านเจ้าสัว"
+  },
+  {
+    id: 11,
+    empCode: "EMP-0006",
+    empName: "ธีรภัทร แข็งแรง",
+    date: "2023-02-14",
+    type: "เปลี่ยนแผนก",
+    oldDept: "ปั๊มน้ำมัน",
+    newDept: "ร้านเชสเตอร์",
+    oldPosition: "พนักงานปั๊ม",
+    newPosition: "พนักงานร้าน",
+    reason: "เปลี่ยนแผนกเพื่อพัฒนาทักษะ",
+    note: "โยกย้ายจากปั๊มน้ำมันมาทำงานในร้านเชสเตอร์ เพื่อพัฒนาทักษะด้านการบริการอาหาร",
+    approvedBy: "หัวหน้าร้านเชสเตอร์"
+  },
+  {
+    id: 12,
+    empCode: "EMP-0007",
+    empName: "ประเสริฐ ดีงาม",
+    date: "2024-05-01",
+    type: "เปลี่ยนแผนก",
+    oldDept: "ปั๊มน้ำมัน",
+    newDept: "ร้านเจียง",
+    oldPosition: "พนักงานปั๊ม",
+    newPosition: "พนักงานร้าน",
+    reason: "เปลี่ยนแผนกตามความสนใจ",
+    note: "โยกย้ายจากปั๊มน้ำมันมาทำงานในร้านเจียง เนื่องจากมีความสนใจด้านการขายสินค้า",
+    approvedBy: "หัวหน้าร้านเจียง"
+  },
+  {
+    id: 13,
+    empCode: "EMP-0008",
+    empName: "อัญชลี มีชัย",
+    date: "2023-09-10",
+    type: "เลื่อนตำแหน่ง",
+    oldDept: "ร้านเชสเตอร์",
+    newDept: "ร้านเชสเตอร์",
+    oldPosition: "พนักงานร้าน",
+    newPosition: "พนักงานร้าน",
+    reason: "ผลงานดีเยี่ยมและมีความรับผิดชอบสูง",
+    note: "ได้รับมอบหมายให้ดูแลงานเพิ่มเติมและเพิ่มความรับผิดชอบ",
+    approvedBy: "หัวหน้าร้านเชสเตอร์"
+  },
+  {
+    id: 14,
+    empCode: "EMP-0008",
+    empName: "อัญชลี มีชัย",
+    date: "2022-06-01",
+    type: "เปลี่ยนแผนก",
+    oldDept: "ยิ้ม",
+    newDept: "ร้านเชสเตอร์",
+    oldPosition: "พนักงานร้าน",
+    newPosition: "พนักงานร้าน",
+    reason: "เปลี่ยนแผนกตามความสนใจ",
+    note: "โยกย้ายจากร้านยิ้มมาทำงานในร้านเชสเตอร์ เนื่องจากมีความสนใจด้านการบริการอาหาร",
+    approvedBy: "หัวหน้าร้านเชสเตอร์"
+  },
+  {
+    id: 15,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    date: "2024-09-01",
+    type: "เลื่อนตำแหน่ง",
+    oldDept: "ปั๊มน้ำมัน",
+    newDept: "ปั๊มน้ำมัน",
+    oldPosition: "หัวหน้าปั๊ม",
+    newPosition: "หัวหน้าปั๊ม",
+    reason: "ผลงานดีเยี่ยมและมีทักษะการเป็นผู้นำทีม",
+    note: "ได้รับมอบหมายให้ดูแลงานเพิ่มเติมและเพิ่มความรับผิดชอบในการจัดการปั๊ม",
+    approvedBy: "ผู้จัดการปั๊ม"
+  },
+  {
+    id: 16,
+    empCode: "EMP-0009",
+    empName: "วิภา รักษ์สุข",
+    date: "2023-08-01",
+    type: "เลื่อนตำแหน่ง",
+    oldDept: "แม่บ้าน",
+    newDept: "แม่บ้าน",
+    oldPosition: "แม่บ้าน",
+    newPosition: "หัวหน้าแม่บ้าน",
+    reason: "ผลงานดีเยี่ยมและมีทักษะการเป็นผู้นำ",
+    note: "เลื่อนตำแหน่งตามผลการประเมินประจำปี และได้รับมอบหมายให้ดูแลทีมแม่บ้าน",
+    approvedBy: "ผู้จัดการปั๊ม"
+  },
+  {
+    id: 17,
+    empCode: "EMP-0011",
+    empName: "นภัสวรรณ สวยงาม",
+    date: "2023-11-20",
+    type: "เปลี่ยนแผนก",
+    oldDept: "ปั๊มน้ำมัน",
+    newDept: "ยิ้ม",
+    oldPosition: "พนักงานปั๊ม",
+    newPosition: "พนักงานร้าน",
+    reason: "เปลี่ยนแผนกตามความสนใจ",
+    note: "โยกย้ายจากปั๊มน้ำมันมาทำงานในร้านยิ้ม เนื่องจากมีความสนใจด้านการขายสินค้า",
+    approvedBy: "หัวหน้าร้านยิ้ม"
+  }
+];
+
+// ประวัติการทำงาน (Work History)
+export interface WorkHistory {
+  id: number;
+  empCode: string;
+  empName: string;
+  startDate: string;
+  endDate?: string; // ถ้าเป็น null แสดงว่ายังทำงานอยู่
+  dept: string;
+  position: string;
+  status: "Active" | "Completed" | "Transferred";
+  description?: string;
+}
+
+export const workHistory: WorkHistory[] = [
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    startDate: "2023-06-01",
+    endDate: "2023-11-30",
+    dept: "ปั๊มน้ำมัน",
+    position: "พนักงานปั๊ม",
+    status: "Transferred",
+    description: "เริ่มงานในตำแหน่งพนักงานปั๊ม"
+  },
+  {
+    id: 2,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    startDate: "2023-12-01",
+    dept: "ปั๊มน้ำมัน",
+    position: "หัวหน้าปั๊ม",
+    status: "Active",
+    description: "เลื่อนตำแหน่งเป็นหัวหน้าปั๊มในเดือนธันวาคม 2023"
+  },
+  {
+    id: 3,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    startDate: "2022-11-15",
+    endDate: "2023-04-30",
+    dept: "ยิ้ม",
+    position: "พนักงานร้าน",
+    status: "Transferred",
+    description: "เริ่มงานในตำแหน่งพนักงานร้านยิ้ม"
+  },
+  {
+    id: 4,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    startDate: "2023-05-01",
+    dept: "ปั๊มน้ำมัน",
+    position: "แคชเชียร์",
+    status: "Active",
+    description: "โยกย้ายจากร้านยิ้มมาทำงานในปั๊มน้ำมันเป็นแคชเชียร์"
+  },
+  {
+    id: 5,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    startDate: "2024-01-10",
+    dept: "ปั๊มน้ำมัน",
+    position: "พนักงานปั๊ม",
+    status: "Active",
+    description: "เริ่มงานในตำแหน่งพนักงานปั๊ม"
+  },
+  {
+    id: 6,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    startDate: "2024-01-15",
+    endDate: "2024-03-19",
+    dept: "เจ้าสัว",
+    position: "พนักงานร้าน",
+    status: "Transferred",
+    description: "เริ่มงานในตำแหน่งพนักงานร้านเจ้าสัว"
+  },
+  {
+    id: 7,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    startDate: "2024-03-20",
+    dept: "เซเว่น",
+    position: "พนักงานร้าน",
+    status: "Active",
+    description: "โยกย้ายจากร้านเจ้าสัวมาทำงานในร้านเซเว่น"
+  },
+  {
+    id: 8,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    startDate: "2021-08-05",
+    endDate: "2022-02-28",
+    dept: "ร้านเจียง",
+    position: "พนักงานร้าน",
+    status: "Transferred",
+    description: "เริ่มงานในตำแหน่งพนักงานร้านเจียง"
+  },
+  {
+    id: 9,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    startDate: "2022-03-01",
+    dept: "ปึงหงี่เชียง",
+    position: "หัวหน้าร้าน",
+    status: "Active",
+    description: "เลื่อนตำแหน่งเป็นหัวหน้าร้านปึงหงี่เชียง"
+  },
+  {
+    id: 10,
+    empCode: "EMP-0006",
+    empName: "ธีรภัทร แข็งแรง",
+    startDate: "2023-02-14",
+    endDate: "2024-01-14",
+    dept: "ร้านเชสเตอร์",
+    position: "พนักงานร้าน",
+    status: "Transferred",
+    description: "เริ่มงานในตำแหน่งพนักงานร้านเชสเตอร์"
+  },
+  {
+    id: 11,
+    empCode: "EMP-0006",
+    empName: "ธีรภัทร แข็งแรง",
+    startDate: "2024-01-15",
+    dept: "เจ้าสัว",
+    position: "พนักงานร้าน",
+    status: "Active",
+    description: "โยกย้ายจากร้านเชสเตอร์มาทำงานในร้านเจ้าสัว"
+  },
+  {
+    id: 12,
+    empCode: "EMP-0007",
+    empName: "ประเสริฐ ดีงาม",
+    startDate: "2024-05-01",
+    dept: "ร้านเจียง",
+    position: "พนักงานร้าน",
+    status: "Active",
+    description: "เริ่มงานในตำแหน่งพนักงานร้านเจียง"
+  },
+  {
+    id: 13,
+    empCode: "EMP-0008",
+    empName: "อัญชลี มีชัย",
+    startDate: "2022-06-01",
+    endDate: "2023-09-09",
+    dept: "ยิ้ม",
+    position: "พนักงานร้าน",
+    status: "Transferred",
+    description: "เริ่มงานในตำแหน่งพนักงานร้านยิ้ม"
+  },
+  {
+    id: 14,
+    empCode: "EMP-0008",
+    empName: "อัญชลี มีชัย",
+    startDate: "2023-09-10",
+    dept: "ร้านเชสเตอร์",
+    position: "พนักงานร้าน",
+    status: "Active",
+    description: "โยกย้ายจากร้านยิ้มมาทำงานในร้านเชสเตอร์"
+  },
+  {
+    id: 15,
+    empCode: "EMP-0009",
+    empName: "วิภา รักษ์สุข",
+    startDate: "2022-03-01",
+    endDate: "2023-07-31",
+    dept: "แม่บ้าน",
+    position: "แม่บ้าน",
+    status: "Transferred",
+    description: "เริ่มงานในตำแหน่งแม่บ้าน"
+  },
+  {
+    id: 16,
+    empCode: "EMP-0009",
+    empName: "วิภา รักษ์สุข",
+    startDate: "2023-08-01",
+    dept: "แม่บ้าน",
+    position: "หัวหน้าแม่บ้าน",
+    status: "Active",
+    description: "เลื่อนตำแหน่งเป็นหัวหน้าแม่บ้าน"
+  },
+  {
+    id: 17,
+    empCode: "EMP-0010",
+    empName: "สมเกียรติ ใจดี",
+    startDate: "2024-02-15",
+    dept: "ปั๊มน้ำมัน",
+    position: "พนักงานปั๊ม",
+    status: "Active",
+    description: "เริ่มงานในตำแหน่งพนักงานปั๊ม"
+  },
+  {
+    id: 18,
+    empCode: "EMP-0011",
+    empName: "นภัสวรรณ สวยงาม",
+    startDate: "2023-11-20",
+    dept: "ยิ้ม",
+    position: "พนักงานร้าน",
+    status: "Active",
+    description: "เริ่มงานในตำแหน่งพนักงานร้านยิ้ม"
+  },
+  {
+    id: 19,
+    empCode: "EMP-0012",
+    empName: "กมลชนก ใสสะอาด",
+    startDate: "2023-08-10",
+    dept: "แม่บ้าน",
+    position: "แม่บ้าน",
+    status: "Active",
+    description: "เริ่มงานในตำแหน่งแม่บ้าน"
+  }
+];
 
