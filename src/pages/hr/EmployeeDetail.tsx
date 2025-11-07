@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn, Filter, CalendarDays, CalendarRange, Award, AlertTriangle, ArrowRightLeft, Briefcase, DollarSign, ChevronRight } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn, Filter, CalendarDays, CalendarRange, Award, AlertTriangle, ArrowRightLeft, Briefcase, DollarSign, ChevronRight, Edit, Settings, ChevronDown } from "lucide-react";
 import ProfileCard from "@/components/ProfileCard";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import ModalForm from "@/components/ModalForm";
@@ -35,6 +35,46 @@ export default function EmployeeDetail() {
   const [showSalaryHistoryModal, setShowSalaryHistoryModal] = useState(false);
   const [showRewardPenaltyModal, setShowRewardPenaltyModal] = useState(false);
   const [showTransferHistoryModal, setShowTransferHistoryModal] = useState(false);
+  
+  // Management states
+  const [showManagementDropdown, setShowManagementDropdown] = useState(false);
+  const [showSalaryAdjustModal, setShowSalaryAdjustModal] = useState(false);
+  const [showRewardPenaltyManageModal, setShowRewardPenaltyManageModal] = useState(false);
+  const [showTransferPositionModal, setShowTransferPositionModal] = useState(false);
+  
+  // Form states for modals
+  const [salaryFormData, setSalaryFormData] = useState({
+    type: "ขึ้นเงินเดือน",
+    oldSalary: 0,
+    newSalary: 0,
+    changeAmount: 0,
+    reason: "",
+    note: "",
+    date: new Date().toISOString().split('T')[0]
+  });
+  
+  const [rewardPenaltyFormData, setRewardPenaltyFormData] = useState({
+    type: "ทันบน",
+    category: "",
+    title: "",
+    description: "",
+    amount: "",
+    date: new Date().toISOString().split('T')[0],
+    note: "",
+    issuedBy: ""
+  });
+  
+  const [transferFormData, setTransferFormData] = useState({
+    type: "โยกย้าย",
+    oldPosition: "",
+    oldDept: "",
+    newPosition: "",
+    newDept: "",
+    date: new Date().toISOString().split('T')[0],
+    reason: "",
+    note: "",
+    approvedBy: ""
+  });
   
   // Date range filters
   const [attendanceDateFrom, setAttendanceDateFrom] = useState("");
@@ -408,6 +448,55 @@ export default function EmployeeDetail() {
     setLeavesDateTo("");
   };
 
+  // Initialize form data when modals open
+  useEffect(() => {
+    if (showSalaryAdjustModal && employee) {
+      const currentSalary = allPayroll.length > 0 
+        ? allPayroll[allPayroll.length - 1].salary 
+        : 0;
+      setSalaryFormData({
+        type: "ขึ้นเงินเดือน",
+        oldSalary: currentSalary,
+        newSalary: currentSalary,
+        changeAmount: 0,
+        reason: "",
+        note: "",
+        date: new Date().toISOString().split('T')[0]
+      });
+    }
+  }, [showSalaryAdjustModal, employee, allPayroll]);
+
+  useEffect(() => {
+    if (showRewardPenaltyManageModal) {
+      setRewardPenaltyFormData({
+        type: "ทันบน",
+        category: "",
+        title: "",
+        description: "",
+        amount: "",
+        date: new Date().toISOString().split('T')[0],
+        note: "",
+        issuedBy: ""
+      });
+    }
+  }, [showRewardPenaltyManageModal]);
+
+  useEffect(() => {
+    if (showTransferPositionModal && employee) {
+      setTransferFormData({
+        type: "โยกย้าย",
+        oldPosition: employee.position,
+        oldDept: employee.dept,
+        newPosition: "",
+        newDept: "",
+        date: new Date().toISOString().split('T')[0],
+        reason: "",
+        note: "",
+        approvedBy: ""
+      });
+    }
+  }, [showTransferPositionModal, employee]);
+
   // Early return if employee not found (after all hooks)
   if (!employee) {
     return (
@@ -446,18 +535,86 @@ export default function EmployeeDetail() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate("/app/hr/employees")}
-          className="p-2 hover:bg-ink-800 rounded-lg transition-colors text-muted hover:text-app"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-3xl font-bold text-app font-display">
-            ข้อมูลพนักงาน
-          </h1>
-          <p className="text-muted font-light">รายละเอียดและประวัติการทำงาน</p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/app/hr/employees")}
+            className="p-2 hover:bg-ink-800 rounded-lg transition-colors text-muted hover:text-app"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-app font-display">
+              ข้อมูลพนักงาน
+            </h1>
+            <p className="text-muted font-light">รายละเอียดและประวัติการทำงาน</p>
+          </div>
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(`/app/hr/employees/${id}/edit`)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-ptt-blue/20 hover:bg-ptt-blue/30 
+                     text-ptt-cyan rounded-lg transition-colors font-medium"
+          >
+            <Edit className="w-4 h-4" />
+            แก้ไขพนักงาน
+          </button>
+          
+          {/* Management Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowManagementDropdown(!showManagementDropdown)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-ink-800 hover:bg-ink-700 
+                       text-app rounded-lg transition-colors font-medium border border-app"
+            >
+              <Settings className="w-4 h-4" />
+              จัดการ
+              <ChevronDown className={`w-4 h-4 transition-transform ${showManagementDropdown ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {showManagementDropdown && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowManagementDropdown(false)}
+                />
+                <div className="absolute right-0 mt-2 w-56 bg-ink-900 border border-app rounded-lg shadow-xl z-50 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      setShowSalaryAdjustModal(true);
+                      setShowManagementDropdown(false);
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-ink-800 transition-colors flex items-center gap-3 text-app"
+                  >
+                    <DollarSign className="w-4 h-4 text-ptt-cyan" />
+                    <span>ปรับเปลี่ยนเงินเดือน</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowRewardPenaltyManageModal(true);
+                      setShowManagementDropdown(false);
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-ink-800 transition-colors flex items-center gap-3 text-app border-t border-app"
+                  >
+                    <Award className="w-4 h-4 text-yellow-400" />
+                    <span>จัดการทันบน</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowTransferPositionModal(true);
+                      setShowManagementDropdown(false);
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-ink-800 transition-colors flex items-center gap-3 text-app border-t border-app"
+                  >
+                    <ArrowRightLeft className="w-4 h-4 text-blue-400" />
+                    <span>โยกย้ายตำแหน่ง</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -2414,6 +2571,470 @@ export default function EmployeeDetail() {
           )}
         </div>
       </div>
+
+      {/* Salary Adjustment Modal */}
+      <ModalForm
+        isOpen={showSalaryAdjustModal}
+        onClose={() => setShowSalaryAdjustModal(false)}
+        title="ปรับเปลี่ยนเงินเดือน"
+        size="md"
+      >
+        {employee && (() => {
+          const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+            const { name, value } = e.target;
+            if (name === "newSalary") {
+              const newSalary = parseFloat(value) || 0;
+              const changeAmount = newSalary - salaryFormData.oldSalary;
+              setSalaryFormData({ ...salaryFormData, newSalary, changeAmount });
+            } else if (name === "changeAmount") {
+              const changeAmount = parseFloat(value) || 0;
+              const newSalary = salaryFormData.oldSalary + changeAmount;
+              setSalaryFormData({ ...salaryFormData, newSalary, changeAmount });
+            } else {
+              setSalaryFormData({ ...salaryFormData, [name]: value });
+            }
+          };
+
+          const handleSubmit = (e: React.FormEvent) => {
+            e.preventDefault();
+            alert(`บันทึกการ${salaryFormData.type} สำหรับ ${employee.name} สำเร็จ! (Mock)`);
+            setShowSalaryAdjustModal(false);
+          };
+
+          return (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">ประเภทการเปลี่ยนแปลง</label>
+                  <select
+                  name="type"
+                  value={salaryFormData.type}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                >
+                  <option value="ขึ้นเงินเดือน">ขึ้นเงินเดือน</option>
+                  <option value="ลดเงินเดือน">ลดเงินเดือน</option>
+                  <option value="ปรับเงินเดือน">ปรับเงินเดือน</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-app mb-2">เงินเดือนเดิม</label>
+                  <input
+                    type="number"
+                    name="oldSalary"
+                    value={salaryFormData.oldSalary}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app font-mono
+                             focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                    readOnly
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-app mb-2">เงินเดือนใหม่</label>
+                  <input
+                    type="number"
+                    name="newSalary"
+                    value={salaryFormData.newSalary}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app font-mono
+                             focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">จำนวนเงินที่เปลี่ยนแปลง</label>
+                <input
+                  type="number"
+                  name="changeAmount"
+                  value={salaryFormData.changeAmount}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm font-mono
+                             focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue
+                             ${salaryFormData.changeAmount > 0 ? 'text-green-400' : salaryFormData.changeAmount < 0 ? 'text-red-400' : 'text-app'}`}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">วันที่เปลี่ยนแปลง</label>
+                <input
+                  type="date"
+                  name="date"
+                  value={salaryFormData.date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">เหตุผล</label>
+                <textarea
+                  name="reason"
+                  value={salaryFormData.reason}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  placeholder="ระบุเหตุผลในการเปลี่ยนแปลงเงินเดือน"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">หมายเหตุ</label>
+                <textarea
+                  name="note"
+                  value={salaryFormData.note}
+                  onChange={handleChange}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-app">
+                <button
+                  type="button"
+                  onClick={() => setShowSalaryAdjustModal(false)}
+                  className="px-4 py-2 text-sm text-muted hover:text-app transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-ptt-blue hover:bg-ptt-blue/80 text-ptt-cyan rounded-lg transition-colors font-medium"
+                >
+                  บันทึก
+                </button>
+              </div>
+            </form>
+          );
+        })()}
+      </ModalForm>
+
+      {/* Reward & Penalty Management Modal */}
+      <ModalForm
+        isOpen={showRewardPenaltyManageModal}
+        onClose={() => setShowRewardPenaltyManageModal(false)}
+        title="จัดการทันบนและการลงโทษ"
+        size="md"
+      >
+        {employee && (() => {
+          const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+            setRewardPenaltyFormData({ ...rewardPenaltyFormData, [e.target.name]: e.target.value });
+          };
+
+          const handleSubmit = (e: React.FormEvent) => {
+            e.preventDefault();
+            alert(`บันทึก${rewardPenaltyFormData.type} สำหรับ ${employee.name} สำเร็จ! (Mock)`);
+            setShowRewardPenaltyManageModal(false);
+          };
+
+          return (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">ประเภท</label>
+                <select
+                  name="type"
+                  value={rewardPenaltyFormData.type}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                >
+                  <option value="ทันบน">ทันบน</option>
+                  <option value="การลงโทษ">การลงโทษ</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
+                <input
+                  type="text"
+                  name="category"
+                  value={rewardPenaltyFormData.category}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  placeholder="เช่น การทำงานดีเด่น, การมาสาย, การขาดงาน"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">หัวข้อ</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={rewardPenaltyFormData.title}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  placeholder="ระบุหัวข้อ"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">รายละเอียด</label>
+                <textarea
+                  name="description"
+                  value={rewardPenaltyFormData.description}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  placeholder="ระบุรายละเอียด"
+                  required
+                />
+              </div>
+
+              {rewardPenaltyFormData.type === "ทันบน" && (
+                <div>
+                  <label className="block text-sm font-medium text-app mb-2">จำนวนเงินรางวัล (บาท)</label>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={rewardPenaltyFormData.amount}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app font-mono
+                             focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">วันที่</label>
+                <input
+                  type="date"
+                  name="date"
+                  value={rewardPenaltyFormData.date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">หมายเหตุ</label>
+                <textarea
+                  name="note"
+                  value={rewardPenaltyFormData.note}
+                  onChange={handleChange}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">ออกโดย</label>
+                <input
+                  type="text"
+                  name="issuedBy"
+                  value={rewardPenaltyFormData.issuedBy}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  placeholder="ชื่อผู้ออกทันบน/การลงโทษ"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-app">
+                <button
+                  type="button"
+                  onClick={() => setShowRewardPenaltyManageModal(false)}
+                  className="px-4 py-2 text-sm text-muted hover:text-app transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-ptt-blue hover:bg-ptt-blue/80 text-ptt-cyan rounded-lg transition-colors font-medium"
+                >
+                  บันทึก
+                </button>
+              </div>
+            </form>
+          );
+        })()}
+      </ModalForm>
+
+      {/* Position Transfer Modal */}
+      <ModalForm
+        isOpen={showTransferPositionModal}
+        onClose={() => setShowTransferPositionModal(false)}
+        title="โยกย้ายตำแหน่ง"
+        size="md"
+      >
+        {employee && (() => {
+          const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+            setTransferFormData({ ...transferFormData, [e.target.name]: e.target.value });
+          };
+
+          const handleSubmit = (e: React.FormEvent) => {
+            e.preventDefault();
+            alert(`บันทึกการ${transferFormData.type} สำหรับ ${employee.name} สำเร็จ! (Mock)`);
+            setShowTransferPositionModal(false);
+          };
+
+          return (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">ประเภทการเปลี่ยนแปลง</label>
+                <select
+                  name="type"
+                  value={transferFormData.type}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                >
+                  <option value="โยกย้าย">โยกย้าย</option>
+                  <option value="เลื่อนตำแหน่ง">เลื่อนตำแหน่ง</option>
+                  <option value="ลดตำแหน่ง">ลดตำแหน่ง</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-app mb-2">ตำแหน่งเดิม</label>
+                  <input
+                    type="text"
+                    name="oldPosition"
+                    value={transferFormData.oldPosition}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                             focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                    readOnly
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-app mb-2">แผนกเดิม</label>
+                  <input
+                    type="text"
+                    name="oldDept"
+                    value={transferFormData.oldDept}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                             focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                    readOnly
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-app mb-2">ตำแหน่งใหม่</label>
+                  <input
+                    type="text"
+                    name="newPosition"
+                    value={transferFormData.newPosition}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                             focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                    placeholder="ระบุตำแหน่งใหม่"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-app mb-2">แผนกใหม่</label>
+                  <input
+                    type="text"
+                    name="newDept"
+                    value={transferFormData.newDept}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                             focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                    placeholder="ระบุแผนกใหม่"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">วันที่เปลี่ยนแปลง</label>
+                <input
+                  type="date"
+                  name="date"
+                  value={transferFormData.date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">เหตุผล</label>
+                <textarea
+                  name="reason"
+                  value={transferFormData.reason}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  placeholder="ระบุเหตุผลในการโยกย้าย/เลื่อน/ลดตำแหน่ง"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">หมายเหตุ</label>
+                <textarea
+                  name="note"
+                  value={transferFormData.note}
+                  onChange={handleChange}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">อนุมัติโดย</label>
+                <input
+                  type="text"
+                  name="approvedBy"
+                  value={transferFormData.approvedBy}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  placeholder="ชื่อผู้อนุมัติ"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-app">
+                <button
+                  type="button"
+                  onClick={() => setShowTransferPositionModal(false)}
+                  className="px-4 py-2 text-sm text-muted hover:text-app transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-ptt-blue hover:bg-ptt-blue/80 text-ptt-cyan rounded-lg transition-colors font-medium"
+                >
+                  บันทึก
+                </button>
+              </div>
+            </form>
+          );
+        })()}
+      </ModalForm>
     </div>
   );
 }
