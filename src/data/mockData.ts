@@ -1761,3 +1761,338 @@ export const workHistory: WorkHistory[] = [
   }
 ];
 
+// ========== 17) SOCIAL SECURITY (ประกันสังคม) ==========
+export interface SocialSecurity {
+  id: number;
+  empCode: string;
+  empName: string;
+  ssoNumber: string; // เลขประกันสังคม
+  registrationDate: string; // วันที่ขึ้นทะเบียน
+  section: "33" | "39" | "40"; // มาตรา
+  status: "Active" | "Inactive" | "Suspended"; // สถานะ
+  salaryBase: number; // ฐานเงินเดือนสำหรับคำนวณเงินสมทบ
+  employeeContribution: number; // เงินสมทบฝ่ายลูกจ้าง (5% สูงสุด 750 บาท)
+  employerContribution: number; // เงินสมทบฝ่ายนายจ้าง (5% สูงสุด 750 บาท)
+  totalContribution: number; // รวมเงินสมทบ
+}
+
+export const socialSecurity: SocialSecurity[] = [
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    ssoNumber: "1234567890123",
+    registrationDate: "2023-06-01",
+    section: "33",
+    status: "Active",
+    salaryBase: 45000,
+    employeeContribution: 750, // 5% ของ 45000 = 2250 แต่สูงสุด 750
+    employerContribution: 750,
+    totalContribution: 1500
+  },
+  {
+    id: 2,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    ssoNumber: "2345678901234",
+    registrationDate: "2022-11-15",
+    section: "33",
+    status: "Active",
+    salaryBase: 35000,
+    employeeContribution: 750, // 5% ของ 35000 = 1750 แต่สูงสุด 750
+    employerContribution: 750,
+    totalContribution: 1500
+  },
+  {
+    id: 3,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    ssoNumber: "3456789012345",
+    registrationDate: "2024-01-10",
+    section: "33",
+    status: "Active",
+    salaryBase: 40000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500
+  },
+  {
+    id: 4,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    ssoNumber: "4567890123456",
+    registrationDate: "2024-03-20",
+    section: "33",
+    status: "Active",
+    salaryBase: 38000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500
+  },
+  {
+    id: 5,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    ssoNumber: "5678901234567",
+    registrationDate: "2021-08-05",
+    section: "33",
+    status: "Active",
+    salaryBase: 50000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500
+  },
+  {
+    id: 6,
+    empCode: "EMP-0006",
+    empName: "ธีรภัทร แข็งแรง",
+    ssoNumber: "6789012345678",
+    registrationDate: "2023-02-14",
+    section: "39",
+    status: "Active",
+    salaryBase: 0, // มาตรา 39 ไม่มีฐานเงินเดือน
+    employeeContribution: 432, // มาตรา 39 จ่าย 432 บาท/เดือน
+    employerContribution: 0,
+    totalContribution: 432
+  },
+  {
+    id: 7,
+    empCode: "EMP-0007",
+    empName: "ประเสริฐ ดีงาม",
+    ssoNumber: "7890123456789",
+    registrationDate: "2024-05-01",
+    section: "33",
+    status: "Active",
+    salaryBase: 38000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500
+  },
+  {
+    id: 8,
+    empCode: "EMP-0008",
+    empName: "อัญชลี มีชัย",
+    ssoNumber: "8901234567890",
+    registrationDate: "2023-09-10",
+    section: "33",
+    status: "Active",
+    salaryBase: 40000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500
+  },
+  {
+    id: 9,
+    empCode: "EMP-0009",
+    empName: "วิภา รักษ์สุข",
+    ssoNumber: "9012345678901",
+    registrationDate: "2022-03-01",
+    section: "33",
+    status: "Active",
+    salaryBase: 35000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500
+  },
+  {
+    id: 10,
+    empCode: "EMP-0010",
+    empName: "สมเกียรติ ใจดี",
+    ssoNumber: "0123456789012",
+    registrationDate: "2024-02-15",
+    section: "33",
+    status: "Active",
+    salaryBase: 38000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500
+  },
+  {
+    id: 11,
+    empCode: "EMP-0011",
+    empName: "นภัสวรรณ สวยงาม",
+    ssoNumber: "1234509876543",
+    registrationDate: "2023-11-20",
+    section: "33",
+    status: "Active",
+    salaryBase: 35000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500
+  },
+  {
+    id: 12,
+    empCode: "EMP-0012",
+    empName: "กมลชนก ใสสะอาด",
+    ssoNumber: "2345610987654",
+    registrationDate: "2023-08-10",
+    section: "33",
+    status: "Active",
+    salaryBase: 32000,
+    employeeContribution: 750, // 5% ของ 32000 = 1600 แต่สูงสุด 750
+    employerContribution: 750,
+    totalContribution: 1500
+  }
+];
+
+// ประวัติการจ่ายเงินสมทบประกันสังคมรายเดือน
+export interface SocialSecurityContribution {
+  id: number;
+  empCode: string;
+  empName: string;
+  month: string; // YYYY-MM
+  salaryBase: number;
+  employeeContribution: number;
+  employerContribution: number;
+  totalContribution: number;
+  paymentDate: string; // วันที่จ่าย
+  status: "Paid" | "Pending" | "Overdue"; // สถานะการจ่าย
+}
+
+export const socialSecurityContributions: SocialSecurityContribution[] = [
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    month: "2025-10",
+    salaryBase: 45000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500,
+    paymentDate: "2025-10-15",
+    status: "Paid"
+  },
+  {
+    id: 2,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    month: "2025-10",
+    salaryBase: 35000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500,
+    paymentDate: "2025-10-15",
+    status: "Paid"
+  },
+  {
+    id: 3,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    month: "2025-10",
+    salaryBase: 40000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500,
+    paymentDate: "2025-10-15",
+    status: "Paid"
+  },
+  {
+    id: 4,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    month: "2025-10",
+    salaryBase: 38000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500,
+    paymentDate: "2025-10-15",
+    status: "Paid"
+  },
+  {
+    id: 5,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    month: "2025-10",
+    salaryBase: 50000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500,
+    paymentDate: "2025-10-15",
+    status: "Paid"
+  },
+  {
+    id: 6,
+    empCode: "EMP-0006",
+    empName: "ธีรภัทร แข็งแรง",
+    month: "2025-10",
+    salaryBase: 0,
+    employeeContribution: 432,
+    employerContribution: 0,
+    totalContribution: 432,
+    paymentDate: "2025-10-15",
+    status: "Paid"
+  },
+  {
+    id: 7,
+    empCode: "EMP-0007",
+    empName: "ประเสริฐ ดีงาม",
+    month: "2025-10",
+    salaryBase: 38000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500,
+    paymentDate: "2025-10-15",
+    status: "Paid"
+  },
+  {
+    id: 8,
+    empCode: "EMP-0008",
+    empName: "อัญชลี มีชัย",
+    month: "2025-10",
+    salaryBase: 40000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500,
+    paymentDate: "2025-10-15",
+    status: "Paid"
+  },
+  {
+    id: 9,
+    empCode: "EMP-0009",
+    empName: "วิภา รักษ์สุข",
+    month: "2025-10",
+    salaryBase: 35000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500,
+    paymentDate: "2025-10-15",
+    status: "Paid"
+  },
+  {
+    id: 10,
+    empCode: "EMP-0010",
+    empName: "สมเกียรติ ใจดี",
+    month: "2025-10",
+    salaryBase: 38000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500,
+    paymentDate: "2025-10-15",
+    status: "Paid"
+  },
+  {
+    id: 11,
+    empCode: "EMP-0011",
+    empName: "นภัสวรรณ สวยงาม",
+    month: "2025-10",
+    salaryBase: 35000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500,
+    paymentDate: "2025-10-15",
+    status: "Paid"
+  },
+  {
+    id: 12,
+    empCode: "EMP-0012",
+    empName: "กมลชนก ใสสะอาด",
+    month: "2025-10",
+    salaryBase: 32000,
+    employeeContribution: 750,
+    employerContribution: 750,
+    totalContribution: 1500,
+    paymentDate: "2025-10-15",
+    status: "Paid"
+  }
+];
+

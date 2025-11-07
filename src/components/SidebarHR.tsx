@@ -6,6 +6,7 @@ import {
   Clock,
   Calendar,
   Wallet,
+  Shield,
   GitBranch,
   BarChart3
 } from "lucide-react";
@@ -17,6 +18,7 @@ const items = [
   { to: "/app/hr/attendance", icon: Clock, label: "บันทึกเวลา", end: false },
   { to: "/app/hr/leaves", icon: Calendar, label: "การลา", end: false },
   { to: "/app/hr/payroll", icon: Wallet, label: "เงินเดือน", end: false },
+  { to: "/app/hr/social-security", icon: Shield, label: "ประกันสังคม", end: false },
   // { to: "/app/hr/performance", icon: Target, label: "ประเมินผล", end: false },
   // { to: "/app/hr/recruitment", icon: FileSearch, label: "รับสมัครงาน", end: false },
   // { to: "/app/hr/training", icon: GraduationCap, label: "ฝึกอบรม", end: false },

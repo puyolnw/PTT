@@ -17,6 +17,7 @@ import Attendance from "@/pages/hr/Attendance";
 import Shifts from "@/pages/hr/Shifts";
 import Leaves from "@/pages/hr/Leaves";
 import Payroll from "@/pages/hr/Payroll";
+import SocialSecurity from "@/pages/hr/SocialSecurity";
 import Performance from "@/pages/hr/Performance";
 import Recruitment from "@/pages/hr/Recruitment";
 import CandidateDetail from "@/pages/hr/CandidateDetail";
@@ -103,6 +104,10 @@ const router = createBrowserRouter([
           {
             path: "payroll",
             element: <Payroll />,
+          },
+          {
+            path: "social-security",
+            element: <SocialSecurity />,
           },
           {
             path: "performance",
