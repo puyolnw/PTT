@@ -1,11 +1,12 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { Users, PiggyBank, BarChart3, Bell, LogOut, Menu } from "lucide-react";
+import { Users, PiggyBank, BarChart3, FileText, Bell, LogOut, Menu } from "lucide-react";
 import { logout } from "@/lib/auth";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const modules = [
   { name: "ระบบพนักงาน", path: "/app/hr", icon: Users },
   { name: "ระบบกองทุน", path: "/app/fund", icon: PiggyBank },
+  { name: "ระบบงานเอกสาร", path: "/app/documents", icon: FileText },
   { name: "รายงานและสถิติ", path: "/app/reports", icon: BarChart3 },
 ];
 

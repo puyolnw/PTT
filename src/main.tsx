@@ -6,6 +6,7 @@ import LayoutAuth from "@/layouts/LayoutAuth";
 import LayoutMain from "@/layouts/LayoutMain";
 import LayoutHR from "@/layouts/LayoutHR";
 import LayoutFund from "@/layouts/LayoutFund";
+import LayoutDocuments from "@/layouts/LayoutDocuments";
 import LayoutReports from "@/layouts/LayoutReports";
 
 // ========== HR Pages ==========
@@ -39,6 +40,19 @@ import Donations from "@/pages/fund/Donations";
 import Expenditures from "@/pages/fund/Expenditures";
 import Approvals from "@/pages/fund/Approvals";
 import FundReports from "@/pages/fund/FundReports";
+
+// ========== Documents Pages ==========
+import DocumentsDashboard from "@/pages/documents/Dashboard";
+import AllDocuments from "@/pages/documents/AllDocuments";
+import Categories from "@/pages/documents/Categories";
+import DocumentApprovals from "@/pages/documents/Approvals";
+import Expiring from "@/pages/documents/Expiring";
+import AuditTrail from "@/pages/documents/AuditTrail";
+import DocumentVersions from "@/pages/documents/Versions";
+import Permissions from "@/pages/documents/Permissions";
+import Templates from "@/pages/documents/Templates";
+import DocumentSettings from "@/pages/documents/Settings";
+import DocumentsReports from "@/pages/documents/Reports";
 
 // ========== Reports Pages ==========
 import ReportsOverview from "@/pages/reports/Overview";
@@ -198,6 +212,58 @@ const router = createBrowserRouter([
           {
             path: "reports",
             element: <FundReports />,
+          },
+        ],
+      },
+      
+      // ========== DOCUMENTS MODULE ==========
+      {
+        path: "documents",
+        element: <LayoutDocuments />,
+        children: [
+          {
+            index: true,
+            element: <DocumentsDashboard />,
+          },
+          {
+            path: "all",
+            element: <AllDocuments />,
+          },
+          {
+            path: "categories",
+            element: <Categories />,
+          },
+          {
+            path: "approvals",
+            element: <DocumentApprovals />,
+          },
+          {
+            path: "expiring",
+            element: <Expiring />,
+          },
+          {
+            path: "audit-trail",
+            element: <AuditTrail />,
+          },
+          {
+            path: "versions",
+            element: <DocumentVersions />,
+          },
+          {
+            path: "permissions",
+            element: <Permissions />,
+          },
+          {
+            path: "templates",
+            element: <Templates />,
+          },
+          {
+            path: "settings",
+            element: <DocumentSettings />,
+          },
+          {
+            path: "reports",
+            element: <DocumentsReports />,
           },
         ],
       },

@@ -2584,3 +2584,446 @@ export const monthlyReports: MonthlyReport[] = [
   }
 ];
 
+// ========== 22) DOCUMENT MANAGEMENT SYSTEM (ระบบงานเอกสาร) ==========
+// หมวดหมู่เอกสาร
+export interface DocumentCategory {
+  id: number;
+  name: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+}
+
+export const documentCategories: DocumentCategory[] = [
+  { id: 1, name: "ใบอนุญาต", description: "ใบอนุญาตต่างๆ เช่น ใบอนุญาตปั๊มน้ำมัน", color: "blue" },
+  { id: 2, name: "สัญญา", description: "สัญญาเช่า สัญญาจ้าง สัญญากู้ยืม", color: "green" },
+  { id: 3, name: "ทะเบียนรถ", description: "เอกสารทะเบียนรถยนต์", color: "purple" },
+  { id: 4, name: "เอกสาร HR", description: "สัญญาจ้าง ใบลา เอกสารพนักงาน", color: "orange" },
+  { id: 5, name: "ใบแจ้งหนี้", description: "ใบแจ้งหนี้ ใบกำกับภาษี", color: "red" },
+  { id: 6, name: "เอกสารราชการ", description: "เอกสารจากหน่วยงานราชการ", color: "yellow" },
+  { id: 7, name: "อื่นๆ", description: "เอกสารอื่นๆ", color: "gray" }
+];
+
+// เอกสาร
+export interface Document {
+  id: number;
+  documentNumber: string; // เลขที่เอกสาร
+  title: string; // ชื่อเอกสาร
+  categoryId: number; // หมวดหมู่
+  description?: string; // คำอธิบาย
+  fileUrl: string; // URL ไฟล์
+  fileName: string; // ชื่อไฟล์
+  fileType: "PDF" | "JPG" | "PNG" | "DOC" | "DOCX" | "XLS" | "XLSX" | "OTHER"; // ประเภทไฟล์
+  fileSize: number; // ขนาดไฟล์ (bytes)
+  version: number; // เวอร์ชัน
+  status: "Active" | "Archived" | "Draft" | "Pending"; // สถานะ
+  securityLevel: "Public" | "Internal" | "Confidential"; // ระดับความลับ
+  expiryDate?: string; // วันหมดอายุ
+  renewalCost?: number; // ค่าต่ออายุ
+  createdBy: string; // ผู้สร้าง
+  createdAt: string; // วันที่สร้าง
+  updatedBy?: string; // ผู้แก้ไขล่าสุด
+  updatedAt?: string; // วันที่แก้ไขล่าสุด
+  approvedBy?: string; // ผู้อนุมัติ
+  approvedAt?: string; // วันที่อนุมัติ
+  linkedTransactionId?: number; // เชื่อมโยงกับธุรกรรม (M6)
+  linkedModule?: "HR" | "Fund" | "Accounting"; // เชื่อมโยงกับโมดูล
+  tags?: string[]; // Tags
+  metadata?: Record<string, any>; // ข้อมูลเพิ่มเติม (เช่น เลขที่บิล, ยอดรวม)
+}
+
+export const documents: Document[] = [
+  {
+    id: 1,
+    documentNumber: "DOC-2025-001",
+    title: "ใบอนุญาตปั๊มน้ำมันสาขา 1",
+    categoryId: 1,
+    description: "ใบอนุญาตประกอบกิจการปั๊มน้ำมัน",
+    fileUrl: "/documents/license-branch1.pdf",
+    fileName: "license-branch1.pdf",
+    fileType: "PDF",
+    fileSize: 2048576,
+    version: 1,
+    status: "Active",
+    securityLevel: "Confidential",
+    expiryDate: "2026-12-31",
+    renewalCost: 50000,
+    createdBy: "EMP-0001",
+    createdAt: "2025-01-15",
+    approvedBy: "ผู้บริหาร",
+    approvedAt: "2025-01-20",
+    tags: ["ใบอนุญาต", "ปั๊มน้ำมัน", "สาขา 1"]
+  },
+  {
+    id: 2,
+    documentNumber: "DOC-2025-002",
+    title: "สัญญาเช่าร้าน 7-Eleven",
+    categoryId: 2,
+    description: "สัญญาเช่าพื้นที่ร้าน 7-Eleven ในปั๊มสาขา 1",
+    fileUrl: "/documents/contract-7eleven.pdf",
+    fileName: "contract-7eleven.pdf",
+    fileType: "PDF",
+    fileSize: 1536000,
+    version: 1,
+    status: "Active",
+    securityLevel: "Internal",
+    expiryDate: "2026-06-30",
+    renewalCost: 120000,
+    createdBy: "EMP-0002",
+    createdAt: "2025-02-01",
+    approvedBy: "ผู้จัดการสาขา",
+    approvedAt: "2025-02-05",
+    linkedModule: "Accounting",
+    tags: ["สัญญาเช่า", "7-Eleven"]
+  },
+  {
+    id: 3,
+    documentNumber: "DOC-2025-003",
+    title: "ทะเบียนรถยนต์บริษัท",
+    categoryId: 3,
+    description: "ทะเบียนรถยนต์สำหรับใช้ในธุรกิจ",
+    fileUrl: "/documents/car-registration.pdf",
+    fileName: "car-registration.pdf",
+    fileType: "PDF",
+    fileSize: 512000,
+    version: 1,
+    status: "Active",
+    securityLevel: "Internal",
+    expiryDate: "2026-03-15",
+    renewalCost: 500,
+    createdBy: "EMP-0003",
+    createdAt: "2025-03-10",
+    tags: ["ทะเบียนรถ", "ยานพาหนะ"]
+  },
+  {
+    id: 4,
+    documentNumber: "DOC-2025-004",
+    title: "สัญญาจ้างพนักงาน",
+    categoryId: 4,
+    description: "สัญญาจ้างงานพนักงานประจำ",
+    fileUrl: "/documents/employment-contract.pdf",
+    fileName: "employment-contract.pdf",
+    fileType: "PDF",
+    fileSize: 1024000,
+    version: 2,
+    status: "Active",
+    securityLevel: "Confidential",
+    createdBy: "EMP-0001",
+    createdAt: "2025-04-01",
+    updatedBy: "EMP-0001",
+    updatedAt: "2025-04-15",
+    linkedModule: "HR",
+    tags: ["สัญญาจ้าง", "HR"]
+  },
+  {
+    id: 5,
+    documentNumber: "DOC-2025-005",
+    title: "ใบแจ้งหนี้ค่าไฟฟ้า",
+    categoryId: 5,
+    description: "ใบแจ้งหนี้ค่าไฟฟ้าเดือนตุลาคม",
+    fileUrl: "/documents/invoice-electricity-oct.pdf",
+    fileName: "invoice-electricity-oct.pdf",
+    fileType: "PDF",
+    fileSize: 256000,
+    version: 1,
+    status: "Active",
+    securityLevel: "Internal",
+    createdBy: "EMP-0002",
+    createdAt: "2025-10-15",
+    linkedModule: "Accounting",
+    metadata: {
+      billNumber: "INV-2025-001",
+      totalAmount: 15000,
+      dueDate: "2025-11-15"
+    },
+    tags: ["ใบแจ้งหนี้", "ค่าไฟฟ้า"]
+  },
+  {
+    id: 6,
+    documentNumber: "DOC-2025-006",
+    title: "ใบอนุญาตปั๊มน้ำมันสาขา 2",
+    categoryId: 1,
+    description: "ใบอนุญาตประกอบกิจการปั๊มน้ำมันสาขา 2",
+    fileUrl: "/documents/license-branch2.pdf",
+    fileName: "license-branch2.pdf",
+    fileType: "PDF",
+    fileSize: 2048576,
+    version: 1,
+    status: "Active",
+    securityLevel: "Confidential",
+    expiryDate: "2025-12-15", // ใกล้หมดอายุ (30+ วัน)
+    renewalCost: 50000,
+    createdBy: "EMP-0001",
+    createdAt: "2025-01-20",
+    approvedBy: "ผู้บริหาร",
+    approvedAt: "2025-01-25",
+    tags: ["ใบอนุญาต", "ปั๊มน้ำมัน", "สาขา 2"]
+  },
+  {
+    id: 7,
+    documentNumber: "DOC-2025-007",
+    title: "สัญญาเช่าร้าน Daiso",
+    categoryId: 2,
+    description: "สัญญาเช่าพื้นที่ร้าน Daiso ในปั๊มสาขา 1",
+    fileUrl: "/documents/contract-daiso.pdf",
+    fileName: "contract-daiso.pdf",
+    fileType: "PDF",
+    fileSize: 1536000,
+    version: 1,
+    status: "Active",
+    securityLevel: "Internal",
+    expiryDate: "2025-12-05", // ใกล้หมดอายุ (20+ วัน)
+    renewalCost: 80000,
+    createdBy: "EMP-0002",
+    createdAt: "2025-02-10",
+    approvedBy: "ผู้จัดการสาขา",
+    approvedAt: "2025-02-15",
+    linkedModule: "Accounting",
+    tags: ["สัญญาเช่า", "Daiso"]
+  },
+  {
+    id: 8,
+    documentNumber: "DOC-2025-008",
+    title: "ใบอนุญาตขายสุรา",
+    categoryId: 1,
+    description: "ใบอนุญาตขายสุราในร้านสะดวกซื้อ",
+    fileUrl: "/documents/alcohol-license.pdf",
+    fileName: "alcohol-license.pdf",
+    fileType: "PDF",
+    fileSize: 1024000,
+    version: 1,
+    status: "Active",
+    securityLevel: "Confidential",
+    expiryDate: "2025-11-25", // ใกล้หมดอายุ (10+ วัน)
+    renewalCost: 30000,
+    createdBy: "EMP-0001",
+    createdAt: "2025-03-01",
+    approvedBy: "ผู้บริหาร",
+    approvedAt: "2025-03-05",
+    tags: ["ใบอนุญาต", "สุรา"]
+  },
+  {
+    id: 9,
+    documentNumber: "DOC-2025-009",
+    title: "สัญญาเช่าพื้นที่ร้านกาแฟ",
+    categoryId: 2,
+    description: "สัญญาเช่าพื้นที่ร้านกาแฟในปั๊มสาขา 2",
+    fileUrl: "/documents/contract-coffee.pdf",
+    fileName: "contract-coffee.pdf",
+    fileType: "PDF",
+    fileSize: 1536000,
+    version: 1,
+    status: "Active",
+    securityLevel: "Internal",
+    expiryDate: "2025-11-20", // ใกล้หมดอายุ (5+ วัน)
+    renewalCost: 100000,
+    createdBy: "EMP-0002",
+    createdAt: "2025-04-01",
+    approvedBy: "ผู้จัดการสาขา",
+    approvedAt: "2025-04-05",
+    linkedModule: "Accounting",
+    tags: ["สัญญาเช่า", "ร้านกาแฟ"]
+  },
+  {
+    id: 10,
+    documentNumber: "DOC-2025-010",
+    title: "ใบอนุญาตขายบุหรี่",
+    categoryId: 1,
+    description: "ใบอนุญาตขายบุหรี่ในร้านสะดวกซื้อ",
+    fileUrl: "/documents/tobacco-license.pdf",
+    fileName: "tobacco-license.pdf",
+    fileType: "PDF",
+    fileSize: 1024000,
+    version: 1,
+    status: "Active",
+    securityLevel: "Confidential",
+    expiryDate: "2025-11-18", // ใกล้หมดอายุ (3+ วัน)
+    renewalCost: 25000,
+    createdBy: "EMP-0001",
+    createdAt: "2025-05-01",
+    approvedBy: "ผู้บริหาร",
+    approvedAt: "2025-05-05",
+    tags: ["ใบอนุญาต", "บุหรี่"]
+  },
+  {
+    id: 11,
+    documentNumber: "DOC-2025-011",
+    title: "ทะเบียนรถบรรทุก",
+    categoryId: 3,
+    description: "ทะเบียนรถบรรทุกสำหรับขนส่งสินค้า",
+    fileUrl: "/documents/truck-registration.pdf",
+    fileName: "truck-registration.pdf",
+    fileType: "PDF",
+    fileSize: 512000,
+    version: 1,
+    status: "Active",
+    securityLevel: "Internal",
+    expiryDate: "2025-11-15", // ใกล้หมดอายุ (วันนี้หรือใกล้)
+    renewalCost: 500,
+    createdBy: "EMP-0003",
+    createdAt: "2025-06-01",
+    tags: ["ทะเบียนรถ", "รถบรรทุก"]
+  }
+];
+
+// ประวัติการเปลี่ยนแปลง (Audit Trail)
+export interface DocumentAuditLog {
+  id: number;
+  documentId: number;
+  action: "Created" | "Updated" | "Deleted" | "Viewed" | "Downloaded" | "Approved" | "Rejected";
+  userId: string;
+  userName: string;
+  timestamp: string;
+  details?: string; // รายละเอียดเพิ่มเติม
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export const documentAuditLogs: DocumentAuditLog[] = [
+  {
+    id: 1,
+    documentId: 1,
+    action: "Created",
+    userId: "EMP-0001",
+    userName: "สมชาย ใจดี",
+    timestamp: "2025-01-15T10:30:00",
+    details: "อัปโหลดเอกสารใหม่"
+  },
+  {
+    id: 2,
+    documentId: 1,
+    action: "Approved",
+    userId: "ADMIN-001",
+    userName: "ผู้บริหาร",
+    timestamp: "2025-01-20T14:00:00",
+    details: "อนุมัติเอกสาร"
+  },
+  {
+    id: 3,
+    documentId: 1,
+    action: "Viewed",
+    userId: "EMP-0002",
+    userName: "สมหญิง รักงาน",
+    timestamp: "2025-10-01T09:15:00",
+    details: "เปิดดูเอกสาร"
+  },
+  {
+    id: 4,
+    documentId: 4,
+    action: "Updated",
+    userId: "EMP-0001",
+    userName: "สมชาย ใจดี",
+    timestamp: "2025-04-15T11:20:00",
+    details: "อัปเดตเวอร์ชัน 2"
+  }
+];
+
+// เวอร์ชันเอกสาร
+export interface DocumentVersion {
+  id: number;
+  documentId: number;
+  version: number;
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+  createdBy: string;
+  createdAt: string;
+  changeNote?: string; // หมายเหตุการเปลี่ยนแปลง
+}
+
+export const documentVersions: DocumentVersion[] = [
+  {
+    id: 1,
+    documentId: 4,
+    version: 1,
+    fileUrl: "/documents/employment-contract-v1.pdf",
+    fileName: "employment-contract-v1.pdf",
+    fileSize: 1024000,
+    createdBy: "EMP-0001",
+    createdAt: "2025-04-01"
+  },
+  {
+    id: 2,
+    documentId: 4,
+    version: 2,
+    fileUrl: "/documents/employment-contract-v2.pdf",
+    fileName: "employment-contract-v2.pdf",
+    fileSize: 1024000,
+    createdBy: "EMP-0001",
+    createdAt: "2025-04-15",
+    changeNote: "อัปเดตเงื่อนไขสัญญา"
+  }
+];
+
+// การอนุมัติเอกสาร (Workflow)
+export interface DocumentApproval {
+  id: number;
+  documentId: number;
+  step: number; // ขั้นตอนที่
+  approverId: string; // ผู้อนุมัติ
+  approverName: string;
+  status: "Pending" | "Approved" | "Rejected" | "Cancelled";
+  comment?: string; // ความคิดเห็น
+  signedAt?: string; // วันที่ลงลายเซ็น
+  eSignature?: string; // ลายเซ็นอิเล็กทรอนิกส์
+  createdAt: string;
+}
+
+export const documentApprovals: DocumentApproval[] = [
+  {
+    id: 1,
+    documentId: 2,
+    step: 1,
+    approverId: "EMP-0001",
+    approverName: "ผู้จัดการสาขา",
+    status: "Approved",
+    comment: "อนุมัติ",
+    signedAt: "2025-02-05T10:00:00",
+    createdAt: "2025-02-01T09:00:00"
+  },
+  {
+    id: 2,
+    documentId: 2,
+    step: 2,
+    approverId: "ADMIN-001",
+    approverName: "ผู้บริหาร",
+    status: "Pending",
+    createdAt: "2025-02-05T10:05:00"
+  }
+];
+
+// การแจ้งเตือนเอกสาร
+export interface DocumentNotification {
+  id: number;
+  documentId: number;
+  type: "Expiring" | "Expired" | "Approval" | "Update";
+  message: string;
+  daysUntilExpiry?: number; // จำนวนวันก่อนหมดอายุ
+  sentAt: string;
+  sentTo: string; // ผู้รับการแจ้งเตือน
+  status: "Sent" | "Read" | "Dismissed";
+}
+
+export const documentNotifications: DocumentNotification[] = [
+  {
+    id: 1,
+    documentId: 6,
+    type: "Expiring",
+    message: "ใบอนุญาตปั๊มน้ำมันสาขา 2 จะหมดอายุใน 30 วัน",
+    daysUntilExpiry: 30,
+    sentAt: "2025-11-15T08:00:00",
+    sentTo: "EMP-0001",
+    status: "Sent"
+  },
+  {
+    id: 2,
+    documentId: 2,
+    type: "Expiring",
+    message: "สัญญาเช่าร้าน 7-Eleven จะหมดอายุใน 15 วัน",
+    daysUntilExpiry: 15,
+    sentAt: "2025-11-20T08:00:00",
+    sentTo: "EMP-0002",
+    status: "Read"
+  }
+];
+
