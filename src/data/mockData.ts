@@ -2096,3 +2096,491 @@ export const socialSecurityContributions: SocialSecurityContribution[] = [
   }
 ];
 
+// ========== 18) SAVINGS FUND (กองทุนสัจจะออมทรัพย์) ==========
+// สมาชิกกองทุน
+export interface FundMember {
+  id: number;
+  empCode: string;
+  empName: string;
+  joinDate: string; // วันที่สมัครสมาชิก
+  monthlySavings: number; // เงินสัจจะต่อเดือน (บาท)
+  totalSavings: number; // เงินสัจจะสะสมรวม
+  status: "Active" | "Inactive" | "Withdrawn"; // สถานะสมาชิก
+  position: string; // ตำแหน่ง (สำหรับกำหนดอัตราเงินสัจจะ)
+}
+
+// ประวัติการหักเงินสัจจะ
+export interface SavingsDeduction {
+  id: number;
+  empCode: string;
+  empName: string;
+  month: string; // YYYY-MM
+  amount: number; // จำนวนเงินที่หัก
+  deductionDate: string; // วันที่หัก
+  status: "Deducted" | "Pending" | "Failed"; // สถานะการหัก
+}
+
+// ประเภทการกู้
+export type LoanType = "สามัญ" | "ฉุกเฉิน" | "ที่อยู่อาศัย";
+
+// คำขอกู้
+export interface LoanRequest {
+  id: number;
+  empCode: string;
+  empName: string;
+  loanType: LoanType;
+  requestedAmount: number; // จำนวนเงินที่ขอ
+  approvedAmount?: number; // จำนวนเงินที่อนุมัติ
+  purpose: string; // วัตถุประสงค์
+  requestDate: string; // วันที่ยื่นคำขอ
+  approvalDate?: string; // วันที่อนุมัติ
+  status: "Pending" | "Approved" | "Rejected" | "Completed";
+  approvedBy?: string; // ผู้อนุมัติ
+  rejectionReason?: string; // เหตุผลที่ไม่อนุมัติ
+  guarantors: string[]; // รหัสพนักงานผู้ค้ำประกัน
+  documents: string[]; // รายการเอกสารที่แนบ
+  emergencyProof?: string; // เอกสารพิสูจน์กรณีฉุกเฉิน
+}
+
+// สัญญากู้
+export interface Loan {
+  id: number;
+  loanRequestId: number; // อ้างอิงคำขอกู้
+  empCode: string;
+  empName: string;
+  loanType: LoanType;
+  principalAmount: number; // เงินต้น
+  interestRate: number; // อัตราดอกเบี้ยต่อปี (%)
+  totalMonths: number; // จำนวนงวด
+  monthlyPayment: number; // ค่างวดต่อเดือน
+  remainingBalance: number; // ยอดคงเหลือ
+  startDate: string; // วันที่เริ่มกู้
+  endDate?: string; // วันที่ครบกำหนด
+  status: "Active" | "Completed" | "Overdue" | "Defaulted";
+  paymentHistory: LoanPayment[]; // ประวัติการชำระ
+  overdueCount: number; // จำนวนครั้งที่ผิดนัด
+}
+
+// การชำระเงินกู้
+export interface LoanPayment {
+  id: number;
+  loanId: number;
+  paymentDate: string; // วันที่ชำระ
+  month: string; // YYYY-MM
+  principal: number; // เงินต้น
+  interest: number; // ดอกเบี้ย
+  total: number; // รวม
+  status: "Paid" | "Pending" | "Overdue";
+  deductionDate?: string; // วันที่หักจากเงินเดือน
+}
+
+// การถอนเงินสัจจะ
+export interface SavingsWithdrawal {
+  id: number;
+  empCode: string;
+  empName: string;
+  withdrawalDate: string;
+  amount: number;
+  reason: "ลาออก" | "เกษียณ" | "เสียชีวิต" | "ครบ 5 ปี" | "อื่นๆ";
+  reasonDetail?: string;
+  status: "Pending" | "Approved" | "Rejected" | "Completed";
+  approvedBy?: string;
+  hasOutstandingLoan: boolean; // มีหนี้ค้างชำระหรือไม่
+  isGuarantor: boolean; // กำลังค้ำประกันผู้อื่นหรือไม่
+}
+
+// Mock Data
+export const fundMembers: FundMember[] = [
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    joinDate: "2023-06-01",
+    monthlySavings: 500, // ตามระดับตำแหน่ง
+    totalSavings: 15000, // สะสม 30 เดือน
+    status: "Active",
+    position: "หัวหน้าปั๊ม"
+  },
+  {
+    id: 2,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    joinDate: "2022-11-15",
+    monthlySavings: 300,
+    totalSavings: 12000,
+    status: "Active",
+    position: "แคชเชียร์"
+  },
+  {
+    id: 3,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    joinDate: "2024-01-10",
+    monthlySavings: 300,
+    totalSavings: 3000,
+    status: "Active",
+    position: "พนักงานปั๊ม"
+  },
+  {
+    id: 4,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    joinDate: "2024-03-20",
+    monthlySavings: 300,
+    totalSavings: 2400,
+    status: "Active",
+    position: "พนักงานร้าน"
+  },
+  {
+    id: 5,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    joinDate: "2021-08-05",
+    monthlySavings: 500,
+    totalSavings: 25000,
+    status: "Active",
+    position: "หัวหน้าร้าน"
+  }
+];
+
+export const savingsDeductions: SavingsDeduction[] = [
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    month: "2025-10",
+    amount: 500,
+    deductionDate: "2025-10-31",
+    status: "Deducted"
+  },
+  {
+    id: 2,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    month: "2025-10",
+    amount: 300,
+    deductionDate: "2025-10-31",
+    status: "Deducted"
+  },
+  {
+    id: 3,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    month: "2025-10",
+    amount: 300,
+    deductionDate: "2025-10-31",
+    status: "Deducted"
+  }
+];
+
+export const loanRequests: LoanRequest[] = [
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    loanType: "สามัญ",
+    requestedAmount: 300000, // 20 เท่าของเงินสัจจะสะสม (15000 * 20)
+    purpose: "ซื้อรถยนต์",
+    requestDate: "2025-10-15",
+    status: "Pending",
+    guarantors: ["EMP-0002", "EMP-0005"],
+    documents: ["บัตรประชาชน", "สลิปเงินเดือน 3 เดือน", "สมุดบัญชีธนาคาร", "สัญญาค้ำประกัน"]
+  },
+  {
+    id: 2,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    loanType: "ฉุกเฉิน",
+    requestedAmount: 30000,
+    purpose: "ค่ารักษาพยาบาล",
+    requestDate: "2025-10-20",
+    status: "Approved",
+    approvedAmount: 30000,
+    approvalDate: "2025-10-22",
+    approvedBy: "ประธานกองทุน",
+    guarantors: ["EMP-0001"],
+    documents: ["บัตรประชาชน", "ใบรับรองแพทย์", "สลิปเงินเดือน"],
+    emergencyProof: "ใบรับรองแพทย์"
+  },
+  {
+    id: 3,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    loanType: "ที่อยู่อาศัย",
+    requestedAmount: 500000,
+    purpose: "ซื้อที่อยู่อาศัย",
+    requestDate: "2025-09-01",
+    status: "Approved",
+    approvedAmount: 500000,
+    approvalDate: "2025-09-05",
+    approvedBy: "ประธานกองทุน",
+    guarantors: ["EMP-0001", "EMP-0002", "EMP-0003"],
+    documents: ["บัตรประชาชน", "สลิปเงินเดือน 3 เดือน", "เอกสารซื้อบ้าน", "สัญญาค้ำประกัน"]
+  }
+];
+
+export const loans: Loan[] = [
+  {
+    id: 1,
+    loanRequestId: 2,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    loanType: "ฉุกเฉิน",
+    principalAmount: 30000,
+    interestRate: 0, // ปลอดดอกเบี้ย
+    totalMonths: 6,
+    monthlyPayment: 5000,
+    remainingBalance: 20000,
+    startDate: "2025-10-25",
+    endDate: "2026-04-25",
+    status: "Active",
+    paymentHistory: [
+      {
+        id: 1,
+        loanId: 1,
+        paymentDate: "2025-10-31",
+        month: "2025-10",
+        principal: 5000,
+        interest: 0,
+        total: 5000,
+        status: "Paid",
+        deductionDate: "2025-10-31"
+      }
+    ],
+    overdueCount: 0
+  },
+  {
+    id: 2,
+    loanRequestId: 3,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    loanType: "ที่อยู่อาศัย",
+    principalAmount: 500000,
+    interestRate: 1, // 1% ต่อปี
+    totalMonths: 180, // 15 ปี
+    monthlyPayment: 2860, // คำนวณจาก PMT
+    remainingBalance: 497140,
+    startDate: "2025-09-10",
+    endDate: "2040-09-10",
+    status: "Active",
+    paymentHistory: [
+      {
+        id: 2,
+        loanId: 2,
+        paymentDate: "2025-09-30",
+        month: "2025-09",
+        principal: 2433,
+        interest: 427,
+        total: 2860,
+        status: "Paid",
+        deductionDate: "2025-09-30"
+      },
+      {
+        id: 3,
+        loanId: 2,
+        paymentDate: "2025-10-31",
+        month: "2025-10",
+        principal: 2445,
+        interest: 415,
+        total: 2860,
+        status: "Paid",
+        deductionDate: "2025-10-31"
+      }
+    ],
+    overdueCount: 0
+  }
+];
+
+export const savingsWithdrawals: SavingsWithdrawal[] = [
+  {
+    id: 1,
+    empCode: "EMP-0006",
+    empName: "ธีรภัทร แข็งแรง",
+    withdrawalDate: "2025-10-01",
+    amount: 8000,
+    reason: "ลาออก",
+    status: "Approved",
+    approvedBy: "ประธานกองทุน",
+    hasOutstandingLoan: false,
+    isGuarantor: false
+  }
+];
+
+// การฝากเงินสัจจะเพิ่มเติม (นอกเหนือจากการหักเงินเดือนอัตโนมัติ)
+export interface SavingsDeposit {
+  id: number;
+  empCode: string;
+  empName: string;
+  depositDate: string; // วันที่ฝาก
+  amount: number; // จำนวนเงินที่ฝาก
+  depositMethod: "เงินสด" | "โอนเงิน" | "เช็ค"; // วิธีการฝาก
+  receiptNumber?: string; // เลขที่ใบเสร็จ
+  notes?: string; // หมายเหตุ
+  status: "Completed" | "Pending" | "Cancelled"; // สถานะ
+  recordedBy: string; // ผู้บันทึก
+}
+
+export const savingsDeposits: SavingsDeposit[] = [
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    depositDate: "2025-10-05",
+    amount: 5000,
+    depositMethod: "โอนเงิน",
+    receiptNumber: "DEP-2025-001",
+    status: "Completed",
+    recordedBy: "เหรัญญิก"
+  },
+  {
+    id: 2,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    depositDate: "2025-10-10",
+    amount: 3000,
+    depositMethod: "เงินสด",
+    receiptNumber: "DEP-2025-002",
+    status: "Completed",
+    recordedBy: "เหรัญญิก"
+  },
+  {
+    id: 3,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    depositDate: "2025-10-15",
+    amount: 10000,
+    depositMethod: "เช็ค",
+    receiptNumber: "DEP-2025-003",
+    status: "Pending",
+    recordedBy: "เหรัญญิก",
+    notes: "รอเช็คเคลียร์"
+  }
+];
+
+// ========== 19) FUND COMMITTEE (กรรมการกองทุน) ==========
+export interface FundCommittee {
+  id: number;
+  empCode: string;
+  empName: string;
+  position: "ประธานกองทุน" | "กรรมการ" | "เหรัญญิก" | "เลขานุการ";
+  startDate: string;
+  endDate?: string;
+  status: "Active" | "Inactive";
+  responsibilities: string[]; // หน้าที่หลัก
+}
+
+export const fundCommittee: FundCommittee[] = [
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    position: "ประธานกองทุน",
+    startDate: "2023-01-01",
+    status: "Active",
+    responsibilities: ["อนุมัติวงเงินกู้สูง", "เป็นประธานในที่ประชุม", "อนุมัติการถอนเงิน"]
+  },
+  {
+    id: 2,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    position: "เหรัญญิก",
+    startDate: "2023-01-01",
+    status: "Active",
+    responsibilities: ["ดูแลบัญชี", "รับ-จ่ายเงิน", "ตรวจสอบยอดเงิน"]
+  },
+  {
+    id: 3,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    position: "เลขานุการ",
+    startDate: "2023-01-01",
+    status: "Active",
+    responsibilities: ["จัดเก็บเอกสาร", "รายงานสรุป", "ประชุมเดือนละ 1 ครั้ง"]
+  },
+  {
+    id: 4,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    position: "กรรมการ",
+    startDate: "2023-01-01",
+    status: "Active",
+    responsibilities: ["ตรวจสอบคำขอ", "ประชุมเดือนละ 1 ครั้ง"]
+  },
+  {
+    id: 5,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    position: "กรรมการ",
+    startDate: "2024-03-01",
+    status: "Active",
+    responsibilities: ["ตรวจสอบคำขอ", "ประชุมเดือนละ 1 ครั้ง"]
+  }
+];
+
+// ========== 20) LOAN PENALTIES (บทลงโทษผู้ผิดนัด) ==========
+export interface LoanPenalty {
+  id: number;
+  loanId: number;
+  empCode: string;
+  empName: string;
+  penaltyDate: string;
+  overdueCount: number; // ครั้งที่ผิดนัด (1, 2, 3+)
+  action: "แจ้งเตือน" | "ห้ามกู้ใหม่ 6 เดือน" | "ตัดเงินสัจจะชำระหนี้" | "แจ้งผู้บริหาร";
+  actionDate: string;
+  actionBy: string;
+  amount?: number; // จำนวนเงินที่ตัด (ถ้ามี)
+  status: "Active" | "Resolved";
+  notes?: string;
+}
+
+export const loanPenalties: LoanPenalty[] = [
+  {
+    id: 1,
+    loanId: 1,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    penaltyDate: "2025-09-15",
+    overdueCount: 1,
+    action: "แจ้งเตือน",
+    actionDate: "2025-09-15",
+    actionBy: "เหรัญญิก",
+    status: "Resolved",
+    notes: "แจ้งเตือนเป็นลายลักษณ์อักษร"
+  }
+];
+
+// ========== 21) MONTHLY REPORTS (รายงานประจำเดือน) ==========
+export interface MonthlyReport {
+  id: number;
+  month: string; // YYYY-MM
+  reportDate: string; // วันที่ส่งรายงาน
+  totalSavings: number; // ยอดเงินสัจจะรวม
+  totalLoansOutstanding: number; // ยอดเงินกู้คงเหลือ
+  overdueLoans: number; // จำนวนกู้ที่ผิดนัด
+  overdueMembers: string[]; // รายชื่อผู้ค้างชำระ
+  newMembers: number; // สมาชิกใหม่
+  newLoans: number; // กู้ใหม่
+  totalDeductions: number; // หักเงินสัจจะรวม
+  totalLoanPayments: number; // ชำระเงินกู้รวม
+  status: "Draft" | "Submitted";
+  submittedBy?: string;
+}
+
+export const monthlyReports: MonthlyReport[] = [
+  {
+    id: 1,
+    month: "2025-10",
+    reportDate: "2025-11-05",
+    totalSavings: 55000,
+    totalLoansOutstanding: 527140,
+    overdueLoans: 0,
+    overdueMembers: [],
+    newMembers: 0,
+    newLoans: 1,
+    totalDeductions: 1700,
+    totalLoanPayments: 7860,
+    status: "Submitted",
+    submittedBy: "เลขานุการ"
+  }
+];
+
