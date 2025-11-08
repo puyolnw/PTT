@@ -8,7 +8,8 @@ import {
   Wallet,
   Shield,
   GitBranch,
-  BarChart3
+  BarChart3,
+  Trophy
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -19,6 +20,7 @@ const items = [
   { to: "/app/hr/leaves", icon: Calendar, label: "การลา", end: false },
   { to: "/app/hr/payroll", icon: Wallet, label: "เงินเดือน", end: false },
   { to: "/app/hr/social-security", icon: Shield, label: "ประกันสังคม", end: false },
+  { to: "/app/hr/outstanding-employees", icon: Trophy, label: "พนักงานดีเด่น", end: false },
   // { to: "/app/hr/performance", icon: Target, label: "ประเมินผล", end: false },
   // { to: "/app/hr/recruitment", icon: FileSearch, label: "รับสมัครงาน", end: false },
   // { to: "/app/hr/training", icon: GraduationCap, label: "ฝึกอบรม", end: false },

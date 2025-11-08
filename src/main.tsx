@@ -28,6 +28,7 @@ import Organization from "@/pages/hr/Organization";
 import Announcements from "@/pages/hr/Announcements";
 import HRReports from "@/pages/hr/Reports";
 import HRSettings from "@/pages/hr/Settings";
+import OutstandingEmployees from "@/pages/hr/OutstandingEmployees";
 
 // ========== Fund Pages ==========
 import FundDashboard from "@/pages/fund/Dashboard";
@@ -162,6 +163,10 @@ const router = createBrowserRouter([
           {
             path: "announcements",
             element: <Announcements />,
+          },
+          {
+            path: "outstanding-employees",
+            element: <OutstandingEmployees />,
           },
           {
             path: "reports",
