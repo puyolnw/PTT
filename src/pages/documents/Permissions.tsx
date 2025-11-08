@@ -176,7 +176,7 @@ export default function Permissions() {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 filterType === type
                   ? "bg-ptt-blue text-app"
-                  : "bg-ink-800 text-app hover:bg-ink-700"
+                  : "bg-soft text-app hover:bg-app/10"
               }`}
             >
               {type === "all" && "ทั้งหมด"}
@@ -208,7 +208,7 @@ export default function Permissions() {
                 <th className="px-6 py-4 text-center text-sm font-semibold text-app">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-app">
               {filteredPermissions.map((perm, index) => (
                 <motion.tr
                   key={perm.id}
@@ -339,7 +339,7 @@ export default function Permissions() {
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value as "document" | "category" | "user" | "role" })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="document">ตามเอกสาร</option>
@@ -357,7 +357,7 @@ export default function Permissions() {
               <select
                 value={formData.documentId}
                 onChange={(e) => setFormData({ ...formData, documentId: e.target.value })}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               >
                 <option value="">เลือกเอกสาร</option>
@@ -378,7 +378,7 @@ export default function Permissions() {
               <select
                 value={formData.categoryId}
                 onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               >
                 <option value="">เลือกหมวดหมู่</option>
@@ -399,7 +399,7 @@ export default function Permissions() {
               <select
                 value={formData.userId}
                 onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               >
                 <option value="">เลือกผู้ใช้</option>
@@ -421,7 +421,7 @@ export default function Permissions() {
                 type="text"
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
                          focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 placeholder="เช่น HR Manager, Admin"
@@ -440,7 +440,7 @@ export default function Permissions() {
                 { key: "update", label: "Update (U) - แก้ไขได้" },
                 { key: "delete", label: "Delete (D) - ลบได้" }
               ] as const).map(({ key, label }) => (
-                <label key={key} className="flex items-center gap-3 p-3 bg-ink-800 rounded-lg cursor-pointer hover:bg-ink-700 transition-colors">
+                <label key={key} className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
                   <input
                     type="checkbox"
                     checked={formData[key]}

@@ -299,7 +299,7 @@ export default function AuditTrail() {
                 setDateFrom(e.target.value);
                 handleFilter();
               }}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             />
           </div>
@@ -314,7 +314,7 @@ export default function AuditTrail() {
                 setDateTo(e.target.value);
                 handleFilter();
               }}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             />
           </div>
@@ -340,7 +340,7 @@ export default function AuditTrail() {
                 <th className="px-6 py-4 text-center text-sm font-semibold text-app">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-app">
               {filteredLogs.map((log, index) => (
                 <motion.tr
                   key={log.id}

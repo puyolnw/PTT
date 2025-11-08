@@ -228,7 +228,7 @@ export default function Committee() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="p-4 bg-ink-800 rounded-xl border border-app hover:border-blue-500/30 transition-colors cursor-pointer"
+              className="p-4 bg-soft rounded-xl border border-app hover:border-blue-500/30 transition-colors cursor-pointer"
               onClick={() => setSelectedMember(member)}
             >
               <div className="flex items-center gap-3 mb-3">
@@ -263,7 +263,7 @@ export default function Committee() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-ink-800/60 border-b border-app">
+            <thead className="bg-soft border-b border-app">
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-app">ตำแหน่ง</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-app">รหัส</th>
@@ -273,7 +273,7 @@ export default function Committee() {
                 <th className="px-6 py-4 text-center text-sm font-semibold text-app">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-app">
               {fundCommittee.map((member, index) => (
                 <motion.tr
                   key={member.id}
@@ -346,7 +346,7 @@ export default function Committee() {
             <select
               value={formData.empCode}
               onChange={(e) => setFormData({ ...formData, empCode: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="">เลือกพนักงาน</option>
@@ -367,7 +367,7 @@ export default function Committee() {
             <select
               value={formData.position}
               onChange={(e) => setFormData({ ...formData, position: e.target.value as CommitteeType["position"] })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="">เลือกตำแหน่ง</option>
@@ -386,7 +386,7 @@ export default function Committee() {
               type="date"
               value={formData.startDate}
               onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             />
           </div>
@@ -444,7 +444,7 @@ export default function Committee() {
               <p className="text-muted mb-2">หน้าที่หลัก:</p>
               <ul className="space-y-2">
                 {selectedMember.responsibilities.map((resp, index) => (
-                  <li key={index} className="flex items-start gap-2 p-2 bg-ink-800 rounded-lg">
+                  <li key={index} className="flex items-start gap-2 p-2 bg-soft rounded-lg">
                     <CheckCircle className="w-4 h-4 text-ptt-cyan mt-0.5 flex-shrink-0" />
                     <span className="text-sm text-app">{resp}</span>
                   </li>

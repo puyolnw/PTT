@@ -26,14 +26,14 @@ export default function Expenditures() {
       {/* Filter Bar */}
       <div className="panel/40 border border-app rounded-2xl p-4">
         <div className="flex flex-wrap gap-3">
-          <select className="px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm">
+          <select className="px-3 py-2 bg-soft border border-app rounded-lg text-sm">
             <option>แผนกทั้งหมด</option>
             <option>IT</option>
             <option>HR</option>
             <option>Account</option>
             <option>Marketing</option>
           </select>
-          <select className="px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm">
+          <select className="px-3 py-2 bg-soft border border-app rounded-lg text-sm">
             <option>สถานะทั้งหมด</option>
             <option>อนุมัติแล้ว</option>
             <option>รออนุมัติ</option>
@@ -41,7 +41,7 @@ export default function Expenditures() {
           </select>
           <input
             type="date"
-            className="px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm"
+            className="px-3 py-2 bg-soft border border-app rounded-lg text-sm"
           />
         </div>
       </div>
@@ -50,7 +50,7 @@ export default function Expenditures() {
       <div className="panel/40 border border-app rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-ink-800/60">
+            <thead className="bg-soft">
               <tr className="border-b border-app">
                 <th className="px-6 py-4 text-left text-sm font-semibold text-app">ผู้ขอเบิก</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-app">แผนก</th>
@@ -62,7 +62,7 @@ export default function Expenditures() {
                 <th className="px-6 py-4 text-center text-sm font-semibold text-app">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-app">
               {expenditures.map((exp) => (
                 <tr key={exp.id} className="hover:bg-soft transition-colors">
                   <td className="px-6 py-4 text-sm text-app font-medium">{exp.requestBy}</td>
@@ -90,7 +90,7 @@ export default function Expenditures() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <button 
-                      className="p-2 hover:bg-ink-800 rounded-lg transition-colors"
+                      className="p-2 hover:bg-soft rounded-lg transition-colors"
                       title="ดูใบเสร็จ"
                     >
                       <FileText className="w-4 h-4 text-muted" />

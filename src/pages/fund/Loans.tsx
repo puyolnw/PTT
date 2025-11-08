@@ -269,7 +269,7 @@ export default function Loans() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-app">
               {filteredLoans.map((loan, index) => {
                 const progress = getPaymentProgress(loan);
                 return (
@@ -308,7 +308,7 @@ export default function Loans() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 bg-ink-800 rounded-full overflow-hidden">
+                        <div className="flex-1 h-2 bg-soft rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan"
                             style={{ width: `${progress}%` }}
@@ -371,7 +371,7 @@ export default function Loans() {
         {selectedLoan && (
           <div className="space-y-6">
             {/* Loan Info */}
-            <div className="bg-ink-800 rounded-xl p-4 border border-app">
+            <div className="bg-soft rounded-xl p-4 border border-app">
               <h3 className="text-lg font-semibold text-app mb-4 font-display">
                 ข้อมูลสัญญากู้
               </h3>
@@ -434,7 +434,7 @@ export default function Loans() {
                 <div>
                   <p className="text-muted mb-1">ความคืบหน้า:</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <div className="flex-1 h-2 bg-ink-800 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 bg-soft rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan"
                         style={{ width: `${getPaymentProgress(selectedLoan)}%` }}

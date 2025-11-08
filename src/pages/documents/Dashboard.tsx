@@ -176,7 +176,7 @@ export default function DocumentsDashboard() {
               const days = getDaysUntilExpiry(doc.expiryDate);
               const category = documentCategories.find(c => c.id === doc.categoryId);
               return (
-                <div key={doc.id} className="flex items-center justify-between p-3 bg-ink-800 rounded-lg">
+                <div key={doc.id} className="flex items-center justify-between p-3 bg-soft rounded-lg">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-app">{doc.title}</p>
                     <p className="text-xs text-muted">
@@ -213,7 +213,7 @@ export default function DocumentsDashboard() {
             {recentNotifications.map((notif) => {
               const doc = documents.find(d => d.id === notif.documentId);
               return (
-                <div key={notif.id} className="flex items-start gap-3 p-3 bg-ink-800 rounded-lg">
+                <div key={notif.id} className="flex items-start gap-3 p-3 bg-soft rounded-lg">
                   <div className={`p-1.5 rounded-lg ${
                     notif.type === "Expiring" ? "bg-yellow-500/20" :
                     notif.type === "Expired" ? "bg-red-500/20" :
@@ -247,7 +247,7 @@ export default function DocumentsDashboard() {
           {documentCategories.map((category) => {
             const count = documents.filter(d => d.categoryId === category.id).length;
             return (
-              <div key={category.id} className="p-4 bg-ink-800 rounded-xl border border-app">
+              <div key={category.id} className="p-4 bg-soft rounded-xl border border-app">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium text-app">{category.name}</p>
                   <Folder className={`w-4 h-4 text-${category.color}-400`} />
@@ -266,7 +266,7 @@ export default function DocumentsDashboard() {
           <Calendar className="w-5 h-5 text-ptt-cyan" />
           <h3 className="text-lg font-semibold text-app font-display">ปฏิทินเอกสารใกล้หมดอายุ</h3>
         </div>
-        <div className="bg-ink-800 rounded-xl p-4">
+        <div className="bg-soft rounded-xl p-4">
           <div className="grid grid-cols-7 gap-2 mb-2">
             {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((day) => (
               <div key={day} className="text-center text-sm font-medium text-muted py-2">
@@ -300,7 +300,7 @@ export default function DocumentsDashboard() {
                         : daysUntilExpiry !== null && daysUntilExpiry <= 15
                         ? "bg-orange-500/10 border-orange-500/30"
                         : "bg-yellow-500/10 border-yellow-500/30"
-                      : "bg-ink-800 border-app"
+                      : "bg-soft border-app"
                   }`}
                   title={expiringDocs.length > 0 
                     ? expiringDocs.map(d => d.title).join(", ")
@@ -352,7 +352,7 @@ export default function DocumentsDashboard() {
               return (
                 <div
                   key={doc.id}
-                  className="flex items-center justify-between p-3 bg-ink-800 rounded-lg hover:bg-ink-700 transition-colors"
+                  className="flex items-center justify-between p-3 bg-soft rounded-lg hover:bg-app/10 transition-colors"
                 >
                   <div className="flex-1">
                     <p className="text-sm font-medium text-app">{doc.title}</p>

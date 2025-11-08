@@ -182,7 +182,7 @@ export default function Categories() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="เช่น ใบอนุญาต"
@@ -197,7 +197,7 @@ export default function Categories() {
               rows={3}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="อธิบายรายละเอียดหมวดหมู่"
@@ -246,7 +246,7 @@ export default function Categories() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             />
@@ -260,7 +260,7 @@ export default function Categories() {
               rows={3}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             />

@@ -222,7 +222,7 @@ export default function Approvals() {
                       approval.status === "Approved" ? "bg-green-500/10 border-green-500/30" :
                       approval.status === "Rejected" ? "bg-red-500/10 border-red-500/30" :
                       approval.status === "Pending" ? "bg-yellow-500/10 border-yellow-500/30" :
-                      "bg-ink-800 border-app"
+                      "bg-soft border-app"
                     }`}
                   >
                     <div className="flex items-center gap-3 flex-1">
@@ -230,7 +230,7 @@ export default function Approvals() {
                         approval.status === "Approved" ? "bg-green-500/20" :
                         approval.status === "Rejected" ? "bg-red-500/20" :
                         approval.status === "Pending" ? "bg-yellow-500/20" :
-                        "bg-ink-800"
+                        "bg-soft"
                       }`}>
                         {approval.status === "Approved" && <CheckCircle className="w-5 h-5 text-green-400" />}
                         {approval.status === "Rejected" && <XCircle className="w-5 h-5 text-red-400" />}
@@ -341,7 +341,7 @@ export default function Approvals() {
             {selectedApproval.eSignature && (
               <div>
                 <p className="text-muted mb-1">ลายเซ็นอิเล็กทรอนิกส์:</p>
-                <div className="p-3 bg-ink-800 rounded-lg">
+                <div className="p-3 bg-soft rounded-lg">
                   <p className="text-sm text-app font-mono">{selectedApproval.eSignature}</p>
                 </div>
               </div>
@@ -408,7 +408,7 @@ export default function Approvals() {
               <label className="block text-sm font-medium text-app mb-2">
                 วาดลายเซ็นของคุณ
               </label>
-              <div className="border-2 border-dashed border-app rounded-xl p-4 bg-ink-800">
+              <div className="border-2 border-dashed border-app rounded-xl p-4 bg-soft">
                 <canvas
                   ref={canvasRef}
                   width={600}
@@ -503,7 +503,7 @@ export default function Approvals() {
                 </label>
               </div>
               {signatureData && (
-                <div className="mt-4 p-4 bg-ink-800 rounded-lg">
+                <div className="mt-4 p-4 bg-soft rounded-lg">
                   <p className="text-sm text-muted mb-2">ตัวอย่างลายเซ็น:</p>
                   <img src={signatureData} alt="Signature" className="max-w-full h-32 object-contain" />
                 </div>

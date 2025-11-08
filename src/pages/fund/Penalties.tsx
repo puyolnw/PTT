@@ -213,7 +213,7 @@ export default function Penalties() {
             {overdueLoans.map((loan) => (
               <div
                 key={loan.id}
-                className="flex items-center justify-between p-4 bg-ink-800 rounded-xl border border-red-500/30"
+                className="flex items-center justify-between p-4 bg-soft rounded-xl border border-red-500/30"
               >
                 <div>
                   <p className="font-medium text-app">
@@ -316,7 +316,7 @@ export default function Penalties() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-app">
               {filteredPenalties.map((penalty, index) => (
                 <motion.tr
                   key={penalty.id}
@@ -385,7 +385,7 @@ export default function Penalties() {
       </motion.div>
 
       {/* Penalty Rules Info */}
-      <div className="bg-ink-800 border border-app rounded-2xl p-6">
+      <div className="bg-soft border border-app rounded-2xl p-6">
         <h3 className="text-lg font-semibold text-app mb-4 font-display">
           มาตรการบทลงโทษ
         </h3>
@@ -460,7 +460,7 @@ export default function Penalties() {
               )}
             </div>
             {selectedPenalty.notes && (
-              <div className="p-3 bg-ink-800 rounded-lg">
+              <div className="p-3 bg-soft rounded-lg">
                 <p className="text-sm text-muted mb-1">หมายเหตุ:</p>
                 <p className="text-sm text-app">{selectedPenalty.notes}</p>
               </div>

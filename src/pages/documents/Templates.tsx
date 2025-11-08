@@ -244,7 +244,7 @@ export default function Templates() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="เช่น เทมเพลตใบแจ้งหนี้"
@@ -259,7 +259,7 @@ export default function Templates() {
               rows={2}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="อธิบายเทมเพลต"
@@ -273,7 +273,7 @@ export default function Templates() {
             <select
               value={formData.categoryId}
               onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="">เลือกหมวดหมู่</option>
@@ -293,7 +293,7 @@ export default function Templates() {
               rows={8}
               value={formData.templateContent}
               onChange={(e) => setFormData({ ...formData, templateContent: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted font-mono text-sm
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="เช่น ใบแจ้งหนี้&#10;บริษัท: {companyName}&#10;วันที่: {date}&#10;ยอดรวม: {amount} บาท"
@@ -313,7 +313,7 @@ export default function Templates() {
                 value={variableInput}
                 onChange={(e) => setVariableInput(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleAddVariable()}
-                className="flex-1 px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="flex-1 px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
                          focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 placeholder="ชื่อตัวแปร (เช่น companyName)"
@@ -359,7 +359,7 @@ export default function Templates() {
       >
         {selectedTemplate && (
           <div className="space-y-4">
-            <div className="p-4 bg-ink-800 rounded-lg">
+            <div className="p-4 bg-soft rounded-lg">
               <p className="text-sm text-muted mb-2">ตัวอย่างเนื้อหา:</p>
               <pre className="text-sm text-app whitespace-pre-wrap font-mono">
                 {selectedTemplate.templateContent}
@@ -378,7 +378,7 @@ export default function Templates() {
                     </label>
                     <input
                       type="text"
-                      className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                      className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                                text-app placeholder:text-muted
                                focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                       placeholder={`กรอกค่า {${variable}}`}

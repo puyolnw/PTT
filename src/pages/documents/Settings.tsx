@@ -133,7 +133,7 @@ export default function DocumentSettings() {
                 type="text"
                 value={customDays}
                 onChange={(e) => setCustomDays(e.target.value)}
-                className="flex-1 px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="flex-1 px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
                          focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 placeholder="เพิ่มวัน (คั่นด้วยคอมม่า เช่น 60,45,30)"
@@ -162,7 +162,7 @@ export default function DocumentSettings() {
             </label>
             <div className="space-y-2">
               {(["email", "line", "system"] as const).map((channel) => (
-                <label key={channel} className="flex items-center gap-3 p-3 bg-ink-800 rounded-lg cursor-pointer hover:bg-ink-700 transition-colors">
+                <label key={channel} className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
                   <input
                     type="checkbox"
                     checked={settings.expiryAlertChannels.includes(channel)}
@@ -221,7 +221,7 @@ export default function DocumentSettings() {
                   e.target.value = "";
                 }
               }}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="">เลือกหมวดหมู่</option>
@@ -250,7 +250,7 @@ export default function DocumentSettings() {
         </div>
 
         <div className="space-y-4">
-          <label className="flex items-center gap-3 p-3 bg-ink-800 rounded-lg cursor-pointer hover:bg-ink-700 transition-colors">
+          <label className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
             <input
               type="checkbox"
               checked={settings.emailEnabled}
@@ -270,7 +270,7 @@ export default function DocumentSettings() {
                   type="email"
                   value={settings.emailAddress}
                   onChange={(e) => setSettings({ ...settings, emailAddress: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                  className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                            text-app placeholder:text-muted
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 />
@@ -283,7 +283,7 @@ export default function DocumentSettings() {
                   type="text"
                   value={settings.emailSubject}
                   onChange={(e) => setSettings({ ...settings, emailSubject: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                  className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                            text-app placeholder:text-muted
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 />
@@ -306,7 +306,7 @@ export default function DocumentSettings() {
         </div>
 
         <div className="space-y-4">
-          <label className="flex items-center gap-3 p-3 bg-ink-800 rounded-lg cursor-pointer hover:bg-ink-700 transition-colors">
+          <label className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
             <input
               type="checkbox"
               checked={settings.lineEnabled}
@@ -325,7 +325,7 @@ export default function DocumentSettings() {
                 type="text"
                 value={settings.lineToken}
                 onChange={(e) => setSettings({ ...settings, lineToken: e.target.value })}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted font-mono
                          focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 placeholder="กรอก Line Token"
@@ -348,7 +348,7 @@ export default function DocumentSettings() {
         </div>
 
         <div className="space-y-4">
-          <label className="flex items-center gap-3 p-3 bg-ink-800 rounded-lg cursor-pointer hover:bg-ink-700 transition-colors">
+          <label className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
             <input
               type="checkbox"
               checked={settings.calendarEnabled}
@@ -367,7 +367,7 @@ export default function DocumentSettings() {
                 type="number"
                 value={settings.calendarSyncDays}
                 onChange={(e) => setSettings({ ...settings, calendarSyncDays: Number(e.target.value) })}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
                          focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 min="1"

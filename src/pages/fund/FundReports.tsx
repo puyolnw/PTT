@@ -70,7 +70,7 @@ export default function FundReports() {
             </StatusTag>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 bg-ink-800 rounded-xl border border-app">
+            <div className="p-4 bg-soft rounded-xl border border-app">
               <div className="flex items-center gap-2 mb-2">
                 <PiggyBank className="w-5 h-5 text-ptt-cyan" />
                 <p className="text-sm text-muted">ยอดเงินสัจจะรวม</p>
@@ -79,7 +79,7 @@ export default function FundReports() {
                 {formatCurrency(latestReport.totalSavings)}
               </p>
             </div>
-            <div className="p-4 bg-ink-800 rounded-xl border border-app">
+            <div className="p-4 bg-soft rounded-xl border border-app">
               <div className="flex items-center gap-2 mb-2">
                 <CreditCard className="w-5 h-5 text-blue-400" />
                 <p className="text-sm text-muted">ยอดเงินกู้คงเหลือ</p>
@@ -88,7 +88,7 @@ export default function FundReports() {
                 {formatCurrency(latestReport.totalLoansOutstanding)}
               </p>
             </div>
-            <div className="p-4 bg-ink-800 rounded-xl border border-app">
+            <div className="p-4 bg-soft rounded-xl border border-app">
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
                 <p className="text-sm text-muted">กู้ที่ผิดนัด</p>
@@ -97,7 +97,7 @@ export default function FundReports() {
                 {latestReport.overdueLoans}
               </p>
             </div>
-            <div className="p-4 bg-ink-800 rounded-xl border border-app">
+            <div className="p-4 bg-soft rounded-xl border border-app">
               <div className="flex items-center gap-2 mb-2">
                 <Calendar className="w-5 h-5 text-green-400" />
                 <p className="text-sm text-muted">สมาชิกใหม่</p>
@@ -121,7 +121,7 @@ export default function FundReports() {
             {overdueMembers.map((name, index) => (
               <div
                 key={index}
-                className="p-3 bg-ink-800 rounded-lg border border-red-500/30"
+                className="p-3 bg-soft rounded-lg border border-red-500/30"
               >
                 <p className="text-sm font-medium text-app">{name}</p>
               </div>
@@ -137,7 +137,7 @@ export default function FundReports() {
           {monthlyReports.map((report) => (
             <div
               key={report.id}
-              className="flex items-center justify-between p-4 bg-ink-800 rounded-xl border-app hover:border-ptt-blue/30 transition-colors"
+              className="flex items-center justify-between p-4 bg-soft rounded-xl border-app hover:border-ptt-blue/30 transition-colors"
             >
               <div>
                 <p className="font-semibold text-app">

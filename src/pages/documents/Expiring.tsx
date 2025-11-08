@@ -234,7 +234,7 @@ export default function Expiring() {
                 <th className="px-6 py-4 text-center text-sm font-semibold text-app">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-app">
               {filteredDocuments.map((doc, index) => {
                 const days = getDaysUntilExpiry(doc.expiryDate);
                 return (

@@ -212,7 +212,7 @@ export default function AllDocuments() {
                 <th className="px-6 py-4 text-center text-sm font-semibold text-app">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-app">
               {filteredDocuments.map((doc, index) => {
                 const days = getDaysUntilExpiry(doc.expiryDate);
                 return (
@@ -246,7 +246,7 @@ export default function AllDocuments() {
                       {doc.fileType} • {formatFileSize(doc.fileSize)}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-ink-800 text-app">
+                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-soft text-app">
                         v{doc.version}
                       </span>
                     </td>
@@ -342,7 +342,7 @@ export default function AllDocuments() {
             </label>
             <input
               type="text"
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="เช่น ใบอนุญาตปั๊มน้ำมันสาขา 1"
@@ -354,7 +354,7 @@ export default function AllDocuments() {
               หมวดหมู่ <span className="text-red-400">*</span>
             </label>
             <select
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="">เลือกหมวดหมู่</option>
@@ -372,7 +372,7 @@ export default function AllDocuments() {
             </label>
             <textarea
               rows={3}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="อธิบายรายละเอียดเอกสาร"
@@ -401,7 +401,7 @@ export default function AllDocuments() {
                 ระดับความลับ
               </label>
               <select
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               >
                 <option value="Public">สาธารณะ</option>
@@ -415,7 +415,7 @@ export default function AllDocuments() {
               </label>
               <input
                 type="date"
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               />
             </div>
@@ -427,7 +427,7 @@ export default function AllDocuments() {
             </label>
             <input
               type="text"
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="เช่น ใบอนุญาต, ปั๊มน้ำมัน, สาขา 1"
@@ -584,7 +584,7 @@ export default function AllDocuments() {
             )}
 
             {!selectedDocument.linkedModule && (
-              <div className="p-3 bg-ink-800 rounded-lg">
+              <div className="p-3 bg-soft rounded-lg">
                 <p className="text-sm text-muted mb-2">เชื่อมโยงกับโมดูลอื่น:</p>
                 <div className="flex gap-2">
                   <button className="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-xs transition-colors">
@@ -601,7 +601,7 @@ export default function AllDocuments() {
             )}
 
             {selectedDocument.metadata && (
-              <div className="p-3 bg-ink-800 rounded-lg">
+              <div className="p-3 bg-soft rounded-lg">
                 <p className="text-sm text-muted mb-2">ข้อมูลเพิ่มเติม:</p>
                 <div className="space-y-1 text-sm">
                   {Object.entries(selectedDocument.metadata).map(([key, value]) => (

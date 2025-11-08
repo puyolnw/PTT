@@ -144,7 +144,7 @@ export default function DocumentsReports() {
             {documentsByCategory.map((item, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 bg-ink-800 rounded-lg"
+                className="flex items-center justify-between p-3 bg-soft rounded-lg"
               >
                 <div>
                   <p className="text-sm font-medium text-app">{item.category}</p>
@@ -166,7 +166,7 @@ export default function DocumentsReports() {
             {Object.entries(documentsByStatus).map(([status, count]) => (
               <div
                 key={status}
-                className="flex items-center justify-between p-3 bg-ink-800 rounded-lg"
+                className="flex items-center justify-between p-3 bg-soft rounded-lg"
               >
                 <p className="text-sm font-medium text-app">{status}</p>
                 <p className="text-sm font-semibold text-ptt-cyan">{count} เอกสาร</p>
@@ -186,7 +186,7 @@ export default function DocumentsReports() {
           {Object.entries(documentsBySecurity).map(([level, count]) => (
             <div
               key={level}
-              className="p-4 bg-ink-800 rounded-xl border border-app"
+              className="p-4 bg-soft rounded-xl border border-app"
             >
               <p className="text-sm text-muted mb-1">
                 {level === "Public" ? "สาธารณะ" :
@@ -215,7 +215,7 @@ export default function DocumentsReports() {
                       <span className="text-app">{item.category}</span>
                       <span className="text-ptt-cyan font-semibold">{item.count}</span>
                     </div>
-                    <div className="w-full bg-ink-800 rounded-full h-2">
+                    <div className="w-full bg-soft rounded-full h-2">
                       <div
                         className="bg-ptt-cyan h-2 rounded-full transition-all"
                         style={{ width: `${percentage}%` }}
@@ -239,7 +239,7 @@ export default function DocumentsReports() {
                       <span className="text-app">{status}</span>
                       <span className="text-ptt-cyan font-semibold">{count}</span>
                     </div>
-                    <div className="w-full bg-ink-800 rounded-full h-2">
+                    <div className="w-full bg-soft rounded-full h-2">
                       <div
                         className="bg-blue-400 h-2 rounded-full transition-all"
                         style={{ width: `${percentage}%` }}

@@ -138,14 +138,14 @@ export default function DocumentVersions() {
                     className={`flex items-center justify-between p-4 rounded-xl border ${
                       index === 0
                         ? "bg-green-500/10 border-green-500/30"
-                        : "bg-ink-800 border-app"
+                        : "bg-soft border-app"
                     }`}
                   >
                     <div className="flex items-center gap-4 flex-1">
                       <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
                         index === 0
                           ? "bg-green-500/20"
-                          : "bg-ink-800"
+                          : "bg-soft"
                       }`}>
                         <span className={`text-lg font-bold ${
                           index === 0 ? "text-green-400" : "text-muted"
@@ -264,7 +264,7 @@ export default function DocumentVersions() {
                 </div>
               </div>
             </div>
-            <div className="p-4 bg-ink-800 rounded-lg">
+            <div className="p-4 bg-soft rounded-lg">
               <p className="text-sm text-muted mb-2">ความแตกต่าง:</p>
               <p className="text-app">
                 {compareVersions.v1.changeNote || "ไม่มีหมายเหตุ"} → {compareVersions.v2.changeNote || "ไม่มีหมายเหตุ"}

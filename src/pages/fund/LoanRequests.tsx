@@ -348,7 +348,7 @@ export default function LoanRequests() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-app">
               {filteredRequests.map((request, index) => (
                   <motion.tr
                     key={request.id}
@@ -489,7 +489,7 @@ export default function LoanRequests() {
                   calculateMaxLoanAmount(member.totalSavings, formData.loanType as LoanType);
                 }
               }}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="">เลือกสมาชิก</option>
@@ -518,7 +518,7 @@ export default function LoanRequests() {
                   calculateMaxLoanAmount(member.totalSavings, loanType);
                 }
               }}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="">เลือกประเภทกู้</option>
@@ -552,7 +552,7 @@ export default function LoanRequests() {
               onChange={(e) => setFormData({ ...formData, requestedAmount: e.target.value })}
               min="1000"
               step="1000"
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="เช่น 100000"
@@ -567,7 +567,7 @@ export default function LoanRequests() {
               value={formData.purpose}
               onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="ระบุวัตถุประสงค์ในการกู้ยืม"
@@ -585,7 +585,7 @@ export default function LoanRequests() {
                 const selected = Array.from(e.target.selectedOptions, option => option.value);
                 setFormData({ ...formData, guarantors: selected });
               }}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               size={5}
             >
@@ -626,7 +626,7 @@ export default function LoanRequests() {
           return (
             <div className="space-y-6">
               {/* Request Info */}
-              <div className="bg-ink-800 rounded-xl p-4 border border-app">
+              <div className="bg-soft rounded-xl p-4 border border-app">
                 <h3 className="text-lg font-semibold text-app mb-4 font-display">
                   ข้อมูลคำขอกู้
                 </h3>
@@ -732,7 +732,7 @@ export default function LoanRequests() {
               </div>
 
               {/* Status */}
-              <div className="p-4 bg-ink-800 rounded-xl border border-app">
+              <div className="p-4 bg-soft rounded-xl border border-app">
                 <div className="flex items-center justify-between">
                   <span className="text-muted">สถานะ:</span>
                   <StatusTag variant={getStatusVariant(

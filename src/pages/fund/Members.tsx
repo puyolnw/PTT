@@ -272,7 +272,7 @@ export default function Members() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-app">
               {filteredMembers.map((member, index) => (
                 <motion.tr
                   key={member.id}
@@ -351,7 +351,7 @@ export default function Members() {
             <select
               value={formData.empCode}
               onChange={(e) => setFormData({ ...formData, empCode: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="">เลือกพนักงาน</option>
@@ -375,7 +375,7 @@ export default function Members() {
               onChange={(e) => setFormData({ ...formData, monthlySavings: e.target.value })}
               min="100"
               step="100"
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="เช่น 300, 500"
@@ -403,7 +403,7 @@ export default function Members() {
         {selectedMember && (
           <div className="space-y-6">
             {/* Member Info */}
-            <div className="bg-ink-800 rounded-xl p-4 border border-app">
+            <div className="bg-soft rounded-xl p-4 border border-app">
               <h3 className="text-lg font-semibold text-app mb-4 font-display">
                 ข้อมูลสมาชิก
               </h3>

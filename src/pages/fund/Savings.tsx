@@ -376,7 +376,7 @@ export default function Savings() {
         {activeTab === "deductions" && (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-ink-800/60 border-b border-app">
+              <thead className="bg-soft border-b border-app">
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-app">รหัส</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-app">ชื่อ-นามสกุล</th>
@@ -386,7 +386,7 @@ export default function Savings() {
                   <th className="px-6 py-4 text-center text-sm font-semibold text-app">สถานะ</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-app">
                 {filteredDeductions.map((deduction, index) => (
                   <motion.tr
                     key={deduction.id}
@@ -436,7 +436,7 @@ export default function Savings() {
         {activeTab === "deposits" && (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-ink-800/60 border-b border-app">
+              <thead className="bg-soft border-b border-app">
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-app">รหัส</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-app">ชื่อ-นามสกุล</th>
@@ -448,7 +448,7 @@ export default function Savings() {
                   <th className="px-6 py-4 text-center text-sm font-semibold text-app">จัดการ</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-app">
                 {filteredDeposits.map((deposit, index) => (
                   <motion.tr
                     key={deposit.id}
@@ -504,7 +504,7 @@ export default function Savings() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="flex items-center justify-between p-4 bg-ink-800 rounded-xl border-app hover:border-ptt-blue/30 transition-colors cursor-pointer"
+                className="flex items-center justify-between p-4 bg-soft rounded-xl border-app hover:border-ptt-blue/30 transition-colors cursor-pointer"
                 onClick={() => setSelectedWithdrawal(withdrawal)}
               >
                 <div>
@@ -570,7 +570,7 @@ export default function Savings() {
               onChange={(e) => {
                 setWithdrawalFormData({ ...withdrawalFormData, empCode: e.target.value });
               }}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="">เลือกสมาชิก</option>
@@ -606,7 +606,7 @@ export default function Savings() {
               onChange={(e) => setWithdrawalFormData({ ...withdrawalFormData, amount: e.target.value })}
               min="100"
               step="100"
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="เช่น 5000"
@@ -620,7 +620,7 @@ export default function Savings() {
             <select
               value={withdrawalFormData.reason}
               onChange={(e) => setWithdrawalFormData({ ...withdrawalFormData, reason: e.target.value as SavingsWithdrawal["reason"] })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="">เลือกเหตุผล</option>
@@ -641,7 +641,7 @@ export default function Savings() {
                 value={withdrawalFormData.reasonDetail}
                 onChange={(e) => setWithdrawalFormData({ ...withdrawalFormData, reasonDetail: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
                          focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 placeholder="ระบุรายละเอียดเหตุผล"
@@ -682,7 +682,7 @@ export default function Savings() {
             <select
               value={depositFormData.empCode}
               onChange={(e) => setDepositFormData({ ...depositFormData, empCode: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="">เลือกสมาชิก</option>
@@ -718,7 +718,7 @@ export default function Savings() {
               onChange={(e) => setDepositFormData({ ...depositFormData, amount: e.target.value })}
               min="100"
               step="100"
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="เช่น 5000"
@@ -733,7 +733,7 @@ export default function Savings() {
             <select
               value={depositFormData.depositMethod}
               onChange={(e) => setDepositFormData({ ...depositFormData, depositMethod: e.target.value as SavingsDeposit["depositMethod"] })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="เงินสด">เงินสด</option>
@@ -750,7 +750,7 @@ export default function Savings() {
               type="text"
               value={depositFormData.receiptNumber}
               onChange={(e) => setDepositFormData({ ...depositFormData, receiptNumber: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="เช่น DEP-2025-001"
@@ -765,7 +765,7 @@ export default function Savings() {
               value={depositFormData.notes}
               onChange={(e) => setDepositFormData({ ...depositFormData, notes: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="เช่น รอเช็คเคลียร์"
@@ -829,7 +829,7 @@ export default function Savings() {
               </div>
             </div>
             {selectedDeposit.notes && (
-              <div className="p-3 bg-ink-800 rounded-lg">
+              <div className="p-3 bg-soft rounded-lg">
                 <p className="text-sm text-muted mb-1">หมายเหตุ:</p>
                 <p className="text-sm text-app">{selectedDeposit.notes}</p>
               </div>

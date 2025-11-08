@@ -109,7 +109,7 @@ export default function FundDashboard() {
           <h3 className="text-lg font-semibold text-app mb-4 font-display">การหักเงินสัจจะล่าสุด</h3>
           <div className="space-y-3">
             {savingsDeductions.slice(0, 5).map((deduction) => (
-              <div key={deduction.id} className="flex items-center justify-between p-3 bg-ink-800 rounded-lg">
+              <div key={deduction.id} className="flex items-center justify-between p-3 bg-soft rounded-lg">
                 <div>
                   <p className="text-sm font-medium text-app">{deduction.empName}</p>
                   <p className="text-xs text-muted">{formatMonthLabel(deduction.month)}</p>
@@ -133,7 +133,7 @@ export default function FundDashboard() {
               .filter(r => r.status === "Pending")
               .slice(0, 5)
               .map((request) => (
-                <div key={request.id} className="flex items-center justify-between p-3 bg-ink-800 rounded-lg">
+                <div key={request.id} className="flex items-center justify-between p-3 bg-soft rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-app">{request.empName}</p>
                     <p className="text-xs text-muted">{request.loanType} • {request.purpose}</p>
