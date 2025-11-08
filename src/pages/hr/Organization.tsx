@@ -46,7 +46,7 @@ export default function Organization() {
               <p className="text-xs text-muted uppercase tracking-wide mb-2">
                 หัวหน้าแผนก
               </p>
-              <div className="flex items-center gap-3 p-3 bg-ink-900 rounded-xl">
+              <div className="flex items-center gap-3 p-3 bg-soft rounded-xl">
                 <UserCircle className="w-8 h-8 text-ptt-cyan" />
                 <div>
                   <p className="text-app font-medium">{dept.head}</p>
@@ -65,7 +65,7 @@ export default function Organization() {
                   {dept.members.map((memberCode) => (
                     <div
                       key={memberCode}
-                      className="flex items-center gap-3 p-2 bg-ink-900/50 rounded-lg"
+                      className="flex items-center gap-3 p-2 bg-soft rounded-lg"
                     >
                       <div className="w-6 h-6 bg-ptt-blue/20 rounded-full flex items-center justify-center">
                         <span className="text-xs text-ptt-cyan">•</span>
@@ -78,7 +78,7 @@ export default function Organization() {
             )}
 
             {dept.memberCount === 0 && (
-              <p className="text-sm text-slate-500 text-center py-4 italic">
+              <p className="text-sm text-muted text-center py-4 italic">
                 ไม่มีสมาชิก
               </p>
             )}

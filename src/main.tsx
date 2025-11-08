@@ -8,6 +8,7 @@ import LayoutHR from "@/layouts/LayoutHR";
 import LayoutFund from "@/layouts/LayoutFund";
 import LayoutDocuments from "@/layouts/LayoutDocuments";
 import LayoutReports from "@/layouts/LayoutReports";
+import LayoutShops from "@/layouts/LayoutShops";
 
 // ========== HR Pages ==========
 import HRDashboard from "@/pages/hr/Dashboard";
@@ -61,6 +62,15 @@ import FundStats from "@/pages/reports/FundStats";
 import PerformanceReport from "@/pages/reports/PerformanceReport";
 import AttendanceReport from "@/pages/reports/AttendanceReport";
 import Export from "@/pages/reports/Export";
+
+// ========== Shops Pages ==========
+import ShopsDashboard from "@/pages/shops/Dashboard";
+import PungNgeeChiangDashboard from "@/pages/shops/pung-ngee-chiang/Dashboard";
+import PungNgeeChiangStock from "@/pages/shops/pung-ngee-chiang/Stock";
+import PungNgeeChiangSales from "@/pages/shops/pung-ngee-chiang/Sales";
+import PungNgeeChiangPurchases from "@/pages/shops/pung-ngee-chiang/Purchases";
+import PungNgeeChiangReports from "@/pages/shops/pung-ngee-chiang/Reports";
+import PungNgeeChiangSettings from "@/pages/shops/pung-ngee-chiang/Settings";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -296,6 +306,42 @@ const router = createBrowserRouter([
           {
             path: "export",
             element: <Export />,
+          },
+        ],
+      },
+      
+      // ========== SHOPS MODULE ==========
+      {
+        path: "shops",
+        element: <LayoutShops />,
+        children: [
+          {
+            index: true,
+            element: <ShopsDashboard />,
+          },
+          {
+            path: "pung-ngee-chiang",
+            element: <PungNgeeChiangDashboard />,
+          },
+          {
+            path: "pung-ngee-chiang/stock",
+            element: <PungNgeeChiangStock />,
+          },
+          {
+            path: "pung-ngee-chiang/sales",
+            element: <PungNgeeChiangSales />,
+          },
+          {
+            path: "pung-ngee-chiang/purchases",
+            element: <PungNgeeChiangPurchases />,
+          },
+          {
+            path: "pung-ngee-chiang/reports",
+            element: <PungNgeeChiangReports />,
+          },
+          {
+            path: "pung-ngee-chiang/settings",
+            element: <PungNgeeChiangSettings />,
           },
         ],
       },

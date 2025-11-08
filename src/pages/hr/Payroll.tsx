@@ -148,12 +148,12 @@ export default function Payroll() {
 
             {/* Print Menu Dropdown */}
             {isPrintMenuOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-ink-800 border border-app rounded-xl shadow-xl z-50">
+              <div className="absolute right-0 mt-2 w-64 bg-soft border border-app rounded-xl shadow-xl z-50">
                 <div className="p-2">
                   <div className="px-3 py-2 text-xs text-muted font-semibold mb-1">สลิปเงินเดือน</div>
                   <button
                     onClick={() => handlePrintDocument("payslip")}
-                    className="w-full text-left px-3 py-2 text-sm text-app hover:bg-ink-700 rounded-lg transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm text-app hover:bg-app/10 rounded-lg transition-colors"
                   >
                     สลิปเงินเดือน
                   </button>
@@ -161,13 +161,13 @@ export default function Payroll() {
                   <div className="px-3 py-2 text-xs text-muted font-semibold mt-2 mb-1">เอกสารภาษี</div>
                   <button
                     onClick={() => handlePrintDocument("pnd1")}
-                    className="w-full text-left px-3 py-2 text-sm text-app hover:bg-ink-700 rounded-lg transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm text-app hover:bg-app/10 rounded-lg transition-colors"
                   >
                     ภ.ง.ด.1
                   </button>
                   <button
                     onClick={() => handlePrintDocument("pnd91")}
-                    className="w-full text-left px-3 py-2 text-sm text-app hover:bg-ink-700 rounded-lg transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm text-app hover:bg-app/10 rounded-lg transition-colors"
                   >
                     ภ.ง.ด.91
                   </button>
@@ -177,7 +177,7 @@ export default function Payroll() {
                     <button
                       key={num}
                       onClick={() => handlePrintDocument(`sso${num}`)}
-                      className="w-full text-left px-3 py-2 text-sm text-app hover:bg-ink-700 rounded-lg transition-colors"
+                      className="w-full text-left px-3 py-2 text-sm text-app hover:bg-app/10 rounded-lg transition-colors"
                     >
                       สปส.{num}
                     </button>
@@ -295,7 +295,7 @@ export default function Payroll() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(statsByCategory).map(([category, stats]) => (
-              <div key={category} className="p-4 bg-ink-800/50 rounded-lg border border-app">
+              <div key={category} className="p-4 bg-soft rounded-lg border border-app">
                 <p className="text-sm text-muted mb-2">{category}</p>
                 <p className="text-xs text-muted mb-1">{stats.count} คน</p>
                 <div className="space-y-1 mt-2">
@@ -396,7 +396,7 @@ export default function Payroll() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-app">
               {filteredPayroll.map((item, index) => {
                 const employee = getEmployeeInfo(item.empCode);
                 return (
@@ -607,7 +607,7 @@ export default function Payroll() {
         submitLabel="ส่งข้อมูล"
       >
         <div className="space-y-4">
-          <div className="p-4 bg-ink-800/50 rounded-lg">
+          <div className="p-4 bg-soft rounded-lg">
             <h3 className="text-lg font-semibold text-app mb-4 font-display">
               สรุปข้อมูลที่จะส่ง
             </h3>

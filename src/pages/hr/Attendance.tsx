@@ -626,7 +626,7 @@ export default function Attendance() {
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-ink-800/50 border-b border-app">
+              <thead className="bg-soft border-b border-app">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-app">วันที่</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-app">พนักงาน</th>
@@ -638,13 +638,13 @@ export default function Attendance() {
                   <th className="px-4 py-3 text-center text-xs font-semibold text-app">อัตรา</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-app">
                 {dailySummaryList.map((day) => {
                   const dayRate = day.total > 0 
                     ? ((day.onTime / day.total) * 100).toFixed(1) 
                     : "0.0";
                   return (
-                    <tr key={day.date} className="hover:bg-ink-800/30 transition-colors">
+                    <tr key={day.date} className="hover:bg-soft transition-colors">
                       <td className="px-4 py-3 text-sm text-app font-medium">
                         {new Date(day.date).toLocaleDateString("th-TH", { 
                           weekday: "short", 
@@ -734,7 +734,7 @@ export default function Attendance() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
         >
-          <div className="px-6 py-4 border-b border-app bg-ink-800/50">
+          <div className="px-6 py-4 border-b border-app bg-soft">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
@@ -760,7 +760,7 @@ export default function Attendance() {
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-ink-800/30 border-b border-app">
+                  <thead className="bg-soft border-b border-app">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-app">วันที่</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-app">รหัส</th>
@@ -773,7 +773,7 @@ export default function Attendance() {
                       <th className="px-6 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-app">
                     {pendingOT.map((log, index) => {
                       const info = getOTInfo(log);
                       const shift = getEmployeeShift(log.empCode);
@@ -785,7 +785,7 @@ export default function Attendance() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.05 }}
-                          className="hover:bg-ink-800/20 transition-colors"
+                          className="hover:bg-soft transition-colors"
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
@@ -837,7 +837,7 @@ export default function Attendance() {
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-ink-800/30 border-b border-app">
+                  <thead className="bg-soft border-b border-app">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-app">วันที่</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-app">รหัส</th>
@@ -851,7 +851,7 @@ export default function Attendance() {
                       <th className="px-6 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-app">
                     {activeOT.map((log, index) => {
                       const info = getOTInfo(log);
                       const shift = getEmployeeShift(log.empCode);
@@ -863,7 +863,7 @@ export default function Attendance() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.05 }}
-                          className="hover:bg-ink-800/20 transition-colors"
+                          className="hover:bg-soft transition-colors"
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
@@ -921,7 +921,7 @@ export default function Attendance() {
             transition={{ delay: shiftIndex * 0.1 }}
             className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
           >
-            <div className="px-6 py-4 border-b border-app bg-ink-800/50">
+            <div className="px-6 py-4 border-b border-app bg-soft">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
@@ -975,7 +975,7 @@ export default function Attendance() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-app">
                   {shiftData.logs.map((log, index) => (
                       <motion.tr
                         key={log.id}
@@ -1087,7 +1087,7 @@ export default function Attendance() {
             <select
               value={recordForm.empCode}
               onChange={(e) => handleEmployeeSelect(e.target.value)}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               required
             >
@@ -1107,7 +1107,7 @@ export default function Attendance() {
             const employee = employees.find(e => e.code === recordForm.empCode);
             const shift = employee?.shiftId ? shifts.find(s => s.id === employee.shiftId) : null;
             return (
-              <div className="p-3 bg-ink-800/50 rounded-lg border border-app">
+              <div className="p-3 bg-soft rounded-lg border border-app">
                 <p className="text-sm text-muted mb-1">ข้อมูลพนักงาน</p>
                 <p className="text-app font-semibold">{recordForm.empName}</p>
                 {shift && (
@@ -1132,7 +1132,7 @@ export default function Attendance() {
               type="date"
               value={recordForm.date}
               onChange={(e) => setRecordForm({ ...recordForm, date: e.target.value })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               required
             />
@@ -1155,7 +1155,7 @@ export default function Attendance() {
                     setRecordForm(prev => ({ ...prev, otHours: otHours.toFixed(2) }));
                   }
                 }}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 required
               />
@@ -1182,7 +1182,7 @@ export default function Attendance() {
                     setRecordForm(prev => ({ ...prev, otHours: otHours.toFixed(2) }));
                   }
                 }}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 required
               />
@@ -1231,7 +1231,7 @@ export default function Attendance() {
               value={recordForm.reason}
               onChange={(e) => setRecordForm({ ...recordForm, reason: e.target.value })}
               placeholder="ระบุหมายเหตุ (ถ้ามี)..."
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
             />
@@ -1259,7 +1259,7 @@ export default function Attendance() {
         {selectedLog && (
           <div className="space-y-4">
             {/* Employee Info */}
-            <div className="p-4 bg-ink-800/50 rounded-lg space-y-2">
+            <div className="p-4 bg-soft rounded-lg space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted">พนักงาน:</span>
                 <span className="text-app font-medium">{selectedLog.empName} ({selectedLog.empCode})</span>
@@ -1294,7 +1294,7 @@ export default function Attendance() {
                       status: "" as AttendanceLog["status"] | ""
                     });
                   }}
-                  className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                  className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                            text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 />
                 <p className="text-xs text-muted mt-1">เวลามาตรฐาน: {STANDARD_CHECK_IN}</p>
@@ -1307,7 +1307,7 @@ export default function Attendance() {
                   type="time"
                   value={editForm.checkOut}
                   onChange={(e) => setEditForm({ ...editForm, checkOut: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                  className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                            text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 />
                 <p className="text-xs text-muted mt-1">เวลามาตรฐาน: {STANDARD_CHECK_OUT}</p>
@@ -1322,7 +1322,7 @@ export default function Attendance() {
               <select
                 value={editForm.status}
                 onChange={(e) => setEditForm({ ...editForm, status: e.target.value as AttendanceLog["status"] })}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               >
                 <option value="">คำนวณอัตโนมัติจากเวลาเข้า</option>
@@ -1363,7 +1363,7 @@ export default function Attendance() {
                 value={editForm.reason}
                 onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
                 placeholder="ระบุเหตุผลในการแก้ไขข้อมูล..."
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
                          focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
               />

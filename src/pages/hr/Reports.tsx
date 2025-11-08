@@ -92,13 +92,13 @@ export default function Reports() {
           subtitle="4 เดือนล่าสุด"
           icon={TrendingUp}
         >
-          <div className="h-64 flex items-center justify-center bg-ink-900/50 rounded-xl">
+          <div className="h-64 flex items-center justify-center bg-soft rounded-xl">
             <div className="text-center">
               <p className="text-muted font-light mb-2">Attendance Trend</p>
               <div className="flex gap-4 justify-center text-sm">
                 {attendanceChartData.map((data) => (
                   <div key={data.month} className="text-center">
-                    <p className="text-slate-500 text-xs mb-1">{data.month}</p>
+                    <p className="text-muted text-xs mb-1">{data.month}</p>
                     <div className="flex gap-1">
                       <div className="w-3 h-12 bg-green-500 rounded-sm" title={`ตรงเวลา: ${data.onTime}`} />
                       <div className="w-3 h-3 bg-yellow-500 rounded-sm" title={`สาย: ${data.late}`} />
@@ -121,10 +121,10 @@ export default function Reports() {
             <div className="space-y-3 w-full">
               {departmentData.map((dept, index) => (
                 <div key={dept.name} className="flex items-center gap-4">
-                  <div className="w-24 text-right text-sm text-slate-300 font-light">
+                  <div className="w-24 text-right text-sm text-muted font-light">
                     {dept.name}
                   </div>
-                  <div className="flex-1 bg-ink-900 rounded-full h-6 overflow-hidden">
+                  <div className="flex-1 bg-soft rounded-full h-6 overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${(dept.value / 6) * 100}%` }}

@@ -437,7 +437,7 @@ export default function Leaves() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {Object.entries(leavesByType).map(([type, data]) => (
-              <div key={type} className="p-4 bg-ink-800/50 rounded-lg border border-app">
+              <div key={type} className="p-4 bg-soft rounded-lg border border-app">
                 <p className="text-sm text-muted mb-2">{type}</p>
                 <p className="text-xl font-bold text-app">{data.count} รายการ</p>
                 <p className="text-sm text-ptt-cyan mt-1">{data.days} วัน</p>
@@ -474,7 +474,7 @@ export default function Leaves() {
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-ink-800/50 border-b border-app">
+              <thead className="bg-soft border-b border-app">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-app">เดือน</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-app">จำนวนรายการ</th>
@@ -482,9 +482,9 @@ export default function Leaves() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-app">ประเภท</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-app">
                 {monthlyLeavesSummary.map((month) => (
-                  <tr key={month.month} className="hover:bg-ink-800/30 transition-colors">
+                  <tr key={month.month} className="hover:bg-soft transition-colors">
                     <td className="px-4 py-3 text-sm text-app font-medium">
                       {new Date(month.month + "-01").toLocaleDateString("th-TH", { 
                         year: "numeric", 
@@ -564,7 +564,7 @@ export default function Leaves() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
       >
-        <div className="px-6 py-4 border-b border-app bg-ink-800/50">
+        <div className="px-6 py-4 border-b border-app bg-soft">
           <h3 className="text-lg font-semibold text-app font-display">
             รายการพนักงานที่ลา
           </h3>
@@ -605,7 +605,7 @@ export default function Leaves() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-app">
               {filteredLeaves.map((leave, index) => (
                 <motion.tr
                   key={leave.id}
@@ -674,7 +674,7 @@ export default function Leaves() {
           )}
 
           {filteredLeaves.length > 0 && (
-            <div className="text-center py-4 border-t border-app bg-ink-800/30">
+            <div className="text-center py-4 border-t border-app bg-soft">
               <p className="text-xs text-muted">
                 แสดง {filteredLeaves.length} คนจากทั้งหมด{" "}
                 {leaves.filter((l) => l.status !== "รออนุมัติ").length} คน
@@ -694,7 +694,7 @@ export default function Leaves() {
         submitLabel="บันทึกการแก้ไข"
       >
         <div className="space-y-4">
-          <div className="p-3 bg-ink-800/50 rounded-lg border border-app">
+          <div className="p-3 bg-soft rounded-lg border border-app">
             <p className="text-sm text-muted mb-1">พนักงาน</p>
             <p className="text-app font-semibold">{editForm.empName}</p>
             <p className="text-xs text-ptt-cyan">{editForm.empCode}</p>
@@ -708,7 +708,7 @@ export default function Leaves() {
               type="text"
               value={editForm.type}
               disabled
-              className="w-full px-4 py-2.5 bg-ink-800/50 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-muted cursor-not-allowed"
             />
           </div>
@@ -722,7 +722,7 @@ export default function Leaves() {
                 type="date"
                 value={editForm.fromDate}
                 disabled
-                className="w-full px-4 py-2.5 bg-ink-800/50 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-muted cursor-not-allowed"
               />
             </div>
@@ -736,7 +736,7 @@ export default function Leaves() {
                 value={editForm.toDate}
                 onChange={(e) => setEditForm({ ...editForm, toDate: e.target.value })}
                 min={editForm.fromDate}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 required
               />
@@ -752,7 +752,7 @@ export default function Leaves() {
               value={editForm.reason}
               onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
               placeholder="ระบุเหตุผล (ถ้ามี)..."
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
             />
@@ -806,7 +806,7 @@ export default function Leaves() {
             <select
               value={recordForm.empCode}
               onChange={(e) => handleEmployeeSelect(e.target.value)}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               required
             >
@@ -826,7 +826,7 @@ export default function Leaves() {
             <select
               value={recordForm.type}
               onChange={(e) => setRecordForm({ ...recordForm, type: e.target.value as Leave["type"] | "" })}
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               required
             >
@@ -847,7 +847,7 @@ export default function Leaves() {
                 type="date"
                 value={recordForm.fromDate}
                 onChange={(e) => setRecordForm({ ...recordForm, fromDate: e.target.value })}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 required
               />
@@ -860,7 +860,7 @@ export default function Leaves() {
                 type="date"
                 value={recordForm.toDate}
                 onChange={(e) => setRecordForm({ ...recordForm, toDate: e.target.value })}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                 required
               />
@@ -876,7 +876,7 @@ export default function Leaves() {
               value={recordForm.reason}
               onChange={(e) => setRecordForm({ ...recordForm, reason: e.target.value })}
               placeholder="ระบุเหตุผล (ถ้ามี)..."
-              className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
             />

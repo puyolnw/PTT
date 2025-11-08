@@ -539,7 +539,7 @@ export default function EmployeeDetail() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate("/app/hr/employees")}
-            className="p-2 hover:bg-ink-800 rounded-lg transition-colors text-muted hover:text-app"
+            className="p-2 hover:bg-soft rounded-lg transition-colors text-muted hover:text-app"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -566,7 +566,7 @@ export default function EmployeeDetail() {
           <div className="relative">
             <button
               onClick={() => setShowManagementDropdown(!showManagementDropdown)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-ink-800 hover:bg-ink-700 
+              className="inline-flex items-center gap-2 px-4 py-2 bg-soft hover:bg-app/10 
                        text-app rounded-lg transition-colors font-medium border border-app"
             >
               <Settings className="w-4 h-4" />
@@ -580,13 +580,13 @@ export default function EmployeeDetail() {
                   className="fixed inset-0 z-40" 
                   onClick={() => setShowManagementDropdown(false)}
                 />
-                <div className="absolute right-0 mt-2 w-56 bg-ink-900 border border-app rounded-lg shadow-xl z-50 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-56 bg-soft border border-app rounded-lg shadow-xl z-50 overflow-hidden">
                   <button
                     onClick={() => {
                       setShowSalaryAdjustModal(true);
                       setShowManagementDropdown(false);
                     }}
-                    className="w-full px-4 py-3 text-left hover:bg-ink-800 transition-colors flex items-center gap-3 text-app"
+                    className="w-full px-4 py-3 text-left hover:bg-app/10 transition-colors flex items-center gap-3 text-app"
                   >
                     <DollarSign className="w-4 h-4 text-ptt-cyan" />
                     <span>ปรับเปลี่ยนเงินเดือน</span>
@@ -596,7 +596,7 @@ export default function EmployeeDetail() {
                       setShowRewardPenaltyManageModal(true);
                       setShowManagementDropdown(false);
                     }}
-                    className="w-full px-4 py-3 text-left hover:bg-ink-800 transition-colors flex items-center gap-3 text-app border-t border-app"
+                    className="w-full px-4 py-3 text-left hover:bg-app/10 transition-colors flex items-center gap-3 text-app border-t border-app"
                   >
                     <Award className="w-4 h-4 text-yellow-400" />
                     <span>จัดการทันบน</span>
@@ -606,7 +606,7 @@ export default function EmployeeDetail() {
                       setShowTransferPositionModal(true);
                       setShowManagementDropdown(false);
                     }}
-                    className="w-full px-4 py-3 text-left hover:bg-ink-800 transition-colors flex items-center gap-3 text-app border-t border-app"
+                    className="w-full px-4 py-3 text-left hover:bg-app/10 transition-colors flex items-center gap-3 text-app border-t border-app"
                   >
                     <ArrowRightLeft className="w-4 h-4 text-blue-400" />
                     <span>โยกย้ายตำแหน่ง</span>
@@ -704,7 +704,7 @@ export default function EmployeeDetail() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white/5 border border-app rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl">
         {/* Tab Headers */}
         <div className="flex border-b border-app overflow-x-auto">
           {tabs.map((tab) => (
@@ -817,11 +817,11 @@ export default function EmployeeDetail() {
                 
                 {/* Work Duration */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-ink-800/50 rounded-xl">
+                  <div className="p-4 bg-soft rounded-xl">
                     <p className="text-sm text-muted mb-1">เริ่มงานเมื่อ</p>
                     <p className="text-app font-semibold">{employee.startDate}</p>
                   </div>
-                  <div className="p-4 bg-ink-800/50 rounded-xl">
+                  <div className="p-4 bg-soft rounded-xl">
                     <p className="text-sm text-muted mb-1">ระยะเวลาทำงาน</p>
                     <p className="text-app font-semibold">{workDuration} เดือน</p>
                   </div>
@@ -870,7 +870,7 @@ export default function EmployeeDetail() {
                         }
                         
                         return (
-                          <div key={work.id} className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                          <div key={work.id} className="p-4 bg-soft rounded-xl border border-app">
                             <div className="flex items-start justify-between mb-2">
                               <div>
                                 <p className="font-semibold text-app">{work.position}</p>
@@ -962,7 +962,7 @@ export default function EmployeeDetail() {
                   สรุปการลา (ตั้งแต่เริ่มงาน)
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="p-3 bg-ink-800/50 rounded-lg">
+                  <div className="p-3 bg-soft rounded-lg">
                     <p className="text-xs text-muted">การลาทั้งหมด</p>
                     <p className="text-lg font-bold text-app">{allLeaves.length} รายการ</p>
                     <p className="text-xs text-muted mt-1">{totalLeaveDays} วัน</p>
@@ -994,7 +994,7 @@ export default function EmployeeDetail() {
                   สรุปเงินเดือน (ตั้งแต่เริ่มงาน)
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="p-3 bg-ink-800/50 rounded-lg">
+                  <div className="p-3 bg-soft rounded-lg">
                     <p className="text-xs text-muted">เงินเดือนเฉลี่ย</p>
                     <p className="text-lg font-bold text-app font-mono">{formatCurrency(avgSalary)}</p>
                     <p className="text-xs text-muted mt-1">
@@ -1039,7 +1039,7 @@ export default function EmployeeDetail() {
                   </div>
                   <div className="space-y-3">
                     {empSalaryHistory.slice(0, 2).map((salary) => (
-                      <div key={salary.id} className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                      <div key={salary.id} className="p-4 bg-soft rounded-xl border border-app">
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <div className="flex items-center gap-2 mb-1">
@@ -1149,7 +1149,7 @@ export default function EmployeeDetail() {
                             </div>
                           )}
                         </div>
-                        <div className="mt-3 p-3 bg-ink-800/50 rounded-lg border border-app">
+                        <div className="mt-3 p-3 bg-soft rounded-lg border border-app">
                           <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
                           <p className="text-sm text-app">{item.note}</p>
                           <p className="text-xs text-muted mt-2">ออกโดย: {item.issuedBy}</p>
@@ -1178,7 +1178,7 @@ export default function EmployeeDetail() {
                   </div>
                   <div className="space-y-3">
                     {empTransfers.slice(0, 2).map((transfer) => (
-                      <div key={transfer.id} className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                      <div key={transfer.id} className="p-4 bg-soft rounded-xl border border-app">
                         <div className="flex items-center justify-between mb-3">
                           <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
                             transfer.type === "เลื่อนตำแหน่ง"
@@ -1246,13 +1246,13 @@ export default function EmployeeDetail() {
                       <Filter className="w-3 h-3" />
                       แสดงข้อมูลแบบ:
                     </label>
-                    <div className="flex items-center gap-1 bg-ink-800/50 p-1 rounded-lg border border-app">
+                    <div className="flex items-center gap-1 bg-soft p-1 rounded-lg border border-app">
                       <button
                         onClick={() => handleLeavesViewModeChange("day")}
                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
                           leavesViewMode === "day"
                             ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-ink-800"
+                            : "text-muted hover:text-app hover:bg-app/10"
                         }`}
                         title="แสดงรายละเอียดแต่ละวัน"
                       >
@@ -1264,7 +1264,7 @@ export default function EmployeeDetail() {
                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
                           leavesViewMode === "month"
                             ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-ink-800"
+                            : "text-muted hover:text-app hover:bg-app/10"
                         }`}
                         title="จัดกลุ่มตามเดือน"
                       >
@@ -1276,7 +1276,7 @@ export default function EmployeeDetail() {
                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
                           leavesViewMode === "year"
                             ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-ink-800"
+                            : "text-muted hover:text-app hover:bg-app/10"
                         }`}
                         title="จัดกลุ่มตามปี"
                       >
@@ -1297,7 +1297,7 @@ export default function EmployeeDetail() {
                         type="date"
                         value={leavesDateFrom}
                         onChange={(e) => setLeavesDateFrom(e.target.value)}
-                        className="px-3 py-1.5 bg-ink-800 border border-app rounded-lg text-sm text-app
+                        className="px-3 py-1.5 bg-soft border border-app rounded-lg text-sm text-app
                                  focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                         placeholder="จากวันที่"
                       />
@@ -1306,7 +1306,7 @@ export default function EmployeeDetail() {
                         type="date"
                         value={leavesDateTo}
                         onChange={(e) => setLeavesDateTo(e.target.value)}
-                        className="px-3 py-1.5 bg-ink-800 border border-app rounded-lg text-sm text-app
+                        className="px-3 py-1.5 bg-soft border border-app rounded-lg text-sm text-app
                                  focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                         placeholder="ถึงวันที่"
                       />
@@ -1403,7 +1403,7 @@ export default function EmployeeDetail() {
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {Object.entries(leavesByType).map(([type, data]) => (
-                      <div key={type} className="p-3 bg-ink-800/50 rounded-lg border border-app">
+                      <div key={type} className="p-3 bg-soft rounded-lg border border-app">
                         <p className="text-xs text-muted mb-2">{type}</p>
                         <p className="text-lg font-bold text-app">{data.count} รายการ</p>
                         <p className="text-sm text-ptt-cyan mt-1">{data.days} วัน</p>
@@ -1442,7 +1442,7 @@ export default function EmployeeDetail() {
                   </h4>
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-ink-800/50 border-b border-app">
+                      <thead className="bg-soft border-b border-app">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-app">เดือน</th>
                           <th className="px-4 py-3 text-center text-xs font-semibold text-app">จำนวนรายการ</th>
@@ -1450,9 +1450,9 @@ export default function EmployeeDetail() {
                           <th className="px-4 py-3 text-left text-xs font-semibold text-app">ประเภท</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
+                      <tbody className="divide-y divide-app">
                         {monthlyLeavesSummary.map((month) => (
-                          <tr key={month.month} className="hover:bg-ink-800/30 transition-colors">
+                          <tr key={month.month} className="hover:bg-soft transition-colors">
                             <td className="px-4 py-3 text-sm text-app font-medium">
                               {new Date(month.month + "-01").toLocaleDateString("th-TH", { 
                                 year: "numeric", 
@@ -1518,7 +1518,7 @@ export default function EmployeeDetail() {
                     {groupedLeaves.map((group) => (
                       <div key={group.key} className="border border-app rounded-xl overflow-hidden">
                         {(leavesViewMode === "month" || leavesViewMode === "year") && (
-                          <div className="px-4 py-3 bg-ink-800/50 border-b border-app">
+                          <div className="px-4 py-3 bg-soft border-b border-app">
                             <h5 className="text-sm font-semibold text-ptt-cyan">
                               {group.label}
                               <span className="text-xs text-muted font-normal ml-2">
@@ -1529,7 +1529,7 @@ export default function EmployeeDetail() {
                         )}
                         <div className="overflow-x-auto">
                           <table className="w-full">
-                            <thead className="bg-ink-800/50 border-b border-app">
+                            <thead className="bg-soft border-b border-app">
                               <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-app">ประเภท</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-app">วันที่</th>
@@ -1538,14 +1538,14 @@ export default function EmployeeDetail() {
                                 <th className="px-4 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody className="divide-y divide-app">
                               {group.leaves.map((leave) => {
                                 const fromDate = new Date(leave.fromDate);
                                 const toDate = new Date(leave.toDate);
                                 const isPast = toDate < today;
                                 const isCurrent = fromDate <= today && toDate >= today;
                                 return (
-                                  <tr key={leave.id} className="hover:bg-ink-800/30 transition-colors">
+                                  <tr key={leave.id} className="hover:bg-soft transition-colors">
                                     <td className="px-4 py-3">
                                       <span className="text-sm text-app font-medium">{leave.type}</span>
                                     </td>
@@ -1626,7 +1626,7 @@ export default function EmployeeDetail() {
               {allPayroll.length > 0 ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 bg-ink-800/50 rounded-xl">
+                    <div className="p-4 bg-soft rounded-xl">
                       <p className="text-xs text-muted mb-1">เงินเดือนเฉลี่ย</p>
                       <p className="text-xl font-bold text-app font-mono">{formatCurrency(avgSalary)}</p>
                     </div>
@@ -1643,7 +1643,7 @@ export default function EmployeeDetail() {
 
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-ink-800/50 border-b border-app">
+                      <thead className="bg-soft border-b border-app">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-app">เดือน</th>
                           <th className="px-4 py-3 text-right text-xs font-semibold text-app">เงินเดือน</th>
@@ -1654,9 +1654,9 @@ export default function EmployeeDetail() {
                           <th className="px-4 py-3 text-center text-xs font-semibold text-app">หลักฐาน</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
+                      <tbody className="divide-y divide-app">
                         {allPayroll.map((pay) => (
-                          <tr key={pay.id} className="hover:bg-ink-800/30 transition-colors">
+                          <tr key={pay.id} className="hover:bg-soft transition-colors">
                             <td className="px-4 py-3 text-sm text-app font-medium">
                               {new Date(pay.month + "-01").toLocaleDateString("th-TH", { 
                                 year: "numeric", 
@@ -1719,7 +1719,7 @@ export default function EmployeeDetail() {
             {selectedPayslip && (
               <div className="space-y-6">
                 {/* Employee Info */}
-                <div className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                <div className="p-4 bg-soft rounded-xl border border-app">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs text-muted mb-1">ชื่อพนักงาน</p>
@@ -1743,7 +1743,7 @@ export default function EmployeeDetail() {
                   <h4 className="text-sm font-semibold text-app">รายละเอียดเงินเดือน</h4>
                   
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 bg-ink-800/30 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-soft rounded-lg">
                       <span className="text-sm text-muted">เงินเดือน</span>
                       <span className="text-sm font-semibold text-app font-mono">{formatCurrency(selectedPayslip.salary)}</span>
                     </div>
@@ -1784,7 +1784,7 @@ export default function EmployeeDetail() {
                       หลักฐานการโอนเงิน
                     </h4>
                     <div 
-                      className="relative group cursor-pointer bg-ink-800/30 rounded-lg overflow-hidden border border-app"
+                      className="relative group cursor-pointer bg-soft rounded-lg overflow-hidden border border-app"
                       onClick={() => setSelectedReceiptImage(getReceiptImage(selectedPayslip))}
                     >
                       <img
@@ -1851,7 +1851,7 @@ export default function EmployeeDetail() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className="relative max-w-4xl max-h-[90vh] bg-ink-900 rounded-xl overflow-hidden"
+                className="relative max-w-4xl max-h-[90vh] bg-soft rounded-xl overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="absolute top-4 right-4 z-10">
@@ -1921,7 +1921,7 @@ export default function EmployeeDetail() {
                     }
                     
                     return (
-                      <div key={work.id} className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                      <div key={work.id} className="p-4 bg-soft rounded-xl border border-app">
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <p className="font-semibold text-app">{work.position}</p>
@@ -1971,7 +1971,7 @@ export default function EmployeeDetail() {
               return (
                 <div className="space-y-4">
                   {empSalaryHistory.map((salary) => (
-                    <div key={salary.id} className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                    <div key={salary.id} className="p-4 bg-soft rounded-xl border border-app">
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
@@ -2078,7 +2078,7 @@ export default function EmployeeDetail() {
                           </div>
                         )}
                       </div>
-                      <div className="mt-3 p-3 bg-ink-800/50 rounded-lg border border-app">
+                      <div className="mt-3 p-3 bg-soft rounded-lg border border-app">
                         <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
                         <p className="text-sm text-app">{item.note}</p>
                         <p className="text-xs text-muted mt-2">ออกโดย: {item.issuedBy}</p>
@@ -2104,7 +2104,7 @@ export default function EmployeeDetail() {
               return (
                 <div className="space-y-4">
                   {empTransfers.map((transfer) => (
-                    <div key={transfer.id} className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                    <div key={transfer.id} className="p-4 bg-soft rounded-xl border border-app">
                       <div className="flex items-center justify-between mb-3">
                         <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
                           transfer.type === "เลื่อนตำแหน่ง"
@@ -2170,13 +2170,13 @@ export default function EmployeeDetail() {
                       <Filter className="w-3 h-3" />
                       แสดงข้อมูลแบบ:
                     </label>
-                    <div className="flex items-center gap-1 bg-ink-800/50 p-1 rounded-lg border border-app">
+                    <div className="flex items-center gap-1 bg-soft p-1 rounded-lg border border-app">
                       <button
                         onClick={() => handleAttendanceViewModeChange("day")}
                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
                           attendanceViewMode === "day"
                             ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-ink-800"
+                            : "text-muted hover:text-app hover:bg-app/10"
                         }`}
                         title="แสดงรายละเอียดแต่ละวัน"
                       >
@@ -2188,7 +2188,7 @@ export default function EmployeeDetail() {
                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
                           attendanceViewMode === "month"
                             ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-ink-800"
+                            : "text-muted hover:text-app hover:bg-app/10"
                         }`}
                         title="จัดกลุ่มตามเดือน"
                       >
@@ -2200,7 +2200,7 @@ export default function EmployeeDetail() {
                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
                           attendanceViewMode === "year"
                             ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-ink-800"
+                            : "text-muted hover:text-app hover:bg-app/10"
                         }`}
                         title="จัดกลุ่มตามปี"
                       >
@@ -2221,7 +2221,7 @@ export default function EmployeeDetail() {
                         type="date"
                         value={attendanceDateFrom}
                         onChange={(e) => setAttendanceDateFrom(e.target.value)}
-                        className="px-3 py-1.5 bg-ink-800 border border-app rounded-lg text-sm text-app
+                        className="px-3 py-1.5 bg-soft border border-app rounded-lg text-sm text-app
                                  focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                         placeholder="จากวันที่"
                       />
@@ -2230,7 +2230,7 @@ export default function EmployeeDetail() {
                         type="date"
                         value={attendanceDateTo}
                         onChange={(e) => setAttendanceDateTo(e.target.value)}
-                        className="px-3 py-1.5 bg-ink-800 border border-app rounded-lg text-sm text-app
+                        className="px-3 py-1.5 bg-soft border border-app rounded-lg text-sm text-app
                                  focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                         placeholder="ถึงวันที่"
                       />
@@ -2268,7 +2268,7 @@ export default function EmployeeDetail() {
 
               {/* Summary Statistics */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-4 bg-ink-800/50 rounded-xl border border-app">
+                <div className="p-4 bg-soft rounded-xl border border-app">
                   <div className="flex items-center gap-3 mb-2">
                     <Clock className="w-5 h-5 text-ptt-cyan" />
                     <p className="text-xs text-muted">ชั่วโมงทำงานรวม</p>
@@ -2330,7 +2330,7 @@ export default function EmployeeDetail() {
                   </h4>
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-ink-800/50 border-b border-app">
+                      <thead className="bg-soft border-b border-app">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-app">เดือน</th>
                           <th className="px-4 py-3 text-center text-xs font-semibold text-app">วันทำงาน</th>
@@ -2342,13 +2342,13 @@ export default function EmployeeDetail() {
                           <th className="px-4 py-3 text-center text-xs font-semibold text-app">อัตรา</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
+                      <tbody className="divide-y divide-app">
                         {monthlySummary.map((month) => {
                           const monthRate = month.total > 0 
                             ? ((month.onTime / month.total) * 100).toFixed(1) 
                             : "0.0";
                           return (
-                            <tr key={month.month} className="hover:bg-ink-800/30 transition-colors">
+                            <tr key={month.month} className="hover:bg-soft transition-colors">
                               <td className="px-4 py-3 text-sm text-app font-medium">
                                 {new Date(month.month + "-01").toLocaleDateString("th-TH", { 
                                   year: "numeric", 
@@ -2468,7 +2468,7 @@ export default function EmployeeDetail() {
                       return (
                         <div key={group.key} className="border border-app rounded-xl overflow-hidden">
                           {(attendanceViewMode === "month" || attendanceViewMode === "year") && (
-                            <div className="px-4 py-3 bg-ink-800/50 border-b border-app">
+                            <div className="px-4 py-3 bg-soft border-b border-app">
                               <div className="flex items-center justify-between">
                                 <h5 className="text-sm font-semibold text-ptt-cyan">
                                   {group.label}
@@ -2490,7 +2490,7 @@ export default function EmployeeDetail() {
                           )}
                           <div className="overflow-x-auto">
                             <table className="w-full">
-                              <thead className="bg-ink-800/50 border-b border-app">
+                              <thead className="bg-soft border-b border-app">
                                 <tr>
                                   <th className="px-4 py-3 text-left text-xs font-semibold text-app">วันที่</th>
                                   <th className="px-4 py-3 text-center text-xs font-semibold text-app">เวลาเข้า</th>
@@ -2502,14 +2502,14 @@ export default function EmployeeDetail() {
                                   )}
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-white/5">
+                              <tbody className="divide-y divide-app">
                                 {group.logs.map((log) => {
                                   const hours = log.checkIn !== "-" && log.checkOut !== "-" 
                                     ? calculateWorkingHours(log.checkIn, log.checkOut) 
                                     : 0;
                                   const otHours = employeeShift && hours > shiftHours ? hours - shiftHours : 0;
                                   return (
-                                    <tr key={log.id} className="hover:bg-ink-800/30 transition-colors">
+                                    <tr key={log.id} className="hover:bg-soft transition-colors">
                                       <td className="px-4 py-3 text-sm text-app">
                                         {attendanceViewMode === "day" 
                                           ? new Date(log.date).toLocaleDateString("th-TH", { 
@@ -2609,7 +2609,7 @@ export default function EmployeeDetail() {
                   name="type"
                   value={salaryFormData.type}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                 >
                   <option value="ขึ้นเงินเดือน">ขึ้นเงินเดือน</option>
@@ -2626,7 +2626,7 @@ export default function EmployeeDetail() {
                     name="oldSalary"
                     value={salaryFormData.oldSalary}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app font-mono
+                    className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app font-mono
                              focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                     readOnly
                   />
@@ -2638,7 +2638,7 @@ export default function EmployeeDetail() {
                     name="newSalary"
                     value={salaryFormData.newSalary}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app font-mono
+                    className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app font-mono
                              focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                     required
                   />
@@ -2652,7 +2652,7 @@ export default function EmployeeDetail() {
                   name="changeAmount"
                   value={salaryFormData.changeAmount}
                   onChange={handleChange}
-                  className={`w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm font-mono
+                  className={`w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm font-mono
                              focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue
                              ${salaryFormData.changeAmount > 0 ? 'text-green-400' : salaryFormData.changeAmount < 0 ? 'text-red-400' : 'text-app'}`}
                   required
@@ -2666,7 +2666,7 @@ export default function EmployeeDetail() {
                   name="date"
                   value={salaryFormData.date}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   required
                 />
@@ -2679,7 +2679,7 @@ export default function EmployeeDetail() {
                   value={salaryFormData.reason}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   placeholder="ระบุเหตุผลในการเปลี่ยนแปลงเงินเดือน"
                   required
@@ -2693,7 +2693,7 @@ export default function EmployeeDetail() {
                   value={salaryFormData.note}
                   onChange={handleChange}
                   rows={2}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
                 />
@@ -2745,7 +2745,7 @@ export default function EmployeeDetail() {
                   name="type"
                   value={rewardPenaltyFormData.type}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                 >
                   <option value="ทันบน">ทันบน</option>
@@ -2760,7 +2760,7 @@ export default function EmployeeDetail() {
                   name="category"
                   value={rewardPenaltyFormData.category}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   placeholder="เช่น การทำงานดีเด่น, การมาสาย, การขาดงาน"
                   required
@@ -2774,7 +2774,7 @@ export default function EmployeeDetail() {
                   name="title"
                   value={rewardPenaltyFormData.title}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   placeholder="ระบุหัวข้อ"
                   required
@@ -2788,7 +2788,7 @@ export default function EmployeeDetail() {
                   value={rewardPenaltyFormData.description}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   placeholder="ระบุรายละเอียด"
                   required
@@ -2803,7 +2803,7 @@ export default function EmployeeDetail() {
                     name="amount"
                     value={rewardPenaltyFormData.amount}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app font-mono
+                    className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app font-mono
                              focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                     placeholder="0"
                     min="0"
@@ -2818,7 +2818,7 @@ export default function EmployeeDetail() {
                   name="date"
                   value={rewardPenaltyFormData.date}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   required
                 />
@@ -2831,7 +2831,7 @@ export default function EmployeeDetail() {
                   value={rewardPenaltyFormData.note}
                   onChange={handleChange}
                   rows={2}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
                 />
@@ -2844,7 +2844,7 @@ export default function EmployeeDetail() {
                   name="issuedBy"
                   value={rewardPenaltyFormData.issuedBy}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   placeholder="ชื่อผู้ออกทันบน/การลงโทษ"
                   required
@@ -2897,7 +2897,7 @@ export default function EmployeeDetail() {
                   name="type"
                   value={transferFormData.type}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                 >
                   <option value="โยกย้าย">โยกย้าย</option>
@@ -2914,7 +2914,7 @@ export default function EmployeeDetail() {
                     name="oldPosition"
                     value={transferFormData.oldPosition}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                    className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                              focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                     readOnly
                   />
@@ -2926,7 +2926,7 @@ export default function EmployeeDetail() {
                     name="oldDept"
                     value={transferFormData.oldDept}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                    className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                              focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                     readOnly
                   />
@@ -2941,7 +2941,7 @@ export default function EmployeeDetail() {
                     name="newPosition"
                     value={transferFormData.newPosition}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                    className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                              focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                     placeholder="ระบุตำแหน่งใหม่"
                     required
@@ -2954,7 +2954,7 @@ export default function EmployeeDetail() {
                     name="newDept"
                     value={transferFormData.newDept}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                    className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                              focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                     placeholder="ระบุแผนกใหม่"
                     required
@@ -2969,7 +2969,7 @@ export default function EmployeeDetail() {
                   name="date"
                   value={transferFormData.date}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   required
                 />
@@ -2982,7 +2982,7 @@ export default function EmployeeDetail() {
                   value={transferFormData.reason}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   placeholder="ระบุเหตุผลในการโยกย้าย/เลื่อน/ลดตำแหน่ง"
                   required
@@ -2996,7 +2996,7 @@ export default function EmployeeDetail() {
                   value={transferFormData.note}
                   onChange={handleChange}
                   rows={2}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
                 />
@@ -3009,7 +3009,7 @@ export default function EmployeeDetail() {
                   name="approvedBy"
                   value={transferFormData.approvedBy}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-ink-800 border border-app rounded-lg text-sm text-app
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app
                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
                   placeholder="ชื่อผู้อนุมัติ"
                   required

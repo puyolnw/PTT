@@ -79,7 +79,7 @@ export default function Settings() {
             transition={{ delay: index * 0.1 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="panel border border-white/5 rounded-2xl p-6 hover:border-ptt-blue/30 transition-all duration-200 text-left"
+            className="panel border border-app rounded-2xl p-6 hover:border-ptt-blue/30 transition-all duration-200 text-left"
           >
             <div className="flex items-start space-x-4">
               <div
@@ -105,23 +105,23 @@ export default function Settings() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="panel border border-white/5 rounded-2xl p-6 mt-8"
+        className="panel border border-app rounded-2xl p-6 mt-8"
       >
         <h3 className="text-xl font-semibold mb-4 text-app">
           ข้อมูลบัญชี
         </h3>
         <div className="space-y-4">
-          <div className="flex justify-between items-center p-4 bg-ink-950 rounded-xl">
+          <div className="flex justify-between items-center p-4 bg-soft rounded-xl">
             <span className="text-muted">อีเมล</span>
-            <span className="text-slate-200">user@ptt.com</span>
+            <span className="text-app">user@ptt.com</span>
           </div>
-          <div className="flex justify-between items-center p-4 bg-ink-950 rounded-xl">
+          <div className="flex justify-between items-center p-4 bg-soft rounded-xl">
             <span className="text-muted">บทบาท</span>
             <span className="text-ptt-cyan font-medium">ผู้ดูแลระบบ</span>
           </div>
-          <div className="flex justify-between items-center p-4 bg-ink-950 rounded-xl">
+          <div className="flex justify-between items-center p-4 bg-soft rounded-xl">
             <span className="text-muted">สมาชิกตั้งแต่</span>
-            <span className="text-slate-200">1 มกราคม 2024</span>
+            <span className="text-app">1 มกราคม 2024</span>
           </div>
         </div>
       </motion.div>
