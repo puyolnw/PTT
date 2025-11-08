@@ -8,7 +8,7 @@ const modules = [
   { name: "ระบบกองทุน", path: "/app/fund", icon: PiggyBank },
   { name: "ระบบงานเอกสาร", path: "/app/documents", icon: FileText },
   { name: "รายงานและสถิติ", path: "/app/reports", icon: BarChart3 },
-  { name: "ร้านค้าในพื้นที่เช่า", path: "/app/shops", icon: Store },
+  { name: "ร้านค้าพื้นที่ปั้ม", path: "/app/shops", icon: Store },
 ];
 
 interface NavbarProps {
