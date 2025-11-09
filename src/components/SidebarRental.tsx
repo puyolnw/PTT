@@ -7,6 +7,12 @@ import {
   Receipt,
   CreditCard,
   BarChart3,
+  Bell,
+  TrendingUp,
+  Clock,
+  FileCheck,
+  Camera,
+  BarChart2,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -18,10 +24,17 @@ interface SidebarRentalProps {
 export default function SidebarRental({ onClose, isMobile = false }: SidebarRentalProps) {
   const items = [
     { to: "/app/rental", icon: Home, label: "Dashboard", end: true },
+    { to: "/app/rental/lease-dashboard", icon: BarChart2, label: "แดชบอร์ดพื้นที่เช่า", end: false },
     { to: "/app/rental/contracts", icon: FileText, label: "สัญญาเช่า", end: false },
+    { to: "/app/rental/variable-rent", icon: TrendingUp, label: "ค่าเช่าผันแปร", end: false },
     { to: "/app/rental/invoices", icon: Receipt, label: "ใบแจ้งหนี้", end: false },
     { to: "/app/rental/payments", icon: CreditCard, label: "การชำระเงิน", end: false },
+    { to: "/app/rental/payment-vouchers", icon: FileCheck, label: "ใบสำคัญจ่าย", end: false },
+    { to: "/app/rental/receipts", icon: Receipt, label: "ใบเสร็จรับเงิน", end: false },
     { to: "/app/rental/external-rent", icon: Building, label: "ค่าเช่าภายนอก", end: false },
+    { to: "/app/rental/lease-alerts", icon: Bell, label: "แจ้งเตือน", end: false },
+    { to: "/app/rental/aging-report", icon: Clock, label: "รายงานอายุหนี้", end: false },
+    { to: "/app/rental/ocr-scan", icon: Camera, label: "OCR สแกน", end: false },
     { to: "/app/rental/reports", icon: BarChart3, label: "รายงาน", end: false },
     { to: "/app/rental/settings", icon: SettingsIcon, label: "ตั้งค่า", end: false },
   ];
