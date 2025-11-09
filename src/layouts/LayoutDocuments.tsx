@@ -6,6 +6,7 @@ import SidebarDocuments from "@/components/SidebarDocuments";
 
 export default function LayoutDocuments() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -22,6 +23,10 @@ export default function LayoutDocuments() {
     setIsMobileMenuOpen(false);
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarExpanded(!isSidebarExpanded);
+  };
+
   return (
     <>
       {/* Desktop Sidebar - Full Height with Animation */}
@@ -35,7 +40,9 @@ export default function LayoutDocuments() {
         }}
         className="hidden md:flex"
       >
-        <SidebarDocuments />
+        <SidebarDocuments 
+          isExpanded={isSidebarExpanded}
+        />
       </motion.div>
 
       {/* Mobile Sidebar Drawer - Overlay */}
@@ -69,7 +76,10 @@ export default function LayoutDocuments() {
       {/* Right Side: Navbar + Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Navbar */}
-        <Navbar onMenuClick={() => setIsMobileMenuOpen(true)} />
+        <Navbar 
+          onMenuClick={() => setIsMobileMenuOpen(true)}
+          onSidebarToggle={toggleSidebar}
+        />
         
         {/* Main Content Area */}
         <main className="flex-1 px-4 py-4 md:px-8 md:py-8 bg-app overflow-auto">

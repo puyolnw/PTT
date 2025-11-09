@@ -6,9 +6,14 @@ import Navbar from "@/components/Navbar";
 
 export default function LayoutAccounting() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarExpanded(!isSidebarExpanded);
   };
 
   // Prevent body scroll when mobile menu is open
@@ -51,7 +56,9 @@ export default function LayoutAccounting() {
         }}
         className="hidden md:flex"
       >
-        <SidebarAccounting />
+        <SidebarAccounting 
+          isExpanded={isSidebarExpanded}
+        />
       </motion.div>
 
       {/* Mobile Sidebar Drawer - Overlay */}
@@ -85,7 +92,10 @@ export default function LayoutAccounting() {
       {/* Right Side: Navbar + Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Navbar */}
-        <Navbar onMenuClick={() => setIsMobileMenuOpen(true)} />
+        <Navbar 
+          onMenuClick={() => setIsMobileMenuOpen(true)}
+          onSidebarToggle={toggleSidebar}
+        />
         
         {/* Main Content Area */}
         <main className="flex-1 px-4 py-4 md:px-8 md:py-8 bg-app overflow-auto">

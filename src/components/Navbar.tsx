@@ -16,9 +16,10 @@ const modules = [
 
 interface NavbarProps {
   onMenuClick?: () => void;
+  onSidebarToggle?: () => void;
 }
 
-export default function Navbar({ onMenuClick }: NavbarProps) {
+export default function Navbar({ onMenuClick, onSidebarToggle }: NavbarProps) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -28,14 +29,27 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
 
   return (
     <header className="flex items-center justify-between h-14 px-4 md:px-6 bg-[var(--bg)] border-b border-app">
-      {/* Left: Hamburger Menu (Mobile only) */}
+      {/* Left: Hamburger Menu */}
       <div className="flex-1 flex items-center">
+        {/* Mobile Menu Button */}
         {onMenuClick && (
           <button
             onClick={onMenuClick}
             className="md:hidden p-2 hover:bg-soft rounded-lg transition-all hover:scale-110 active:scale-95"
             aria-label="เปิดเมนู"
             title="เปิดเมนู"
+          >
+            <Menu className="w-5 h-5 text-muted" />
+          </button>
+        )}
+        
+        {/* Desktop Sidebar Toggle Button */}
+        {onSidebarToggle && (
+          <button
+            onClick={onSidebarToggle}
+            className="hidden md:flex p-2 hover:bg-soft rounded-lg transition-all hover:scale-110 active:scale-95"
+            aria-label="เปิด/ปิดเมนู"
+            title="เปิด/ปิดเมนู"
           >
             <Menu className="w-5 h-5 text-muted" />
           </button>

@@ -7,9 +7,14 @@ import { ShopProvider } from "@/contexts/ShopContext";
 
 export default function LayoutShops() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarExpanded(!isSidebarExpanded);
   };
 
   // Prevent body scroll when mobile menu is open
@@ -52,7 +57,9 @@ export default function LayoutShops() {
         }}
         className="hidden md:flex"
       >
-        <SidebarShops />
+        <SidebarShops 
+          isExpanded={isSidebarExpanded}
+        />
       </motion.div>
 
       {/* Mobile Sidebar Drawer - Overlay */}
@@ -86,7 +93,10 @@ export default function LayoutShops() {
       {/* Right Side: Navbar + Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Navbar with Shop Dropdown */}
-        <NavbarShop onMenuClick={() => setIsMobileMenuOpen(true)} />
+        <NavbarShop 
+          onMenuClick={() => setIsMobileMenuOpen(true)}
+          onSidebarToggle={toggleSidebar}
+        />
         
         {/* Main Content Area */}
         <main className="flex-1 px-4 py-4 md:px-8 md:py-8 bg-app overflow-auto">

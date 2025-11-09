@@ -5,7 +5,7 @@ import {
   Gauge, 
   Clock, 
   FileOutput,
-  X
+  X,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -21,26 +21,31 @@ const items = [
 interface SidebarReportsProps {
   onClose?: () => void;
   isMobile?: boolean;
+  isExpanded?: boolean;
 }
 
-export default function SidebarReports({ onClose, isMobile = false }: SidebarReportsProps) {
+export default function SidebarReports({ onClose, isMobile = false, isExpanded = true }: SidebarReportsProps) {
+  const showText = isMobile || isExpanded;
+  const sidebarWidth = isMobile ? 'w-64' : (isExpanded ? 'w-64' : 'w-16');
+
   return (
     <aside 
       className={`
-        ${isMobile ? 'w-64' : 'w-16'} 
+        ${sidebarWidth} 
         bg-[var(--bg)]
         flex flex-col 
-        ${isMobile ? 'items-start px-4' : 'items-center'} 
+        ${showText ? 'items-start px-4' : 'items-center'} 
         py-4 
         border-r border-app
         h-full
+        transition-all duration-300 ease-in-out
         ${isMobile ? 'overflow-y-auto scrollbar-hide' : ''}
       `}
     >
-      {/* Header - Logo/Brand + Close button (mobile) */}
-      <div className={`mb-6 ${isMobile ? 'w-full flex items-center justify-between' : 'p-2'}`}>
-        <div className={`flex items-center gap-3 ${isMobile ? 'flex-1' : ''}`}>
-          <div className="w-10 h-10 bg-gradient-to-br from-ptt-blue to-ptt-cyan rounded-xl flex items-center justify-center shadow-lg shadow-ptt-blue/20">
+      {/* Header - Logo/Brand + Toggle/Close button */}
+      <div className={`mb-6 ${showText ? 'w-full flex items-center justify-between' : 'w-full flex items-center justify-center'}`}>
+        <div className={`flex items-center gap-3 ${showText ? 'flex-1' : ''}`}>
+          <div className="w-10 h-10 bg-gradient-to-br from-ptt-blue to-ptt-cyan rounded-xl flex items-center justify-center shadow-lg shadow-ptt-blue/20 flex-shrink-0">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -63,10 +68,10 @@ export default function SidebarReports({ onClose, isMobile = false }: SidebarRep
               />
             </svg>
           </div>
-          {isMobile && (
-            <div>
-              <h2 className="text-lg font-semibold text-[var(--accent)] font-display">รายงานและสถิติ</h2>
-              <p className="text-xs text-muted font-light">วิเคราะห์ข้อมูล</p>
+          {showText && (
+            <div className="overflow-hidden">
+              <h2 className="text-lg font-semibold text-[var(--accent)] font-display whitespace-nowrap">รายงานและสถิติ</h2>
+              <p className="text-xs text-muted font-light whitespace-nowrap">วิเคราะห์ข้อมูล</p>
             </div>
           )}
         </div>
@@ -75,7 +80,7 @@ export default function SidebarReports({ onClose, isMobile = false }: SidebarRep
         {isMobile && onClose && (
           <button
             onClick={onClose}
-            className="p-2 hover:panel rounded-lg transition-all hover:scale-110 active:scale-95 hover:rotate-90"
+            className="p-2 hover:panel rounded-lg transition-all hover:scale-110 active:scale-95 hover:rotate-90 flex-shrink-0"
             aria-label="ปิดเมนู"
           >
             <X className="w-5 h-5 text-muted" />
@@ -84,7 +89,7 @@ export default function SidebarReports({ onClose, isMobile = false }: SidebarRep
       </div>
 
       {/* Navigation Items */}
-      <div className={`flex-1 flex flex-col space-y-2 ${isMobile ? 'w-full pb-6' : ''}`}>
+      <div className={`flex-1 flex flex-col space-y-2 ${showText ? 'w-full pb-6' : ''}`}>
         {items.map(({ to, icon: Icon, label, end }) => (
           <NavLink
             key={to}
@@ -96,7 +101,7 @@ export default function SidebarReports({ onClose, isMobile = false }: SidebarRep
             className={({ isActive }) =>
               `p-3 rounded-xl hover:panel relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-ptt-blue/30 ${
                 isActive ? "panel shadow-md" : ""
-              } ${isMobile ? 'flex items-center gap-3 w-full' : ''}`
+              } ${showText ? 'flex items-center gap-3 w-full' : 'justify-center'}`
             }
             style={{
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
@@ -111,7 +116,7 @@ export default function SidebarReports({ onClose, isMobile = false }: SidebarRep
                 
                 {/* Icon */}
                 <Icon
-                  className={`w-5 h-5 group-hover:scale-110 ${
+                  className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${
                     isActive ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
                   }`}
                   strokeWidth={1.5}
@@ -120,10 +125,10 @@ export default function SidebarReports({ onClose, isMobile = false }: SidebarRep
                   }}
                 />
 
-                {/* Label - Mobile only */}
-                {isMobile && (
+                {/* Label - Show when expanded or mobile */}
+                {showText && (
                   <span 
-                    className={`text-sm font-medium ${
+                    className={`text-sm font-medium whitespace-nowrap overflow-hidden ${
                       isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
                     }`}
                     style={{
