@@ -59,6 +59,22 @@ const shops = [
     sales: 750000,
     status: "เปิดดำเนินการ"
   },
+  { 
+    id: "quick", 
+    name: "ร้าน Quick (B-Quik)", 
+    path: "/app/shops/quick",
+    color: "blue",
+    sales: 840000,
+    status: "เปิดดำเนินการ"
+  },
+  { 
+    id: "ev-motorbike", 
+    name: "ร้านมอเตอร์ไซค์ไฟฟ้า (EV Motorbike Shop)", 
+    path: "/app/shops/ev-motorbike",
+    color: "cyan",
+    sales: 450000,
+    status: "เปิดดำเนินการ"
+  },
 ];
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {

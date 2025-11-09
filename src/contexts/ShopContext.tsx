@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 
-export type ShopId = "seven-eleven" | "pung-ngee-chiang" | "jao-sua" | "jiang" | "fit-auto" | "chester" | "daiso" | null;
+export type ShopId = "seven-eleven" | "pung-ngee-chiang" | "jao-sua" | "jiang" | "fit-auto" | "chester" | "daiso" | "quick" | "ev-motorbike" | null;
 
 export interface Shop {
   id: ShopId;
@@ -17,6 +17,8 @@ export const shops: Shop[] = [
   { id: "fit-auto", name: "FIT Auto", path: "/app/shops/fit-auto" },
   { id: "chester", name: "ร้านเชสเตอร์ (Chester's)", path: "/app/shops/chester" },
   { id: "daiso", name: "ร้านไดโซ (Daiso)", path: "/app/shops/daiso" },
+  { id: "quick", name: "ร้าน Quick (B-Quik)", path: "/app/shops/quick" },
+  { id: "ev-motorbike", name: "ร้านมอเตอร์ไซค์ไฟฟ้า (EV Motorbike Shop)", path: "/app/shops/ev-motorbike" },
 ];
 
 interface ShopContextType {

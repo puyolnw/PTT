@@ -108,6 +108,18 @@ import DaisoSales from "@/pages/shops/daiso/Sales";
 import DaisoPurchases from "@/pages/shops/daiso/Purchases";
 import DaisoReports from "@/pages/shops/daiso/Reports";
 import DaisoSettings from "@/pages/shops/daiso/Settings";
+import QuickDashboard from "@/pages/shops/quick/Dashboard";
+import QuickStock from "@/pages/shops/quick/Stock";
+import QuickSales from "@/pages/shops/quick/Sales";
+import QuickPurchases from "@/pages/shops/quick/Purchases";
+import QuickReports from "@/pages/shops/quick/Reports";
+import QuickSettings from "@/pages/shops/quick/Settings";
+import EVMotorbikeDashboard from "@/pages/shops/ev-motorbike/Dashboard";
+import EVMotorbikeStock from "@/pages/shops/ev-motorbike/Stock";
+import EVMotorbikeSales from "@/pages/shops/ev-motorbike/Sales";
+import EVMotorbikePurchases from "@/pages/shops/ev-motorbike/Purchases";
+import EVMotorbikeReports from "@/pages/shops/ev-motorbike/Reports";
+import EVMotorbikeSettings from "@/pages/shops/ev-motorbike/Settings";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -527,6 +539,54 @@ const router = createBrowserRouter([
           {
             path: "daiso/settings",
             element: <DaisoSettings />,
+          },
+          {
+            path: "quick",
+            element: <QuickDashboard />,
+          },
+          {
+            path: "quick/stock",
+            element: <QuickStock />,
+          },
+          {
+            path: "quick/sales",
+            element: <QuickSales />,
+          },
+          {
+            path: "quick/purchases",
+            element: <QuickPurchases />,
+          },
+          {
+            path: "quick/reports",
+            element: <QuickReports />,
+          },
+          {
+            path: "quick/settings",
+            element: <QuickSettings />,
+          },
+          {
+            path: "ev-motorbike",
+            element: <EVMotorbikeDashboard />,
+          },
+          {
+            path: "ev-motorbike/stock",
+            element: <EVMotorbikeStock />,
+          },
+          {
+            path: "ev-motorbike/sales",
+            element: <EVMotorbikeSales />,
+          },
+          {
+            path: "ev-motorbike/purchases",
+            element: <EVMotorbikePurchases />,
+          },
+          {
+            path: "ev-motorbike/reports",
+            element: <EVMotorbikeReports />,
+          },
+          {
+            path: "ev-motorbike/settings",
+            element: <EVMotorbikeSettings />,
           },
         ],
       },
