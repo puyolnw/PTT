@@ -9,6 +9,7 @@ import LayoutFund from "@/layouts/LayoutFund";
 import LayoutDocuments from "@/layouts/LayoutDocuments";
 import LayoutReports from "@/layouts/LayoutReports";
 import LayoutShops from "@/layouts/LayoutShops";
+import LayoutGasStation from "@/layouts/LayoutGasStation";
 
 // ========== HR Pages ==========
 import HRDashboard from "@/pages/hr/Dashboard";
@@ -120,6 +121,14 @@ import EVMotorbikeSales from "@/pages/shops/ev-motorbike/Sales";
 import EVMotorbikePurchases from "@/pages/shops/ev-motorbike/Purchases";
 import EVMotorbikeReports from "@/pages/shops/ev-motorbike/Reports";
 import EVMotorbikeSettings from "@/pages/shops/ev-motorbike/Settings";
+import GasStationDashboard from "@/pages/gas-station/Dashboard";
+import GasStationPurchases from "@/pages/gas-station/Purchases";
+import GasStationSales from "@/pages/gas-station/Sales";
+import GasStationCoupons from "@/pages/gas-station/Coupons";
+import GasStationStock from "@/pages/gas-station/Stock";
+import GasStationBalance from "@/pages/gas-station/Balance";
+import GasStationReports from "@/pages/gas-station/Reports";
+import GasStationSettings from "@/pages/gas-station/Settings";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -587,6 +596,46 @@ const router = createBrowserRouter([
           {
             path: "ev-motorbike/settings",
             element: <EVMotorbikeSettings />,
+          },
+        ],
+      },
+      
+      // ========== GAS STATION MODULE (M1) ==========
+      {
+        path: "gas-station",
+        element: <LayoutGasStation />,
+        children: [
+          {
+            index: true,
+            element: <GasStationDashboard />,
+          },
+          {
+            path: "purchases",
+            element: <GasStationPurchases />,
+          },
+          {
+            path: "sales",
+            element: <GasStationSales />,
+          },
+          {
+            path: "coupons",
+            element: <GasStationCoupons />,
+          },
+          {
+            path: "stock",
+            element: <GasStationStock />,
+          },
+          {
+            path: "balance",
+            element: <GasStationBalance />,
+          },
+          {
+            path: "reports",
+            element: <GasStationReports />,
+          },
+          {
+            path: "settings",
+            element: <GasStationSettings />,
           },
         ],
       },
