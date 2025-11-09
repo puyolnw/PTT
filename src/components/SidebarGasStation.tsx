@@ -8,7 +8,13 @@ import {
   Package,
   BarChart3,
   FileText,
-  Ticket
+  Ticket,
+  Gauge,
+  Bell,
+  TrendingUp,
+  FileCheck,
+  Clock,
+  Camera
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -24,7 +30,13 @@ export default function SidebarGasStation({ onClose, isMobile = false }: Sidebar
     { to: "/app/gas-station/sales", icon: DollarSign, label: "ยอดขาย", end: false },
     { to: "/app/gas-station/coupons", icon: Ticket, label: "ระบบคูปอง", end: false },
     { to: "/app/gas-station/stock", icon: Package, label: "สต็อกน้ำมัน", end: false },
+    { to: "/app/gas-station/stock-alerts", icon: Bell, label: "แจ้งเตือนสต็อก", end: false },
+    { to: "/app/gas-station/meter-dip", icon: Gauge, label: "Meter & Dip", end: false },
     { to: "/app/gas-station/balance", icon: FileText, label: "Balance Petrel", end: false },
+    { to: "/app/gas-station/price-management", icon: TrendingUp, label: "ปรับราคา", end: false },
+    { to: "/app/gas-station/requisitions", icon: FileCheck, label: "สั่งซื้อน้ำมัน", end: false },
+    { to: "/app/gas-station/shift-management", icon: Clock, label: "กะพนักงาน", end: false },
+    { to: "/app/gas-station/pos-integration", icon: Camera, label: "POS & CCTV", end: false },
     { to: "/app/gas-station/reports", icon: BarChart3, label: "รายงาน", end: false },
     { to: "/app/gas-station/settings", icon: SettingsIcon, label: "ตั้งค่า", end: false },
   ];

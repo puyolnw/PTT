@@ -12,6 +12,11 @@ import {
   Fuel,
   Building2,
   Ticket,
+  Gauge,
+  Bell,
+  FileCheck,
+  Clock,
+  Camera,
 } from "lucide-react";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
@@ -507,6 +512,45 @@ export default function GasStationDashboard() {
             <BarChart3 className="w-5 h-5 text-orange-400" />
             <span className="text-app font-medium">ส่งข้อมูลไป M6</span>
           </button>
+        </div>
+      </motion.div>
+
+      {/* Quick Links to New Features */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9 }}
+        className="panel rounded-2xl p-6 shadow-app"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-app">ฟีเจอร์เพิ่มเติม</h3>
+          <BarChart3 className="w-6 h-6 text-muted" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <a href="/app/gas-station/meter-dip" className="flex flex-col items-center gap-2 p-4 bg-soft hover:bg-soft/80 border border-app rounded-xl transition-all hover:border-ptt-blue/30 hover:scale-105">
+            <Gauge className="w-6 h-6 text-ptt-cyan" />
+            <span className="text-xs text-center text-app font-medium">Meter & Dip</span>
+          </a>
+          <a href="/app/gas-station/stock-alerts" className="flex flex-col items-center gap-2 p-4 bg-soft hover:bg-soft/80 border border-app rounded-xl transition-all hover:border-ptt-blue/30 hover:scale-105">
+            <Bell className="w-6 h-6 text-orange-400" />
+            <span className="text-xs text-center text-app font-medium">แจ้งเตือนสต็อก</span>
+          </a>
+          <a href="/app/gas-station/price-management" className="flex flex-col items-center gap-2 p-4 bg-soft hover:bg-soft/80 border border-app rounded-xl transition-all hover:border-ptt-blue/30 hover:scale-105">
+            <TrendingUp className="w-6 h-6 text-emerald-400" />
+            <span className="text-xs text-center text-app font-medium">ปรับราคา</span>
+          </a>
+          <a href="/app/gas-station/requisitions" className="flex flex-col items-center gap-2 p-4 bg-soft hover:bg-soft/80 border border-app rounded-xl transition-all hover:border-ptt-blue/30 hover:scale-105">
+            <FileCheck className="w-6 h-6 text-blue-400" />
+            <span className="text-xs text-center text-app font-medium">สั่งซื้อน้ำมัน</span>
+          </a>
+          <a href="/app/gas-station/shift-management" className="flex flex-col items-center gap-2 p-4 bg-soft hover:bg-soft/80 border border-app rounded-xl transition-all hover:border-ptt-blue/30 hover:scale-105">
+            <Clock className="w-6 h-6 text-purple-400" />
+            <span className="text-xs text-center text-app font-medium">กะพนักงาน</span>
+          </a>
+          <a href="/app/gas-station/pos-integration" className="flex flex-col items-center gap-2 p-4 bg-soft hover:bg-soft/80 border border-app rounded-xl transition-all hover:border-ptt-blue/30 hover:scale-105">
+            <Camera className="w-6 h-6 text-red-400" />
+            <span className="text-xs text-center text-app font-medium">POS & CCTV</span>
+          </a>
         </div>
       </motion.div>
     </div>

@@ -128,7 +128,13 @@ import GasStationPurchases from "@/pages/gas-station/Purchases";
 import GasStationSales from "@/pages/gas-station/Sales";
 import GasStationCoupons from "@/pages/gas-station/Coupons";
 import GasStationStock from "@/pages/gas-station/Stock";
+import GasStationStockAlerts from "@/pages/gas-station/StockAlerts";
+import GasStationMeterDip from "@/pages/gas-station/MeterDipReading";
 import GasStationBalance from "@/pages/gas-station/Balance";
+import GasStationPriceManagement from "@/pages/gas-station/PriceManagement";
+import GasStationRequisitions from "@/pages/gas-station/Requisitions";
+import GasStationShiftManagement from "@/pages/gas-station/ShiftManagement";
+import GasStationPOSIntegration from "@/pages/gas-station/POSIntegration";
 import GasStationReports from "@/pages/gas-station/Reports";
 import GasStationSettings from "@/pages/gas-station/Settings";
 import RentalDashboard from "@/pages/rental/Dashboard";
@@ -657,8 +663,32 @@ const router = createBrowserRouter([
             element: <GasStationStock />,
           },
           {
+            path: "stock-alerts",
+            element: <GasStationStockAlerts />,
+          },
+          {
+            path: "meter-dip",
+            element: <GasStationMeterDip />,
+          },
+          {
             path: "balance",
             element: <GasStationBalance />,
+          },
+          {
+            path: "price-management",
+            element: <GasStationPriceManagement />,
+          },
+          {
+            path: "requisitions",
+            element: <GasStationRequisitions />,
+          },
+          {
+            path: "shift-management",
+            element: <GasStationShiftManagement />,
+          },
+          {
+            path: "pos-integration",
+            element: <GasStationPOSIntegration />,
           },
           {
             path: "reports",
