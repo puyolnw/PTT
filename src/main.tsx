@@ -10,6 +10,7 @@ import LayoutDocuments from "@/layouts/LayoutDocuments";
 import LayoutReports from "@/layouts/LayoutReports";
 import LayoutShops from "@/layouts/LayoutShops";
 import LayoutGasStation from "@/layouts/LayoutGasStation";
+import LayoutRental from "@/layouts/LayoutRental";
 
 // ========== HR Pages ==========
 import HRDashboard from "@/pages/hr/Dashboard";
@@ -129,6 +130,13 @@ import GasStationStock from "@/pages/gas-station/Stock";
 import GasStationBalance from "@/pages/gas-station/Balance";
 import GasStationReports from "@/pages/gas-station/Reports";
 import GasStationSettings from "@/pages/gas-station/Settings";
+import RentalDashboard from "@/pages/rental/Dashboard";
+import RentalContracts from "@/pages/rental/Contracts";
+import RentalInvoices from "@/pages/rental/Invoices";
+import RentalPayments from "@/pages/rental/Payments";
+import RentalExternalRent from "@/pages/rental/ExternalRent";
+import RentalReports from "@/pages/rental/Reports";
+import RentalSettings from "@/pages/rental/Settings";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -636,6 +644,42 @@ const router = createBrowserRouter([
           {
             path: "settings",
             element: <GasStationSettings />,
+          },
+        ],
+      },
+      
+      // ========== RENTAL MODULE (M2) ==========
+      {
+        path: "rental",
+        element: <LayoutRental />,
+        children: [
+          {
+            index: true,
+            element: <RentalDashboard />,
+          },
+          {
+            path: "contracts",
+            element: <RentalContracts />,
+          },
+          {
+            path: "invoices",
+            element: <RentalInvoices />,
+          },
+          {
+            path: "payments",
+            element: <RentalPayments />,
+          },
+          {
+            path: "external-rent",
+            element: <RentalExternalRent />,
+          },
+          {
+            path: "reports",
+            element: <RentalReports />,
+          },
+          {
+            path: "settings",
+            element: <RentalSettings />,
           },
         ],
       },
