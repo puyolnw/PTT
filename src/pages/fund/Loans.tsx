@@ -100,7 +100,7 @@ export default function Loans() {
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold text-app mb-2 font-display">
-          การกู้ยืมเงิน
+          กองทุนกู้ยืม
         </h1>
         <p className="text-muted font-light">
           จัดการสัญญากู้ยืมเงิน • แสดง {filteredLoans.length} จาก {loans.length} รายการ

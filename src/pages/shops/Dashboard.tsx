@@ -21,10 +21,42 @@ const shops = [
   },
   { 
     id: "jao-sua", 
-    name: "เจ้าสัว", 
+    name: "ร้านเจ้าสัว (Chaosua's)", 
     path: "/app/shops/jao-sua",
     color: "green",
-    sales: 320000,
+    sales: 750000,
+    status: "เปิดดำเนินการ"
+  },
+  { 
+    id: "jiang", 
+    name: "ร้านเจียง (Jiang Fish Balls)", 
+    path: "/app/shops/jiang",
+    color: "cyan",
+    sales: 540000,
+    status: "เปิดดำเนินการ"
+  },
+  { 
+    id: "fit-auto", 
+    name: "FIT Auto", 
+    path: "/app/shops/fit-auto",
+    color: "blue",
+    sales: 900000,
+    status: "เปิดดำเนินการ"
+  },
+  { 
+    id: "chester", 
+    name: "ร้านเชสเตอร์ (Chester's)", 
+    path: "/app/shops/chester",
+    color: "red",
+    sales: 1200000,
+    status: "เปิดดำเนินการ"
+  },
+  { 
+    id: "daiso", 
+    name: "ร้านไดโซ (Daiso)", 
+    path: "/app/shops/daiso",
+    color: "cyan",
+    sales: 750000,
     status: "เปิดดำเนินการ"
   },
 ];
@@ -43,6 +75,7 @@ export default function ShopsDashboard() {
     red: "bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-400",
     blue: "bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30 text-blue-400",
     green: "bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-400",
+    cyan: "bg-cyan-500/10 hover:bg-cyan-500/20 border-cyan-500/30 text-cyan-400",
   };
 
   return (
