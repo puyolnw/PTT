@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import {
   ShoppingCart,
   Plus,
-  Upload,
   AlertCircle,
   DollarSign,
 } from "lucide-react";
@@ -27,6 +26,7 @@ const initialPurchases = [
     amount: 50000,
     status: "ชำระแล้ว",
     dueDate: "2024-12-15",
+    type: "สินค้า",
   },
   {
     id: "2",
@@ -36,6 +36,7 @@ const initialPurchases = [
     amount: 3000,
     status: "ชำระแล้ว",
     dueDate: "2024-12-10",
+    type: "ค่าใช้จ่ายอื่น",
   },
   {
     id: "3",
@@ -45,6 +46,27 @@ const initialPurchases = [
     amount: 15000,
     status: "รอชำระ",
     dueDate: "2024-12-20",
+    type: "สินค้า",
+  },
+  {
+    id: "4",
+    date: "2024-12-05",
+    supplier: "บริษัทขนส่ง",
+    items: "ค่าขนส่ง",
+    amount: 2000,
+    status: "ชำระแล้ว",
+    dueDate: "2024-12-05",
+    type: "ค่าใช้จ่ายอื่น",
+  },
+  {
+    id: "5",
+    date: "2024-12-01",
+    supplier: "ช่างซ่อม",
+    items: "ค่าซ่อม",
+    amount: 5000,
+    status: "ชำระแล้ว",
+    dueDate: "2024-12-01",
+    type: "ค่าใช้จ่ายอื่น",
   },
 ];
 
@@ -63,6 +85,7 @@ export default function Purchases() {
     amount: "",
     status: "รอชำระ",
     dueDate: "",
+    type: "สินค้า",
   });
 
   const filteredPurchases = purchases.filter((purchase) => {
@@ -95,6 +118,7 @@ export default function Purchases() {
       amount: "",
       status: "รอชำระ",
       dueDate: "",
+      type: "สินค้า",
     });
   };
 
@@ -105,9 +129,9 @@ export default function Purchases() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h2 className="text-3xl font-bold text-app mb-2 font-display">การซื้อสินค้าเข้า - {shopName}</h2>
+        <h2 className="text-3xl font-bold text-app mb-2 font-display">การซื้อสินค้าเข้าและค่าใช้จ่าย - {shopName}</h2>
         <p className="text-muted font-light">
-          บันทึกการสั่งซื้อ รายงานการซื้อ และติดตามเจ้าหนี้
+          บันทึกการสั่งซื้อสินค้าเข้าและค่าใช้จ่ายอื่นๆ (ค่าน้ำ/ไฟ, ค่าขนส่ง, ค่าทิ้งของเสีย, ค่าซ่อม) - กรอกมือทั้งหมด
         </p>
       </motion.div>
 
@@ -193,10 +217,6 @@ export default function Purchases() {
             <Plus className="w-4 h-4" />
             <span>เพิ่มการซื้อ</span>
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors">
-            <Upload className="w-4 h-4" />
-            <span>นำเข้า Excel</span>
-          </button>
         </div>
       </div>
 
@@ -222,15 +242,26 @@ export default function Purchases() {
                   <p className="text-xl font-bold text-app">
                     {currencyFormatter.format(purchase.amount)}
                   </p>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${
-                      purchase.status === "ชำระแล้ว"
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                        : "bg-orange-500/10 text-orange-400 border border-orange-500/30"
-                    }`}
-                  >
-                    {purchase.status}
-                  </span>
+                  <div className="flex items-center gap-2 mt-2 justify-end flex-wrap">
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        purchase.status === "ชำระแล้ว"
+                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                          : "bg-orange-500/10 text-orange-400 border border-orange-500/30"
+                      }`}
+                    >
+                      {purchase.status}
+                    </span>
+                    {purchase.type && (
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        purchase.type === "ค่าใช้จ่ายอื่น"
+                          ? "bg-orange-500/10 text-orange-400 border border-orange-500/30"
+                          : "bg-blue-500/10 text-blue-400 border border-blue-500/30"
+                      }`}>
+                        {purchase.type}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center justify-between text-sm text-muted">
@@ -311,6 +342,17 @@ export default function Purchases() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label className="block text-sm font-medium text-app mb-2">ประเภท</label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              >
+                <option value="สินค้า">สินค้า</option>
+                <option value="ค่าใช้จ่ายอื่น">ค่าใช้จ่ายอื่น (ค่าน้ำ/ไฟ, ค่าขนส่ง, ค่าทิ้งของเสีย, ค่าซ่อม)</option>
+              </select>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
               <input
                 type="number"
@@ -320,18 +362,18 @@ export default function Purchases() {
                 required
               />
             </div>
-            {formData.status === "รอชำระ" && (
-              <div>
-                <label className="block text-sm font-medium text-app mb-2">ครบกำหนด</label>
-                <input
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
-                />
-              </div>
-            )}
           </div>
+          {formData.status === "รอชำระ" && (
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">ครบกำหนด</label>
+              <input
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              />
+            </div>
+          )}
         </div>
       </ModalForm>
     </div>

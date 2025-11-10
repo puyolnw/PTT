@@ -2,9 +2,7 @@ import { motion } from "framer-motion";
 import {
   DollarSign,
   TrendingUp,
-  Package,
   ShoppingCart,
-  AlertTriangle,
   BarChart3,
   Calendar,
   FileText,
@@ -35,13 +33,6 @@ const mockSalesData = {
   },
 };
 
-const mockStockData = [
-  { name: "ขนมปัง", quantity: 50, unit: "ชิ้น", lowStock: true, expiry: "2024-12-20", category: "อาหาร" },
-  { name: "กาแฟเย็น", quantity: 200, unit: "ขวด", lowStock: false, expiry: "2025-01-15", category: "เครื่องดื่ม" },
-  { name: "น้ำอัดลม", quantity: 150, unit: "ขวด", lowStock: false, expiry: "2025-02-01", category: "เครื่องดื่ม" },
-  { name: "บะหมี่กึ่งสำเร็จรูป", quantity: 30, unit: "ห่อ", lowStock: true, expiry: "2025-01-10", category: "อาหาร" },
-  { name: "นม UHT", quantity: 80, unit: "กล่อง", lowStock: true, expiry: "2024-12-25", category: "เครื่องดื่ม" },
-];
 
 const mockFinancialData = {
   revenue: 45000,
@@ -70,7 +61,6 @@ export default function SevenElevenDashboard() {
   
   const salesChange = ((mockSalesData.today - mockSalesData.yesterday) / mockSalesData.yesterday) * 100;
   const monthlyChange = ((mockSalesData.thisMonth - mockSalesData.lastMonth) / mockSalesData.lastMonth) * 100;
-  const lowStockItems = mockStockData.filter(item => item.lowStock);
 
   const overviewStats = [
     {
@@ -97,10 +87,10 @@ export default function SevenElevenDashboard() {
       gradient: "from-purple-500 to-pink-500",
     },
     {
-      title: "สินค้าใกล้หมด",
-      value: numberFormatter.format(lowStockItems.length),
-      subtitle: `${mockStockData.length} รายการทั้งหมด`,
-      icon: AlertTriangle,
+      title: "รายจ่ายเดือนนี้",
+      value: currencyFormatter.format(mockFinancialData.expenses + mockFinancialData.cost),
+      subtitle: `ค่าใช้จ่าย + ต้นทุน`,
+      icon: ShoppingCart,
       gradient: "from-orange-500 to-red-500",
     },
   ];
@@ -114,7 +104,7 @@ export default function SevenElevenDashboard() {
       >
         <h2 className="text-3xl font-bold text-app mb-2 font-display">{shopName}</h2>
         <p className="text-muted font-light">
-          ภาพรวมยอดขาย สต็อกสินค้า และการเงินของร้านสะดวกซื้อ 24 ชม.
+          สรุปยอดขายและการเงินของร้านสะดวกซื้อ 24 ชม. (ข้อมูลจากแอป 7-Eleven หรือกรอกมือ)
         </p>
         <p className="text-xs text-muted/70">
           อัปเดตล่าสุด: {new Date().toLocaleDateString("th-TH", { 
@@ -206,72 +196,14 @@ export default function SevenElevenDashboard() {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* สต็อกสินค้า */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="panel rounded-2xl p-6 shadow-app xl:col-span-2"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-semibold text-app">สต็อกสินค้า</h3>
-              <p className="text-sm text-muted">สินค้าคงเหลือและสถานะ</p>
-            </div>
-            <Package className="w-6 h-6 text-muted" />
-          </div>
-          <div className="space-y-3">
-            {mockStockData.map((item) => (
-              <div
-                key={item.name}
-                className={`flex items-center justify-between p-4 rounded-xl border ${
-                  item.lowStock 
-                    ? "bg-orange-500/10 border-orange-500/30" 
-                    : "bg-soft border-app"
-                }`}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <p className="font-medium text-app">{item.name}</p>
-                    {item.lowStock && (
-                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                        ใกล้หมด
-                      </span>
-                    )}
-                    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30">
-                      {item.category}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted mt-1">
-                    คงเหลือ: {numberFormatter.format(item.quantity)} {item.unit}
-                  </p>
-                  <p className="text-xs text-muted mt-1">
-                    หมดอายุ: {new Date(item.expiry).toLocaleDateString("th-TH")}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                    item.lowStock 
-                      ? "bg-orange-500/20 border-2 border-orange-500/50" 
-                      : "bg-emerald-500/20 border-2 border-emerald-500/50"
-                  }`}>
-                    <Package className={`w-6 h-6 ${
-                      item.lowStock ? "text-orange-400" : "text-emerald-400"
-                    }`} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
         {/* สรุปการเงิน */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="panel rounded-2xl p-6 shadow-app"
+          transition={{ delay: 0.5 }}
+          className="panel rounded-2xl p-6 shadow-app xl:col-span-2"
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-semibold text-app">สรุปการเงินวันนี้</h3>
@@ -317,7 +249,7 @@ export default function SevenElevenDashboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
+          transition={{ delay: 0.6 }}
           className="panel rounded-2xl p-6 shadow-app"
         >
           <div className="flex items-center justify-between mb-4">
@@ -372,7 +304,7 @@ export default function SevenElevenDashboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.7 }}
           className="panel rounded-2xl p-6 shadow-app"
         >
           <div className="flex items-center justify-between mb-4">
@@ -424,7 +356,7 @@ export default function SevenElevenDashboard() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.9 }}
+        transition={{ delay: 0.8 }}
         className="panel/40 border border-app rounded-2xl p-6"
       >
         <h3 className="text-lg font-semibold text-app mb-4 font-display">การดำเนินการด่วน</h3>
@@ -450,6 +382,7 @@ export default function SevenElevenDashboard() {
     </div>
   );
 }
+
 
 
 

@@ -76,7 +76,6 @@ import PungNgeeChiangPurchases from "@/pages/shops/pung-ngee-chiang/Purchases";
 import PungNgeeChiangReports from "@/pages/shops/pung-ngee-chiang/Reports";
 import PungNgeeChiangSettings from "@/pages/shops/pung-ngee-chiang/Settings";
 import SevenElevenDashboard from "@/pages/shops/seven-eleven/Dashboard";
-import SevenElevenStock from "@/pages/shops/seven-eleven/Stock";
 import SevenElevenSales from "@/pages/shops/seven-eleven/Sales";
 import SevenElevenPurchases from "@/pages/shops/seven-eleven/Purchases";
 import SevenElevenReports from "@/pages/shops/seven-eleven/Reports";
@@ -87,12 +86,18 @@ import JiangSales from "@/pages/shops/jiang/Sales";
 import JiangPurchases from "@/pages/shops/jiang/Purchases";
 import JiangReports from "@/pages/shops/jiang/Reports";
 import JiangSettings from "@/pages/shops/jiang/Settings";
+import JiangOCRScan from "@/pages/shops/jiang/OCRScan";
+import JiangPurchasePlanning from "@/pages/shops/jiang/PurchasePlanning";
 import JaoSuaDashboard from "@/pages/shops/jao-sua/Dashboard";
 import JaoSuaStock from "@/pages/shops/jao-sua/Stock";
 import JaoSuaSales from "@/pages/shops/jao-sua/Sales";
 import JaoSuaPurchases from "@/pages/shops/jao-sua/Purchases";
 import JaoSuaReports from "@/pages/shops/jao-sua/Reports";
 import JaoSuaSettings from "@/pages/shops/jao-sua/Settings";
+import JaoSuaOCRScan from "@/pages/shops/jao-sua/OCRScan";
+import JaoSuaPromotions from "@/pages/shops/jao-sua/Promotions";
+import JaoSuaProductReturns from "@/pages/shops/jao-sua/ProductReturns";
+import JaoSuaPurchasePlanning from "@/pages/shops/jao-sua/PurchasePlanning";
 import FitAutoDashboard from "@/pages/shops/fit-auto/Dashboard";
 import FitAutoStock from "@/pages/shops/fit-auto/Stock";
 import FitAutoSales from "@/pages/shops/fit-auto/Sales";
@@ -449,18 +454,14 @@ const router = createBrowserRouter([
             path: "pung-ngee-chiang/settings",
             element: <PungNgeeChiangSettings />,
           },
-          {
-            path: "seven-eleven",
-            element: <SevenElevenDashboard />,
-          },
-          {
-            path: "seven-eleven/stock",
-            element: <SevenElevenStock />,
-          },
-          {
-            path: "seven-eleven/sales",
-            element: <SevenElevenSales />,
-          },
+        {
+          path: "seven-eleven",
+          element: <SevenElevenDashboard />,
+        },
+        {
+          path: "seven-eleven/sales",
+          element: <SevenElevenSales />,
+        },
           {
             path: "seven-eleven/purchases",
             element: <SevenElevenPurchases />,
@@ -494,6 +495,14 @@ const router = createBrowserRouter([
             element: <JiangReports />,
           },
           {
+            path: "jiang/ocr-scan",
+            element: <JiangOCRScan />,
+          },
+          {
+            path: "jiang/purchase-planning",
+            element: <JiangPurchasePlanning />,
+          },
+          {
             path: "jiang/settings",
             element: <JiangSettings />,
           },
@@ -516,6 +525,22 @@ const router = createBrowserRouter([
           {
             path: "jao-sua/reports",
             element: <JaoSuaReports />,
+          },
+          {
+            path: "jao-sua/ocr-scan",
+            element: <JaoSuaOCRScan />,
+          },
+          {
+            path: "jao-sua/promotions",
+            element: <JaoSuaPromotions />,
+          },
+          {
+            path: "jao-sua/product-returns",
+            element: <JaoSuaProductReturns />,
+          },
+          {
+            path: "jao-sua/purchase-planning",
+            element: <JaoSuaPurchasePlanning />,
           },
           {
             path: "jao-sua/settings",

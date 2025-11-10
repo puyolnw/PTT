@@ -246,16 +246,27 @@ export default function Sales() {
         />
 
         <div className="flex gap-2">
+          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
+            <Upload className="w-4 h-4" />
+            <span>นำเข้า Excel</span>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  alert(`กำลังนำเข้าข้อมูลยอดขายจากไฟล์ ${file.name}...\n\nระบบจะประมวลผลและเพิ่มข้อมูลยอดขายอัตโนมัติ`);
+                }
+              }}
+              className="hidden"
+            />
+          </label>
           <button
             onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-ptt-blue text-white rounded-lg hover:bg-ptt-blue/90 transition-colors"
           >
             <Plus className="w-4 h-4" />
             <span>บันทึกยอดขาย</span>
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors">
-            <Upload className="w-4 h-4" />
-            <span>นำเข้า Excel</span>
           </button>
           <button className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors">
             <Download className="w-4 h-4" />

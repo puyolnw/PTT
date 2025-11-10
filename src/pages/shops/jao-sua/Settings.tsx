@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Settings as SettingsIcon, Save, Store, Link as LinkIcon } from "lucide-react";
+import { Settings as SettingsIcon, Save, Store, Link as LinkIcon, Bell, Mail, MessageCircle } from "lucide-react";
 import { useShop } from "@/contexts/ShopContext";
 
 export default function Settings() {
@@ -17,6 +17,13 @@ export default function Settings() {
     address: "",
     connectToModule6: true, // เชื่อมต่อโมดูล M6 (ค่าเช่า)
     connectToModule7: true, // เชื่อมต่อโมดูล M7 (แดชบอร์ดรวม)
+    // การแจ้งเตือน
+    alertEmail: true, // แจ้งเตือนผ่านอีเมล
+    alertLine: false, // แจ้งเตือนผ่าน Line
+    alertEmailAddress: "", // อีเมลสำหรับรับแจ้งเตือน
+    alertLineToken: "", // Line Token สำหรับรับแจ้งเตือน
+    alertLowStock: true, // แจ้งเตือนสินค้าใกล้หมด
+    alertExpiry: true, // แจ้งเตือนสินค้าใกล้หมดอายุ
   });
 
   const handleSave = () => {
@@ -163,6 +170,121 @@ export default function Settings() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
+        className="panel rounded-2xl p-6"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-app">การแจ้งเตือน</h3>
+          <Bell className="w-6 h-6 text-muted" />
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-soft rounded-xl border border-app">
+            <div>
+              <p className="font-medium text-app">แจ้งเตือนสินค้าใกล้หมด</p>
+              <p className="text-sm text-muted">
+                ระบบจะแจ้งเตือนเมื่อสต็อกต่ำกว่าเกณฑ์ที่กำหนด
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.alertLowStock}
+                onChange={(e) => setSettings({ ...settings, alertLowStock: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-soft peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-app after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
+            </label>
+          </div>
+          <div className="flex items-center justify-between p-4 bg-soft rounded-xl border border-app">
+            <div>
+              <p className="font-medium text-app">แจ้งเตือนสินค้าใกล้หมดอายุ</p>
+              <p className="text-sm text-muted">
+                ระบบจะแจ้งเตือนเมื่อสินค้าเหลืออายุน้อยกว่า {settings.expiryWarningDays} วัน
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.alertExpiry}
+                onChange={(e) => setSettings({ ...settings, alertExpiry: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-soft peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-app after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
+            </label>
+          </div>
+          <div className="flex items-center justify-between p-4 bg-soft rounded-xl border border-app">
+            <div>
+              <p className="font-medium text-app flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                แจ้งเตือนผ่านอีเมล
+              </p>
+              <p className="text-sm text-muted">
+                ระบบจะส่งอีเมลแจ้งเตือนเมื่อมีสินค้าใกล้หมดหรือใกล้หมดอายุ
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.alertEmail}
+                onChange={(e) => setSettings({ ...settings, alertEmail: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-soft peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-app after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
+            </label>
+          </div>
+          {settings.alertEmail && (
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">อีเมลสำหรับรับแจ้งเตือน</label>
+              <input
+                type="email"
+                value={settings.alertEmailAddress}
+                onChange={(e) => setSettings({ ...settings, alertEmailAddress: e.target.value })}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                placeholder="alert@example.com"
+              />
+            </div>
+          )}
+          <div className="flex items-center justify-between p-4 bg-soft rounded-xl border border-app">
+            <div>
+              <p className="font-medium text-app flex items-center gap-2">
+                <MessageCircle className="w-4 h-4" />
+                แจ้งเตือนผ่าน Line
+              </p>
+              <p className="text-sm text-muted">
+                ระบบจะส่งข้อความ Line แจ้งเตือนเมื่อมีสินค้าใกล้หมดหรือใกล้หมดอายุ
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.alertLine}
+                onChange={(e) => setSettings({ ...settings, alertLine: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-soft peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-app after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
+            </label>
+          </div>
+          {settings.alertLine && (
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">Line Token</label>
+              <input
+                type="text"
+                value={settings.alertLineToken}
+                onChange={(e) => setSettings({ ...settings, alertLineToken: e.target.value })}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                placeholder="xxxxxxxxxxxxxxxxxxxx"
+              />
+              <p className="text-xs text-muted mt-1">
+                Line Token สำหรับส่งข้อความแจ้งเตือน (สามารถขอได้จาก Line Notify)
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
         className="panel rounded-2xl p-6"
       >
         <div className="flex items-center justify-between mb-6">

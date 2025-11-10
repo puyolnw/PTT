@@ -7,6 +7,7 @@ import {
   DollarSign,
   Package,
   ShoppingCart,
+  Calendar,
 } from "lucide-react";
 import { useShop } from "@/contexts/ShopContext";
 
@@ -31,6 +32,36 @@ const topSellingItems = [
   { name: "หมูแผ่น", sales: 80000, cost: 50000, profit: 30000 },
   { name: "แหนม", sales: 50000, cost: 35000, profit: 15000 },
 ];
+
+// Mock data for purchase report
+const purchaseReportData = [
+  { date: "2024-12-15", supplier: "ตลาดสด", item: "เนื้อหมู", quantity: "100 กก.", amount: 50000 },
+  { date: "2024-12-10", supplier: "PTT", item: "ค่าน้ำ/ไฟ", quantity: "-", amount: 3000 },
+  { date: "2024-12-08", supplier: "ซัพพลายเออร์ A", item: "วัตถุดิบ", quantity: "50 ชิ้น", amount: 15000 },
+  { date: "2024-12-05", supplier: "บริษัทขนส่ง", item: "ค่าขนส่ง", quantity: "-", amount: 2000 },
+  { date: "2024-12-01", supplier: "ช่างซ่อม", item: "ค่าซ่อม", quantity: "-", amount: 5000 },
+];
+
+// Mock data for stock report
+const stockReportData = [
+  { name: "กุนเชียง", quantity: 500, unit: "ชิ้น", cost: 50, totalValue: 25000, category: "อาหารแปรรูป" },
+  { name: "หมูหยอง", quantity: 100, unit: "กรัม", cost: 200, totalValue: 20000, category: "อาหารแปรรูป" },
+  { name: "หมูแผ่น", quantity: 300, unit: "ชิ้น", cost: 30, totalValue: 9000, category: "อาหารแปรรูป" },
+  { name: "แหนม", quantity: 50, unit: "ชิ้น", cost: 40, totalValue: 2000, category: "อาหารแปรรูป" },
+];
+
+// Mock data for sales report by period
+const salesByPeriod = {
+  daily: [
+    { date: "2024-12-15", items: ["หมูหยอง", "กุนเชียง"], total: 2550 },
+    { date: "2024-12-14", items: ["หมูหยอง", "กุนเชียง", "หมูแผ่น"], total: 5350 },
+    { date: "2024-12-13", items: ["แหนม", "หมูแผ่น"], total: 270 },
+  ],
+  monthly: [
+    { month: "ธันวาคม 2567", total: 450000, items: 120 },
+    { month: "พฤศจิกายน 2567", total: 420000, items: 115 },
+  ],
+};
 
 export default function Reports() {
   const { currentShop } = useShop();
@@ -197,12 +228,173 @@ export default function Reports() {
         </div>
       </motion.div>
 
+      {/* Purchase Report */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="panel rounded-2xl p-6"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-app">รายงานการซื้อสินค้าเข้า</h3>
+          <ShoppingCart className="w-6 h-6 text-muted" />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-app">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-app">วันที่</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-app">ซัพพลายเออร์</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-app">สินค้า/รายการ</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-app">จำนวน</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-app">ยอดรวม</th>
+              </tr>
+            </thead>
+            <tbody>
+              {purchaseReportData.map((purchase, index) => (
+                <tr key={index} className="border-b border-app/50 hover:bg-soft/50">
+                  <td className="py-3 px-4">
+                    {new Date(purchase.date).toLocaleDateString("th-TH")}
+                  </td>
+                  <td className="py-3 px-4">{purchase.supplier}</td>
+                  <td className="py-3 px-4">{purchase.item}</td>
+                  <td className="py-3 px-4">{purchase.quantity}</td>
+                  <td className="py-3 px-4 text-right font-semibold text-app">
+                    {currencyFormatter.format(purchase.amount)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </motion.div>
+
+      {/* Stock Report */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="panel rounded-2xl p-6"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-app">รายงานสต็อกสินค้า</h3>
+          <Package className="w-6 h-6 text-muted" />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-app">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-app">สินค้า</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-app">คงเหลือ</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-app">ต้นทุนต่อหน่วย</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-app">มูลค่าสต็อก</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stockReportData.map((item, index) => (
+                <tr key={index} className="border-b border-app/50 hover:bg-soft/50">
+                  <td className="py-3 px-4">
+                    <p className="font-medium text-app">{item.name}</p>
+                    <p className="text-xs text-muted">{item.category}</p>
+                  </td>
+                  <td className="py-3 px-4">
+                    {item.quantity} {item.unit}
+                  </td>
+                  <td className="py-3 px-4">
+                    {currencyFormatter.format(item.cost)}
+                  </td>
+                  <td className="py-3 px-4 text-right font-semibold text-app">
+                    {currencyFormatter.format(item.totalValue)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-app">
+                <td colSpan={3} className="py-3 px-4 text-right font-semibold text-app">
+                  มูลค่าสต็อกรวม
+                </td>
+                <td className="py-3 px-4 text-right font-bold text-ptt-cyan">
+                  {currencyFormatter.format(
+                    stockReportData.reduce((sum, item) => sum + item.totalValue, 0)
+                  )}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </motion.div>
+
+      {/* Sales Report by Period */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="panel rounded-2xl p-6"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-app">รายงานยอดขายรายวัน/เดือน/ปี</h3>
+          <Calendar className="w-6 h-6 text-muted" />
+        </div>
+        {selectedPeriod === "day" && (
+          <div className="space-y-4">
+            <h4 className="text-lg font-semibold text-app mb-4">รายงานยอดขายรายวัน</h4>
+            {salesByPeriod.daily.map((sale, index) => (
+              <div key={index} className="p-4 bg-soft rounded-xl border border-app">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-semibold text-app">
+                      {new Date(sale.date).toLocaleDateString("th-TH", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </p>
+                    <p className="text-sm text-muted mt-1">
+                      สินค้า: {sale.items.join(", ")}
+                    </p>
+                  </div>
+                  <p className="text-xl font-bold text-ptt-cyan">
+                    {currencyFormatter.format(sale.total)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {selectedPeriod === "month" && (
+          <div className="space-y-4">
+            <h4 className="text-lg font-semibold text-app mb-4">รายงานยอดขายรายเดือน</h4>
+            {salesByPeriod.monthly.map((sale, index) => (
+              <div key={index} className="p-4 bg-soft rounded-xl border border-app">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-semibold text-app">{sale.month}</p>
+                    <p className="text-sm text-muted mt-1">
+                      {sale.items} รายการ
+                    </p>
+                  </div>
+                  <p className="text-xl font-bold text-ptt-cyan">
+                    {currencyFormatter.format(sale.total)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {(selectedPeriod === "week" || selectedPeriod === "year") && (
+          <div className="text-center py-12 text-muted">
+            กำลังพัฒนารายงานรายสัปดาห์และรายปี
+          </div>
+        )}
+      </motion.div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.6 }}
           className="panel rounded-2xl p-6"
         >
           <div className="flex items-center justify-between mb-4">
@@ -218,7 +410,7 @@ export default function Reports() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.7 }}
           className="panel rounded-2xl p-6"
         >
           <div className="flex items-center justify-between mb-4">
@@ -226,7 +418,9 @@ export default function Reports() {
             <span className="text-sm text-muted">มูลค่าสต็อก</span>
           </div>
           <p className="text-2xl font-bold text-app">
-            {currencyFormatter.format(280000)}
+            {currencyFormatter.format(
+              stockReportData.reduce((sum, item) => sum + item.totalValue, 0)
+            )}
           </p>
           <p className="text-sm text-muted mt-2">รวมต้นทุน</p>
         </motion.div>
@@ -234,7 +428,7 @@ export default function Reports() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.8 }}
           className="panel rounded-2xl p-6"
         >
           <div className="flex items-center justify-between mb-4">
@@ -242,7 +436,9 @@ export default function Reports() {
             <span className="text-sm text-muted">การซื้อเข้า</span>
           </div>
           <p className="text-2xl font-bold text-app">
-            {currencyFormatter.format(280000)}
+            {currencyFormatter.format(
+              purchaseReportData.reduce((sum, p) => sum + p.amount, 0)
+            )}
           </p>
           <p className="text-sm text-muted mt-2">รายเดือน</p>
         </motion.div>

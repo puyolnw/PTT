@@ -7,6 +7,10 @@ import {
   ShoppingCart,
   DollarSign,
   BarChart3,
+  Camera,
+  Target,
+  Tag,
+  RotateCcw,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useShop } from "@/contexts/ShopContext";
@@ -31,14 +35,40 @@ export default function SidebarShops({ onClose, isMobile = false, isExpanded = t
 
     // Shop-specific menu items
     const basePath = currentShop.path;
-    return [
+    const baseMenuItems = [
       { to: basePath, icon: Home, label: "Dashboard", end: true },
-      { to: `${basePath}/stock`, icon: Package, label: "สต็อกสินค้า", end: false },
       { to: `${basePath}/sales`, icon: DollarSign, label: "ยอดขาย", end: false },
       { to: `${basePath}/purchases`, icon: ShoppingCart, label: "การซื้อสินค้าเข้า", end: false },
       { to: `${basePath}/reports`, icon: BarChart3, label: "รายงาน", end: false },
-      { to: `${basePath}/settings`, icon: SettingsIcon, label: "ตั้งค่า", end: false },
     ];
+
+    // 7-Eleven ไม่มีสต็อก (ตามเอกสาร)
+    if (currentShop.id !== "seven-eleven") {
+      baseMenuItems.splice(1, 0, { to: `${basePath}/stock`, icon: Package, label: "สต็อกสินค้า", end: false });
+    }
+
+    // Add special features for specific shops
+    if (currentShop.id === "jiang") {
+      baseMenuItems.push(
+        { to: `${basePath}/ocr-scan`, icon: Camera, label: "OCR สแกนบิล", end: false },
+        { to: `${basePath}/purchase-planning`, icon: Target, label: "วางแผนสั่งซื้อ", end: false }
+      );
+    }
+    
+    if (currentShop.id === "jao-sua") {
+      baseMenuItems.push(
+        { to: `${basePath}/ocr-scan`, icon: Camera, label: "OCR สแกนบิล", end: false },
+        { to: `${basePath}/purchase-planning`, icon: Target, label: "วางแผนสั่งซื้อ", end: false },
+        { to: `${basePath}/promotions`, icon: Tag, label: "โปรโมชัน", end: false },
+        { to: `${basePath}/product-returns`, icon: RotateCcw, label: "คืนสินค้า", end: false }
+      );
+    }
+
+    baseMenuItems.push(
+      { to: `${basePath}/settings`, icon: SettingsIcon, label: "ตั้งค่า", end: false }
+    );
+
+    return baseMenuItems;
   };
 
   const items = getMenuItems();

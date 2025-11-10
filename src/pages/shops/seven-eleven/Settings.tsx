@@ -10,8 +10,6 @@ export default function Settings() {
   const [settings, setSettings] = useState({
     shopName: shopName,
     rent: 5000,
-    lowStockThreshold: 20, // เปอร์เซ็นต์
-    expiryWarningDays: 7,
     email: "",
     phone: "",
     address: "",
@@ -97,51 +95,6 @@ export default function Settings() {
         className="panel rounded-2xl p-6"
       >
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold text-app">การตั้งค่าสต็อก</h3>
-          <SettingsIcon className="w-6 h-6 text-muted" />
-        </div>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
-              เกณฑ์แจ้งเตือนสต็อกต่ำ (%)
-            </label>
-            <input
-              type="number"
-              value={settings.lowStockThreshold}
-              onChange={(e) => setSettings({ ...settings, lowStockThreshold: Number(e.target.value) })}
-              className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
-              min="0"
-              max="100"
-            />
-            <p className="text-xs text-muted mt-1">
-              ระบบจะแจ้งเตือนเมื่อสต็อกต่ำกว่า {settings.lowStockThreshold}% ของเกณฑ์ที่กำหนด
-            </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
-              แจ้งเตือนก่อนหมดอายุ (วัน)
-            </label>
-            <input
-              type="number"
-              value={settings.expiryWarningDays}
-              onChange={(e) => setSettings({ ...settings, expiryWarningDays: Number(e.target.value) })}
-              className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
-              min="1"
-            />
-            <p className="text-xs text-muted mt-1">
-              ระบบจะแจ้งเตือนเมื่อสินค้าเหลืออายุ {settings.expiryWarningDays} วัน
-            </p>
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="panel rounded-2xl p-6"
-      >
-        <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-app">ค่าเช่า</h3>
           <SettingsIcon className="w-6 h-6 text-muted" />
         </div>
@@ -162,7 +115,7 @@ export default function Settings() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.3 }}
         className="panel rounded-2xl p-6"
       >
         <div className="flex items-center justify-between mb-6">

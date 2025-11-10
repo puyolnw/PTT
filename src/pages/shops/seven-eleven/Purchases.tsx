@@ -30,6 +30,7 @@ const initialPurchases = [
     dueDate: "2024-12-15",
     source: "Excel",
     poNumber: "PO-2024-001",
+    type: "สินค้า",
   },
   {
     id: "2",
@@ -41,6 +42,7 @@ const initialPurchases = [
     dueDate: "2024-12-10",
     source: "Manual",
     poNumber: "-",
+    type: "ค่าใช้จ่ายอื่น",
   },
   {
     id: "3",
@@ -52,6 +54,31 @@ const initialPurchases = [
     dueDate: "2024-12-20",
     source: "PDF",
     poNumber: "PO-2024-002",
+    type: "สินค้า",
+  },
+  {
+    id: "4",
+    date: "2024-12-05",
+    supplier: "บริษัททำความสะอาด",
+    items: "ค่าทำความสะอาด",
+    amount: 2000,
+    status: "ชำระแล้ว",
+    dueDate: "2024-12-05",
+    source: "Manual",
+    poNumber: "-",
+    type: "ค่าใช้จ่ายอื่น",
+  },
+  {
+    id: "5",
+    date: "2024-12-01",
+    supplier: "ช่างซ่อม",
+    items: "ค่าซ่อมเครื่องปรับอากาศ",
+    amount: 5000,
+    status: "ชำระแล้ว",
+    dueDate: "2024-12-01",
+    source: "Manual",
+    poNumber: "-",
+    type: "ค่าใช้จ่ายอื่น",
   },
 ];
 
@@ -63,6 +90,7 @@ export default function Purchases() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -72,6 +100,7 @@ export default function Purchases() {
     status: "รอชำระ",
     dueDate: "",
     source: "Manual",
+    type: "สินค้า",
   });
 
   const filteredPurchases = purchases.filter((purchase) => {
@@ -80,7 +109,8 @@ export default function Purchases() {
       purchase.poNumber.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = !statusFilter || purchase.status === statusFilter;
     const matchesSource = !sourceFilter || purchase.source === sourceFilter;
-    return matchesSearch && matchesStatus && matchesSource;
+    const matchesType = !typeFilter || purchase.type === typeFilter;
+    return matchesSearch && matchesStatus && matchesSource && matchesType;
   });
 
   const pendingAmount = purchases
@@ -92,7 +122,7 @@ export default function Purchases() {
       id: String(purchases.length + 1),
       ...formData,
       amount: Number(formData.amount),
-      poNumber: formData.source === "Manual" ? "-" : `PO-2024-${String(purchases.length + 1).padStart(3, "0")}`,
+      poNumber: formData.source === "Manual" || formData.type === "ค่าใช้จ่ายอื่น" ? "-" : `PO-2024-${String(purchases.length + 1).padStart(3, "0")}`,
     };
     setPurchases([newPurchase, ...purchases]);
     setIsAddModalOpen(false);
@@ -108,6 +138,7 @@ export default function Purchases() {
       status: "รอชำระ",
       dueDate: "",
       source: "Manual",
+      type: "สินค้า",
     });
   };
 
@@ -128,6 +159,7 @@ export default function Purchases() {
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
         source: fileType === "excel" ? "Excel" : "PDF",
         poNumber: `PO-2024-${String(purchases.length + 1).padStart(3, "0")}`,
+        type: "สินค้า",
       };
       setPurchases([newPurchase, ...purchases]);
     }
@@ -140,9 +172,9 @@ export default function Purchases() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h2 className="text-3xl font-bold text-app mb-2 font-display">การสั่งซื้อ - {shopName}</h2>
+        <h2 className="text-3xl font-bold text-app mb-2 font-display">การสั่งซื้อและค่าใช้จ่าย - {shopName}</h2>
         <p className="text-muted font-light">
-          บันทึกการสั่งซื้อจาก CP All (Excel/PDF) หรือกรอกด้วยมือ ระบบจะสร้างใบสั่งซื้อ (PO) อัตโนมัติ
+          บันทึกการสั่งซื้อสินค้า (Excel/PDF) หรือค่าใช้จ่ายอื่นๆ (ค่าน้ำ/ไฟ, ค่าทำความสะอาด, ค่าซ่อม) ระบบจะสร้างใบสั่งซื้อ (PO) อัตโนมัติสำหรับสินค้า
         </p>
       </motion.div>
 
@@ -244,6 +276,16 @@ export default function Purchases() {
               ],
               onChange: setSourceFilter,
             },
+            {
+              label: "ประเภท",
+              value: typeFilter,
+              options: [
+                { value: "", label: "ทั้งหมด" },
+                { value: "สินค้า", label: "สินค้า" },
+                { value: "ค่าใช้จ่ายอื่น", label: "ค่าใช้จ่ายอื่น" },
+              ],
+              onChange: setTypeFilter,
+            },
           ]}
         />
 
@@ -305,7 +347,7 @@ export default function Purchases() {
                   <p className="text-xl font-bold text-app">
                     {currencyFormatter.format(purchase.amount)}
                   </p>
-                  <div className="flex items-center gap-2 mt-2 justify-end">
+                  <div className="flex items-center gap-2 mt-2 justify-end flex-wrap">
                     <span
                       className={`text-xs px-2 py-1 rounded-full ${
                         purchase.status === "ชำระแล้ว"
@@ -317,6 +359,13 @@ export default function Purchases() {
                     </span>
                     <span className="text-xs px-2 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/30">
                       {purchase.source}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      purchase.type === "ค่าใช้จ่ายอื่น"
+                        ? "bg-orange-500/10 text-orange-400 border border-orange-500/30"
+                        : "bg-blue-500/10 text-blue-400 border border-blue-500/30"
+                    }`}>
+                      {purchase.type}
                     </span>
                   </div>
                 </div>
@@ -420,17 +469,30 @@ export default function Purchases() {
               </div>
             )}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">แหล่งที่มา</label>
-            <select
-              value={formData.source}
-              onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-              className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
-            >
-              <option value="Manual">กรอกด้วยมือ</option>
-              <option value="Excel">Excel</option>
-              <option value="PDF">PDF</option>
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">ประเภท</label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              >
+                <option value="สินค้า">สินค้า</option>
+                <option value="ค่าใช้จ่ายอื่น">ค่าใช้จ่ายอื่น (ค่าน้ำ/ไฟ, ค่าทำความสะอาด, ค่าซ่อม)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">แหล่งที่มา</label>
+              <select
+                value={formData.source}
+                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              >
+                <option value="Manual">กรอกด้วยมือ</option>
+                <option value="Excel">Excel</option>
+                <option value="PDF">PDF</option>
+              </select>
+            </div>
           </div>
         </div>
       </ModalForm>
