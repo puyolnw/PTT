@@ -3030,3 +3030,68 @@ export const documentNotifications: DocumentNotification[] = [
   }
 ];
 
+// ========== WELFARE RECORDS (สวัสดิการพนักงาน) ==========
+export interface WelfareRecord {
+  id: number;
+  type: string;
+  empCode: string;
+  empName: string;
+  category: string;
+  item?: string;
+  amount?: number;
+  date: string;
+  status: "รออนุมัติ" | "อนุมัติ" | "ปฏิเสธ";
+  notes?: string;
+}
+
+export const welfareRecords: WelfareRecord[] = [
+  // การเบิก (benefits)
+  { id: 1, type: "benefits", empCode: "EMP-0001", empName: "สมชาย ใจดี", category: "ปั๊ม", item: "ชุดฟอร์ม", date: "2025-01-15", status: "อนุมัติ", notes: "เบิกชุดฟอร์มสำหรับพนักงานปั๊ม" },
+  { id: 2, type: "benefits", empCode: "EMP-0002", empName: "สมหญิง รักงาน", category: "ปั๊ม", item: "เสื้อกันหนาว", date: "2025-01-20", status: "อนุมัติ" },
+  { id: 3, type: "benefits", empCode: "EMP-0003", empName: "วรพล ตั้งใจ", category: "ปั๊ม", item: "รองเท้า", date: "2025-01-25", status: "อนุมัติ" },
+  { id: 4, type: "benefits", empCode: "EMP-0004", empName: "กิตติคุณ ใฝ่รู้", category: "เซเว่น", item: "ชุดฟอร์ม", date: "2025-02-01", status: "อนุมัติ" },
+  { id: 5, type: "benefits", empCode: "EMP-0005", empName: "พิมพ์ชนก สมใจ", category: "ปึงหงี่เชียง", item: "เสื้อกันหนาว", date: "2025-02-05", status: "อนุมัติ" },
+  { id: 6, type: "benefits", empCode: "EMP-0009", empName: "วิภา รักษ์สุข", category: "แม่บ้าน", item: "รองเท้า", date: "2025-02-10", status: "อนุมัติ" },
+  
+  // BONUS รายปี (bonus)
+  { id: 7, type: "bonus", empCode: "EMP-0001", empName: "สมชาย ใจดี", category: "ปั๊ม", amount: 50000, date: "2025-01-31", status: "อนุมัติ", notes: "รางวัลพนักงานดีเด่นประจำปี 2024" },
+  { id: 8, type: "bonus", empCode: "EMP-0005", empName: "พิมพ์ชนก สมใจ", category: "ปึงหงี่เชียง", amount: 45000, date: "2025-01-31", status: "อนุมัติ", notes: "รางวัลพนักงานดีเด่นประจำปี 2024" },
+  { id: 9, type: "bonus", empCode: "EMP-0009", empName: "วิภา รักษ์สุข", category: "แม่บ้าน", amount: 40000, date: "2025-01-31", status: "อนุมัติ", notes: "รางวัลพนักงานดีเด่นประจำปี 2024" },
+  { id: 10, type: "bonus", empCode: "EMP-0026", empName: "นิดา ออฟฟิศ", category: "Office", amount: 48000, date: "2025-01-31", status: "อนุมัติ", notes: "รางวัลพนักงานดีเด่นประจำปี 2024" },
+  { id: 11, type: "bonus", empCode: "EMP-0023", empName: "ประเสริฐ ช่าง", category: "ช่าง", amount: 42000, date: "2025-01-31", status: "อนุมัติ", notes: "รางวัลพนักงานดีเด่นประจำปี 2024" },
+  
+  // หอพัก (dormitory)
+  { id: 12, type: "dormitory", empCode: "EMP-0013", empName: "ประยุทธ์ กลางคืน", category: "ปั๊ม", date: "2025-01-01", status: "อนุมัติ", notes: "พักฟรี หอพัก A ห้อง 201" },
+  { id: 13, type: "dormitory", empCode: "EMP-0014", empName: "สุรชัย ดึก", category: "ปั๊ม", date: "2025-01-01", status: "อนุมัติ", notes: "พักฟรี หอพัก A ห้อง 202" },
+  { id: 14, type: "dormitory", empCode: "EMP-0016", empName: "วิชัย ดึก", category: "เซเว่น", date: "2025-01-01", status: "อนุมัติ", notes: "พักฟรี หอพัก B ห้อง 301" },
+  { id: 15, type: "dormitory", empCode: "EMP-0020", empName: "อภิชัย อเมซอน", category: "Amazon", date: "2025-01-15", status: "อนุมัติ", notes: "ขอใช้หอพัก" },
+  { id: 16, type: "dormitory", empCode: "EMP-0023", empName: "ประเสริฐ ช่าง", category: "ช่าง", date: "2025-01-01", status: "อนุมัติ", notes: "พักฟรี หอพัก C ห้อง 401" },
+  
+  // ค่าน้ำมัน (fuel)
+  { id: 17, type: "fuel", empCode: "EMP-0032", empName: "สมศักดิ์ ขับรถ", category: "ขับรถ", item: "ค่าน้ำมัน", amount: 1500, date: "2025-01-10", status: "อนุมัติ", notes: "เบิกค่าน้ำมันสำหรับงานขับรถ" },
+  { id: 18, type: "fuel", empCode: "EMP-0032", empName: "สมศักดิ์ ขับรถ", category: "ขับรถ", item: "ค่าน้ำมัน", amount: 1800, date: "2025-01-20", status: "อนุมัติ", notes: "เบิกค่าน้ำมันสำหรับงานขับรถ" },
+  { id: 19, type: "fuel", empCode: "EMP-0023", empName: "ประเสริฐ ช่าง", category: "ช่าง", item: "ค่าน้ำมัน", amount: 1200, date: "2025-02-01", status: "อนุมัติ", notes: "เบิกค่าน้ำมันสำหรับงานซ่อมนอกสถานที่" },
+  { id: 20, type: "fuel", empCode: "EMP-0024", empName: "สมชาย ช่าง", category: "ช่าง", item: "ค่าน้ำมัน", amount: 1000, date: "2025-02-05", status: "อนุมัติ" },
+  
+  // ทัศนศึกษาพาสุข (trip)
+  { id: 21, type: "trip", empCode: "EMP-0001", empName: "สมชาย ใจดี", category: "ปั๊ม", date: "2025-03-15", status: "อนุมัติ", notes: "ทัศนศึกษาในประเทศ - เชียงใหม่" },
+  { id: 22, type: "trip", empCode: "EMP-0005", empName: "พิมพ์ชนก สมใจ", category: "ปึงหงี่เชียง", date: "2025-03-15", status: "อนุมัติ", notes: "ทัศนศึกษาในประเทศ - เชียงใหม่" },
+  { id: 23, type: "trip", empCode: "EMP-0009", empName: "วิภา รักษ์สุข", category: "แม่บ้าน", date: "2025-03-15", status: "อนุมัติ", notes: "ทัศนศึกษาในประเทศ - เชียงใหม่" },
+  { id: 24, type: "trip", empCode: "EMP-0026", empName: "นิดา ออฟฟิศ", category: "Office", date: "2025-06-01", status: "อนุมัติ", notes: "ทัศนศึกษาต่างประเทศ - ญี่ปุ่น" },
+  { id: 25, type: "trip", empCode: "EMP-0027", empName: "ทา ออฟฟิศ", category: "Office", date: "2025-06-01", status: "อนุมัติ", notes: "ทัศนศึกษาต่างประเทศ - ญี่ปุ่น" },
+  
+  // เยี่ยมไข้/คลอด/งานศพ (condolence)
+  { id: 26, type: "condolence", empCode: "EMP-0002", empName: "สมหญิง รักงาน", category: "ปั๊ม", amount: 2000, date: "2025-01-12", status: "อนุมัติ", notes: "เยี่ยมไข้ - ครอบครัว" },
+  { id: 27, type: "condolence", empCode: "EMP-0003", empName: "วรพล ตั้งใจ", category: "ปั๊ม", amount: 3000, date: "2025-01-18", status: "อนุมัติ", notes: "งานศพ - บิดา" },
+  { id: 28, type: "condolence", empCode: "EMP-0004", empName: "กิตติคุณ ใฝ่รู้", category: "เซเว่น", amount: 2000, date: "2025-02-08", status: "อนุมัติ", notes: "คลอดบุตร" },
+  { id: 29, type: "condolence", empCode: "EMP-0015", empName: "นันทนา เซเว่น", category: "เซเว่น", amount: 2500, date: "2025-02-15", status: "อนุมัติ", notes: "เยี่ยมไข้ - ครอบครัว" },
+  { id: 30, type: "condolence", empCode: "EMP-0029", empName: "ประยุทธ์ รปภ", category: "รักษาความปลอดภัย", amount: 2000, date: "2025-02-20", status: "อนุมัติ", notes: "งานศพ - มารดา" },
+  
+  // ทุนการศึกษาบุตร (scholarship)
+  { id: 31, type: "scholarship", empCode: "EMP-0001", empName: "สมชาย ใจดี", category: "ปั๊ม", amount: 15000, date: "2025-01-05", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับประถมศึกษา" },
+  { id: 32, type: "scholarship", empCode: "EMP-0005", empName: "พิมพ์ชนก สมใจ", category: "ปึงหงี่เชียง", amount: 20000, date: "2025-01-05", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับมัธยมศึกษา" },
+  { id: 33, type: "scholarship", empCode: "EMP-0009", empName: "วิภา รักษ์สุข", category: "แม่บ้าน", amount: 25000, date: "2025-01-05", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับอุดมศึกษา" },
+  { id: 34, type: "scholarship", empCode: "EMP-0026", empName: "นิดา ออฟฟิศ", category: "Office", amount: 18000, date: "2025-01-05", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับมัธยมศึกษา" },
+  { id: 35, type: "scholarship", empCode: "EMP-0023", empName: "ประเสริฐ ช่าง", category: "ช่าง", amount: 22000, date: "2025-07-01", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับอุดมศึกษา" }
+];
+

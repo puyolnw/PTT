@@ -32,6 +32,7 @@ import Announcements from "@/pages/hr/Announcements";
 import HRReports from "@/pages/hr/Reports";
 import HRSettings from "@/pages/hr/Settings";
 import OutstandingEmployees from "@/pages/hr/OutstandingEmployees";
+import Welfare from "@/pages/hr/Welfare";
 
 // ========== Fund Pages ==========
 import FundDashboard from "@/pages/fund/Dashboard";
@@ -241,6 +242,10 @@ const router = createBrowserRouter([
           {
             path: "payroll",
             element: <Payroll />,
+          },
+          {
+            path: "welfare",
+            element: <Welfare />,
           },
           {
             path: "social-security",

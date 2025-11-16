@@ -10,6 +10,7 @@ import {
   GitBranch,
   BarChart3,
   Trophy,
+  Heart,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -19,6 +20,7 @@ const items = [
   { to: "/app/hr/attendance", icon: Clock, label: "บันทึกเวลา", end: false },
   { to: "/app/hr/leaves", icon: Calendar, label: "การลา", end: false },
   { to: "/app/hr/payroll", icon: Wallet, label: "เงินเดือน", end: false },
+  { to: "/app/hr/welfare", icon: Heart, label: "สวัสดิการ", end: false },
   { to: "/app/hr/social-security", icon: Shield, label: "ประกันสังคม", end: false },
   { to: "/app/hr/outstanding-employees", icon: Trophy, label: "พนักงานดีเด่น", end: false },
   { to: "/app/hr/organization", icon: GitBranch, label: "โครงสร้าง", end: false },
