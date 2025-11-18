@@ -18,13 +18,19 @@ export default function Attendance() {
   const [selectedLog, setSelectedLog] = useState<AttendanceLog | null>(null);
   
   // Calendar view states
-  const [viewMode, setViewMode] = useState<"list" | "calendar">("calendar");
+  const [viewMode, setViewMode] = useState<"list" | "calendar" | "ot-calendar">("calendar");
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [otSelectedMonth, setOtSelectedMonth] = useState<string>(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedShift, setSelectedShift] = useState<number | "">("");
+  const [otSelectedCategory, setOtSelectedCategory] = useState<string>("");
+  const [otSelectedShift, setOtSelectedShift] = useState<number | "">("");
   const [editForm, setEditForm] = useState({
     checkIn: "",
     checkOut: "",
@@ -237,6 +243,189 @@ export default function Attendance() {
     });
     
     return { days, calendarData };
+  };
+
+  // Build mock OT calendar data for demonstration
+  const buildMockOTCalendarData = (days: Date[]) => {
+    const mockEmployees = [
+      { code: "EMP-0001", name: "สมชาย ใจดี", category: "ปั๊ม", shiftId: 1, otRate: 250 },
+      { code: "EMP-0002", name: "สมหญิง รักงาน", category: "ปั๊ม", shiftId: 2, otRate: 200 },
+      { code: "EMP-0003", name: "วรพล ตั้งใจ", category: "ปั๊ม", shiftId: 3, otRate: 220 },
+      { code: "EMP-0004", name: "กิตติคุณ ใฝ่รู้", category: "เซเว่น", shiftId: 27, otRate: 180 },
+      { code: "EMP-0005", name: "พิมพ์ชนก สมใจ", category: "ปึงหงี่เชียง", shiftId: 16, otRate: 300 },
+      { code: "EMP-0008", name: "อัญชลี มีชัย", category: "ร้านเชสเตอร์", shiftId: 19, otRate: 250 },
+      { code: "EMP-0013", name: "ประยุทธ์ กลางคืน", category: "ปั๊ม", shiftId: 4, otRate: 230 },
+      { code: "EMP-0015", name: "นันทนา เซเว่น", category: "เซเว่น", shiftId: 28, otRate: 190 },
+      { code: "EMP-0020", name: "อภิชัย อเมซอน", category: "Amazon", shiftId: 21, otRate: 220 },
+      { code: "EMP-0023", name: "ประเสริฐ ช่าง", category: "ช่าง", shiftId: 7, otRate: 280 },
+      { code: "EMP-0026", name: "นิดา ออฟฟิศ", category: "Office", shiftId: 13, otRate: 250 },
+      { code: "EMP-0029", name: "ประยุทธ์ รปภ", category: "รักษาความปลอดภัย", shiftId: 11, otRate: 200 },
+    ];
+
+    // Simple seeded random function for consistent mock data
+    const seededRandom = (seed: number) => {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    };
+
+    return mockEmployees.map((mockEmp, empIndex) => {
+      const existingEmployee = employees.find(e => e.code === mockEmp.code);
+      const employee = existingEmployee || {
+        id: 9000 + empIndex,
+        code: mockEmp.code,
+        name: mockEmp.name,
+        dept: mockEmp.category,
+        position: "พนักงาน",
+        status: "Active" as const,
+        startDate: new Date().toISOString().split("T")[0],
+        category: mockEmp.category,
+        shiftId: mockEmp.shiftId,
+        otRate: mockEmp.otRate
+      } as typeof employees[number];
+      
+      const shift = employee.shiftId ? shifts.find(s => s.id === employee.shiftId) : null;
+      
+      // สร้างข้อมูล OT หลายวันแบบคงที่ (ใช้ seed เพื่อให้ข้อมูลเหมือนเดิมทุกครั้ง)
+      const otData = days.map((day) => {
+        const dayNum = day.getDate();
+        const dateStr = day.toISOString().split('T')[0];
+        const seed = empIndex * 1000 + dayNum;
+        
+        // สร้าง OT แบบคงที่ตามวัน (ประมาณ 30% ของวัน)
+        const hasOT = seededRandom(seed) < 0.3;
+        
+        if (!hasOT) {
+          return {
+            date: dateStr,
+            day: dayNum,
+            log: null,
+            otHours: null,
+            otAmount: null,
+            otInfo: null
+          };
+        }
+        
+        // สร้าง OT hours แบบคงที่ (1-5 ชั่วโมง)
+        const otHours = Math.round((seededRandom(seed + 1) * 4 + 1) * 10) / 10;
+        const otRate = employee.otRate || mockEmp.otRate;
+        const otAmount = Math.round(otHours * otRate * 100) / 100;
+        
+        // สร้างสถานะ OT แบบคงที่
+        const statusRand = seededRandom(seed + 2);
+        let status: "pending" | "active" | "done";
+        let progressHours = 0;
+        
+        if (statusRand < 0.3) {
+          status = "pending"; // รอเริ่ม
+          progressHours = 0;
+        } else if (statusRand < 0.7) {
+          status = "active"; // กำลังทำ
+          progressHours = Math.round((otHours * (0.3 + seededRandom(seed + 3) * 0.6)) * 10) / 10;
+        } else {
+          status = "done"; // เสร็จแล้ว
+          progressHours = otHours;
+        }
+        
+        const log: AttendanceLog = {
+          id: Number(`${employee.id}${dayNum}`),
+          empCode: employee.code,
+          empName: employee.name,
+          date: dateStr,
+          checkIn: shift?.startTime || "08:00",
+          checkOut: shift?.endTime || "17:00",
+          status: "ตรงเวลา",
+          lateMinutes: 0,
+          otHours,
+          otAmount
+        };
+        
+        const otInfo = {
+          otStartTime: shift?.endTime || "17:00",
+          hasStarted: status !== "pending",
+          otHoursDone: progressHours,
+          otHoursRemaining: Math.max(otHours - progressHours, 0),
+          otHoursPlanned: otHours,
+          otAmount,
+          otRate
+        } as ReturnType<typeof getOTInfo>;
+        
+        return {
+          date: dateStr,
+          day: dayNum,
+          log,
+          otHours,
+          otAmount,
+          otInfo
+        };
+      });
+      
+      return {
+        employee,
+        shift,
+        otData
+      };
+    });
+  };
+
+  // Get OT data for calendar view
+  const getOTCalendarData = () => {
+    const [year, month] = otSelectedMonth.split('-').map(Number);
+    const days = getDaysInMonth(year, month - 1);
+    
+    // Filter employees by category and shift
+    let filteredEmployees = employees.filter(emp => emp.status === "Active");
+    if (otSelectedCategory) {
+      filteredEmployees = filteredEmployees.filter(emp => emp.category === otSelectedCategory);
+    }
+    if (otSelectedShift !== "") {
+      filteredEmployees = filteredEmployees.filter(emp => emp.shiftId === otSelectedShift);
+    }
+    
+    // Get OT logs for each employee for each day
+    const otCalendarData = filteredEmployees.map(emp => {
+      const empShift = emp.shiftId ? shifts.find(s => s.id === emp.shiftId) : null;
+      const empOTData = days.map(day => {
+        const dateStr = day.toISOString().split('T')[0];
+        const log = attendanceLogs.find(
+          l => l.empCode === emp.code && l.date === dateStr && l.otHours && l.otHours > 0
+        );
+        
+        if (!log) {
+          return {
+            date: dateStr,
+            day: day.getDate(),
+            log: null,
+            otHours: null,
+            otAmount: null,
+            otInfo: null
+          };
+        }
+        
+        const otInfo = getOTInfo(log);
+        
+        return {
+          date: dateStr,
+          day: day.getDate(),
+          log: log,
+          otHours: log.otHours || 0,
+          otAmount: log.otAmount || 0,
+          otInfo: otInfo
+        };
+      });
+      
+      return {
+        employee: emp,
+        shift: empShift,
+        otData: empOTData
+      };
+    }).filter(data => data.otData.some(ot => ot.log !== null)); // Only show employees with OT
+    
+    // ถ้าไม่มีข้อมูลจริง ให้แสดง mock data
+    if (otCalendarData.length === 0) {
+      return { days, otCalendarData: buildMockOTCalendarData(days), isMock: true };
+    }
+    
+    return { days, otCalendarData, isMock: false };
   };
 
   // Export report for category
@@ -642,12 +831,24 @@ export default function Attendance() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setViewMode(viewMode === "calendar" ? "list" : "calendar")}
+            onClick={() => {
+              if (viewMode === "calendar") setViewMode("list");
+              else if (viewMode === "list") setViewMode("calendar");
+              else setViewMode("calendar");
+            }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-soft hover:bg-soft/80 
                      text-app border border-app rounded-xl transition-all duration-200 font-medium"
           >
             <Calendar className="w-4 h-4" />
             {viewMode === "calendar" ? "มุมมองรายการ" : "มุมมองปฏิทิน"}
+          </button>
+          <button
+            onClick={() => setViewMode(viewMode === "ot-calendar" ? "list" : "ot-calendar")}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 
+                     text-yellow-400 border border-yellow-500/30 rounded-xl transition-all duration-200 font-medium"
+          >
+            <Timer className="w-4 h-4" />
+            {viewMode === "ot-calendar" ? "มุมมองรายการ" : "ปฏิทิน OT"}
           </button>
           <button
             onClick={() => setIsRecordModalOpen(true)}
@@ -748,74 +949,7 @@ export default function Attendance() {
       </div>
 
       {/* Daily Summary */}
-      {dailySummaryList.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-soft border border-app rounded-xl p-6"
-        >
-          <h3 className="text-lg font-semibold text-app mb-4 font-display flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-ptt-cyan" />
-            สรุปการเข้างานรายวัน (7 วันล่าสุด)
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-soft border-b border-app">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-app">วันที่</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">พนักงาน</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">ตรงเวลา</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">มาสาย</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">ขาดงาน</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">ลา</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-app">ชั่วโมงทำงาน</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">อัตรา</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-app">
-                {dailySummaryList.map((day) => {
-                  const dayRate = day.total > 0 
-                    ? ((day.onTime / day.total) * 100).toFixed(1) 
-                    : "0.0";
-                  return (
-                    <tr key={day.date} className="hover:bg-soft transition-colors">
-                      <td className="px-4 py-3 text-sm text-app font-medium">
-                        {new Date(day.date).toLocaleDateString("th-TH", { 
-                          weekday: "short", 
-                          year: "numeric", 
-                          month: "short", 
-                          day: "numeric" 
-                        })}
-                      </td>
-                      <td className="px-4 py-3 text-center text-sm text-app">
-                        {day.employees.size} คน
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="text-green-400 font-semibold">{day.onTime}</span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="text-yellow-400 font-semibold">{day.late}</span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="text-red-400 font-semibold">{day.absent}</span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="text-blue-400 font-semibold">{day.leave}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm text-app font-mono">
-                        {formatTime(day.workingHours)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="text-ptt-cyan font-semibold">{dayRate}%</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-      )}
+
 
       {/* Calendar View */}
       {viewMode === "calendar" && (
@@ -1040,6 +1174,232 @@ export default function Attendance() {
           </div>
         </motion.div>
       )}
+
+      {/* OT Calendar View */}
+      {viewMode === "ot-calendar" && (() => {
+        const { days, otCalendarData, isMock } = getOTCalendarData();
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
+          >
+            {isMock && (
+              <div className="px-6 py-3 bg-yellow-500/10 border-b border-yellow-500/30">
+                <p className="text-xs text-yellow-200 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>แสดงข้อมูลตัวอย่าง (Mock Data) เพื่อให้เห็นภาพหน้าจอ • เมื่อมีข้อมูลจริง ระบบจะแสดงรายการ OT ของพนักงานอัตโนมัติ</span>
+                </p>
+              </div>
+            )}
+            <div className="px-6 py-4 border-b border-app bg-soft">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
+                    <Timer className="w-5 h-5 text-yellow-400" />
+                    ตาราง OT (ปฏิทินรายบุคคล)
+                  </h3>
+                  <p className="text-xs text-muted mt-1">
+                    แสดงการทำ OT รายเดือน แยกตามแผนก {isMock && <span className="text-yellow-400">• ข้อมูลตัวอย่าง</span>}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const [year, month] = otSelectedMonth.split('-').map(Number);
+                        const prevMonth = month === 1 ? 12 : month - 1;
+                        const prevYear = month === 1 ? year - 1 : year;
+                        setOtSelectedMonth(`${prevYear}-${String(prevMonth).padStart(2, '0')}`);
+                      }}
+                      className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4 text-app" />
+                    </button>
+                    <input
+                      type="month"
+                      value={otSelectedMonth}
+                      onChange={(e) => setOtSelectedMonth(e.target.value)}
+                      className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                    />
+                    <button
+                      onClick={() => {
+                        const [year, month] = otSelectedMonth.split('-').map(Number);
+                        const nextMonth = month === 12 ? 1 : month + 1;
+                        const nextYear = month === 12 ? year + 1 : year;
+                        setOtSelectedMonth(`${nextYear}-${String(nextMonth).padStart(2, '0')}`);
+                      }}
+                      className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+                    >
+                      <ChevronRight className="w-4 h-4 text-app" />
+                    </button>
+                  </div>
+                  <select
+                    value={otSelectedCategory}
+                    onChange={(e) => setOtSelectedCategory(e.target.value)}
+                    className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                  >
+                    <option value="">ทุกแผนก</option>
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat || ""}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={otSelectedShift === "" ? "" : String(otSelectedShift)}
+                    onChange={(e) => setOtSelectedShift(e.target.value === "" ? "" : Number(e.target.value))}
+                    className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                  >
+                    <option value="">ทุกกะ</option>
+                    {(() => {
+                      let availableShifts = shifts;
+                      if (otSelectedCategory) {
+                        availableShifts = shifts.filter(s => s.category === otSelectedCategory);
+                      }
+                      return availableShifts.map((shift) => (
+                        <option key={shift.id} value={String(shift.id)}>
+                          {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
+                        </option>
+                      ));
+                    })()}
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead className="bg-soft border-b-2 border-app sticky top-0 z-10">
+                  <tr>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-app border-r border-app sticky left-0 bg-soft z-20 min-w-[120px]">
+                      NO
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-app border-r border-app sticky left-[120px] bg-soft z-20 min-w-[200px]">
+                      ชื่อ-สกุล
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[320px] bg-soft z-20 min-w-[100px]">
+                      แผนก
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[420px] bg-soft z-20 min-w-[120px]">
+                      กะ
+                    </th>
+                    {days.map((day, idx) => (
+                      <th
+                        key={idx}
+                        className="px-2 py-3 text-center text-xs font-semibold text-app border-r border-app min-w-[50px]"
+                      >
+                        {day.getDate()}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-app">
+                  {otCalendarData.map((data, empIndex) => (
+                    <motion.tr
+                      key={data.employee.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: empIndex * 0.02 }}
+                      className="hover:bg-soft/50 transition-colors"
+                    >
+                      <td className="px-3 py-3 text-sm text-app font-medium border-r border-app sticky left-0 bg-soft z-10">
+                        {empIndex + 1}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-app font-medium border-r border-app sticky left-[120px] bg-soft z-10">
+                        {data.employee.name}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[320px] bg-soft z-10">
+                        <span className="text-xs text-ptt-cyan">{data.employee.category || "-"}</span>
+                      </td>
+                      <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[420px] bg-soft z-10">
+                        {data.shift ? (
+                          <div className="text-xs">
+                            <div className="text-ptt-cyan font-medium">
+                              {data.shift.shiftType ? `กะ${data.shift.shiftType}` : ""} {data.shift.name}
+                            </div>
+                            <div className="text-muted text-[10px]">{data.shift.startTime}-{data.shift.endTime}</div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted">-</span>
+                        )}
+                      </td>
+                      {data.otData.map((ot, dayIndex) => {
+                        const getCellColor = () => {
+                          if (!ot.log || !ot.otInfo) return "";
+                          if (ot.otInfo.hasStarted && ot.otInfo.otHoursRemaining > 0) {
+                            return "bg-green-200/30";
+                          } else if (!ot.otInfo.hasStarted) {
+                            return "bg-yellow-200/30";
+                          }
+                          return "bg-blue-200/30";
+                        };
+                        
+                        const getCellContent = () => {
+                          if (!ot.log) return "";
+                          if (!ot.otInfo) {
+                            // OT exists but info calculation failed, show basic info
+                            return ot.otHours ? `${ot.otHours.toFixed(1)}ชม.` : "";
+                          }
+                          if (ot.otInfo.hasStarted && ot.otInfo.otHoursRemaining > 0) {
+                            return `${ot.otInfo.otHoursDone.toFixed(1)}/${ot.otHours.toFixed(1)}`;
+                          } else if (!ot.otInfo.hasStarted) {
+                            return `รอ ${ot.otHours.toFixed(1)}`;
+                          }
+                          return ot.otHours.toFixed(1);
+                        };
+                        
+                        const getTooltip = () => {
+                          if (!ot.log) return "";
+                          let tooltip = `${ot.log.date}: OT ${ot.otHours?.toFixed(2) || "0"} ชม. (${ot.otAmount?.toFixed(2) || "0"} บาท)`;
+                          if (ot.otInfo) {
+                            if (ot.otInfo.hasStarted) {
+                              tooltip += `\nทำไปแล้ว: ${ot.otInfo.otHoursDone.toFixed(2)} ชม.`;
+                              tooltip += `\nเหลือ: ${ot.otInfo.otHoursRemaining.toFixed(2)} ชม.`;
+                              tooltip += `\nเวลาเริ่ม OT: ${ot.otInfo.otStartTime}`;
+                            } else {
+                              tooltip += `\nรอเริ่ม OT ที่: ${ot.otInfo.otStartTime}`;
+                            }
+                          }
+                          return tooltip;
+                        };
+                        
+                        return (
+                          <td
+                            key={dayIndex}
+                            className={`px-2 py-2 text-center text-xs border-r border-app ${getCellColor()}`}
+                            title={getTooltip()}
+                          >
+                            {getCellContent()}
+                          </td>
+                        );
+                      })}
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Legend */}
+            <div className="px-6 py-4 border-t border-app bg-soft">
+              <div className="flex flex-wrap gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-yellow-200/30 border border-app rounded"></div>
+                  <span className="text-app">รอเริ่ม OT</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-200/30 border border-app rounded"></div>
+                  <span className="text-app">กำลังทำ OT (แสดง ชม.ทำแล้ว/ชม.ทั้งหมด)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-200/30 border border-app rounded"></div>
+                  <span className="text-app">ทำ OT เสร็จแล้ว</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })()}
 
       {/* List View */}
       {viewMode === "list" && (

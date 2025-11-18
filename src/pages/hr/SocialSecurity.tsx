@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { motion } from "framer-motion";
 import { 
   Shield, 
@@ -9,7 +9,8 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  DollarSign
+  DollarSign,
+  Plus
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
@@ -49,7 +50,32 @@ const formatDate = (dateString: string) => {
   });
 };
 
+type NewRecord = {
+  empCode: string;
+  empName: string;
+  ssoNumber: string;
+  registrationDate: string;
+  section: SocialSecurityType["section"];
+  status: SocialSecurityType["status"];
+  salaryBase: number;
+  employeeContribution: number;
+  employerContribution: number;
+};
+
+const initialNewRecord: NewRecord = {
+  empCode: "",
+  empName: "",
+  ssoNumber: "",
+  registrationDate: "",
+  section: "33",
+  status: "Active",
+  salaryBase: 0,
+  employeeContribution: 0,
+  employerContribution: 0,
+};
+
 export default function SocialSecurity() {
+  const [records, setRecords] = useState<SocialSecurityType[]>(socialSecurity);
   const [filteredSSO, setFilteredSSO] = useState<SocialSecurityType[]>(socialSecurity);
   const [searchQuery, setSearchQuery] = useState("");
   const [sectionFilter, setSectionFilter] = useState("");
@@ -57,10 +83,11 @@ export default function SocialSecurity() {
   const [selectedEmployee, setSelectedEmployee] = useState<SocialSecurityType | null>(null);
   const [selectedContributions, setSelectedContributions] = useState<ContributionType[]>([]);
   const [isPrintMenuOpen, setIsPrintMenuOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newRecord, setNewRecord] = useState<NewRecord>(initialNewRecord);
 
-  // Handle filtering
-  const handleFilter = () => {
-    let filtered = socialSecurity;
+  useEffect(() => {
+    let filtered = records;
 
     if (searchQuery) {
       filtered = filtered.filter(
@@ -80,12 +107,7 @@ export default function SocialSecurity() {
     }
 
     setFilteredSSO(filtered);
-  };
-
-  useEffect(() => {
-    handleFilter();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, sectionFilter, statusFilter]);
+  }, [records, searchQuery, sectionFilter, statusFilter]);
 
   // Handle view employee contributions
   const handleViewContributions = (sso: SocialSecurityType) => {
@@ -94,6 +116,47 @@ export default function SocialSecurity() {
       (c) => c.empCode === sso.empCode
     );
     setSelectedContributions(contributions);
+  };
+
+  const handleNewRecordChange = (field: keyof NewRecord, value: string) => {
+    setNewRecord((prev) => ({
+      ...prev,
+      [field]:
+        field === "salaryBase" ||
+        field === "employeeContribution" ||
+        field === "employerContribution"
+          ? Number(value) || 0
+          : value,
+    }));
+  };
+
+  const handleSubmitNewRecord = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!newRecord.empCode || !newRecord.empName || !newRecord.ssoNumber) {
+      alert("กรุณากรอกรหัสพนักงาน ชื่อ และเลขประกันสังคมให้ครบถ้วน");
+      return;
+    }
+
+    const totalContribution = newRecord.employeeContribution + newRecord.employerContribution;
+
+    const entry: SocialSecurityType = {
+      id: Date.now(),
+      empCode: newRecord.empCode,
+      empName: newRecord.empName,
+      ssoNumber: newRecord.ssoNumber,
+      registrationDate: newRecord.registrationDate || new Date().toISOString().split("T")[0],
+      section: newRecord.section,
+      status: newRecord.status,
+      salaryBase: newRecord.salaryBase,
+      employeeContribution: newRecord.employeeContribution,
+      employerContribution: newRecord.employerContribution,
+      totalContribution,
+    };
+
+    setRecords((prev) => [entry, ...prev]);
+    setIsAddModalOpen(false);
+    setNewRecord(initialNewRecord);
   };
 
   // Handle print document
@@ -146,11 +209,20 @@ export default function SocialSecurity() {
             ประกันสังคม
           </h1>
           <p className="text-muted font-light">
-            จัดการข้อมูลประกันสังคมของพนักงาน • แสดง {filteredSSO.length} จาก {socialSecurity.length} คน
+            บันทึกสถานะการยื่นประกันสังคมจากระบบภายนอก • แสดง {filteredSSO.length} จาก {records.length} คน
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col md:flex-row gap-3">
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-500/80
+                       text-white rounded-xl transition-all duration-200 font-semibold 
+                       shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+          >
+            <Plus className="w-5 h-5" />
+            เพิ่มข้อมูลประกันสังคม
+          </button>
           <div className="relative">
             <button
               onClick={() => setIsPrintMenuOpen(!isPrintMenuOpen)}
@@ -194,6 +266,15 @@ export default function SocialSecurity() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="bg-ink-800 border border-app rounded-2xl p-5 text-sm text-muted leading-relaxed">
+        <p className="text-app font-semibold mb-1">หมายเหตุการใช้งาน</p>
+        <p>
+          หน้านี้ใช้สำหรับจดบันทึกผลการดำเนินงานประกันสังคมจากระบบหลักของ ปตท.
+          เพื่อให้ HR แต่ละสาขาติดตามได้ว่าใครยื่น/ไม่ยื่นครบถ้วนแล้ว โดยข้อมูลจะถูกบันทึกไว้เป็นประวัติเท่านั้น
+          ไม่มีการส่งข้อมูลไปยังประกันสังคมโดยตรง
+        </p>
       </div>
 
       {/* Summary Cards */}
@@ -283,7 +364,6 @@ export default function SocialSecurity() {
         placeholder="ค้นหาชื่อ รหัสพนักงาน หรือเลขประกันสังคม..."
         onSearch={(query) => {
           setSearchQuery(query);
-          handleFilter();
         }}
         filters={[
           {
@@ -297,7 +377,6 @@ export default function SocialSecurity() {
             ],
             onChange: (value) => {
               setSectionFilter(value);
-              handleFilter();
             },
           },
           {
@@ -311,7 +390,6 @@ export default function SocialSecurity() {
             ],
             onChange: (value) => {
               setStatusFilter(value);
-              handleFilter();
             },
           },
         ]}
@@ -621,6 +699,134 @@ export default function SocialSecurity() {
             </div>
           </div>
         )}
+      </ModalForm>
+
+      <ModalForm
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setNewRecord(initialNewRecord);
+        }}
+        title="เพิ่มข้อมูลประกันสังคม"
+        size="lg"
+      >
+        <form onSubmit={handleSubmitNewRecord} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-muted uppercase mb-1">รหัสพนักงาน</label>
+              <input
+                type="text"
+                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                value={newRecord.empCode}
+                onChange={(event) => handleNewRecordChange("empCode", event.target.value)}
+                placeholder="เช่น EMP-0101"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-muted uppercase mb-1">ชื่อ-นามสกุล</label>
+              <input
+                type="text"
+                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                value={newRecord.empName}
+                onChange={(event) => handleNewRecordChange("empName", event.target.value)}
+                placeholder="ระบุชื่อให้ตรงกับระบบหลัก"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-muted uppercase mb-1">เลขประกันสังคม</label>
+              <input
+                type="text"
+                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                value={newRecord.ssoNumber}
+                onChange={(event) => handleNewRecordChange("ssoNumber", event.target.value)}
+                placeholder="13 หลัก"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-muted uppercase mb-1">วันที่ขึ้นทะเบียน</label>
+              <input
+                type="date"
+                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                value={newRecord.registrationDate}
+                onChange={(event) => handleNewRecordChange("registrationDate", event.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-muted uppercase mb-1">มาตรา</label>
+              <select
+                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                value={newRecord.section}
+                onChange={(event) => handleNewRecordChange("section", event.target.value)}
+              >
+                <option value="33">มาตรา 33 (ลูกจ้างในสถานประกอบการ)</option>
+                <option value="39">มาตรา 39 (ส่งต่อสิทธิ์ด้วยตนเอง)</option>
+                <option value="40">มาตรา 40 (อาชีพอิสระ)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-muted uppercase mb-1">สถานะการยื่น</label>
+              <select
+                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
+                value={newRecord.status}
+                onChange={(event) => handleNewRecordChange("status", event.target.value)}
+              >
+                <option value="Active">Active (ยื่นและใช้งานอยู่)</option>
+                <option value="Inactive">Inactive (ยกเลิกชั่วคราว)</option>
+                <option value="Suspended">Suspended (ยังไม่ยื่น/ระงับ)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-muted uppercase mb-1">ฐานเงินเดือน (บาท)</label>
+              <input
+                type="number"
+                min="0"
+                step="100"
+                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                value={newRecord.salaryBase}
+                onChange={(event) => handleNewRecordChange("salaryBase", event.target.value)}
+                placeholder="ใส่ 0 สำหรับมาตรา 39 หรือ 40"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-muted uppercase mb-1">เงินสมทบฝ่ายลูกจ้าง</label>
+              <input
+                type="number"
+                min="0"
+                step="10"
+                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                value={newRecord.employeeContribution}
+                onChange={(event) => handleNewRecordChange("employeeContribution", event.target.value)}
+                placeholder="เช่น 750 หรือ 432"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-muted uppercase mb-1">เงินสมทบฝั่งนายจ้าง</label>
+              <input
+                type="number"
+                min="0"
+                step="10"
+                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                value={newRecord.employerContribution}
+                onChange={(event) => handleNewRecordChange("employerContribution", event.target.value)}
+                placeholder="ใส่ 0 หากไม่มี"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-muted">
+            <p>หลังจากบันทึกแล้ว ระบบจะคำนวณยอดรวมเงินสมทบให้อัตโนมัติและเพิ่มในตารางประวัติ</p>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 px-5 py-2 bg-emerald-500 hover:bg-emerald-500/90 text-white rounded-lg font-semibold transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              บันทึกข้อมูล
+            </button>
+          </div>
+        </form>
       </ModalForm>
     </div>
   );
