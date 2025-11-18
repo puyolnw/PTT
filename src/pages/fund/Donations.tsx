@@ -1,9 +1,45 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { donations } from "@/data/mockData";
 import { Plus, FileText } from "lucide-react";
+import FilterBar from "@/components/FilterBar";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 
 export default function Donations() {
+  const [filteredDonations, setFilteredDonations] = useState(donations);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [donorTypeFilter, setDonorTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
+  // Handle filtering
+  const handleFilter = () => {
+    let filtered = donations;
+
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (d) =>
+          d.donorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          d.receiptNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          d.purpose.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (donorTypeFilter) {
+      filtered = filtered.filter((d) => d.donorType === donorTypeFilter);
+    }
+
+    if (statusFilter) {
+      filtered = filtered.filter((d) => d.status === statusFilter);
+    }
+
+    setFilteredDonations(filtered);
+  };
+
+  useEffect(() => {
+    handleFilter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, donorTypeFilter, statusFilter]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -24,24 +60,41 @@ export default function Donations() {
       </div>
 
       {/* Filter Bar */}
-      <div className="panel/40 border border-app rounded-2xl p-4">
-        <div className="flex flex-wrap gap-3">
-          <select className="px-3 py-2 bg-soft border border-app rounded-lg text-sm">
-            <option>ทั้งหมด</option>
-            <option>บุคคล</option>
-            <option>บริษัท</option>
-          </select>
-          <select className="px-3 py-2 bg-soft border border-app rounded-lg text-sm">
-            <option>สถานะทั้งหมด</option>
-            <option>ยืนยันแล้ว</option>
-            <option>รอดำเนินการ</option>
-          </select>
-          <input
-            type="date"
-            className="px-3 py-2 bg-soft border border-app rounded-lg text-sm"
-          />
-        </div>
-      </div>
+      <FilterBar
+        placeholder="ค้นหาชื่อผู้บริจาค, เลขที่ใบเสร็จ หรือวัตถุประสงค์..."
+        onSearch={(query) => {
+          setSearchQuery(query);
+          handleFilter();
+        }}
+        filters={[
+          {
+            label: "ทุกประเภท",
+            value: donorTypeFilter,
+            options: [
+              { label: "ทุกประเภท", value: "" },
+              { label: "บุคคล", value: "Individual" },
+              { label: "บริษัท", value: "Company" },
+            ],
+            onChange: (value) => {
+              setDonorTypeFilter(value);
+              handleFilter();
+            },
+          },
+          {
+            label: "ทุกสถานะ",
+            value: statusFilter,
+            options: [
+              { label: "ทุกสถานะ", value: "" },
+              { label: "Confirmed", value: "Confirmed" },
+              { label: "Pending", value: "Pending" },
+            ],
+            onChange: (value) => {
+              setStatusFilter(value);
+              handleFilter();
+            },
+          },
+        ]}
+      />
 
       {/* Donations Table */}
       <div className="panel/40 border border-app rounded-2xl overflow-hidden">
@@ -60,7 +113,7 @@ export default function Donations() {
               </tr>
             </thead>
             <tbody className="divide-y divide-app">
-              {donations.map((d) => (
+              {filteredDonations.map((d) => (
                 <tr key={d.id} className="hover:bg-soft transition-colors">
                   <td className="px-6 py-4 text-sm text-app font-mono">{d.receiptNo}</td>
                   <td className="px-6 py-4 text-sm text-app font-medium">{d.donorName}</td>
@@ -96,6 +149,9 @@ export default function Donations() {
             </tbody>
           </table>
         </div>
+        {filteredDonations.length === 0 && (
+          <div className="text-center py-12 text-muted">ไม่พบข้อมูลการบริจาค</div>
+        )}
       </div>
 
       {/* Summary */}
@@ -103,11 +159,10 @@ export default function Donations() {
         <div className="flex items-center justify-between">
           <span className="text-app">ยอดรวมรายการบริจาค:</span>
           <span className="text-2xl font-bold text-green-400">
-            {donations.reduce((sum, d) => sum + d.amount, 0).toLocaleString()} ฿
+            {filteredDonations.reduce((sum, d) => sum + d.amount, 0).toLocaleString()} ฿
           </span>
         </div>
       </div>
     </motion.div>
   );
 }
-

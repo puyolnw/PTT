@@ -41,22 +41,23 @@ export default function FilterBar({ placeholder = "ค้นหา...", onSearch
       {filters && filters.length > 0 && (
         <div className="flex flex-wrap gap-3">
           {filters.map((filter, index) => (
-            <select
-              key={index}
-              value={filter.value}
-              onChange={(e) => filter.onChange(e.target.value)}
-              className="px-4 py-2.5 panel border border-app rounded-xl
-                       text-app text-sm
-                       focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                       transition-all cursor-pointer hover:border-white/20"
-            >
-              <option value="">{filter.label}</option>
-              {filter.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div key={index} className="flex items-center gap-2">
+              <label className="text-sm text-muted whitespace-nowrap">{filter.label}:</label>
+              <select
+                value={filter.value}
+                onChange={(e) => filter.onChange(e.target.value)}
+                className="px-4 py-2.5 panel border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-white/20"
+              >
+                {filter.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           ))}
         </div>
       )}

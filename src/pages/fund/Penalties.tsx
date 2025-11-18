@@ -13,6 +13,7 @@ import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import { 
   loanPenalties, 
   loans,
+  employees,
   type LoanPenalty 
 } from "@/data/mockData";
 
@@ -48,10 +49,27 @@ const getPenaltyActionColor = (action: LoanPenalty["action"]): string => {
   }
 };
 
+// Helper function to get employee department/category
+const getEmployeeDept = (empCode: string): string => {
+  const employee = employees.find(e => e.code === empCode);
+  return employee?.category || employee?.dept || "";
+};
+
+// Get unique departments/categories
+const getUniqueDepartments = (): string[] => {
+  const depts = new Set<string>();
+  employees.forEach(emp => {
+    if (emp.category) depts.add(emp.category);
+    else if (emp.dept) depts.add(emp.dept);
+  });
+  return Array.from(depts).sort();
+};
+
 export default function Penalties() {
   const [filteredPenalties, setFilteredPenalties] = useState<LoanPenalty[]>(loanPenalties);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [deptFilter, setDeptFilter] = useState("");
   const [selectedPenalty, setSelectedPenalty] = useState<LoanPenalty | null>(null);
 
   // Handle filtering
@@ -66,6 +84,13 @@ export default function Penalties() {
       );
     }
 
+    if (deptFilter) {
+      filtered = filtered.filter((p) => {
+        const dept = getEmployeeDept(p.empCode);
+        return dept === deptFilter;
+      });
+    }
+
     if (statusFilter) {
       filtered = filtered.filter((p) => p.status === statusFilter);
     }
@@ -76,7 +101,7 @@ export default function Penalties() {
   useEffect(() => {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, deptFilter]);
 
   // Calculate statistics
   const warningCount = filteredPenalties.filter((p) => p.overdueCount === 1).length;
@@ -260,6 +285,21 @@ export default function Penalties() {
           handleFilter();
         }}
         filters={[
+          {
+            label: "ทุกแผนก",
+            value: deptFilter,
+            options: [
+              { label: "ทุกแผนก", value: "" },
+              ...getUniqueDepartments().map((dept) => ({
+                label: dept,
+                value: dept
+              }))
+            ],
+            onChange: (value) => {
+              setDeptFilter(value);
+              handleFilter();
+            },
+          },
           {
             label: "ทุกสถานะ",
             value: statusFilter,

@@ -34,10 +34,27 @@ const formatDate = (dateString: string) => {
   });
 };
 
+// Helper function to get employee department/category
+const getEmployeeDept = (empCode: string): string => {
+  const employee = employees.find(e => e.code === empCode);
+  return employee?.category || employee?.dept || "";
+};
+
+// Get unique departments/categories
+const getUniqueDepartments = (): string[] => {
+  const depts = new Set<string>();
+  employees.forEach(emp => {
+    if (emp.category) depts.add(emp.category);
+    else if (emp.dept) depts.add(emp.dept);
+  });
+  return Array.from(depts).sort();
+};
+
 export default function Members() {
   const [filteredMembers, setFilteredMembers] = useState<FundMember[]>(fundMembers);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [deptFilter, setDeptFilter] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FundMember | null>(null);
   const [formData, setFormData] = useState({
@@ -57,6 +74,13 @@ export default function Members() {
       );
     }
 
+    if (deptFilter) {
+      filtered = filtered.filter((m) => {
+        const dept = getEmployeeDept(m.empCode);
+        return dept === deptFilter;
+      });
+    }
+
     if (statusFilter) {
       filtered = filtered.filter((m) => m.status === statusFilter);
     }
@@ -67,7 +91,7 @@ export default function Members() {
   useEffect(() => {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, deptFilter]);
 
   // Calculate statistics
   const totalMembers = filteredMembers.length;
@@ -218,6 +242,21 @@ export default function Members() {
           handleFilter();
         }}
         filters={[
+          {
+            label: "ทุกแผนก",
+            value: deptFilter,
+            options: [
+              { label: "ทุกแผนก", value: "" },
+              ...getUniqueDepartments().map((dept) => ({
+                label: dept,
+                value: dept
+              }))
+            ],
+            onChange: (value) => {
+              setDeptFilter(value);
+              handleFilter();
+            },
+          },
           {
             label: "ทุกสถานะ",
             value: statusFilter,

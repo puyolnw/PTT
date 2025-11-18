@@ -1,8 +1,47 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { fundApprovals } from "@/data/mockData";
 import { CheckCircle, XCircle, Clock } from "lucide-react";
+import FilterBar from "@/components/FilterBar";
 
 export default function Approvals() {
+  const [filteredApprovals, setFilteredApprovals] = useState(fundApprovals);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deptFilter, setDeptFilter] = useState("");
+
+  // Get unique departments
+  const getUniqueDepartments = (): string[] => {
+    const depts = new Set<string>();
+    fundApprovals.forEach(approval => {
+      if (approval.dept) depts.add(approval.dept);
+    });
+    return Array.from(depts).sort();
+  };
+
+  // Handle filtering
+  const handleFilter = () => {
+    let filtered = fundApprovals;
+
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (approval) =>
+          approval.requestBy.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          approval.purpose.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (deptFilter) {
+      filtered = filtered.filter((approval) => approval.dept === deptFilter);
+    }
+
+    setFilteredApprovals(filtered);
+  };
+
+  useEffect(() => {
+    handleFilter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, deptFilter]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -16,9 +55,35 @@ export default function Approvals() {
         <p className="text-muted font-light">พิจารณาและอนุมัติคำขอเบิกจ่ายเงินกองทุน</p>
       </div>
 
+      {/* Filter Bar */}
+      <FilterBar
+        placeholder="ค้นหาชื่อผู้ขอหรือวัตถุประสงค์..."
+        onSearch={(query) => {
+          setSearchQuery(query);
+          handleFilter();
+        }}
+        filters={[
+          {
+            label: "ทุกแผนก",
+            value: deptFilter,
+            options: [
+              { label: "ทุกแผนก", value: "" },
+              ...getUniqueDepartments().map((dept) => ({
+                label: dept,
+                value: dept
+              }))
+            ],
+            onChange: (value) => {
+              setDeptFilter(value);
+              handleFilter();
+            },
+          },
+        ]}
+      />
+
       {/* Approval Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {fundApprovals.map((approval) => (
+        {filteredApprovals.map((approval) => (
           <div 
             key={approval.id}
             className="panel/40 border border-app rounded-2xl p-6 hover:border-ptt-blue/30 transition-colors"
@@ -73,14 +138,13 @@ export default function Approvals() {
       </div>
 
       {/* Empty State (if no pending) */}
-      {fundApprovals.length === 0 && (
+      {filteredApprovals.length === 0 && (
         <div className="panel/40 border border-app rounded-2xl p-12 text-center">
           <CheckCircle className="w-16 h-16 text-slate-600 mx-auto mb-4" strokeWidth={1.5} />
-          <h3 className="text-lg font-semibold text-muted mb-2">ไม่มีคำขอรออนุมัติ</h3>
-          <p className="text-sm text-slate-500">คำขอทั้งหมดได้รับการพิจารณาแล้ว</p>
+          <h3 className="text-lg font-semibold text-muted mb-2">ไม่พบคำขอ</h3>
+          <p className="text-sm text-slate-500">ไม่พบคำขอที่ตรงกับเงื่อนไขการค้นหา</p>
         </div>
       )}
     </motion.div>
   );
 }
-

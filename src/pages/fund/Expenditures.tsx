@@ -1,9 +1,53 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { expenditures } from "@/data/mockData";
 import { Plus, FileText } from "lucide-react";
+import FilterBar from "@/components/FilterBar";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 
 export default function Expenditures() {
+  const [filteredExpenditures, setFilteredExpenditures] = useState(expenditures);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deptFilter, setDeptFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
+  // Get unique departments
+  const getUniqueDepartments = (): string[] => {
+    const depts = new Set<string>();
+    expenditures.forEach(exp => {
+      if (exp.dept) depts.add(exp.dept);
+    });
+    return Array.from(depts).sort();
+  };
+
+  // Handle filtering
+  const handleFilter = () => {
+    let filtered = expenditures;
+
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (exp) =>
+          exp.requestBy.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          exp.purpose.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (deptFilter) {
+      filtered = filtered.filter((exp) => exp.dept === deptFilter);
+    }
+
+    if (statusFilter) {
+      filtered = filtered.filter((exp) => exp.status === statusFilter);
+    }
+
+    setFilteredExpenditures(filtered);
+  };
+
+  useEffect(() => {
+    handleFilter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, deptFilter, statusFilter]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -24,27 +68,44 @@ export default function Expenditures() {
       </div>
 
       {/* Filter Bar */}
-      <div className="panel/40 border border-app rounded-2xl p-4">
-        <div className="flex flex-wrap gap-3">
-          <select className="px-3 py-2 bg-soft border border-app rounded-lg text-sm">
-            <option>แผนกทั้งหมด</option>
-            <option>IT</option>
-            <option>HR</option>
-            <option>Account</option>
-            <option>Marketing</option>
-          </select>
-          <select className="px-3 py-2 bg-soft border border-app rounded-lg text-sm">
-            <option>สถานะทั้งหมด</option>
-            <option>อนุมัติแล้ว</option>
-            <option>รออนุมัติ</option>
-            <option>ไม่อนุมัติ</option>
-          </select>
-          <input
-            type="date"
-            className="px-3 py-2 bg-soft border border-app rounded-lg text-sm"
-          />
-        </div>
-      </div>
+      <FilterBar
+        placeholder="ค้นหาชื่อผู้ขอเบิกหรือวัตถุประสงค์..."
+        onSearch={(query) => {
+          setSearchQuery(query);
+          handleFilter();
+        }}
+        filters={[
+          {
+            label: "ทุกแผนก",
+            value: deptFilter,
+            options: [
+              { label: "ทุกแผนก", value: "" },
+              ...getUniqueDepartments().map((dept) => ({
+                label: dept,
+                value: dept
+              }))
+            ],
+            onChange: (value) => {
+              setDeptFilter(value);
+              handleFilter();
+            },
+          },
+          {
+            label: "ทุกสถานะ",
+            value: statusFilter,
+            options: [
+              { label: "ทุกสถานะ", value: "" },
+              { label: "Pending", value: "Pending" },
+              { label: "Approved", value: "Approved" },
+              { label: "Rejected", value: "Rejected" },
+            ],
+            onChange: (value) => {
+              setStatusFilter(value);
+              handleFilter();
+            },
+          },
+        ]}
+      />
 
       {/* Expenditures Table */}
       <div className="panel/40 border border-app rounded-2xl overflow-hidden">
@@ -63,7 +124,7 @@ export default function Expenditures() {
               </tr>
             </thead>
             <tbody className="divide-y divide-app">
-              {expenditures.map((exp) => (
+              {filteredExpenditures.map((exp) => (
                 <tr key={exp.id} className="hover:bg-soft transition-colors">
                   <td className="px-6 py-4 text-sm text-app font-medium">{exp.requestBy}</td>
                   <td className="px-6 py-4 text-sm">
@@ -101,6 +162,9 @@ export default function Expenditures() {
             </tbody>
           </table>
         </div>
+        {filteredExpenditures.length === 0 && (
+          <div className="text-center py-12 text-muted">ไม่พบข้อมูลการเบิกจ่าย</div>
+        )}
       </div>
 
       {/* Summary */}
@@ -108,11 +172,10 @@ export default function Expenditures() {
         <div className="flex items-center justify-between">
           <span className="text-app">ยอดรวมการเบิกจ่าย:</span>
           <span className="text-2xl font-bold text-ptt-red">
-            {expenditures.reduce((sum, exp) => sum + exp.amount, 0).toLocaleString()} ฿
+            {filteredExpenditures.reduce((sum, exp) => sum + exp.amount, 0).toLocaleString()} ฿
           </span>
         </div>
       </div>
     </motion.div>
   );
 }
-

@@ -20,6 +20,7 @@ import {
   savingsWithdrawals,
   savingsDeposits,
   fundMembers,
+  employees,
   type SavingsWithdrawal,
   type SavingsDeposit
 } from "@/data/mockData";
@@ -53,6 +54,22 @@ const formatMonthLabel = (month: string) => {
   });
 };
 
+// Helper function to get employee department/category
+const getEmployeeDept = (empCode: string): string => {
+  const employee = employees.find(e => e.code === empCode);
+  return employee?.category || employee?.dept || "";
+};
+
+// Get unique departments/categories
+const getUniqueDepartments = (): string[] => {
+  const depts = new Set<string>();
+  employees.forEach(emp => {
+    if (emp.category) depts.add(emp.category);
+    else if (emp.dept) depts.add(emp.dept);
+  });
+  return Array.from(depts).sort();
+};
+
 export default function Savings() {
   const [activeTab, setActiveTab] = useState<"deductions" | "deposits" | "withdrawals" | "dividends" | "balances">("balances");
   const [filteredDeductions, setFilteredDeductions] = useState(savingsDeductions);
@@ -60,6 +77,7 @@ export default function Savings() {
   const [filteredWithdrawals, setFilteredWithdrawals] = useState(savingsWithdrawals);
   const [searchQuery, setSearchQuery] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
+  const [deptFilter, setDeptFilter] = useState("");
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<SavingsWithdrawal | null>(null);
   const [selectedDeposit, setSelectedDeposit] = useState<SavingsDeposit | null>(null);
   const [isNewWithdrawalModalOpen, setIsNewWithdrawalModalOpen] = useState(false);
@@ -102,6 +120,21 @@ export default function Savings() {
       );
     }
 
+    if (deptFilter) {
+      filteredD = filteredD.filter((d) => {
+        const dept = getEmployeeDept(d.empCode);
+        return dept === deptFilter;
+      });
+      filteredDep = filteredDep.filter((d) => {
+        const dept = getEmployeeDept(d.empCode);
+        return dept === deptFilter;
+      });
+      filteredW = filteredW.filter((w) => {
+        const dept = getEmployeeDept(w.empCode);
+        return dept === deptFilter;
+      });
+    }
+
     if (monthFilter) {
       filteredD = filteredD.filter((d) => d.month === monthFilter);
     }
@@ -114,7 +147,7 @@ export default function Savings() {
   useEffect(() => {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, monthFilter]);
+  }, [searchQuery, monthFilter, deptFilter]);
 
   // Calculate statistics
   const totalDeductions = filteredDeductions.reduce((sum, d) => sum + d.amount, 0);
@@ -327,6 +360,21 @@ export default function Savings() {
         }}
         filters={[
           {
+            label: "ทุกแผนก",
+            value: deptFilter,
+            options: [
+              { label: "ทุกแผนก", value: "" },
+              ...getUniqueDepartments().map((dept) => ({
+                label: dept,
+                value: dept
+              }))
+            ],
+            onChange: (value) => {
+              setDeptFilter(value);
+              handleFilter();
+            },
+          },
+          {
             label: "ทุกเดือน",
             value: monthFilter,
             options: [
@@ -422,8 +470,13 @@ export default function Savings() {
                   {fundMembers
                     .filter(m => {
                       if (searchQuery) {
-                        return m.empName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        const matchesSearch = m.empName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                m.empCode.toLowerCase().includes(searchQuery.toLowerCase());
+                        if (!matchesSearch) return false;
+                      }
+                      if (deptFilter) {
+                        const dept = getEmployeeDept(m.empCode);
+                        if (dept !== deptFilter) return false;
                       }
                       return true;
                     })

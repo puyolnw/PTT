@@ -4,7 +4,11 @@ import {
   Clock, 
   AlertTriangle,
   DollarSign,
-  FileText
+  FileText,
+  Calendar,
+  List,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
@@ -45,6 +49,11 @@ export default function Expiring() {
   const [filteredDocuments, setFilteredDocuments] = useState<DocumentType[]>([]);
   const [daysFilter, setDaysFilter] = useState("");
   const [selectedDocument, setSelectedDocument] = useState<DocumentType | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
+  const [calendarMonth, setCalendarMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   // Filter documents by expiry
   useEffect(() => {
@@ -108,16 +117,75 @@ export default function Expiring() {
     .filter(d => d.renewalCost)
     .reduce((sum, d) => sum + (d.renewalCost || 0), 0);
 
+  // Get days in month for calendar
+  const getDaysInMonth = (year: number, month: number): Date[] => {
+    const lastDay = new Date(year, month + 1, 0);
+    const days: Date[] = [];
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      days.push(new Date(year, month, i));
+    }
+    return days;
+  };
+
+  // Get calendar data
+  const getCalendarData = () => {
+    const [year, month] = calendarMonth.split('-').map(Number);
+    const days = getDaysInMonth(year, month - 1);
+    
+    const calendarData = days.map(day => {
+      const dateStr = day.toISOString().split('T')[0];
+      const dayDocs = filteredDocuments.filter(doc => {
+        if (!doc.expiryDate) return false;
+        const expiryDateStr = doc.expiryDate.split('T')[0];
+        return expiryDateStr === dateStr;
+      });
+      
+      return {
+        date: dateStr,
+        day: day.getDate(),
+        documents: dayDocs
+      };
+    });
+    
+    return { days, calendarData };
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-app mb-2 font-display">
-          เอกสารใกล้หมดอายุ
-        </h1>
-        <p className="text-muted font-light">
-          ติดตามเอกสารที่ใกล้หมดอายุและต้องต่ออายุ • แสดง {filteredDocuments.length} รายการ
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-app mb-2 font-display">
+            เอกสารใกล้หมดอายุ
+          </h1>
+          <p className="text-muted font-light">
+            ติดตามเอกสารที่ใกล้หมดอายุและต้องต่ออายุ • แสดง {filteredDocuments.length} รายการ
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setViewMode("table")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium ${
+              viewMode === "table"
+                ? "bg-ptt-blue text-app"
+                : "bg-soft text-muted hover:bg-soft/80"
+            }`}
+          >
+            <List className="w-4 h-4" />
+            ตาราง
+          </button>
+          <button
+            onClick={() => setViewMode("calendar")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium ${
+              viewMode === "calendar"
+                ? "bg-ptt-blue text-app"
+                : "bg-soft text-muted hover:bg-soft/80"
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            ปฏิทิน
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -215,7 +283,178 @@ export default function Expiring() {
         ]}
       />
 
+      {/* Calendar View */}
+      {viewMode === "calendar" && (
+        <div className="space-y-4">
+          {/* Calendar Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const [year, month] = calendarMonth.split('-').map(Number);
+                  const prevMonth = month === 1 ? 12 : month - 1;
+                  const prevYear = month === 1 ? year - 1 : year;
+                  setCalendarMonth(`${prevYear}-${String(prevMonth).padStart(2, '0')}`);
+                }}
+                className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4 text-app" />
+              </button>
+              <input
+                type="month"
+                value={calendarMonth}
+                onChange={(e) => setCalendarMonth(e.target.value)}
+                className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              />
+              <button
+                onClick={() => {
+                  const [year, month] = calendarMonth.split('-').map(Number);
+                  const nextMonth = month === 12 ? 1 : month + 1;
+                  const nextYear = month === 12 ? year + 1 : year;
+                  setCalendarMonth(`${nextYear}-${String(nextMonth).padStart(2, '0')}`);
+                }}
+                className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+              >
+                <ChevronRight className="w-4 h-4 text-app" />
+              </button>
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-4 p-4 bg-soft rounded-xl border border-app">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-red-500/30 border border-red-500 rounded"></div>
+              <span className="text-xs text-app">หมดอายุแล้ว</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-orange-500/30 border border-orange-500 rounded"></div>
+              <span className="text-xs text-app">≤ 7 วัน</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500/30 border border-yellow-500 rounded"></div>
+              <span className="text-xs text-app">8-15 วัน</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500/30 border border-blue-500 rounded"></div>
+              <span className="text-xs text-app">16-30 วัน</span>
+            </div>
+          </div>
+
+          {/* Calendar */}
+          {(() => {
+            const { days, calendarData } = getCalendarData();
+            const weekDays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+            
+            // Get first day of month to determine offset
+            const firstDay = days[0];
+            const firstDayWeekday = firstDay.getDay();
+            
+            return (
+              <div className="bg-soft border border-app rounded-xl overflow-hidden">
+                {/* Calendar Header */}
+                <div className="grid grid-cols-7 border-b border-app bg-ink-800">
+                  {weekDays.map((day) => (
+                    <div
+                      key={day}
+                      className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app last:border-r-0"
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Calendar Body */}
+                <div className="grid grid-cols-7">
+                  {/* Empty cells for days before month starts */}
+                  {Array.from({ length: firstDayWeekday }).map((_, idx) => (
+                    <div
+                      key={`empty-${idx}`}
+                      className="min-h-[120px] border-r border-b border-app last:border-r-0 bg-ink-900/50"
+                    />
+                  ))}
+                  
+                  {/* Calendar days */}
+                  {calendarData.map((dayData) => {
+                    const isToday = dayData.date === new Date().toISOString().split('T')[0];
+                    const dateObj = new Date(dayData.date);
+                    const isPast = dateObj < new Date(new Date().setHours(0, 0, 0, 0));
+                    
+                    // Get background color based on document urgency
+                    let bgColor = "";
+                    if (dayData.documents.length > 0) {
+                      const firstDoc = dayData.documents[0];
+                      const days = getDaysUntilExpiry(firstDoc.expiryDate);
+                      if (days !== null) {
+                        if (days <= 0) bgColor = "bg-red-500/10";
+                        else if (days <= 7) bgColor = "bg-orange-500/10";
+                        else if (days <= 15) bgColor = "bg-yellow-500/10";
+                        else bgColor = "bg-blue-500/10";
+                      }
+                    }
+                    
+                    return (
+                      <div
+                        key={dayData.date}
+                        className={`min-h-[120px] border-r border-b border-app last:border-r-0 p-2 ${bgColor} ${
+                          isToday ? "ring-2 ring-ptt-cyan" : ""
+                        } ${isPast ? "opacity-80" : ""}`}
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <span className={`text-sm font-semibold ${
+                            isToday ? "text-ptt-cyan" : "text-app"
+                          }`}>
+                            {dayData.day}
+                          </span>
+                          {dayData.documents.length > 0 && (
+                            <span className="text-xs bg-ptt-blue/20 text-ptt-cyan px-1.5 py-0.5 rounded font-medium">
+                              {dayData.documents.length}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-1 mt-2">
+                          {dayData.documents.slice(0, 3).map((doc) => {
+                            const days = getDaysUntilExpiry(doc.expiryDate);
+                            return (
+                              <button
+                                key={doc.id}
+                                onClick={() => setSelectedDocument(doc)}
+                                className={`w-full text-left p-1.5 rounded text-xs truncate transition-colors ${
+                                  days !== null && days <= 0
+                                    ? "bg-red-500/20 hover:bg-red-500/30 text-red-400"
+                                    : days !== null && days <= 7
+                                    ? "bg-orange-500/20 hover:bg-orange-500/30 text-orange-400"
+                                    : days !== null && days <= 15
+                                    ? "bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400"
+                                    : "bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
+                                }`}
+                                title={doc.title}
+                              >
+                                <div className="flex items-center gap-1">
+                                  <FileText className="w-3 h-3 flex-shrink-0" />
+                                  <span className="truncate">{doc.title}</span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                          {dayData.documents.length > 3 && (
+                            <p className="text-xs text-muted text-center">
+                              +{dayData.documents.length - 3} รายการ
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
       {/* Documents Table */}
+      {viewMode === "table" && (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -319,6 +558,7 @@ export default function Expiring() {
           )}
         </div>
       </motion.div>
+      )}
 
       {/* Document Detail Modal */}
       <ModalForm
