@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn, Filter, CalendarDays, CalendarRange, Award, AlertTriangle, ArrowRightLeft, Briefcase, DollarSign, ChevronRight, Edit, Settings, ChevronDown } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn, Filter, CalendarDays, CalendarRange, Award, AlertTriangle, ArrowRightLeft, Briefcase, DollarSign, ChevronRight, Edit, Settings, ChevronDown, ChevronLeft } from "lucide-react";
 import ProfileCard from "@/components/ProfileCard";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import ModalForm from "@/components/ModalForm";
@@ -29,6 +29,10 @@ export default function EmployeeDetail() {
   // View mode states
   const [attendanceViewMode, setAttendanceViewMode] = useState<ViewMode>("day");
   const [leavesViewMode, setLeavesViewMode] = useState<ViewMode>("day");
+  const [calendarMonth, setCalendarMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   
   // Modal states for history details
   const [showWorkHistoryModal, setShowWorkHistoryModal] = useState(false);
@@ -322,6 +326,91 @@ export default function EmployeeDetail() {
     return `${h} ชม. ${m} นาที`;
   };
 
+  // Get days in month for calendar
+  const getDaysInMonth = (year: number, month: number) => {
+    const days: Date[] = [];
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    for (let day = 1; day <= lastDay; day++) {
+      days.push(new Date(year, month, day));
+    }
+    return days;
+  };
+
+  // Get calendar data for employee
+  const getCalendarData = () => {
+    if (!employee) return { days: [], calendarData: [] };
+    
+    const [year, month] = calendarMonth.split('-').map(Number);
+    const days = getDaysInMonth(year, month - 1);
+    
+    const calendarData = days.map(day => {
+      const dateStr = day.toISOString().split('T')[0];
+      const log = allAttendance.find(l => l.date === dateStr);
+      const leave = allLeaves.find(l => {
+        const fromDate = new Date(l.fromDate);
+        const toDate = new Date(l.toDate);
+        const currentDate = new Date(dateStr);
+        return currentDate >= fromDate && currentDate <= toDate;
+      });
+      
+      let status = "ไม่มีข้อมูล";
+      let statusColor = "bg-gray-500/20";
+      let checkIn = null;
+      let checkOut = null;
+      let workingHours = 0;
+      let otHours = 0;
+      
+      if (log) {
+        checkIn = log.checkIn !== "-" ? log.checkIn : null;
+        checkOut = log.checkOut !== "-" ? log.checkOut : null;
+        
+        if (log.status === "ตรงเวลา") {
+          status = "ตรงเวลา";
+          statusColor = "bg-green-500/30";
+        } else if (log.status.includes("สาย")) {
+          status = log.status;
+          statusColor = "bg-yellow-500/30";
+        } else if (log.status === "ขาดงาน") {
+          status = "ขาดงาน";
+          statusColor = "bg-red-500/30";
+        } else if (log.status === "ลา") {
+          status = "ลา";
+          statusColor = "bg-blue-500/30";
+        }
+        
+        if (checkIn && checkOut) {
+          workingHours = calculateWorkingHours(checkIn, checkOut);
+          if (employeeShift && workingHours > shiftHours) {
+            otHours = workingHours - shiftHours;
+          }
+        }
+        
+        if (log.otHours && log.otHours > 0) {
+          otHours = log.otHours;
+        }
+      } else if (leave) {
+        status = `ลา: ${leave.type}`;
+        statusColor = "bg-blue-500/30";
+      }
+      
+      return {
+        date: dateStr,
+        day: day.getDate(),
+        weekday: day.getDay(),
+        log,
+        leave,
+        status,
+        statusColor,
+        checkIn,
+        checkOut,
+        workingHours,
+        otHours
+      };
+    });
+    
+    return { days, calendarData };
+  };
+
   // Group attendance by view mode (must be before early return)
   const groupedAttendance = useMemo(() => {
     if (!employee || allAttendance.length === 0) return [];
@@ -530,6 +619,7 @@ export default function EmployeeDetail() {
     { id: "attendance", label: "เวลาเข้าออก" },
     { id: "leaves", label: "การลา" },
     { id: "payroll", label: "เงินเดือน" },
+    { id: "calendar", label: "ปฏิทิน" },
   ];
 
   return (
@@ -1706,6 +1796,225 @@ export default function EmployeeDetail() {
               ) : (
                 <p className="text-muted text-center py-8">ไม่มีประวัติเงินเดือน</p>
               )}
+            </div>
+          )}
+
+          {activeTab === "calendar" && (
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-app font-display">
+                    ปฏิทินการทำงาน
+                  </h3>
+                  <p className="text-xs text-muted mt-1">
+                    แสดงข้อมูลการทำงานทั้งหมดของ {employee.name}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const [year, month] = calendarMonth.split('-').map(Number);
+                      const prevMonth = month === 1 ? 12 : month - 1;
+                      const prevYear = month === 1 ? year - 1 : year;
+                      setCalendarMonth(`${prevYear}-${String(prevMonth).padStart(2, '0')}`);
+                    }}
+                    className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-app" />
+                  </button>
+                  <input
+                    type="month"
+                    value={calendarMonth}
+                    onChange={(e) => setCalendarMonth(e.target.value)}
+                    className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                  />
+                  <button
+                    onClick={() => {
+                      const [year, month] = calendarMonth.split('-').map(Number);
+                      const nextMonth = month === 12 ? 1 : month + 1;
+                      const nextYear = month === 12 ? year + 1 : year;
+                      setCalendarMonth(`${nextYear}-${String(nextMonth).padStart(2, '0')}`);
+                    }}
+                    className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4 text-app" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="flex flex-wrap gap-4 p-4 bg-soft rounded-xl border border-app">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-500/30 border border-app rounded"></div>
+                  <span className="text-xs text-app">ตรงเวลา</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-yellow-500/30 border border-app rounded"></div>
+                  <span className="text-xs text-app">มาสาย</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-500/30 border border-app rounded"></div>
+                  <span className="text-xs text-app">ขาดงาน</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-500/30 border border-app rounded"></div>
+                  <span className="text-xs text-app">ลา</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-gray-500/20 border border-app rounded"></div>
+                  <span className="text-xs text-app">ไม่มีข้อมูล</span>
+                </div>
+                {employeeShift && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-400/50 border border-green-400 rounded"></div>
+                    <span className="text-xs text-app">มี OT</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Calendar */}
+              {(() => {
+                const { days, calendarData } = getCalendarData();
+                const weekDays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+                
+                // Get first day of month to determine offset
+                const firstDay = days[0];
+                const firstDayWeekday = firstDay.getDay();
+                
+                return (
+                  <div className="bg-soft border border-app rounded-xl overflow-hidden">
+                    {/* Calendar Header */}
+                    <div className="grid grid-cols-7 border-b border-app bg-ink-800">
+                      {weekDays.map((day) => (
+                        <div
+                          key={day}
+                          className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app last:border-r-0"
+                        >
+                          {day}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Calendar Body */}
+                    <div className="grid grid-cols-7">
+                      {/* Empty cells for days before month starts */}
+                      {Array.from({ length: firstDayWeekday }).map((_, idx) => (
+                        <div
+                          key={`empty-${idx}`}
+                          className="min-h-[100px] border-r border-b border-app last:border-r-0 bg-ink-900/50"
+                        />
+                      ))}
+                      
+                      {/* Calendar days */}
+                      {calendarData.map((dayData) => {
+                        const isToday = dayData.date === new Date().toISOString().split('T')[0];
+                        const isPast = new Date(dayData.date) < new Date(new Date().setHours(0, 0, 0, 0));
+                        
+                        return (
+                          <div
+                            key={dayData.date}
+                            className={`min-h-[100px] border-r border-b border-app last:border-r-0 p-2 ${
+                              dayData.statusColor
+                            } ${isToday ? "ring-2 ring-ptt-cyan" : ""} ${
+                              isPast ? "opacity-80" : ""
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-1">
+                              <span className={`text-sm font-semibold ${
+                                isToday ? "text-ptt-cyan" : "text-app"
+                              }`}>
+                                {dayData.day}
+                              </span>
+                              {dayData.otHours > 0 && (
+                                <span className="text-xs bg-green-400/50 text-green-900 px-1.5 py-0.5 rounded font-medium">
+                                  OT
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-1 text-xs">
+                              {dayData.log && (
+                                <>
+                                  <div className="text-app font-medium truncate" title={dayData.status}>
+                                    {dayData.status}
+                                  </div>
+                                  {dayData.checkIn && dayData.checkOut && (
+                                    <div className="text-muted font-mono">
+                                      {dayData.checkIn} - {dayData.checkOut}
+                                    </div>
+                                  )}
+                                  {dayData.workingHours > 0 && (
+                                    <div className="text-ptt-cyan">
+                                      {formatTime(dayData.workingHours)}
+                                    </div>
+                                  )}
+                                  {dayData.otHours > 0 && (
+                                    <div className="text-green-400 font-semibold">
+                                      OT: {formatTime(dayData.otHours)}
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                              {dayData.leave && !dayData.log && (
+                                <div className="text-blue-400 font-medium truncate" title={dayData.leave.type}>
+                                  {dayData.leave.type}
+                                </div>
+                              )}
+                              {!dayData.log && !dayData.leave && (
+                                <div className="text-muted text-[10px]">-</div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Summary for selected month */}
+              {(() => {
+                const { calendarData } = getCalendarData();
+                const monthOnTime = calendarData.filter(d => d.status === "ตรงเวลา").length;
+                const monthLate = calendarData.filter(d => d.status.includes("สาย")).length;
+                const monthAbsent = calendarData.filter(d => d.status === "ขาดงาน").length;
+                const monthLeave = calendarData.filter(d => d.leave !== null).length;
+                const monthOTDays = calendarData.filter(d => d.otHours > 0).length;
+                const monthTotalOT = calendarData.reduce((sum, d) => sum + d.otHours, 0);
+                const monthTotalHours = calendarData.reduce((sum, d) => sum + d.workingHours, 0);
+                
+                return (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                      <p className="text-xs text-muted mb-1">ตรงเวลา</p>
+                      <p className="text-lg font-bold text-green-400">{monthOnTime} วัน</p>
+                    </div>
+                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+                      <p className="text-xs text-muted mb-1">มาสาย</p>
+                      <p className="text-lg font-bold text-yellow-400">{monthLate} วัน</p>
+                    </div>
+                    <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+                      <p className="text-xs text-muted mb-1">ขาดงาน</p>
+                      <p className="text-lg font-bold text-red-400">{monthAbsent} วัน</p>
+                    </div>
+                    <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                      <p className="text-xs text-muted mb-1">ลา</p>
+                      <p className="text-lg font-bold text-blue-400">{monthLeave} วัน</p>
+                    </div>
+                    {monthOTDays > 0 && (
+                      <div className="p-4 bg-green-400/10 border border-green-400/30 rounded-xl">
+                        <p className="text-xs text-muted mb-1">วันทำ OT</p>
+                        <p className="text-lg font-bold text-green-400">{monthOTDays} วัน</p>
+                        <p className="text-xs text-muted mt-1">รวม {formatTime(monthTotalOT)}</p>
+                      </div>
+                    )}
+                    <div className="p-4 bg-ptt-blue/10 border border-ptt-blue/30 rounded-xl">
+                      <p className="text-xs text-muted mb-1">ชั่วโมงทำงานรวม</p>
+                      <p className="text-lg font-bold text-ptt-cyan">{formatTime(monthTotalHours)}</p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
