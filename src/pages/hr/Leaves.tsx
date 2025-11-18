@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { UserPlus, Calendar, CheckCircle, Clock, TrendingUp, Edit } from "lucide-react";
+import { UserPlus, Calendar, CheckCircle, Clock, Edit } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
@@ -97,47 +97,6 @@ export default function Leaves() {
   const approvedLeaves = leaves.filter(l => l.status === "อนุมัติแล้ว");
   const totalLeaveDays = leaves.reduce((sum, l) => sum + l.days, 0);
   const approvedDays = approvedLeaves.reduce((sum, l) => sum + l.days, 0);
-
-  // Group leaves by type
-  const leavesByType = leaves.reduce((acc, leave) => {
-    if (!acc[leave.type]) {
-      acc[leave.type] = { count: 0, days: 0, approved: 0, rejected: 0 };
-    }
-    acc[leave.type].count++;
-    acc[leave.type].days += leave.days;
-    if (leave.status === "อนุมัติแล้ว") acc[leave.type].approved++;
-    else if (leave.status === "ไม่อนุมัติ") acc[leave.type].rejected++;
-    return acc;
-  }, {} as Record<string, { count: number; days: number; approved: number; rejected: number }>);
-
-  // Group leaves by month
-  const monthlyLeaves = leaves.reduce((acc, leave) => {
-    const month = leave.fromDate.substring(0, 7); // YYYY-MM
-    if (!acc[month]) {
-      acc[month] = {
-        month,
-        total: 0,
-        days: 0,
-        byType: {} as Record<string, number>
-      };
-    }
-    acc[month].total++;
-    acc[month].days += leave.days;
-    if (!acc[month].byType[leave.type]) {
-      acc[month].byType[leave.type] = 0;
-    }
-    acc[month].byType[leave.type] += leave.days;
-    return acc;
-  }, {} as Record<string, {
-    month: string;
-    total: number;
-    days: number;
-    byType: Record<string, number>;
-  }>);
-
-  const monthlyLeavesSummary = Object.values(monthlyLeaves)
-    .sort((a, b) => b.month.localeCompare(a.month))
-    .slice(0, 6); // Show last 6 months
 
   // Check if leave is current (today is between fromDate and toDate)
   const isLeaveCurrent = (leave: Leave): boolean => {

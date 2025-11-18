@@ -8,7 +8,6 @@ import {
   DollarSign,
   TrendingUp,
   Users,
-  Store,
 } from "lucide-react";
 import {
   employees,

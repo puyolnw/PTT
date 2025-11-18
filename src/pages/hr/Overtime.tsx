@@ -41,11 +41,6 @@ export default function Overtime() {
     return shifts[0];
   };
 
-  // Get employee's OT rate
-  const getEmployeeOTRate = (empCode: string): number => {
-    const employee = employees.find(e => e.code === empCode);
-    return employee?.otRate || 0;
-  };
 
   // Convert hours to hours and minutes format
   const formatHoursMinutes = (hours: number): string => {
@@ -641,7 +636,7 @@ export default function Overtime() {
                     const handleCellClick = () => {
                       if (!ot.log || !ot.otInfo) return;
                       const employee = employees.find(e => e.code === ot.log!.empCode);
-                      const shift = getEmployeeShift(ot.log.empCode);
+                      const shift = getEmployeeShift(ot.log.empCode) || null;
                       if (employee) {
                         setSelectedOTDetail({
                           log: ot.log,
@@ -1032,7 +1027,7 @@ export default function Overtime() {
         title="รายละเอียด OT (Overtime)"
         size="lg"
       >
-        {selectedOTDetail && (
+        {selectedOTDetail && selectedOTDetail.otInfo && (
           <div className="space-y-6">
             {/* Employee Info */}
             <div className="p-4 bg-soft rounded-xl border border-app">
