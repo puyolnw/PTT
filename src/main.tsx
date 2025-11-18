@@ -19,6 +19,7 @@ import Employees from "@/pages/hr/Employees";
 import EmployeeNew from "@/pages/hr/EmployeeNew";
 import EmployeeDetail from "@/pages/hr/EmployeeDetail";
 import Attendance from "@/pages/hr/Attendance";
+import Overtime from "@/pages/hr/Overtime";
 import Shifts from "@/pages/hr/Shifts";
 import Leaves from "@/pages/hr/Leaves";
 import Payroll from "@/pages/hr/Payroll";
@@ -234,6 +235,10 @@ const router = createBrowserRouter([
           {
             path: "attendance/shifts",
             element: <Shifts />,
+          },
+          {
+            path: "overtime",
+            element: <Overtime />,
           },
           {
             path: "leaves",

@@ -180,29 +180,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Shop Buttons Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="panel/40 border border-app rounded-2xl p-6"
-      >
-        <h3 className="text-lg font-semibold text-app mb-4 font-display">ร้านค้าในพื้นที่เช่า</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center gap-3 p-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl transition-colors">
-            <Store className="w-5 h-5 text-red-400" />
-            <span className="text-app font-medium">เซเว่น (7-Eleven)</span>
-          </button>
-          <button className="flex items-center gap-3 p-4 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-xl transition-colors">
-            <Store className="w-5 h-5 text-blue-400" />
-            <span className="text-app font-medium">ปึงหงี่เชียง</span>
-          </button>
-          <button className="flex items-center gap-3 p-4 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-xl transition-colors">
-            <Store className="w-5 h-5 text-green-400" />
-            <span className="text-app font-medium">เจ้าสัว</span>
-          </button>
-        </div>
-      </motion.div>
+
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <motion.div
