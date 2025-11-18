@@ -281,42 +281,6 @@ export default function Payroll() {
         </motion.div>
       </div>
 
-      {/* Statistics by Category */}
-      {Object.keys(statsByCategory).length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-soft border border-app rounded-2xl p-6 shadow-xl"
-        >
-          <h3 className="text-lg font-semibold text-app mb-4 font-display flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-ptt-cyan" />
-            สรุปเงินเดือนตามหมวดหมู่
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(statsByCategory).map(([category, stats]) => (
-              <div key={category} className="p-4 bg-soft rounded-lg border border-app">
-                <p className="text-sm text-muted mb-2">{category}</p>
-                <p className="text-xs text-muted mb-1">{stats.count} คน</p>
-                <div className="space-y-1 mt-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted">เงินเดือน:</span>
-                    <span className="text-app font-semibold">{formatCurrency(stats.totalSalary)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted">OT:</span>
-                    <span className="text-green-400 font-semibold">{formatCurrency(stats.totalOT)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs pt-1 border-t border-app">
-                    <span className="text-muted">สุทธิ:</span>
-                    <span className="text-ptt-cyan font-bold">{formatCurrency(stats.totalNet)}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
 
       {/* Filter Bar */}
       <FilterBar

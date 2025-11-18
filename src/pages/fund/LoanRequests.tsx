@@ -15,6 +15,7 @@ import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import { 
   loanRequests, 
   fundMembers,
+  employees,
   type LoanRequest,
   type LoanType
 } from "@/data/mockData";
@@ -50,11 +51,38 @@ const calculateMaxLoanAmount = (totalSavings: number, loanType: LoanType): numbe
   }
 };
 
-// Get required guarantors count
-const getRequiredGuarantors = (amount: number): number => {
-  if (amount <= 50000) return 1;
-  if (amount <= 200000) return 2;
-  return 3;
+// Check if employee has worked for at least 1 year
+const checkWorkDuration = (empCode: string): boolean => {
+  const employee = employees.find(e => e.code === empCode);
+  if (!employee) return false;
+  const startDate = new Date(employee.startDate);
+  const today = new Date();
+  const years = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
+  return years >= 1;
+};
+
+// Get required guarantors count (2 people as per requirements)
+const getRequiredGuarantors = (amount: number, borrowerSavings: number): number => {
+  // หากเงินฝากของผู้กู้ในกองทุนมีมากกว่าเงินที่ต้องการกู้ไม่จำเป็นต้องมีผู้ค้ำประกัน
+  if (borrowerSavings >= amount) return 0;
+  
+  // ผู้ค้ำประกัน จำนวน 2 คน
+  return 2;
+};
+
+// Check if guarantor can guarantee (เงินฝากในกองทุนของผู้ค้ำต้องไม่น้อยกว่าเงินกู้ยืม)
+const canGuarantorGuarantee = (guarantorSavings: number, loanAmount: number): boolean => {
+  return guarantorSavings >= loanAmount;
+};
+
+// Check if person can guarantee others (บุคคล 1 คน สามารถค้ำประกันให้ได้ 2 คนเท่านั้น)
+const canPersonGuaranteeMore = (guarantorCode: string, allLoanRequests: LoanRequest[]): boolean => {
+  const currentGuaranteeCount = allLoanRequests.filter(r => 
+    r.status === "Pending" || r.status === "Approved" || r.status === "Completed"
+  ).reduce((count, r) => {
+    return count + (r.guarantors.includes(guarantorCode) ? 1 : 0);
+  }, 0);
+  return currentGuaranteeCount < 2;
 };
 
 export default function LoanRequests() {
@@ -116,25 +144,68 @@ export default function LoanRequests() {
       return;
     }
 
+    // ตรวจสอบอายุงาน 1 ปีขึ้นไป
+    if (!checkWorkDuration(formData.empCode)) {
+      alert("ต้องมีอายุงาน 1 ปีขึ้นไปจึงจะสามารถกู้ยืมได้");
+      return;
+    }
+
     const member = fundMembers.find(m => m.empCode === formData.empCode);
     if (!member) {
       alert("ไม่พบสมาชิกกองทุนที่ระบุ");
       return;
     }
 
-    const maxAmount = calculateMaxLoanAmount(member.totalSavings, formData.loanType as LoanType);
-    if (Number(formData.requestedAmount) > maxAmount) {
-      alert(`วงเงินกู้สูงสุดสำหรับประเภทนี้คือ ${formatCurrency(maxAmount)}`);
+    const loanAmount = Number(formData.requestedAmount);
+    
+    // ตรวจสอบผู้ค้ำประกัน
+    const guarantorSavings = formData.guarantors.map(code => {
+      const guarantor = fundMembers.find(m => m.empCode === code);
+      return guarantor ? guarantor.totalSavings : 0;
+    });
+    
+    const requiredGuarantors = getRequiredGuarantors(loanAmount, member.totalSavings);
+    
+    // หากเงินฝากของผู้กู้ในกองทุนมีมากกว่าเงินที่ต้องการกู้ไม่จำเป็นต้องมีผู้ค้ำประกัน
+    if (requiredGuarantors > 0) {
+      if (formData.guarantors.length < requiredGuarantors) {
+        alert(`ต้องมีผู้ค้ำประกัน ${requiredGuarantors} คน`);
+        return;
+      }
+      
+      // ตรวจสอบว่าเงินฝากในกองทุนของผู้ค้ำต้องไม่น้อยกว่าเงินกู้ยืม
+      for (let i = 0; i < formData.guarantors.length; i++) {
+        const guarantor = fundMembers.find(m => m.empCode === formData.guarantors[i]);
+        if (!guarantor) {
+          alert(`ไม่พบสมาชิกกองทุนผู้ค้ำประกัน: ${formData.guarantors[i]}`);
+          return;
+        }
+        if (!canGuarantorGuarantee(guarantor.totalSavings, loanAmount)) {
+          alert(`ผู้ค้ำประกัน ${guarantor.empName} มีเงินฝากไม่เพียงพอ (ต้องไม่น้อยกว่า ${formatCurrency(loanAmount)})`);
+          return;
+        }
+        // ตรวจสอบว่าบุคคล 1 คน สามารถค้ำประกันให้ได้ 2 คนเท่านั้น
+        if (!canPersonGuaranteeMore(formData.guarantors[i], loanRequests)) {
+          alert(`ผู้ค้ำประกัน ${guarantor.empName} กำลังค้ำประกันผู้อื่นครบ 2 คนแล้ว`);
+          return;
+        }
+      }
+      
+      // ตรวจสอบว่าเงินฝากผู้กู้บวกกับผู้ค้ำประกันต้องไม่น้อยกว่าเงินกู้ยืม
+      const totalSavings = member.totalSavings + guarantorSavings.reduce((sum, s) => sum + s, 0);
+      if (totalSavings < loanAmount) {
+        alert(`เงินฝากผู้กู้บวกกับผู้ค้ำประกันต้องไม่น้อยกว่าเงินกู้ยืม (ปัจจุบัน: ${formatCurrency(totalSavings)}, ต้องการ: ${formatCurrency(loanAmount)})`);
+        return;
+      }
+    }
+
+    // ตรวจสอบเอกสาร (คำร้องกู้ยืมกองทุน 2 แผ่น และ สำเนาบัตรประชาชน 1 ฉบับ)
+    if (formData.documents.length < 3) {
+      alert("กรุณาแนบเอกสารให้ครบถ้วน:\n- คำร้องกู้ยืมกองทุน 2 แผ่น\n- สำเนาบัตรประชาชน 1 ฉบับ");
       return;
     }
 
-    const requiredGuarantors = getRequiredGuarantors(Number(formData.requestedAmount));
-    if (formData.guarantors.length < requiredGuarantors) {
-      alert(`ต้องมีผู้ค้ำประกันอย่างน้อย ${requiredGuarantors} คน`);
-      return;
-    }
-
-    alert(`ยื่นคำขอกู้สำเร็จ! (Mock)`);
+    alert(`ยื่นคำขอกู้สำเร็จ! (Mock)\nขั้นตอนต่อไป: กรรมการห้าง -> คุณนิด -> ผู้บริหาร`);
     setFormData({
       empCode: "",
       loanType: "" as LoanType | "",
@@ -522,9 +593,9 @@ export default function LoanRequests() {
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
               <option value="">เลือกประเภทกู้</option>
-              <option value="สามัญ">กู้สามัญ (20-30 เท่าของเงินสัจจะสะสม, ดอก 1-2%/ปี, ผ่อน 36 เดือน)</option>
-              <option value="ฉุกเฉิน">กู้ฉุกเฉิน (สูงสุด 50,000 บาท, ปลอดดอกเบี้ย, ผ่อน 6 เดือน)</option>
-              <option value="ที่อยู่อาศัย">กู้ที่อยู่อาศัย (สูงสุด 500,000 บาท, ดอก 1%/ปี, ผ่อน 15 ปี)</option>
+              <option value="สามัญ">กู้สามัญ (ดอกเบี้ย 1% ต่อเดือน, ผ่อนนานสุด 10 เดือน, หักจากเงินเดือน)</option>
+              <option value="ฉุกเฉิน">กู้ฉุกเฉิน (ดอกเบี้ย 1% ต่อเดือน, ผ่อนนานสุด 10 เดือน, หักจากเงินเดือน)</option>
+              <option value="ที่อยู่อาศัย">กู้ที่อยู่อาศัย (ดอกเบี้ย 1% ต่อเดือน, ผ่อนนานสุด 10 เดือน, หักจากเงินเดือน)</option>
             </select>
           </div>
 
@@ -532,12 +603,37 @@ export default function LoanRequests() {
             const member = fundMembers.find(m => m.empCode === formData.empCode);
             if (!member) return null;
             const maxAmount = calculateMaxLoanAmount(member.totalSavings, formData.loanType as LoanType);
+            const hasWorked1Year = checkWorkDuration(formData.empCode);
+            const needsGuarantors = member.totalSavings < Number(formData.requestedAmount || 0);
             return (
-              <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <p className="text-sm text-blue-400">
-                  💡 วงเงินกู้สูงสุด: {formatCurrency(maxAmount)}
-                  {formData.loanType === "สามัญ" && ` (${member.totalSavings.toLocaleString()} × 20)`}
-                </p>
+              <div className="space-y-2">
+                <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <p className="text-sm text-blue-400">
+                    💡 วงเงินกู้สูงสุด: {formatCurrency(maxAmount)}
+                    {formData.loanType === "สามัญ" && ` (${member.totalSavings.toLocaleString()} × 20)`}
+                  </p>
+                </div>
+                {!hasWorked1Year && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <p className="text-sm text-red-400">
+                      ⚠️ ต้องมีอายุงาน 1 ปีขึ้นไปจึงจะสามารถกู้ยืมได้
+                    </p>
+                  </div>
+                )}
+                {needsGuarantors && (
+                  <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                    <p className="text-sm text-yellow-400">
+                      ⚠️ ต้องมีผู้ค้ำประกัน 2 คน (เงินฝากในกองทุนของผู้ค้ำต้องไม่น้อยกว่าเงินกู้ยืม)
+                    </p>
+                  </div>
+                )}
+                {!needsGuarantors && member.totalSavings >= Number(formData.requestedAmount || 0) && (
+                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <p className="text-sm text-green-400">
+                      ✓ เงินฝากในกองทุนเพียงพอ ไม่จำเป็นต้องมีผู้ค้ำประกัน
+                    </p>
+                  </div>
+                )}
               </div>
             );
           })()}
@@ -599,16 +695,28 @@ export default function LoanRequests() {
             </select>
             <p className="text-xs text-muted mt-1">
               {formData.requestedAmount && (() => {
-                const required = getRequiredGuarantors(Number(formData.requestedAmount));
-                return `ต้องมีผู้ค้ำประกันอย่างน้อย ${required} คน (เลือกโดยกด Ctrl/Cmd + คลิก)`;
+                const member = fundMembers.find(m => m.empCode === formData.empCode);
+                if (!member) return "";
+                const loanAmount = Number(formData.requestedAmount);
+                const required = getRequiredGuarantors(loanAmount, member.totalSavings);
+                if (required === 0) {
+                  return "✓ เงินฝากในกองทุนเพียงพอ ไม่จำเป็นต้องมีผู้ค้ำประกัน";
+                }
+                return `ต้องมีผู้ค้ำประกัน ${required} คน (เงินฝากในกองทุนของผู้ค้ำต้องไม่น้อยกว่าเงินกู้ยืม, บุคคล 1 คน สามารถค้ำประกันให้ได้ 2 คนเท่านั้น) (เลือกโดยกด Ctrl/Cmd + คลิก)`;
               })()}
             </p>
           </div>
 
           <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-            <p className="text-xs text-yellow-400">
-              ⚠️ ต้องแนบเอกสาร: บัตรประชาชน, สลิปเงินเดือน 3 เดือน, สมุดบัญชีธนาคาร, สัญญาค้ำประกัน
-              {formData.loanType === "ฉุกเฉิน" && ", เอกสารพิสูจน์กรณีฉุกเฉิน"}
+            <p className="text-xs text-yellow-400 mb-2">
+              ⚠️ ต้องแนบเอกสาร:
+            </p>
+            <ul className="text-xs text-yellow-400 list-disc list-inside space-y-1">
+              <li>คำร้องกู้ยืมกองทุน 2 แผ่น</li>
+              <li>สำเนาบัตรประชาชน 1 ฉบับ</li>
+            </ul>
+            <p className="text-xs text-yellow-300 mt-2">
+              📋 ขั้นตอนการอนุมัติ: พนักงานส่งคำร้องขอกู้ยืม → กรรมการห้างนั้นๆ → คุณนิด → ผู้บริหาร
             </p>
           </div>
         </div>

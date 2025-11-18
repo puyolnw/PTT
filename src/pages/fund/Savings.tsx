@@ -8,7 +8,9 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  FileText
+  FileText,
+  Percent,
+  Calendar
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
@@ -52,7 +54,7 @@ const formatMonthLabel = (month: string) => {
 };
 
 export default function Savings() {
-  const [activeTab, setActiveTab] = useState<"deductions" | "deposits" | "withdrawals">("deductions");
+  const [activeTab, setActiveTab] = useState<"deductions" | "deposits" | "withdrawals" | "dividends" | "balances">("balances");
   const [filteredDeductions, setFilteredDeductions] = useState(savingsDeductions);
   const [filteredDeposits, setFilteredDeposits] = useState(savingsDeposits);
   const [filteredWithdrawals, setFilteredWithdrawals] = useState(savingsWithdrawals);
@@ -178,8 +180,8 @@ export default function Savings() {
       return;
     }
 
-    if (Number(depositFormData.amount) < 100) {
-      alert("จำนวนเงินฝากขั้นต่ำ 100 บาท");
+    if (Number(depositFormData.amount) < 200) {
+      alert("จำนวนเงินฝากขั้นต่ำ 200 บาทต่อเดือน");
       return;
     }
 
@@ -205,6 +207,11 @@ export default function Savings() {
           <p className="text-muted font-light">
             จัดการเงินสัจจะสะสมและการถอนเงิน • แสดง {filteredDeductions.length} รายการหัก • {filteredWithdrawals.length} รายการถอน
           </p>
+          <div className="mt-2 p-2 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <p className="text-xs text-blue-400">
+              💡 หมายเหตุ: ไม่ได้บังคับออม (ส่วนมากแกมบังคับ ฝากเงินไว้ในกองทุน) • สามารถถอนเงินบางส่วนได้
+            </p>
+          </div>
         </div>
 
         <div className="flex gap-3">
@@ -339,10 +346,20 @@ export default function Savings() {
 
       {/* Tabs */}
       <div className="bg-soft border border-app rounded-2xl p-6 shadow-xl">
-        <div className="flex gap-4 mb-6 border-b border-app">
+        <div className="flex gap-4 mb-6 border-b border-app overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("balances")}
+            className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+              activeTab === "balances"
+                ? "text-ptt-cyan border-b-2 border-ptt-cyan font-semibold"
+                : "text-muted hover:text-app"
+            }`}
+          >
+            ยอดเงินรวม
+          </button>
           <button
             onClick={() => setActiveTab("deductions")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
               activeTab === "deductions"
                 ? "text-ptt-cyan border-b-2 border-ptt-cyan font-semibold"
                 : "text-muted hover:text-app"
@@ -370,7 +387,108 @@ export default function Savings() {
           >
             ประวัติการถอนเงิน
           </button>
+          <button
+            onClick={() => setActiveTab("dividends")}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "dividends"
+                ? "text-ptt-cyan border-b-2 border-ptt-cyan font-semibold"
+                : "text-muted hover:text-app"
+            }`}
+          >
+            การปันผล
+          </button>
         </div>
+
+        {/* Balances Tab - ยอดเงินรวมของแต่ละพนักงาน */}
+        {activeTab === "balances" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-ink-800 border-b border-app">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-app">รหัส</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-app">ชื่อ-นามสกุล</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-app">สถานะ</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-app">ยอดเงินสัจจะสะสม</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-app">หักต่อเดือน</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-app">วันที่เข้าร่วม</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-app">
+                  {fundMembers
+                    .filter(m => {
+                      if (searchQuery) {
+                        return m.empName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                               m.empCode.toLowerCase().includes(searchQuery.toLowerCase());
+                      }
+                      return true;
+                    })
+                    .map((member, index) => (
+                      <motion.tr
+                        key={member.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="hover:bg-soft transition-colors"
+                      >
+                        <td className="px-6 py-4 text-sm text-ptt-cyan font-medium">{member.empCode}</td>
+                        <td className="px-6 py-4 text-sm text-app font-medium">{member.empName}</td>
+                        <td className="px-6 py-4 text-center">
+                          <StatusTag variant={getStatusVariant(
+                            member.status === "Active" ? "อนุมัติแล้ว" :
+                            member.status === "Inactive" ? "ระงับ" : "ยกเลิก"
+                          )}>
+                            {member.status === "Active" ? "ใช้งาน" :
+                             member.status === "Inactive" ? "ระงับ" : "ถอนตัว"}
+                          </StatusTag>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <p className="text-lg font-bold text-ptt-cyan font-mono">
+                            {formatCurrency(member.totalSavings)}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <p className="text-sm text-app font-semibold font-mono">
+                            {formatCurrency(member.monthlySavings)}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-muted">
+                          {formatDate(member.joinDate)}
+                        </td>
+                      </motion.tr>
+                    ))}
+                </tbody>
+                <tfoot className="bg-ink-800 border-t-2 border-ptt-cyan">
+                  <tr>
+                    <td colSpan={3} className="px-6 py-4 text-sm font-semibold text-app text-right">
+                      รวมทั้งหมด:
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <p className="text-lg font-bold text-ptt-cyan font-mono">
+                        {formatCurrency(fundMembers.reduce((sum, m) => sum + m.totalSavings, 0))}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <p className="text-sm font-semibold text-app font-mono">
+                        {formatCurrency(fundMembers.reduce((sum, m) => sum + m.monthlySavings, 0))}
+                      </p>
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            {fundMembers.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-muted font-light">ไม่พบข้อมูลสมาชิกกองทุน</p>
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Deductions Table */}
         {activeTab === "deductions" && (
@@ -541,6 +659,161 @@ export default function Savings() {
             )}
           </div>
         )}
+
+        {/* Dividends Tab */}
+        {activeTab === "dividends" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Dividend Information */}
+            <div className="bg-soft border border-app rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-app mb-4 font-display flex items-center gap-2">
+                <Percent className="w-5 h-5 text-ptt-cyan" />
+                ข้อมูลการปันผล
+              </h3>
+              <div className="space-y-4">
+                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <p className="text-sm text-blue-400 mb-2 font-semibold">📋 หลักการปันผล</p>
+                  <p className="text-xs text-app mb-3">
+                    ระบบกองทุนสติจัดตั้งครั้งแรกเดือนกรกฎาคม จึงถือเป็นวันตัดยอดแล้วค่อยเอากำไรจากเงินกู้มาปันผล
+                  </p>
+                  <p className="text-xs text-app mb-2">
+                    มีดอกเบี้ยให้ดูจากกำไรจากเงินกู้ให้ด้วยการปันผล โดยฝากนานกว่าจะได้เงินมากกว่าเมื่อเทียบจำนวนที่เท่ากัน
+                  </p>
+                  <p className="text-xs text-app font-semibold mt-3 mb-2">การปันผลประกอบด้วย:</p>
+                  <ul className="text-xs text-app space-y-1 list-disc list-inside">
+                    <li>ส่วนกลาง: 10%</li>
+                    <li>กรรมการ: 10% (ค่าดำเนินการตรวจเอกสาร, เซ็นเอกสาร, การส่งเอกสารคำร้องขอกู้ยืมของพนักงานไปที่สำนักงานใหญ่ให้คุณนิดตรวจอีกรอบ แล้วค่อยส่งให้ผู้บริหาร)</li>
+                    <li>กองทุน: 10%</li>
+                    <li>ปันผล: 70% (ยืดหยุ่นได้ในกรณีสมาชิกน้อย หุ้นละ 20 บาท ดูว่าฝากครบปีไหมฝากกี่ปี)</li>
+                  </ul>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <p className="text-xs text-muted mb-1">การออม</p>
+                    <p className="text-sm text-app font-semibold">ไม่ได้บังคับออม</p>
+                    <p className="text-xs text-muted mt-1">(ส่วนมากแกมบังคับ ฝากเงินไว้ในกองทุน)</p>
+                  </div>
+                  <div className="p-4 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
+                    <p className="text-xs text-muted mb-1">การถอนเงิน</p>
+                    <p className="text-sm text-app font-semibold">ถอนเงินบางส่วนได้</p>
+                    <p className="text-xs text-muted mt-1">ไม่จำเป็นต้องถอนทั้งหมด</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mock Dividend Calculation Example */}
+            <div className="bg-soft border border-app rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-app mb-4 font-display flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-ptt-cyan" />
+                ตัวอย่างการคำนวณปันผล
+              </h3>
+              <div className="space-y-4">
+                <div className="p-4 bg-ink-800/50 border border-app rounded-lg">
+                  <p className="text-sm text-muted mb-3">ตัวอย่าง: สมาชิกฝากเงิน 10,000 บาท เป็นเวลา 3 ปี</p>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted">เงินฝาก:</span>
+                      <span className="text-app font-semibold">{formatCurrency(10000)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted">ระยะเวลาฝาก:</span>
+                      <span className="text-app font-semibold">3 ปี</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted">หุ้นละ:</span>
+                      <span className="text-app font-semibold">20 บาท</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-app">
+                      <span className="text-ptt-cyan font-semibold">ปันผลที่ได้รับ (ประมาณ):</span>
+                      <span className="text-green-400 font-bold">{formatCurrency(10000 * 0.15)}</span>
+                    </div>
+                    <p className="text-xs text-muted mt-2">
+                      * จำนวนปันผลขึ้นอยู่กับกำไรจากเงินกู้ในแต่ละปี และระยะเวลาที่ฝาก
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <p className="text-xs text-yellow-400 mb-2 font-semibold">💡 หมายเหตุ:</p>
+                  <ul className="text-xs text-yellow-400 space-y-1 list-disc list-inside">
+                    <li>การปันผลจะคำนวณจากกำไรจากเงินกู้ในแต่ละปี</li>
+                    <li>สมาชิกที่ฝากนานกว่าจะได้รับปันผลมากกว่าเมื่อเทียบจำนวนเงินที่เท่ากัน</li>
+                    <li>หุ้นละ 20 บาท (ยืดหยุ่นได้ในกรณีสมาชิกน้อย)</li>
+                    <li>ดูว่าฝากครบปีไหมฝากกี่ปี</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Member Dividend Summary */}
+            <div className="bg-soft border border-app rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-app">
+                <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
+                  <PiggyBank className="w-5 h-5 text-ptt-cyan" />
+                  สรุปปันผลสมาชิก (ตัวอย่าง)
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-ink-800 border-b border-app">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">รหัส</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">ชื่อ-นามสกุล</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold text-app">เงินฝากสะสม</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">ระยะเวลาฝาก</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold text-app">หุ้น</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold text-app">ปันผล (ประมาณ)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-app">
+                    {fundMembers.filter(m => m.status === "Active").slice(0, 10).map((member, index) => {
+                      const joinDate = new Date(member.joinDate);
+                      const today = new Date();
+                      const years = (today.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
+                      const shares = Math.floor(member.totalSavings / 20); // หุ้นละ 20 บาท
+                      const estimatedDividend = member.totalSavings * 0.15 * Math.min(years, 5) / 5; // ตัวอย่างการคำนวณ
+                      
+                      return (
+                        <motion.tr
+                          key={member.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="hover:bg-soft transition-colors"
+                        >
+                          <td className="px-6 py-4 text-sm text-ptt-cyan font-medium">{member.empCode}</td>
+                          <td className="px-6 py-4 text-sm text-app font-medium">{member.empName}</td>
+                          <td className="px-6 py-4 text-right text-sm text-app font-mono font-semibold">
+                            {formatCurrency(member.totalSavings)}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-app">
+                            {years >= 1 ? `${years.toFixed(1)} ปี` : `${(years * 12).toFixed(0)} เดือน`}
+                          </td>
+                          <td className="px-6 py-4 text-right text-sm text-ptt-cyan font-semibold">
+                            {shares} หุ้น
+                          </td>
+                          <td className="px-6 py-4 text-right text-sm text-green-400 font-mono font-bold">
+                            {formatCurrency(estimatedDividend)}
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="p-4 bg-ink-800/50 border-t border-app">
+                <p className="text-xs text-muted text-center">
+                  * จำนวนปันผลเป็นเพียงตัวอย่างการคำนวณ จำนวนจริงจะขึ้นอยู่กับกำไรจากเงินกู้ในแต่ละปี
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
 
 
@@ -609,8 +882,11 @@ export default function Savings() {
               className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-              placeholder="เช่น 5000"
+              placeholder="เช่น 5000 (สามารถถอนบางส่วนได้)"
             />
+            <p className="text-xs text-muted mt-1">
+              💡 สามารถถอนเงินบางส่วนได้ ไม่จำเป็นต้องถอนทั้งหมด
+            </p>
           </div>
 
           <div>
@@ -649,10 +925,17 @@ export default function Savings() {
             </div>
           )}
 
-          <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-            <p className="text-xs text-yellow-400">
-              ⚠️ เงื่อนไขการถอน: ไม่มีหนี้ค้างชำระ, ไม่ได้กำลังค้ำประกันผู้อื่น
-            </p>
+          <div className="space-y-2">
+            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <p className="text-xs text-yellow-400">
+                ⚠️ เงื่อนไขการถอน: ไม่มีหนี้ค้างชำระ, ไม่ได้กำลังค้ำประกันผู้อื่น
+              </p>
+            </div>
+            <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <p className="text-xs text-blue-400">
+                💡 สามารถถอนเงินบางส่วนได้ (ไม่จำเป็นต้องถอนทั้งหมด)
+              </p>
+            </div>
           </div>
         </div>
       </ModalForm>
@@ -723,7 +1006,7 @@ export default function Savings() {
                        focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               placeholder="เช่น 5000"
             />
-            <p className="text-xs text-muted mt-1">ขั้นต่ำ 100 บาท</p>
+            <p className="text-xs text-muted mt-1">ขั้นต่ำ 200 บาทต่อเดือน</p>
           </div>
 
           <div>

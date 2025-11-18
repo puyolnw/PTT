@@ -7,7 +7,9 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  FileText
+  FileText,
+  Plus,
+  Wallet
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
@@ -52,6 +54,13 @@ export default function Loans() {
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentFormData, setPaymentFormData] = useState({
+    paymentType: "monthly" as "monthly" | "full", // monthly = ชำระตามปกติ, full = ชำระทั้งหมดในครั้งเดียว
+    amount: "",
+    paymentDate: new Date().toISOString().split('T')[0],
+    note: ""
+  });
 
   // Handle filtering
   const handleFilter = () => {
@@ -93,6 +102,62 @@ export default function Loans() {
   const getPaymentProgress = (loan: Loan): number => {
     const paid = loan.principalAmount - loan.remainingBalance;
     return (paid / loan.principalAmount) * 100;
+  };
+
+  // Calculate payment for full payment (หากต้องการทั้งหมดในครั้งเดียว จ่ายดอกเบี้ยแค่เดือนนั้นๆ และเงินต้นทั้งหมด)
+  const calculateFullPayment = (loan: Loan): { principal: number; interest: number; total: number } => {
+    const principal = loan.remainingBalance;
+    // ดอกเบี้ยแค่เดือนนั้นๆ (1% ของเงินต้น)
+    const interest = principal * (loan.interestRate / 100);
+    const total = principal + interest;
+    return { principal, interest, total };
+  };
+
+  // Handle payment
+  const handlePayment = () => {
+    if (!selectedLoan) return;
+
+    if (paymentFormData.paymentType === "full") {
+      // ชำระทั้งหมดในครั้งเดียว
+      const fullPayment = calculateFullPayment(selectedLoan);
+      alert(`บันทึกการชำระเงินทั้งหมดสำเร็จ!\nเงินต้น: ${formatCurrency(fullPayment.principal)}\nดอกเบี้ย (1 เดือน): ${formatCurrency(fullPayment.interest)}\nรวม: ${formatCurrency(fullPayment.total)}\n(Mock)`);
+    } else {
+      // ชำระตามปกติ (หักจากเงินเดือน)
+      if (!paymentFormData.amount || Number(paymentFormData.amount) <= 0) {
+        alert("กรุณาระบุจำนวนเงินที่ชำระ");
+        return;
+      }
+      const amount = Number(paymentFormData.amount);
+      if (amount > selectedLoan.remainingBalance) {
+        alert(`จำนวนเงินที่ชำระเกินยอดคงเหลือ (ยอดคงเหลือ: ${formatCurrency(selectedLoan.remainingBalance)})`);
+        return;
+      }
+      // คำนวณดอกเบี้ย 1% ต่อเดือน
+      const interest = amount * (selectedLoan.interestRate / 100);
+      const principal = amount - interest;
+      alert(`บันทึกการชำระเงินสำเร็จ!\nเงินต้น: ${formatCurrency(principal)}\nดอกเบี้ย: ${formatCurrency(interest)}\nรวม: ${formatCurrency(amount)}\n(หักจากเงินเดือน)\n(Mock)`);
+    }
+
+    // Reset form
+    setPaymentFormData({
+      paymentType: "monthly",
+      amount: "",
+      paymentDate: new Date().toISOString().split('T')[0],
+      note: ""
+    });
+    setIsPaymentModalOpen(false);
+  };
+
+  // Open payment modal
+  const handleOpenPaymentModal = (loan: Loan) => {
+    setSelectedLoan(loan);
+    setPaymentFormData({
+      paymentType: "monthly",
+      amount: loan.monthlyPayment.toString(),
+      paymentDate: new Date().toISOString().split('T')[0],
+      note: ""
+    });
+    setIsPaymentModalOpen(true);
   };
 
   return (
@@ -337,15 +402,28 @@ export default function Loans() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => setSelectedLoan(loan)}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm 
-                                 bg-ptt-blue/20 hover:bg-ptt-blue/30 text-ptt-cyan rounded-lg
-                                 transition-colors font-medium"
-                      >
-                        <FileText className="w-4 h-4" />
-                        ดูรายละเอียด
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setSelectedLoan(loan)}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs 
+                                   bg-ptt-blue/20 hover:bg-ptt-blue/30 text-ptt-cyan rounded-lg
+                                   transition-colors font-medium"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          ดู
+                        </button>
+                        {(loan.status === "Active" || loan.status === "Overdue") && (
+                          <button
+                            onClick={() => handleOpenPaymentModal(loan)}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs 
+                                     bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg
+                                     transition-colors font-medium"
+                          >
+                            <Wallet className="w-3.5 h-3.5" />
+                            ชำระ
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </motion.tr>
                 );
@@ -407,7 +485,7 @@ export default function Loans() {
                 <div>
                   <p className="text-muted mb-1">อัตราดอกเบี้ย:</p>
                   <p className="text-app">
-                    {selectedLoan.interestRate}% ต่อปี
+                    {selectedLoan.interestRate}% ต่อเดือน (ดอกเบี้ยคงที่)
                     {selectedLoan.interestRate === 0 && " (ปลอดดอกเบี้ย)"}
                   </p>
                 </div>
@@ -419,7 +497,11 @@ export default function Loans() {
                 </div>
                 <div>
                   <p className="text-muted mb-1">จำนวนงวด:</p>
-                  <p className="text-app">{selectedLoan.totalMonths} เดือน</p>
+                  <p className="text-app">{selectedLoan.totalMonths} เดือน (ผ่อนนานสุด 10 เดือน)</p>
+                </div>
+                <div>
+                  <p className="text-muted mb-1">วิธีการชำระ:</p>
+                  <p className="text-app">หักจากเงินเดือน</p>
                 </div>
                 <div>
                   <p className="text-muted mb-1">วันที่เริ่มกู้:</p>
