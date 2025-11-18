@@ -19,7 +19,7 @@ export default function Donations() {
       filtered = filtered.filter(
         (d) =>
           d.donorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          d.receiptNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (d.receiptNo && d.receiptNo.toLowerCase().includes(searchQuery.toLowerCase())) ||
           d.purpose.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }

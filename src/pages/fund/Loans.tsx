@@ -8,7 +8,6 @@ import {
   CheckCircle,
   Clock,
   FileText,
-  Plus,
   Wallet
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
@@ -72,13 +71,6 @@ export default function Loans() {
   const [typeFilter, setTypeFilter] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [paymentFormData, setPaymentFormData] = useState({
-    paymentType: "monthly" as "monthly" | "full", // monthly = ชำระตามปกติ, full = ชำระทั้งหมดในครั้งเดียว
-    amount: "",
-    paymentDate: new Date().toISOString().split('T')[0],
-    note: ""
-  });
 
   // Handle filtering
   const handleFilter = () => {
@@ -129,61 +121,6 @@ export default function Loans() {
     return (paid / loan.principalAmount) * 100;
   };
 
-  // Calculate payment for full payment (หากต้องการทั้งหมดในครั้งเดียว จ่ายดอกเบี้ยแค่เดือนนั้นๆ และเงินต้นทั้งหมด)
-  const calculateFullPayment = (loan: Loan): { principal: number; interest: number; total: number } => {
-    const principal = loan.remainingBalance;
-    // ดอกเบี้ยแค่เดือนนั้นๆ (1% ของเงินต้น)
-    const interest = principal * (loan.interestRate / 100);
-    const total = principal + interest;
-    return { principal, interest, total };
-  };
-
-  // Handle payment
-  const handlePayment = () => {
-    if (!selectedLoan) return;
-
-    if (paymentFormData.paymentType === "full") {
-      // ชำระทั้งหมดในครั้งเดียว
-      const fullPayment = calculateFullPayment(selectedLoan);
-      alert(`บันทึกการชำระเงินทั้งหมดสำเร็จ!\nเงินต้น: ${formatCurrency(fullPayment.principal)}\nดอกเบี้ย (1 เดือน): ${formatCurrency(fullPayment.interest)}\nรวม: ${formatCurrency(fullPayment.total)}\n(Mock)`);
-    } else {
-      // ชำระตามปกติ (หักจากเงินเดือน)
-      if (!paymentFormData.amount || Number(paymentFormData.amount) <= 0) {
-        alert("กรุณาระบุจำนวนเงินที่ชำระ");
-        return;
-      }
-      const amount = Number(paymentFormData.amount);
-      if (amount > selectedLoan.remainingBalance) {
-        alert(`จำนวนเงินที่ชำระเกินยอดคงเหลือ (ยอดคงเหลือ: ${formatCurrency(selectedLoan.remainingBalance)})`);
-        return;
-      }
-      // คำนวณดอกเบี้ย 1% ต่อเดือน
-      const interest = amount * (selectedLoan.interestRate / 100);
-      const principal = amount - interest;
-      alert(`บันทึกการชำระเงินสำเร็จ!\nเงินต้น: ${formatCurrency(principal)}\nดอกเบี้ย: ${formatCurrency(interest)}\nรวม: ${formatCurrency(amount)}\n(หักจากเงินเดือน)\n(Mock)`);
-    }
-
-    // Reset form
-    setPaymentFormData({
-      paymentType: "monthly",
-      amount: "",
-      paymentDate: new Date().toISOString().split('T')[0],
-      note: ""
-    });
-    setIsPaymentModalOpen(false);
-  };
-
-  // Open payment modal
-  const handleOpenPaymentModal = (loan: Loan) => {
-    setSelectedLoan(loan);
-    setPaymentFormData({
-      paymentType: "monthly",
-      amount: loan.monthlyPayment.toString(),
-      paymentDate: new Date().toISOString().split('T')[0],
-      note: ""
-    });
-    setIsPaymentModalOpen(true);
-  };
 
   return (
     <div className="space-y-6">
@@ -454,7 +391,7 @@ export default function Loans() {
                         </button>
                         {(loan.status === "Active" || loan.status === "Overdue") && (
                           <button
-                            onClick={() => handleOpenPaymentModal(loan)}
+                            onClick={() => setSelectedLoan(loan)}
                             className="inline-flex items-center gap-2 px-3 py-1.5 text-xs 
                                      bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg
                                      transition-colors font-medium"

@@ -65,22 +65,6 @@ export default function Payroll() {
   const categories = Array.from(new Set(employees.map(e => e.category).filter(Boolean)));
   const departments = Array.from(new Set(employees.map(e => e.dept)));
 
-  // Calculate statistics by category
-  const statsByCategory = categories.reduce((acc, category) => {
-    if (!category) return acc;
-    const categoryPayroll = filteredPayroll.filter(p => {
-      const employee = getEmployeeInfo(p.empCode);
-      return employee?.category === category;
-    });
-    acc[category] = {
-      count: categoryPayroll.length,
-      totalSalary: categoryPayroll.reduce((sum, p) => sum + p.salary, 0),
-      totalOT: categoryPayroll.reduce((sum, p) => sum + p.ot, 0),
-      totalNet: categoryPayroll.reduce((sum, p) => sum + p.net, 0),
-    };
-    return acc;
-  }, {} as Record<string, { count: number; totalSalary: number; totalOT: number; totalNet: number }>);
-
   // Handle print document
   const handlePrintDocument = (docType: string) => {
     if (!selectedPayslip) return;

@@ -6,8 +6,7 @@ import {
   Trash2,
   Download,
   Eye,
-  Upload,
-  Search
+  Upload
 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import FilterBar from "@/components/FilterBar";
@@ -29,11 +28,6 @@ interface DocumentTemplate {
 }
 
 // Helper functions
-const getEmployeeDept = (empCode: string): string => {
-  const employee = employees.find(emp => emp.code === empCode);
-  return employee?.dept || "ไม่ระบุ";
-};
-
 const getUniqueDepartments = (): string[] => {
   const depts = new Set<string>();
   employees.forEach(emp => {
