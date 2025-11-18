@@ -401,7 +401,7 @@ export default function Overtime() {
     const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
     const monthEnd = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
     
-    let filteredLogs = attendanceLogs.filter(log => {
+    const filteredLogs = attendanceLogs.filter(log => {
       // Filter by month
       if (log.date < monthStart || log.date > monthEnd) return false;
       // Filter by OT hours
