@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Edit2, Clock, CheckCircle, AlertCircle, Users, Plus, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Edit2, Clock, CheckCircle, AlertCircle, Users, Plus, FileText, ChevronLeft, ChevronRight, ArrowRightLeft } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
@@ -23,6 +23,11 @@ export default function Attendance() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [shiftPlanMonth, setShiftPlanMonth] = useState<string>(() => {
+    const next = new Date();
+    next.setMonth(next.getMonth() + 1);
+    return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedShift, setSelectedShift] = useState<number | "">("");
   const [editForm, setEditForm] = useState({
@@ -40,6 +45,8 @@ export default function Attendance() {
     otHours: "",
     reason: ""
   });
+  const shiftPlanRef = useRef<HTMLDivElement | null>(null);
+  const shiftColorPalette = ["bg-green-500/20", "bg-blue-500/20", "bg-purple-500/20", "bg-orange-500/20", "bg-ptt-cyan/20"];
 
   // Standard work time: 08:30
   const STANDARD_CHECK_IN = "06:00";
@@ -342,6 +349,12 @@ export default function Attendance() {
     return `${h} ชม. ${m} นาที`;
   };
 
+  const getShiftCellClass = (shift?: (typeof shifts)[number] | null) => {
+    if (!shiftColorPalette.length || !shift) return "";
+    const paletteIndex = shift.id % shiftColorPalette.length;
+    return shiftColorPalette[paletteIndex];
+  };
+
   // Handle edit button click
   const handleEdit = (log: AttendanceLog) => {
     setSelectedLog(log);
@@ -524,6 +537,52 @@ export default function Attendance() {
     logs: AttendanceLog[];
   }>);
 
+  const shiftPlanDataset = useMemo(() => {
+    const [year, month] = shiftPlanMonth.split('-').map(Number);
+    if (!year || !month) {
+      return { days: [] as Date[], planData: [] as Array<{ employee: typeof employees[number]; schedule: Array<{ date: string; day: number; shift: typeof shifts[number] | null }> }> };
+    }
+    const days = getDaysInMonth(year, month - 1);
+    let filteredEmployees = employees.filter(emp => emp.status === "Active");
+    if (selectedCategory) {
+      filteredEmployees = filteredEmployees.filter(emp => emp.category === selectedCategory);
+    }
+    if (selectedShift !== "") {
+      filteredEmployees = filteredEmployees.filter(emp => emp.shiftId === selectedShift);
+    }
+    const planData = filteredEmployees.map((emp, index) => {
+      const baseIndex = emp.shiftId ? shifts.findIndex(s => s.id === emp.shiftId) : index;
+      return {
+        employee: emp,
+        schedule: days.map((day, dayIndex) => {
+          if (shifts.length === 0) {
+            return {
+              date: day.toISOString().split('T')[0],
+              day: day.getDate(),
+              shift: null
+            };
+          }
+          const normalizedBase = baseIndex >= 0 ? baseIndex : 0;
+          const plannedShift = shifts[(dayIndex + normalizedBase) % shifts.length];
+          return {
+            date: day.toISOString().split('T')[0],
+            day: day.getDate(),
+            shift: plannedShift
+          };
+        })
+      };
+    });
+    return { days, planData };
+  }, [shiftPlanMonth, selectedCategory, selectedShift]);
+
+  const { days: planDays, planData: shiftPlanRows } = shiftPlanDataset;
+
+  const handleShiftPlanScroll = () => {
+    if (shiftPlanRef.current) {
+      shiftPlanRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
 
   const { days, calendarData } = getCalendarData();
 
@@ -540,6 +599,7 @@ export default function Attendance() {
           </p>
         </div>
         <div className="flex gap-2">
+
           <button
             onClick={() => {
               if (viewMode === "calendar") setViewMode("list");
@@ -549,7 +609,7 @@ export default function Attendance() {
                      text-app border border-app rounded-xl transition-all duration-200 font-medium"
           >
             <Calendar className="w-4 h-4" />
-            {viewMode === "calendar" ? "มุมมองรายการ" : "มุมมองปฏิทิน"}
+            {viewMode === "calendar" ? "ลงทะเบียนกะล่วงหน้า" : "มุมมองปฏิทิน"}
           </button>
           <button
             onClick={() => setIsRecordModalOpen(true)}
@@ -748,16 +808,16 @@ export default function Attendance() {
             <table className="w-full border-collapse">
               <thead className="bg-soft border-b-2 border-app sticky top-0 z-10">
                 <tr>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-app border-r border-app sticky left-0 bg-soft z-20 min-w-[120px]">
+                  <th className="px-2 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-0 bg-soft z-20 min-w-[30px] w-[30px]">
                     NO
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-app border-r border-app sticky left-[120px] bg-soft z-20 min-w-[200px]">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-app border-r border-app sticky left-[30px] bg-soft z-20 min-w-[200px]">
                     ชื่อ-สกุล
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[320px] bg-soft z-20 min-w-[100px]">
+                  <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[230px] bg-soft z-20 min-w-[100px]">
                     แผนก
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[420px] bg-soft z-20 min-w-[120px]">
+                  <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[330px] bg-soft z-20 min-w-[120px]">
                     กะ
                   </th>
                   {days.map((day, idx) => (
@@ -779,16 +839,16 @@ export default function Attendance() {
                     transition={{ delay: empIndex * 0.02 }}
                     className="hover:bg-soft/50 transition-colors"
                   >
-                    <td className="px-3 py-3 text-sm text-app font-medium border-r border-app sticky left-0 bg-soft z-10">
+                    <td className="px-2 py-3 text-xs text-app font-semibold border-r border-app sticky left-0 bg-soft z-10 text-center min-w-[30px] w-[30px]">
                       {empIndex + 1}
                     </td>
-                    <td className="px-3 py-3 text-sm text-app font-medium border-r border-app sticky left-[120px] bg-soft z-10">
+                    <td className="px-3 py-3 text-sm text-app font-medium border-r border-app sticky left-[30px] bg-soft z-10">
                       {data.employee.name}
                     </td>
-                    <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[320px] bg-soft z-10">
+                    <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[230px] bg-soft z-10">
                       <span className="text-xs text-ptt-cyan">{data.employee.category || "-"}</span>
                     </td>
-                    <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[420px] bg-soft z-10">
+                    <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[330px] bg-soft z-10">
                       {data.shift ? (
                         <div className="text-xs">
                           <div className="text-ptt-cyan font-medium">
@@ -876,524 +936,163 @@ export default function Attendance() {
         </motion.div>
       )}
 
-
-      {/* List View */}
-      {viewMode === "list" && (
-        <>
-          {/* Filter Bar */}
-          <FilterBar
-        placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
-        onSearch={(query) => {
-          setSearchQuery(query);
-          handleFilter();
-        }}
-        filters={[
-          {
-            label: "ทุกสถานะ",
-            value: statusFilter,
-            options: statuses.map((s) => ({ label: s, value: s })),
-            onChange: (value) => {
-              setStatusFilter(value);
-              handleFilter();
-            },
-          },
-          {
-            label: "ทุกกะ",
-            value: shiftFilter === "" ? "" : String(shiftFilter),
-            options: [
-              { label: "ทุกกะ", value: "" },
-              ...shifts.map((s) => ({ label: `กะ${s.name} (${s.startTime}-${s.endTime})`, value: String(s.id) })),
-            ],
-            onChange: (value) => {
-              setShiftFilter(value === "" ? "" : Number(value));
-              handleFilter();
-            },
-          },
-          {
-            label: "ทุกหมวดหมู่",
-            value: categoryFilter,
-            options: [
-              { label: "ทุกหมวดหมู่", value: "" },
-              ...Array.from(new Set(employees.map(e => e.category).filter(Boolean))).map((c) => ({ label: c || "", value: c || "" })),
-            ],
-            onChange: (value) => {
-              setCategoryFilter(value);
-              handleFilter();
-            },
-          },
-        ]}
-      />
-
-
-      {/* Tables by Shift */}
-      {Object.keys(logsByShift).length > 0 ? (
-        Object.values(logsByShift).map((shiftData, shiftIndex) => (
-          <motion.div
-            key={shiftData.shiftName}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: shiftIndex * 0.1 }}
-            className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
-          >
-            <div className="px-6 py-4 border-b border-app bg-soft">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-ptt-cyan" />
-                    กะ{shiftData.shiftName}
-                    {shiftData.shift && (
-                      <span className="text-sm font-normal text-muted">
-                        ({shiftData.shift.startTime} - {shiftData.shift.endTime})
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-xs text-muted mt-1">
-                    {shiftData.logs.length} รายการ
-                    {shiftData.logs.reduce((sum, log) => sum + (log.otHours || 0), 0) > 0 && (
-                      <span className="ml-2 text-ptt-cyan">
-                        • OT รวม: {shiftData.logs.reduce((sum, log) => sum + (log.otHours || 0), 0).toFixed(2)} ชม.
-                        ({shiftData.logs.reduce((sum, log) => sum + (log.otAmount || 0), 0).toFixed(2)} บาท)
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-soft border-b border-app">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-app">
-                      วันที่
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-app">
-                      รหัส
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-app">
-                      ชื่อ-นามสกุล
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-app">
-                      เวลาเข้า
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-app">
-                      เวลาออก
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-app">
-                      ชั่วโมงทำงาน
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-app">
-                      สถานะ
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-app">
-                      จัดการ
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-app">
-                  {shiftData.logs.map((log, index) => (
-                      <motion.tr
-                        key={log.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="hover:bg-soft transition-colors"
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-muted" />
-                            <span className="text-sm text-app font-light">
-                              {log.date}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-ptt-cyan font-medium">
-                          {log.empCode}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-app font-medium">
-                          {log.empName}
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm text-app font-mono">
-                          {log.checkIn}
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm text-app font-mono">
-                          {log.checkOut}
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm text-app font-mono">
-                          {log.checkIn !== "-" && log.checkOut !== "-" ? (
-                            <span className="text-ptt-cyan">
-                              {formatTime(calculateWorkingHours(log.checkIn, log.checkOut))}
-                            </span>
-                          ) : (
-                            <span className="text-muted">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <StatusTag variant={getStatusVariant(log.status)}>
-                            {log.status}
-                          </StatusTag>
-                          {log.lateMinutes && log.lateMinutes > 0 && (
-                            <p className="text-xs text-yellow-400 mt-1">
-                              สาย {log.lateMinutes} นาที
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => handleEdit(log)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs 
-                                     bg-ptt-blue/20 hover:bg-ptt-blue/30 text-ptt-cyan 
-                                     rounded-lg transition-colors font-medium"
-                            title="แก้ไขข้อมูลลงเวลา"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                            แก้ไข
-                          </button>
-                        </td>
-                      </motion.tr>
-                    ))}
-                </tbody>
-              </table>
-
-              {shiftData.logs.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-muted font-light">ไม่พบข้อมูลสำหรับกะนี้</p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        ))
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
-        >
-          <div className="text-center py-12">
-            <p className="text-muted font-light">ไม่พบข้อมูล</p>
-          </div>
-        </motion.div>
-      )}
-        </>
-      )}
-
-      {/* Record Attendance Modal */}
-      <ModalForm
-        isOpen={isRecordModalOpen}
-        onClose={() => {
-          setIsRecordModalOpen(false);
-          setRecordForm({
-            empCode: "",
-            empName: "",
-            date: "",
-            checkIn: "",
-            checkOut: "",
-            otHours: "",
-            reason: ""
-          });
-        }}
-        title="บันทึกเวลาเข้าออกใหม่"
-        onSubmit={handleRecordAttendance}
-        submitLabel="บันทึก"
+      {/* Shift Plan Table */}
+      <motion.div
+        ref={shiftPlanRef}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
       >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
-              เลือกพนักงาน <span className="text-red-400">*</span>
-            </label>
-            <select
-              value={recordForm.empCode}
-              onChange={(e) => handleEmployeeSelect(e.target.value)}
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-              required
-            >
-              <option value="">เลือกพนักงาน</option>
-              {employees.map((emp) => {
-                const shift = emp.shiftId ? shifts.find(s => s.id === emp.shiftId) : null;
-                return (
-                  <option key={emp.id} value={emp.code}>
-                    {emp.code} - {emp.name} {shift ? `(กะ${shift.name} ${shift.startTime}-${shift.endTime})` : ""}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          {recordForm.empCode && (() => {
-            const employee = employees.find(e => e.code === recordForm.empCode);
-            const shift = employee?.shiftId ? shifts.find(s => s.id === employee.shiftId) : null;
-            return (
-              <div className="p-3 bg-soft rounded-lg border border-app">
-                <p className="text-sm text-muted mb-1">ข้อมูลพนักงาน</p>
-                <p className="text-app font-semibold">{recordForm.empName}</p>
-                {shift && (
-                  <p className="text-xs text-ptt-cyan mt-1">
-                    กะ{shift.name}: {shift.startTime} - {shift.endTime}
-                  </p>
-                )}
-                {employee?.otRate && (
-                  <p className="text-xs text-yellow-400 mt-1">
-                    OT Rate: {employee.otRate} บาท/ชั่วโมง
-                  </p>
-                )}
-              </div>
-            );
-          })()}
-
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
-              วันที่ <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="date"
-              value={recordForm.date}
-              onChange={(e) => setRecordForm({ ...recordForm, date: e.target.value })}
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        <div className="px-6 py-4 border-b border-app bg-soft">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
-                เวลาเข้า <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="time"
-                value={recordForm.checkIn}
-                onChange={(e) => {
-                  const newCheckIn = e.target.value;
-                  setRecordForm({ ...recordForm, checkIn: newCheckIn });
-                  // Auto-calculate OT if both times are filled
-                  if (newCheckIn && recordForm.checkOut) {
-                    const otHours = calculateOTHours(recordForm.empCode, newCheckIn, recordForm.checkOut);
-                    setRecordForm(prev => ({ ...prev, otHours: otHours.toFixed(2) }));
-                  }
+              <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
+                <ArrowRightLeft className="w-5 h-5 text-ptt-cyan" />
+                ตารางลงทะเบียนกะล่วงหน้า
+              </h3>
+              <p className="text-xs text-muted mt-1">
+                วางแผนการโยกย้ายกะในเดือนถัดไป (ข้อมูลจำลองเพื่อการทดสอบ)
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  const [year, month] = shiftPlanMonth.split('-').map(Number);
+                  const prevMonth = month === 1 ? 12 : month - 1;
+                  const prevYear = month === 1 ? year - 1 : year;
+                  setShiftPlanMonth(`${prevYear}-${String(prevMonth).padStart(2, '0')}`);
                 }}
-                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-                required
-              />
-              {recordForm.empCode && (() => {
-                const shift = getEmployeeShift(recordForm.empCode);
-                return shift && (
-                  <p className="text-xs text-muted mt-1">เวลามาตรฐาน: {shift.startTime}</p>
-                );
-              })()}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
-                เวลาออก <span className="text-red-400">*</span>
-              </label>
+                className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4 text-app" />
+              </button>
               <input
-                type="time"
-                value={recordForm.checkOut}
-                onChange={(e) => {
-                  const newCheckOut = e.target.value;
-                  setRecordForm({ ...recordForm, checkOut: newCheckOut });
-                  // Auto-calculate OT if both times are filled
-                  if (recordForm.checkIn && newCheckOut) {
-                    const otHours = calculateOTHours(recordForm.empCode, recordForm.checkIn, newCheckOut);
-                    setRecordForm(prev => ({ ...prev, otHours: otHours.toFixed(2) }));
-                  }
-                }}
-                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-                required
+                type="month"
+                value={shiftPlanMonth}
+                onChange={(e) => setShiftPlanMonth(e.target.value)}
+                className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               />
-              {recordForm.empCode && (() => {
-                const shift = getEmployeeShift(recordForm.empCode);
-                return shift && (
-                  <p className="text-xs text-muted mt-1">เวลามาตรฐาน: {shift.endTime}</p>
-                );
-              })()}
+              <button
+                onClick={() => {
+                  const [year, month] = shiftPlanMonth.split('-').map(Number);
+                  const nextMonth = month === 12 ? 1 : month + 1;
+                  const nextYear = month === 12 ? year + 1 : year;
+                  setShiftPlanMonth(`${nextYear}-${String(nextMonth).padStart(2, '0')}`);
+                }}
+                className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+              >
+                <ChevronRight className="w-4 h-4 text-app" />
+              </button>
             </div>
-          </div>
-
-          {recordForm.checkIn && recordForm.checkOut && recordForm.empCode && (
-            <div className="p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-app">ชั่วโมงทำงาน:</span>
-                <span className="text-sm font-semibold text-ptt-cyan">
-                  {formatTime(calculateWorkingHours(recordForm.checkIn, recordForm.checkOut))}
-                </span>
-              </div>
-              {parseFloat(recordForm.otHours || "0") > 0 && (
-                <>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-app">OT ชั่วโมง:</span>
-                    <span className="text-sm font-semibold text-green-400">
-                      {parseFloat(recordForm.otHours || "0").toFixed(2)} ชม.
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-app">เงิน OT:</span>
-                    <span className="text-sm font-semibold text-yellow-400">
-                      {(parseFloat(recordForm.otHours || "0") * getEmployeeOTRate(recordForm.empCode)).toFixed(2)} บาท
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
-              หมายเหตุ
-            </label>
-            <textarea
-              rows={3}
-              value={recordForm.reason}
-              onChange={(e) => setRecordForm({ ...recordForm, reason: e.target.value })}
-              placeholder="ระบุหมายเหตุ (ถ้ามี)..."
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                       text-app placeholder:text-muted
-                       focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
-            />
           </div>
         </div>
-      </ModalForm>
 
-      {/* Edit Attendance Modal */}
-      <ModalForm
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setSelectedLog(null);
-          setEditForm({
-            checkIn: "",
-            checkOut: "",
-            reason: "",
-            status: "" as AttendanceLog["status"] | ""
-          });
-        }}
-        title="แก้ไขข้อมูลลงเวลา"
-        onSubmit={handleSaveEdit}
-        submitLabel="บันทึกการแก้ไข"
-      >
-        {selectedLog && (
-          <div className="space-y-4">
-            {/* Employee Info */}
-            <div className="p-4 bg-soft rounded-lg space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted">พนักงาน:</span>
-                <span className="text-app font-medium">{selectedLog.empName} ({selectedLog.empCode})</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">วันที่:</span>
-                <span className="text-app font-medium">{selectedLog.date}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">สถานะปัจจุบัน:</span>
-                <StatusTag variant={getStatusVariant(selectedLog.status)}>
-                  {selectedLog.status}
-                </StatusTag>
-              </div>
-            </div>
-
-            {/* Time Inputs */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-app mb-2">
-                  เวลาเข้า
-                </label>
-                <input
-                  type="time"
-                  value={editForm.checkIn}
-                  onChange={(e) => {
-                    const newCheckIn = e.target.value;
-                    // Reset status to auto-calculate when check-in changes
-                    setEditForm({
-                      ...editForm,
-                      checkIn: newCheckIn,
-                      status: "" as AttendanceLog["status"] | ""
-                    });
-                  }}
-                  className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                           text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-                />
-                <p className="text-xs text-muted mt-1">เวลามาตรฐาน: {STANDARD_CHECK_IN}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-app mb-2">
-                  เวลาออก
-                </label>
-                <input
-                  type="time"
-                  value={editForm.checkOut}
-                  onChange={(e) => setEditForm({ ...editForm, checkOut: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                           text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-                />
-                <p className="text-xs text-muted mt-1">เวลามาตรฐาน: {STANDARD_CHECK_OUT}</p>
-              </div>
-            </div>
-
-            {/* Manual Status Override */}
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
-                กำหนดสถานะเอง (ถ้าต้องการ)
-              </label>
-              <select
-                value={editForm.status}
-                onChange={(e) => setEditForm({ ...editForm, status: e.target.value as AttendanceLog["status"] })}
-                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-              >
-                <option value="">คำนวณอัตโนมัติจากเวลาเข้า</option>
-                <option value="ตรงเวลา">ตรงเวลา</option>
-                <option value="สาย 1 นาที">สาย 1 นาที</option>
-                <option value="สาย 15 นาที">สาย 15 นาที</option>
-                <option value="ขาดงาน">ขาดงาน</option>
-                <option value="ลา">ลา</option>
-              </select>
-              <p className="text-xs text-muted mt-1">
-                ถ้าไม่เลือก ระบบจะคำนวณสถานะจากเวลาเข้าโดยอัตโนมัติ
-              </p>
-            </div>
-
-            {/* Preview New Status */}
-            {(editForm.checkIn || editForm.status) && (
-              <div className="p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
-                  <p className="text-sm text-ptt-cyan">
-                    สถานะที่จะบันทึก: <span className="font-semibold">
-                      {editForm.status || (editForm.checkIn ? calculateStatus(editForm.checkIn, selectedLog.status, selectedLog.empCode) : selectedLog.status)}
-                    </span>
-                  </p>
-                {editForm.checkIn && editForm.status && (
-                  <p className="text-xs text-muted mt-1">
-                    (สถานะที่เลือกจะถูกใช้แทนการคำนวณอัตโนมัติ)
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Reason for Edit */}
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
-                เหตุผลในการแก้ไข <span className="text-muted text-xs">(เช่น สแกนผิด, ลืมสแกน, ระบบผิดพลาด)</span>
-              </label>
-              <textarea
-                rows={3}
-                value={editForm.reason}
-                onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
-                placeholder="ระบุเหตุผลในการแก้ไขข้อมูล..."
-                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app placeholder:text-muted
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
-              />
-            </div>
-
-            {/* Warning */}
-            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <p className="text-sm text-yellow-400">
-                ⚠️ การแก้ไขข้อมูลลงเวลาจะส่งผลต่อรายงานการเข้างานและสถิติของพนักงาน
-              </p>
-            </div>
+        {shiftPlanRows.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead className="bg-soft border-b-2 border-app sticky top-0 z-10">
+                <tr>
+                  <th className="px-2 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-0 bg-soft z-20 min-w-[30px] w-[30px]">
+                    NO
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-app border-r border-app sticky left-[30px] bg-soft z-20 min-w-[200px]">
+                    ชื่อ-สกุล
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[230px] bg-soft z-20 min-w-[100px]">
+                    แผนก
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[330px] bg-soft z-20 min-w-[120px]">
+                    กะปัจจุบัน
+                  </th>
+                  {planDays.map((day, idx) => (
+                    <th
+                      key={`plan-day-${idx}`}
+                      className="px-2 py-3 text-center text-xs font-semibold text-app border-r border-app min-w-[60px]"
+                    >
+                      {day.getDate()}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-app">
+                {shiftPlanRows.map((data, empIndex) => {
+                  const currentShift = data.employee.shiftId
+                    ? shifts.find((s) => s.id === data.employee.shiftId)
+                    : undefined;
+                  return (
+                    <motion.tr
+                      key={`plan-row-${data.employee.id}`}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: empIndex * 0.02 }}
+                      className="hover:bg-soft/50 transition-colors"
+                    >
+                      <td className="px-2 py-3 text-xs text-app font-semibold border-r border-app sticky left-0 bg-soft z-10 text-center min-w-[30px] w-[30px]">
+                        {empIndex + 1}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-app font-medium border-r border-app sticky left-[30px] bg-soft z-10">
+                        {data.employee.name}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[230px] bg-soft z-10">
+                        <span className="text-xs text-ptt-cyan">{data.employee.category || "-"}</span>
+                      </td>
+                      <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[330px] bg-soft z-10">
+                        {currentShift ? (
+                          <div className="text-xs">
+                            <div className="text-ptt-cyan font-medium">
+                              {currentShift.shiftType ? `กะ${currentShift.shiftType}` : ""} {currentShift.name}
+                            </div>
+                            <div className="text-muted text-[10px]">
+                              {currentShift.startTime}-{currentShift.endTime}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted">-</span>
+                        )}
+                      </td>
+                      {data.schedule.map((plan, scheduleIdx) => {
+                        const shift = plan.shift;
+                        const colorClass = getShiftCellClass(shift);
+                        return (
+                          <td
+                            key={`plan-cell-${plan.date}-${scheduleIdx}`}
+                            className={`px-2 py-2 text-center text-xs border-r border-app ${colorClass}`}
+                            title={
+                              shift
+                                ? `${plan.date}: ${shift.name} (${shift.startTime}-${shift.endTime})`
+                                : `${plan.date}: ยังไม่กำหนด`
+                            }
+                          >
+                            {shift ? (
+                              <>
+                                <p className="text-app font-semibold">{shift.name}</p>
+                                <p className="text-[10px] text-muted">
+                                  {shift.startTime}-{shift.endTime}
+                                </p>
+                              </>
+                            ) : (
+                              <span className="text-muted">-</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </motion.tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted font-light">ไม่พบข้อมูลสำหรับเดือนที่เลือก</p>
           </div>
         )}
-      </ModalForm>
+        <div className="px-6 py-4 border-t border-app bg-soft text-xs text-muted">
+          💡 สามารถใช้ตารางนี้เป็นต้นแบบในการจัดตารางโยกย้ายกะจริงได้ตามนโยบายขององค์กร
+        </div>
+      </motion.div>
+
+
     </div>
   );
 }
