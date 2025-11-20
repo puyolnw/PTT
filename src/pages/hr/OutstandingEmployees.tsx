@@ -14,7 +14,7 @@ import {
   Download,
   FileText,
 } from "lucide-react";
-import { employees, attendanceLogs, evaluations } from "@/data/mockData";
+import { employees, attendanceLogs, evaluations, shifts } from "@/data/mockData";
 import { useNavigate } from "react-router-dom";
 
 // Mock data for outstanding employees
@@ -190,14 +190,43 @@ export default function OutstandingEmployees() {
   const navigate = useNavigate();
   const [filterType, setFilterType] = useState<"all" | "monthly" | "yearly">("all");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deptFilter, setDeptFilter] = useState("");
+  const [shiftFilter, setShiftFilter] = useState<number | "">("");
 
   const filteredEmployees = outstandingEmployees.filter((emp) => {
+    // Filter by type and period
+    let matches = false;
     if (filterType === "all") {
-      return selectedPeriod === "" || emp.period === selectedPeriod;
+      matches = selectedPeriod === "" || emp.period === selectedPeriod;
+    } else {
+      matches = emp.type === filterType && (selectedPeriod === "" || emp.period === selectedPeriod);
     }
-    return (
-      emp.type === filterType && (selectedPeriod === "" || emp.period === selectedPeriod)
-    );
+    
+    if (!matches) return false;
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      if (!emp.empName.toLowerCase().includes(query) && !emp.empCode.toLowerCase().includes(query)) {
+        return false;
+      }
+    }
+
+    // Department filter
+    if (deptFilter && emp.dept !== deptFilter) {
+      return false;
+    }
+
+    // Shift filter
+    if (shiftFilter !== "") {
+      const employee = employees.find(e => e.code === emp.empCode);
+      if (!employee || employee.shiftId !== shiftFilter) {
+        return false;
+      }
+    }
+
+    return true;
   });
 
   const availablePeriods = Array.from(
@@ -295,64 +324,127 @@ export default function OutstandingEmployees() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-soft border border-app rounded-2xl p-6"
+        className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
       >
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-app mb-2">
-              <Filter className="w-4 h-4 inline mr-2" />
-              ประเภท
-            </label>
-            <div className="flex gap-2">
-              {(["all", "monthly", "yearly"] as const).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => {
-                    setFilterType(type);
-                    setSelectedPeriod("");
-                  }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    filterType === type
-                      ? "bg-ptt-blue text-app"
-                      : "bg-soft hover:bg-app/10 text-app"
-                  }`}
-                >
-                  {type === "all" && "ทั้งหมด"}
-                  {type === "monthly" && "รายเดือน"}
-                  {type === "yearly" && "รายปี"}
-                </button>
-              ))}
+        <div className="px-6 py-4 border-b border-app bg-soft">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-app font-display">
+                รายการพนักงานดีเด่น
+              </h3>
+              <p className="text-xs text-muted mt-1">
+                แสดง {filteredEmployees.length} รายการ
+              </p>
             </div>
           </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-app mb-2">
-              <Calendar className="w-4 h-4 inline mr-2" />
-              ระยะเวลา
-            </label>
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-            >
-              <option value="">ทั้งหมด</option>
-              {availablePeriods
-                .filter((period) => {
-                  if (filterType === "monthly") {
-                    return period.includes("-");
-                  } else if (filterType === "yearly") {
-                    return !period.includes("-");
-                  }
-                  return true;
-                })
-                .map((period) => {
-                  const emp = outstandingEmployees.find((e) => e.period === period);
-                  return (
-                    <option key={period} value={period}>
-                      {emp ? formatPeriod(period, emp.type) : period}
-                    </option>
-                  );
-                })}
-            </select>
+          
+          {/* Filter Bar - Inline */}
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all font-light"
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            {/* Filter Dropdowns */}
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกแผนก</option>
+                {Array.from(new Set(employees.map(e => e.dept))).map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={shiftFilter === "" ? "" : String(shiftFilter)}
+                onChange={(e) => setShiftFilter(e.target.value === "" ? "" : Number(e.target.value))}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกกะ</option>
+                {shifts.map((shift) => (
+                  <option key={shift.id} value={String(shift.id)}>
+                    {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
+                  </option>
+                ))}
+              </select>
+
+              <div className="flex gap-2">
+                {(["all", "monthly", "yearly"] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => {
+                      setFilterType(type);
+                      setSelectedPeriod("");
+                    }}
+                    className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                      filterType === type
+                        ? "bg-ptt-blue text-app"
+                        : "bg-soft hover:bg-app/10 text-app border border-app"
+                    }`}
+                  >
+                    {type === "all" && "ทั้งหมด"}
+                    {type === "monthly" && "รายเดือน"}
+                    {type === "yearly" && "รายปี"}
+                  </button>
+                ))}
+              </div>
+
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกระยะเวลา</option>
+                {availablePeriods
+                  .filter((period) => {
+                    if (filterType === "monthly") {
+                      return period.includes("-");
+                    } else if (filterType === "yearly") {
+                      return !period.includes("-");
+                    }
+                    return true;
+                  })
+                  .map((period) => {
+                    const emp = outstandingEmployees.find((e) => e.period === period);
+                    return (
+                      <option key={period} value={period}>
+                        {emp ? formatPeriod(period, emp.type) : period}
+                      </option>
+                    );
+                  })}
+              </select>
+            </div>
           </div>
         </div>
       </motion.div>

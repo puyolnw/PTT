@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { UserPlus, Eye } from "lucide-react";
-import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import { employees as initialEmployees, shifts, type Employee } from "@/data/mockData";
@@ -13,7 +12,7 @@ export default function Employees() {
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [shiftFilter, setShiftFilter] = useState<number | "">("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -32,11 +31,18 @@ export default function Employees() {
   const handleFilter = () => {
     let filtered = employees;
 
+    // Search across all fields
     if (searchQuery) {
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (emp) =>
-          emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          emp.code.toLowerCase().includes(searchQuery.toLowerCase())
+          emp.name.toLowerCase().includes(query) ||
+          emp.code.toLowerCase().includes(query) ||
+          emp.dept.toLowerCase().includes(query) ||
+          emp.position.toLowerCase().includes(query) ||
+          (emp.email && emp.email.toLowerCase().includes(query)) ||
+          (emp.phone && emp.phone.includes(query)) ||
+          (emp.category && emp.category.toLowerCase().includes(query))
       );
     }
 
@@ -48,8 +54,8 @@ export default function Employees() {
       filtered = filtered.filter((emp) => emp.status === statusFilter);
     }
 
-    if (categoryFilter) {
-      filtered = filtered.filter((emp) => emp.category === categoryFilter);
+    if (shiftFilter !== "") {
+      filtered = filtered.filter((emp) => emp.shiftId === shiftFilter);
     }
 
     setFilteredEmployees(filtered);
@@ -59,7 +65,7 @@ export default function Employees() {
   useEffect(() => {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [employees, searchQuery, deptFilter, statusFilter, categoryFilter]);
+  }, [employees, searchQuery, deptFilter, statusFilter, shiftFilter]);
 
   const departments = Array.from(new Set(employees.map((e) => e.dept)));
   const statuses = Array.from(new Set(employees.map((e) => e.status)));
@@ -144,53 +150,113 @@ export default function Employees() {
         </button>
       </div>
 
-      {/* Filter Bar */}
-      <FilterBar
-        placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
-        onSearch={(query) => {
-          setSearchQuery(query);
-          handleFilter();
-        }}
-        filters={[
-          {
-            label: "ทุกแผนก",
-            value: deptFilter,
-            options: departments.map((d) => ({ label: d, value: d })),
-            onChange: (value) => {
-              setDeptFilter(value);
-              handleFilter();
-            },
-          },
-          {
-            label: "ทุกสถานะ",
-            value: statusFilter,
-            options: statuses.map((s) => ({ label: s, value: s })),
-            onChange: (value) => {
-              setStatusFilter(value);
-              handleFilter();
-            },
-          },
-          {
-            label: "ทุกหมวดหมู่",
-            value: categoryFilter,
-            options: [
-              { label: "ทุกหมวดหมู่", value: "" },
-              ...Array.from(new Set(employees.map(e => e.category).filter(Boolean))).map((c) => ({ label: c || "", value: c || "" })),
-            ],
-            onChange: (value) => {
-              setCategoryFilter(value);
-              handleFilter();
-            },
-          },
-        ]}
-      />
-
       {/* Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
       >
+        <div className="px-6 py-4 border-b border-app bg-soft">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-app font-display">
+                รายการพนักงาน
+              </h3>
+              <p className="text-xs text-muted mt-1">
+                แสดงพนักงานทั้งหมด {filteredEmployees.length} คน
+              </p>
+            </div>
+          </div>
+          
+          {/* Filter Bar - Inline with table */}
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  handleFilter();
+                }}
+                className="w-full pl-10 pr-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all font-light"
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            {/* Filter Dropdowns */}
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={deptFilter}
+                onChange={(e) => {
+                  setDeptFilter(e.target.value);
+                  handleFilter();
+                }}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกแผนก</option>
+                {departments.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  handleFilter();
+                }}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกสถานะ</option>
+                {statuses.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={shiftFilter === "" ? "" : String(shiftFilter)}
+                onChange={(e) => {
+                  setShiftFilter(e.target.value === "" ? "" : Number(e.target.value));
+                  handleFilter();
+                }}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกกะ</option>
+                {shifts.map((shift) => (
+                  <option key={shift.id} value={String(shift.id)}>
+                    {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-soft border-b border-app">
@@ -335,11 +401,12 @@ export default function Employees() {
         submitLabel="บันทึก"
         size="lg"
       >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-6">
+          {/* Form Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Name */}
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 ชื่อ-นามสกุล <span className="text-red-400">*</span>
               </label>
               <input
@@ -348,16 +415,17 @@ export default function Employees() {
                 value={formData.name}
                 onChange={handleFormChange}
                 required
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 placeholder="เช่น สมชาย ใจดี"
               />
             </div>
 
             {/* Department */}
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 แผนก <span className="text-red-400">*</span>
               </label>
               <select
@@ -365,8 +433,9 @@ export default function Employees() {
                 value={formData.dept}
                 onChange={handleFormChange}
                 required
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
               >
                 <option value="">เลือกแผนก</option>
                 <option value="IT">IT</option>
@@ -378,8 +447,8 @@ export default function Employees() {
             </div>
 
             {/* Position */}
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 ตำแหน่ง <span className="text-red-400">*</span>
               </label>
               <input
@@ -388,16 +457,17 @@ export default function Employees() {
                 value={formData.position}
                 onChange={handleFormChange}
                 required
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 placeholder="เช่น Senior Developer"
               />
             </div>
 
             {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 อีเมล
               </label>
               <input
@@ -405,16 +475,17 @@ export default function Employees() {
                 name="email"
                 value={formData.email}
                 onChange={handleFormChange}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 placeholder="example@ptt.co.th"
               />
             </div>
 
             {/* Phone */}
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 เบอร์โทร
               </label>
               <input
@@ -422,16 +493,17 @@ export default function Employees() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleFormChange}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 placeholder="08X-XXX-XXXX"
               />
             </div>
 
             {/* Start Date */}
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 วันที่เริ่มงาน <span className="text-red-400">*</span>
               </label>
               <input
@@ -440,22 +512,24 @@ export default function Employees() {
                 value={formData.startDate}
                 onChange={handleFormChange}
                 required
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
               />
             </div>
 
             {/* Shift */}
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 กะการทำงาน
               </label>
               <select
                 name="shiftId"
                 value={formData.shiftId}
                 onChange={handleFormChange}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
               >
                 <option value="">ไม่ระบุ</option>
                 {shifts.map((shift) => (
@@ -467,8 +541,8 @@ export default function Employees() {
             </div>
 
             {/* OT Rate */}
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 OT Rate (บาท/ชั่วโมง)
               </label>
               <input
@@ -478,24 +552,26 @@ export default function Employees() {
                 onChange={handleFormChange}
                 min="0"
                 step="1"
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 placeholder="เช่น 200"
               />
             </div>
 
             {/* Category */}
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 หมวดหมู่
               </label>
               <select
                 name="category"
                 value={formData.category}
                 onChange={handleFormChange}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
               >
                 <option value="">ไม่ระบุ</option>
                 <option value="ปั๊ม">ปั๊ม</option>
@@ -511,16 +587,17 @@ export default function Employees() {
             </div>
 
             {/* Status */}
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 สถานะ
               </label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleFormChange}
-                className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
               >
                 <option value="Active">Active</option>
                 <option value="Leave">Leave</option>
@@ -529,11 +606,22 @@ export default function Employees() {
             </div>
           </div>
 
-          {/* Info */}
-          <div className="p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
-            <p className="text-xs text-ptt-cyan">
-              💡 รหัสพนักงานจะถูกสร้างอัตโนมัติหลังจากบันทึก
-            </p>
+          {/* Info Card */}
+          <div className="p-4 bg-gradient-to-r from-ptt-blue/10 via-ptt-cyan/10 to-ptt-blue/10 
+                        border border-ptt-blue/30 rounded-xl shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-ptt-blue/20 rounded-lg">
+                <svg className="w-5 h-5 text-ptt-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-app mb-1">ข้อมูลสำคัญ</p>
+                <p className="text-xs text-muted leading-relaxed">
+                  รหัสพนักงานจะถูกสร้างอัตโนมัติหลังจากบันทึกข้อมูล • ข้อมูลที่ทำเครื่องหมาย <span className="text-red-400">*</span> เป็นข้อมูลที่จำเป็นต้องกรอก
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </ModalForm>

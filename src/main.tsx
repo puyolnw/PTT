@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import "@/index.css";
+import ErrorPage from "@/components/ErrorPage";
 import LayoutAuth from "@/layouts/LayoutAuth";
 import LayoutMain from "@/layouts/LayoutMain";
 import LayoutHR from "@/layouts/LayoutHR";
@@ -34,6 +35,8 @@ import HRReports from "@/pages/hr/Reports";
 import HRSettings from "@/pages/hr/Settings";
 import OutstandingEmployees from "@/pages/hr/OutstandingEmployees";
 import Welfare from "@/pages/hr/Welfare";
+import WelfareStock from "@/pages/hr/WelfareStock";
+import Warnings from "@/pages/hr/Warnings";
 
 // ========== Fund Pages ==========
 import FundDashboard from "@/pages/fund/Dashboard";
@@ -192,6 +195,7 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <LayoutAuth />,
+    errorElement: <ErrorPage />,
   },
   {
     path: "/app",
@@ -200,6 +204,7 @@ const router = createBrowserRouter([
         <LayoutMain />
       </Protected>
     ),
+    errorElement: <ErrorPage />,
     children: [
       // ========== DEFAULT: Redirect to HR ==========
       {
@@ -251,6 +256,14 @@ const router = createBrowserRouter([
           {
             path: "welfare",
             element: <Welfare />,
+          },
+          {
+            path: "welfare-stock",
+            element: <WelfareStock />,
+          },
+          {
+            path: "warnings",
+            element: <Warnings />,
           },
           {
             path: "social-security",

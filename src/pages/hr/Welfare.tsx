@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Heart, 
@@ -14,7 +15,8 @@ import {
   Search,
   Filter,
   Edit2,
-  Trash2
+  Trash2,
+  Warehouse
 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import { employees, welfareRecords as initialWelfareRecords } from "@/data/mockData";
@@ -33,6 +35,7 @@ interface WelfareRecord {
 }
 
 export default function Welfare() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("benefits");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -142,15 +145,26 @@ export default function Welfare() {
             ระบบคลังสินค้าสวัสดิการ + เชื่อมประกันชีวิต
           </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-ptt-cyan hover:bg-ptt-cyan/80 
-                   text-app rounded-xl transition-all duration-200 font-semibold 
-                   shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-        >
-          <Plus className="w-5 h-5" />
-          เพิ่มสวัสดิการ
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate("/app/hr/welfare-stock")}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-ptt-cyan/20 hover:bg-ptt-cyan/30 
+                     text-ptt-cyan rounded-xl transition-all duration-200 font-semibold 
+                     border border-ptt-cyan/50 hover:shadow-lg"
+          >
+            <Package className="w-5 h-5" />
+            สต๊อกสวัสดิการ
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-ptt-cyan hover:bg-ptt-cyan/80 
+                     text-app rounded-xl transition-all duration-200 font-semibold 
+                     shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+          >
+            <Plus className="w-5 h-5" />
+            เพิ่มสวัสดิการ
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -905,16 +919,17 @@ export default function Welfare() {
         submitLabel="บันทึก"
         size="lg"
       >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
               ประเภทสวัสดิการ <span className="text-red-400">*</span>
             </label>
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50 cursor-pointer"
               required
             >
               {tabs.map((tab) => (
@@ -925,15 +940,16 @@ export default function Welfare() {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
               เลือกพนักงาน <span className="text-red-400">*</span>
             </label>
             <select
               value={formData.empCode}
               onChange={(e) => handleEmployeeSelect(e.target.value)}
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50 cursor-pointer"
               required
             >
               <option value="">เลือกพนักงาน</option>
@@ -954,8 +970,8 @@ export default function Welfare() {
           )}
 
           {(formData.type === "benefits" || formData.type === "fuel") && (
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 รายการ {formData.type === "benefits" ? "(ชุดฟอร์ม, เสื้อกันหนาว, รองเท้า)" : "(ค่าน้ำมัน)"}
               </label>
               <input
@@ -963,15 +979,17 @@ export default function Welfare() {
                 value={formData.item}
                 onChange={(e) => setFormData({ ...formData, item: e.target.value })}
                 placeholder="ระบุรายการ..."
-                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
               />
             </div>
           )}
 
           {(formData.type === "bonus" || formData.type === "fuel" || formData.type === "condolence" || formData.type === "scholarship") && (
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 จำนวนเงิน (บาท)
               </label>
               <input
@@ -981,28 +999,31 @@ export default function Welfare() {
                 placeholder="0.00"
                 min="0"
                 step="0.01"
-                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
               />
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
               วันที่ <span className="text-red-400">*</span>
             </label>
             <input
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50 cursor-pointer"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
               หมายเหตุ
             </label>
             <textarea
@@ -1010,9 +1031,10 @@ export default function Welfare() {
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="ระบุหมายเหตุ (ถ้ามี)..."
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
-                       focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
+                       focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50 resize-none"
             />
           </div>
         </div>

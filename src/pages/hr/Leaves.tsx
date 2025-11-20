@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { UserPlus, Calendar, CheckCircle, Clock, Edit } from "lucide-react";
-import FilterBar from "@/components/FilterBar";
+import { UserPlus, Calendar, CheckCircle, Clock, Edit, X } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
-import { leaves as initialLeaves, attendanceLogs as initialAttendanceLogs, employees, type Leave, type AttendanceLog } from "@/data/mockData";
+import { leaves as initialLeaves, attendanceLogs as initialAttendanceLogs, employees, shifts, type Leave, type AttendanceLog } from "@/data/mockData";
 
 export default function Leaves() {
   const [leaves, setLeaves] = useState<Leave[]>(initialLeaves);
@@ -14,6 +13,8 @@ export default function Leaves() {
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [deptFilter, setDeptFilter] = useState("");
+  const [shiftFilter, setShiftFilter] = useState<number | "">("");
   
   // Modal states
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -49,8 +50,8 @@ export default function Leaves() {
   });
 
   const handleFilter = () => {
-    // Filter out "รออนุมัติ" status from the table
-    let filtered = leaves.filter((leave) => leave.status !== "รออนุมัติ");
+    // Show all leaves including "รออนุมัติ"
+    let filtered = leaves;
 
     if (searchQuery) {
       filtered = filtered.filter(
@@ -75,6 +76,20 @@ export default function Leaves() {
       });
     }
 
+    if (deptFilter) {
+      filtered = filtered.filter((leave) => {
+        const employee = employees.find(e => e.code === leave.empCode);
+        return employee?.dept === deptFilter;
+      });
+    }
+
+    if (shiftFilter !== "") {
+      filtered = filtered.filter((leave) => {
+        const employee = employees.find(e => e.code === leave.empCode);
+        return employee?.shiftId === shiftFilter;
+      });
+    }
+
     // Sort by fromDate (most recent first) and limit to 10
     filtered = filtered
       .sort((a, b) => new Date(b.fromDate).getTime() - new Date(a.fromDate).getTime())
@@ -86,11 +101,11 @@ export default function Leaves() {
   useEffect(() => {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leaves, searchQuery, typeFilter, statusFilter, categoryFilter]);
+  }, [leaves, searchQuery, typeFilter, statusFilter, categoryFilter, deptFilter, shiftFilter]);
 
   const types = Array.from(new Set(leaves.map((l) => l.type)));
-  // Filter out "รออนุมัติ" from status filter options
-  const statuses = Array.from(new Set(leaves.map((l) => l.status))).filter(s => s !== "รออนุมัติ");
+  // Include all statuses including "รออนุมัติ"
+  const statuses = Array.from(new Set(leaves.map((l) => l.status)));
 
   // Calculate statistics
   const totalLeaves = leaves.length;
@@ -297,6 +312,75 @@ export default function Leaves() {
     alert(`แก้ไขการลาสำเร็จ! วันที่สิ้นสุดเปลี่ยนเป็น ${editForm.toDate} (${newDays} วัน)`);
   };
 
+  // Handle approve leave
+  const handleApproveLeave = (leave: Leave) => {
+    if (!confirm(`คุณต้องการอนุมัติการลาของ ${leave.empName} (${leave.days} วัน) หรือไม่?`)) {
+      return;
+    }
+
+    const updatedLeaves = leaves.map(l => {
+      if (l.id === leave.id) {
+        return {
+          ...l,
+          status: "อนุมัติแล้ว" as Leave["status"]
+        };
+      }
+      return l;
+    });
+
+    setLeaves(updatedLeaves);
+
+    // Update attendance logs
+    const dates = generateDateRange(leave.fromDate, leave.toDate);
+    const updatedLogs = [...attendanceLogs];
+    
+    dates.forEach((date) => {
+      const existingLog = updatedLogs.find(
+        (log) => log.empCode === leave.empCode && log.date === date
+      );
+
+      if (existingLog) {
+        existingLog.status = "ลา";
+        existingLog.checkIn = "-";
+        existingLog.checkOut = "-";
+      } else {
+        const newLog: AttendanceLog = {
+          id: Math.max(...updatedLogs.map(l => l.id), 0) + 1,
+          empCode: leave.empCode,
+          empName: leave.empName,
+          date: date,
+          checkIn: "-",
+          checkOut: "-",
+          status: "ลา"
+        };
+        updatedLogs.push(newLog);
+      }
+    });
+
+    setAttendanceLogs(updatedLogs);
+    alert(`อนุมัติการลาสำเร็จ! ${leave.empName} ลา ${leave.days} วัน`);
+  };
+
+  // Handle reject leave
+  const handleRejectLeave = (leave: Leave) => {
+    if (!confirm(`คุณต้องการปฏิเสธการลาของ ${leave.empName} (${leave.days} วัน) หรือไม่?`)) {
+      return;
+    }
+
+    const updatedLeaves = leaves.map(l => {
+      if (l.id === leave.id) {
+        return {
+          ...l,
+          status: "ไม่อนุมัติ" as Leave["status"]
+        };
+      }
+      return l;
+    });
+
+    setLeaves(updatedLeaves);
+    alert(`ปฏิเสธการลาสำเร็จ! ${leave.empName}`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -383,46 +467,6 @@ export default function Leaves() {
         </motion.div>
       </div>
 
-      <FilterBar
-        placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
-        onSearch={(query) => {
-          setSearchQuery(query);
-          handleFilter();
-        }}
-        filters={[
-          {
-            label: "ประเภททั้งหมด",
-            value: typeFilter,
-            options: types.map((t) => ({ label: t, value: t })),
-            onChange: (value) => {
-              setTypeFilter(value);
-              handleFilter();
-            },
-          },
-          {
-            label: "สถานะทั้งหมด",
-            value: statusFilter,
-            options: statuses.map((s) => ({ label: s, value: s })),
-            onChange: (value) => {
-              setStatusFilter(value);
-              handleFilter();
-            },
-          },
-          {
-            label: "ทุกหมวดหมู่",
-            value: categoryFilter,
-            options: [
-              { label: "ทุกหมวดหมู่", value: "" },
-              ...Array.from(new Set(employees.map(e => e.category).filter(Boolean))).map((c) => ({ label: c || "", value: c || "" })),
-            ],
-            onChange: (value) => {
-              setCategoryFilter(value);
-              handleFilter();
-            },
-          },
-        ]}
-      />
-
       {/* Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -430,12 +474,142 @@ export default function Leaves() {
         className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
       >
         <div className="px-6 py-4 border-b border-app bg-soft">
-          <h3 className="text-lg font-semibold text-app font-display">
-            รายการพนักงานที่ลา
-          </h3>
-          <p className="text-xs text-muted mt-1">
-            แสดงรายการพนักงานที่ลาทั้งหมด
-          </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-app font-display">
+                รายการพนักงานที่ลา
+              </h3>
+              <p className="text-xs text-muted mt-1">
+                แสดงรายการพนักงานที่ลาทั้งหมด {filteredLeaves.length} รายการ
+              </p>
+            </div>
+          </div>
+          
+          {/* Filter Bar - Inline with table */}
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  handleFilter();
+                }}
+                className="w-full pl-10 pr-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all font-light"
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            {/* Filter Dropdowns */}
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={deptFilter}
+                onChange={(e) => {
+                  setDeptFilter(e.target.value);
+                  handleFilter();
+                }}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกแผนก</option>
+                {Array.from(new Set(employees.map(e => e.dept))).map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={shiftFilter === "" ? "" : String(shiftFilter)}
+                onChange={(e) => {
+                  setShiftFilter(e.target.value === "" ? "" : Number(e.target.value));
+                  handleFilter();
+                }}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกกะ</option>
+                {shifts.map((shift) => (
+                  <option key={shift.id} value={String(shift.id)}>
+                    {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={typeFilter}
+                onChange={(e) => {
+                  setTypeFilter(e.target.value);
+                  handleFilter();
+                }}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกประเภท</option>
+                {types.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  handleFilter();
+                }}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกสถานะ</option>
+                {statuses.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  handleFilter();
+                }}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกหมวดหมู่</option>
+                {Array.from(new Set(employees.map(e => e.category).filter(Boolean))).map((c) => (
+                  <option key={c} value={c || ""}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -516,16 +690,43 @@ export default function Leaves() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => handleEditLeave(leave)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-ptt-blue/20 hover:bg-ptt-blue/30 
-                               text-ptt-cyan rounded-lg transition-all duration-200 text-sm font-medium
-                               border border-ptt-blue/30 hover:border-ptt-blue/50"
-                      title="แก้ไขการลา (กรณีกลับมาก่อนกำหนด)"
-                    >
-                      <Edit className="w-4 h-4" />
-                      แก้ไข
-                    </button>
+                    <div className="flex items-center justify-center gap-2">
+                      {leave.status === "รออนุมัติ" ? (
+                        <>
+                          <button
+                            onClick={() => handleApproveLeave(leave)}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 
+                                     text-emerald-400 rounded-lg transition-all duration-200 text-sm font-medium
+                                     border border-emerald-500/30 hover:border-emerald-500/50"
+                            title="อนุมัติการลา"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            อนุมัติ
+                          </button>
+                          <button
+                            onClick={() => handleRejectLeave(leave)}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 
+                                     text-red-400 rounded-lg transition-all duration-200 text-sm font-medium
+                                     border border-red-500/30 hover:border-red-500/50"
+                            title="ปฏิเสธการลา"
+                          >
+                            <X className="w-4 h-4" />
+                            ยกเลิก
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleEditLeave(leave)}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-ptt-blue/20 hover:bg-ptt-blue/30 
+                                   text-ptt-cyan rounded-lg transition-all duration-200 text-sm font-medium
+                                   border border-ptt-blue/30 hover:border-ptt-blue/50"
+                          title="แก้ไขการลา (กรณีกลับมาก่อนกำหนด)"
+                        >
+                          <Edit className="w-4 h-4" />
+                          แก้ไข
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </motion.tr>
               ))}
@@ -541,8 +742,7 @@ export default function Leaves() {
           {filteredLeaves.length > 0 && (
             <div className="text-center py-4 border-t border-app bg-soft">
               <p className="text-xs text-muted">
-                แสดง {filteredLeaves.length} คนจากทั้งหมด{" "}
-                {leaves.filter((l) => l.status !== "รออนุมัติ").length} คน
+                แสดง {filteredLeaves.length} คนจากทั้งหมด {leaves.length} คน
                 {filteredLeaves.length >= 10 && " (จำกัด 10 คนแรก)"}
               </p>
             </div>
@@ -663,16 +863,17 @@ export default function Leaves() {
         onSubmit={handleRecordLeave}
         submitLabel="บันทึก"
       >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
               เลือกพนักงาน <span className="text-red-400">*</span>
             </label>
             <select
               value={recordForm.empCode}
               onChange={(e) => handleEmployeeSelect(e.target.value)}
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50 cursor-pointer"
               required
             >
               <option value="">เลือกพนักงาน</option>
@@ -684,15 +885,16 @@ export default function Leaves() {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
               ประเภทการลา <span className="text-red-400">*</span>
             </label>
             <select
               value={recordForm.type}
               onChange={(e) => setRecordForm({ ...recordForm, type: e.target.value as Leave["type"] | "" })}
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50 cursor-pointer"
               required
             >
               <option value="">เลือกประเภท</option>
@@ -703,37 +905,39 @@ export default function Leaves() {
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+          <div className="grid grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 วันที่เริ่ม <span className="text-red-400">*</span>
               </label>
               <input
                 type="date"
                 value={recordForm.fromDate}
                 onChange={(e) => setRecordForm({ ...recordForm, fromDate: e.target.value })}
-                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 วันที่สิ้นสุด <span className="text-red-400">*</span>
               </label>
               <input
                 type="date"
                 value={recordForm.toDate}
                 onChange={(e) => setRecordForm({ ...recordForm, toDate: e.target.value })}
-                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
                 required
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
               เหตุผลการลา
             </label>
             <textarea
@@ -741,17 +945,29 @@ export default function Leaves() {
               value={recordForm.reason}
               onChange={(e) => setRecordForm({ ...recordForm, reason: e.target.value })}
               placeholder="ระบุเหตุผล (ถ้ามี)..."
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
-                       focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
+                       focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50 resize-none"
             />
           </div>
 
           {recordForm.fromDate && recordForm.toDate && (
-            <div className="p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
-              <p className="text-sm text-ptt-cyan">
-                จำนวนวันลา: <span className="font-semibold">{calculateDays(recordForm.fromDate, recordForm.toDate)} วัน</span>
-              </p>
+            <div className="p-4 bg-gradient-to-r from-ptt-blue/10 via-ptt-cyan/10 to-ptt-blue/10 
+                          border border-ptt-blue/30 rounded-xl shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-ptt-blue/20 rounded-lg">
+                  <svg className="w-5 h-5 text-ptt-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-app mb-1">จำนวนวันลา</p>
+                  <p className="text-xs text-muted">
+                    รวมทั้งหมด <span className="text-ptt-cyan font-bold text-base">{calculateDays(recordForm.fromDate, recordForm.toDate)}</span> วัน
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

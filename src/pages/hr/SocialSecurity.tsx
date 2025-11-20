@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { 
   Shield, 
@@ -12,11 +12,12 @@ import {
   DollarSign,
   Plus
 } from "lucide-react";
-import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
 import { 
   socialSecurity, 
   socialSecurityContributions,
+  employees,
+  shifts,
   type SocialSecurity as SocialSecurityType,
   type SocialSecurityContribution as ContributionType
 } from "@/data/mockData";
@@ -80,11 +81,18 @@ export default function SocialSecurity() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sectionFilter, setSectionFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [deptFilter, setDeptFilter] = useState("");
+  const [shiftFilter, setShiftFilter] = useState<number | "">("");
   const [selectedEmployee, setSelectedEmployee] = useState<SocialSecurityType | null>(null);
   const [selectedContributions, setSelectedContributions] = useState<ContributionType[]>([]);
   const [isPrintMenuOpen, setIsPrintMenuOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newRecord, setNewRecord] = useState<NewRecord>(initialNewRecord);
+
+  // Get employee info by code
+  const getEmployeeInfo = (empCode: string) => {
+    return employees.find(emp => emp.code === empCode);
+  };
 
   useEffect(() => {
     let filtered = records;
@@ -106,8 +114,22 @@ export default function SocialSecurity() {
       filtered = filtered.filter((sso) => sso.status === statusFilter);
     }
 
+    if (deptFilter) {
+      filtered = filtered.filter((sso) => {
+        const empInfo = getEmployeeInfo(sso.empCode);
+        return empInfo?.dept === deptFilter;
+      });
+    }
+
+    if (shiftFilter !== "") {
+      filtered = filtered.filter((sso) => {
+        const empInfo = getEmployeeInfo(sso.empCode);
+        return empInfo?.shiftId === shiftFilter;
+      });
+    }
+
     setFilteredSSO(filtered);
-  }, [records, searchQuery, sectionFilter, statusFilter]);
+  }, [records, searchQuery, sectionFilter, statusFilter, deptFilter, shiftFilter]);
 
   // Handle view employee contributions
   const handleViewContributions = (sso: SocialSecurityType) => {
@@ -130,9 +152,7 @@ export default function SocialSecurity() {
     }));
   };
 
-  const handleSubmitNewRecord = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const handleSubmitNewRecord = () => {
     if (!newRecord.empCode || !newRecord.empName || !newRecord.ssoNumber) {
       alert("กรุณากรอกรหัสพนักงาน ชื่อ และเลขประกันสังคมให้ครบถ้วน");
       return;
@@ -268,14 +288,6 @@ export default function SocialSecurity() {
         </div>
       </div>
 
-      <div className="bg-ink-800 border border-app rounded-2xl p-5 text-sm text-muted leading-relaxed">
-        <p className="text-app font-semibold mb-1">หมายเหตุการใช้งาน</p>
-        <p>
-          หน้านี้ใช้สำหรับจดบันทึกผลการดำเนินงานประกันสังคมจากระบบหลักของ ปตท.
-          เพื่อให้ HR แต่ละสาขาติดตามได้ว่าใครยื่น/ไม่ยื่นครบถ้วนแล้ว โดยข้อมูลจะถูกบันทึกไว้เป็นประวัติเท่านั้น
-          ไม่มีการส่งข้อมูลไปยังประกันสังคมโดยตรง
-        </p>
-      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -359,42 +371,6 @@ export default function SocialSecurity() {
         </motion.div>
       </div>
 
-      {/* Filter Bar */}
-      <FilterBar
-        placeholder="ค้นหาชื่อ รหัสพนักงาน หรือเลขประกันสังคม..."
-        onSearch={(query) => {
-          setSearchQuery(query);
-        }}
-        filters={[
-          {
-            label: "ทุกมาตรา",
-            value: sectionFilter,
-            options: [
-              { label: "ทุกมาตรา", value: "" },
-              { label: "มาตรา 33", value: "33" },
-              { label: "มาตรา 39", value: "39" },
-              { label: "มาตรา 40", value: "40" },
-            ],
-            onChange: (value) => {
-              setSectionFilter(value);
-            },
-          },
-          {
-            label: "ทุกสถานะ",
-            value: statusFilter,
-            options: [
-              { label: "ทุกสถานะ", value: "" },
-              { label: "Active", value: "Active" },
-              { label: "Inactive", value: "Inactive" },
-              { label: "Suspended", value: "Suspended" },
-            ],
-            onChange: (value) => {
-              setStatusFilter(value);
-            },
-          },
-        ]}
-      />
-
       {/* Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -402,6 +378,107 @@ export default function SocialSecurity() {
         transition={{ delay: 0.3 }}
         className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
       >
+        <div className="px-6 py-4 border-b border-app bg-soft">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-app font-display">
+                รายการประกันสังคม
+              </h3>
+              <p className="text-xs text-muted mt-1">
+                แสดง {filteredSSO.length} รายการ
+              </p>
+            </div>
+          </div>
+          
+          {/* Filter Bar - Inline with table */}
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="ค้นหาชื่อ รหัสพนักงาน หรือเลขประกันสังคม..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all font-light"
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            {/* Filter Dropdowns */}
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกแผนก</option>
+                {Array.from(new Set(employees.map(e => e.dept))).map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={shiftFilter === "" ? "" : String(shiftFilter)}
+                onChange={(e) => setShiftFilter(e.target.value === "" ? "" : Number(e.target.value))}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกกะ</option>
+                {shifts.map((shift) => (
+                  <option key={shift.id} value={String(shift.id)}>
+                    {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={sectionFilter}
+                onChange={(e) => setSectionFilter(e.target.value)}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกมาตรา</option>
+                <option value="33">มาตรา 33</option>
+                <option value="39">มาตรา 39</option>
+                <option value="40">มาตรา 40</option>
+              </select>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกสถานะ</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Suspended">Suspended</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-soft border-b border-app">
@@ -535,7 +612,7 @@ export default function SocialSecurity() {
         {selectedEmployee && (
           <div className="space-y-6">
             {/* Employee Info */}
-            <div className="bg-ink-800 rounded-xl p-4 border border-app">
+            <div className="bg-soft rounded-xl p-4 border border-app">
               <h3 className="text-lg font-semibold text-app mb-4 font-display">
                 ข้อมูลประกันสังคม
               </h3>
@@ -708,56 +785,81 @@ export default function SocialSecurity() {
           setNewRecord(initialNewRecord);
         }}
         title="เพิ่มข้อมูลประกันสังคม"
+        onSubmit={handleSubmitNewRecord}
+        submitLabel="บันทึกข้อมูล"
         size="lg"
       >
-        <form onSubmit={handleSubmitNewRecord} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-muted uppercase mb-1">รหัสพนักงาน</label>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                รหัสพนักงาน <span className="text-red-400">*</span>
+              </label>
               <input
                 type="text"
-                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 value={newRecord.empCode}
                 onChange={(event) => handleNewRecordChange("empCode", event.target.value)}
                 placeholder="เช่น EMP-0101"
                 required
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted uppercase mb-1">ชื่อ-นามสกุล</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                ชื่อ-นามสกุล <span className="text-red-400">*</span>
+              </label>
               <input
                 type="text"
-                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 value={newRecord.empName}
                 onChange={(event) => handleNewRecordChange("empName", event.target.value)}
                 placeholder="ระบุชื่อให้ตรงกับระบบหลัก"
                 required
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted uppercase mb-1">เลขประกันสังคม</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                เลขประกันสังคม <span className="text-red-400">*</span>
+              </label>
               <input
                 type="text"
-                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 value={newRecord.ssoNumber}
                 onChange={(event) => handleNewRecordChange("ssoNumber", event.target.value)}
                 placeholder="13 หลัก"
                 required
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted uppercase mb-1">วันที่ขึ้นทะเบียน</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                วันที่ขึ้นทะเบียน
+              </label>
               <input
                 type="date"
-                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
                 value={newRecord.registrationDate}
                 onChange={(event) => handleNewRecordChange("registrationDate", event.target.value)}
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted uppercase mb-1">มาตรา</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                มาตรา <span className="text-red-400">*</span>
+              </label>
               <select
-                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
                 value={newRecord.section}
                 onChange={(event) => handleNewRecordChange("section", event.target.value)}
               >
@@ -766,10 +868,14 @@ export default function SocialSecurity() {
                 <option value="40">มาตรา 40 (อาชีพอิสระ)</option>
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted uppercase mb-1">สถานะการยื่น</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                สถานะการยื่น <span className="text-red-400">*</span>
+              </label>
               <select
-                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
                 value={newRecord.status}
                 onChange={(event) => handleNewRecordChange("status", event.target.value)}
               >
@@ -778,37 +884,52 @@ export default function SocialSecurity() {
                 <option value="Suspended">Suspended (ยังไม่ยื่น/ระงับ)</option>
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted uppercase mb-1">ฐานเงินเดือน (บาท)</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                ฐานเงินเดือน (บาท)
+              </label>
               <input
                 type="number"
                 min="0"
                 step="100"
-                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 value={newRecord.salaryBase}
                 onChange={(event) => handleNewRecordChange("salaryBase", event.target.value)}
                 placeholder="ใส่ 0 สำหรับมาตรา 39 หรือ 40"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted uppercase mb-1">เงินสมทบฝ่ายลูกจ้าง</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                เงินสมทบฝ่ายลูกจ้าง
+              </label>
               <input
                 type="number"
                 min="0"
                 step="10"
-                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 value={newRecord.employeeContribution}
                 onChange={(event) => handleNewRecordChange("employeeContribution", event.target.value)}
                 placeholder="เช่น 750 หรือ 432"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted uppercase mb-1">เงินสมทบฝั่งนายจ้าง</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                เงินสมทบฝั่งนายจ้าง
+              </label>
               <input
                 type="number"
                 min="0"
                 step="10"
-                className="w-full rounded-xl bg-ink-700 border border-app px-4 py-2 text-sm text-app focus:outline-none focus:ring-2 focus:ring-ptt-cyan/60"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 value={newRecord.employerContribution}
                 onChange={(event) => handleNewRecordChange("employerContribution", event.target.value)}
                 placeholder="ใส่ 0 หากไม่มี"
@@ -816,17 +937,24 @@ export default function SocialSecurity() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-muted">
-            <p>หลังจากบันทึกแล้ว ระบบจะคำนวณยอดรวมเงินสมทบให้อัตโนมัติและเพิ่มในตารางประวัติ</p>
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 px-5 py-2 bg-emerald-500 hover:bg-emerald-500/90 text-white rounded-lg font-semibold transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              บันทึกข้อมูล
-            </button>
+          {/* Info Card */}
+          <div className="p-4 bg-gradient-to-r from-ptt-blue/10 via-ptt-cyan/10 to-ptt-blue/10 
+                        border border-ptt-blue/30 rounded-xl shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-ptt-blue/20 rounded-lg">
+                <svg className="w-5 h-5 text-ptt-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-app mb-1">ข้อมูลสำคัญ</p>
+                <p className="text-xs text-muted leading-relaxed">
+                  หลังจากบันทึกแล้ว ระบบจะคำนวณยอดรวมเงินสมทบให้อัตโนมัติและเพิ่มในตารางประวัติ • ข้อมูลที่ทำเครื่องหมาย <span className="text-red-400">*</span> เป็นข้อมูลที่จำเป็นต้องกรอก
+                </p>
+              </div>
+            </div>
           </div>
-        </form>
+        </div>
       </ModalForm>
     </div>
   );

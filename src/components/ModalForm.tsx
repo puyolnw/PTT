@@ -63,7 +63,7 @@ export default function ModalForm({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/50 z-50"
           />
 
           {/* Modal */}
@@ -72,17 +72,24 @@ export default function ModalForm({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className={`panel border border-app rounded-2xl shadow-2xl 
+              className={`bg-soft border border-app rounded-2xl shadow-2xl 
                          w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden flex flex-col`}
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-app">
-                <h2 className="text-xl font-semibold text-app font-display">
-                  {title}
-                </h2>
+              <div className="flex items-center justify-between px-6 py-5 border-b border-app bg-gradient-to-r from-soft via-soft/95 to-soft">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-ptt-blue/20 rounded-lg">
+                    <svg className="w-5 h-5 text-ptt-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </div>
+                  <h2 className="text-xl font-bold text-app font-display">
+                    {title}
+                  </h2>
+                </div>
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-ink-800 rounded-lg transition-colors text-muted hover:text-app"
+                  className="p-2 hover:bg-soft rounded-xl transition-all duration-200 text-muted hover:text-app hover:scale-110 active:scale-95"
                   aria-label="ปิด"
                 >
                   <X className="w-5 h-5" />
@@ -90,23 +97,25 @@ export default function ModalForm({
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto px-6 py-4">
+              <div className="flex-1 overflow-y-auto px-6 py-6 bg-soft">
                 {children}
               </div>
 
               {/* Footer */}
               {onSubmit && (
-                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-app">
+                <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-app bg-gradient-to-r from-soft/95 via-soft to-soft/95">
                   <button
                     onClick={onClose}
-                    className="px-4 py-2 text-app hover:text-app transition-colors font-medium"
+                    className="px-6 py-2.5 text-muted hover:text-app transition-all duration-200 font-medium
+                             hover:bg-soft rounded-xl border border-app hover:border-app/50"
                   >
                     ยกเลิก
                   </button>
                   <button
                     onClick={onSubmit}
-                    className="px-6 py-2 bg-ptt-blue hover:bg-ptt-blue/80 text-app rounded-xl 
-                             transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                    className="px-8 py-2.5 bg-gradient-to-r from-ptt-blue to-ptt-cyan hover:from-ptt-blue/90 hover:to-ptt-cyan/90 
+                             text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl
+                             hover:-translate-y-0.5 active:translate-y-0"
                   >
                     {submitLabel}
                   </button>

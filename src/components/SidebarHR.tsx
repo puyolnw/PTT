@@ -12,6 +12,7 @@ import {
   Trophy,
   Heart,
   Timer,
+  AlertTriangle,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -21,6 +22,7 @@ const items = [
   { to: "/app/hr/attendance", icon: Clock, label: "บันทึกเวลา", end: false },
   { to: "/app/hr/overtime", icon: Timer, label: "OT", end: false },
   { to: "/app/hr/leaves", icon: Calendar, label: "การลา", end: false },
+  { to: "/app/hr/warnings", icon: AlertTriangle, label: "ทันบน", end: false },
   { to: "/app/hr/payroll", icon: Wallet, label: "เงินเดือน", end: false },
   { to: "/app/hr/welfare", icon: Heart, label: "สวัสดิการ", end: false },
   { to: "/app/hr/social-security", icon: Shield, label: "ประกันสังคม", end: false },

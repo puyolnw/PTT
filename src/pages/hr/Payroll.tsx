@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FileText, Printer, Send, Download, TrendingUp, Users, DollarSign } from "lucide-react";
-import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
-import { payroll as initialPayroll, employees, type Payroll as PayrollType } from "@/data/mockData";
+import { payroll as initialPayroll, employees, shifts, type Payroll as PayrollType } from "@/data/mockData";
 
 export default function Payroll() {
   const payroll = initialPayroll;
@@ -11,6 +10,7 @@ export default function Payroll() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
+  const [shiftFilter, setShiftFilter] = useState<number | "">("");
   const [selectedPayslip, setSelectedPayslip] = useState<PayrollType | null>(null);
   const [isPrintMenuOpen, setIsPrintMenuOpen] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
@@ -53,13 +53,20 @@ export default function Payroll() {
       });
     }
 
+    if (shiftFilter !== "") {
+      filtered = filtered.filter((p) => {
+        const employee = getEmployeeInfo(p.empCode);
+        return employee?.shiftId === shiftFilter;
+      });
+    }
+
     setFilteredPayroll(filtered);
   };
 
   useEffect(() => {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payroll, searchQuery, categoryFilter, deptFilter]);
+  }, [payroll, searchQuery, categoryFilter, deptFilter, shiftFilter]);
 
   // Get unique categories and departments from employees
   const categories = Array.from(new Set(employees.map(e => e.category).filter(Boolean)));
@@ -171,15 +178,7 @@ export default function Payroll() {
             )}
           </div>
 
-          <button
-            onClick={() => setIsSendModalOpen(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-500/80 
-                     text-app rounded-xl transition-all duration-200 font-semibold 
-                     shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-          >
-            <Send className="w-5 h-5" />
-            ส่งข้อมูลไป M6
-          </button>
+
         </div>
       </div>
 
@@ -266,41 +265,6 @@ export default function Payroll() {
       </div>
 
 
-      {/* Filter Bar */}
-      <FilterBar
-        placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
-        onSearch={(query) => {
-          setSearchQuery(query);
-          handleFilter();
-        }}
-        filters={[
-          {
-            label: "ทุกหมวดหมู่",
-            value: categoryFilter,
-            options: [
-              { label: "ทุกหมวดหมู่", value: "" },
-              ...categories.map((c) => ({ label: c || "", value: c || "" })),
-            ],
-            onChange: (value) => {
-              setCategoryFilter(value);
-              handleFilter();
-            },
-          },
-          {
-            label: "ทุกแผนก",
-            value: deptFilter,
-            options: [
-              { label: "ทุกแผนก", value: "" },
-              ...departments.map((d) => ({ label: d, value: d })),
-            ],
-            onChange: (value) => {
-              setDeptFilter(value);
-              handleFilter();
-            },
-          },
-        ]}
-      />
-
       {/* Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -308,6 +272,107 @@ export default function Payroll() {
         transition={{ delay: 0.3 }}
         className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
       >
+        <div className="px-6 py-4 border-b border-app bg-soft">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-app font-display">
+                รายการเงินเดือน
+              </h3>
+              <p className="text-xs text-muted mt-1">
+                แสดง {filteredPayroll.length} จาก {payroll.length} คน
+              </p>
+            </div>
+          </div>
+          
+          {/* Filter Bar - Inline with table */}
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  handleFilter();
+                }}
+                className="w-full pl-10 pr-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all font-light"
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            {/* Filter Dropdowns */}
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={deptFilter}
+                onChange={(e) => {
+                  setDeptFilter(e.target.value);
+                  handleFilter();
+                }}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกแผนก</option>
+                {departments.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  handleFilter();
+                }}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกหมวดหมู่</option>
+                {categories.map((c) => (
+                  <option key={c} value={c || ""}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={shiftFilter === "" ? "" : String(shiftFilter)}
+                onChange={(e) => {
+                  setShiftFilter(e.target.value === "" ? "" : Number(e.target.value));
+                  handleFilter();
+                }}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกกะ</option>
+                {shifts.map((shift) => (
+                  <option key={shift.id} value={String(shift.id)}>
+                    {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-soft border-b border-app">

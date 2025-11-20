@@ -12,6 +12,8 @@ export default function Overtime() {
   });
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedShift, setSelectedShift] = useState<number | "">("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deptFilter, setDeptFilter] = useState("");
   const [isAddOTModalOpen, setIsAddOTModalOpen] = useState(false);
   const [selectedOTDetail, setSelectedOTDetail] = useState<{
     log: AttendanceLog;
@@ -29,8 +31,9 @@ export default function Overtime() {
     note: ""
   });
 
-  // Get all unique categories
+  // Get all unique categories and departments
   const categories = Array.from(new Set(employees.map(e => e.category).filter(Boolean)));
+  const departments = Array.from(new Set(employees.map(e => e.dept)));
 
   // Get employee's shift
   const getEmployeeShift = (empCode: string) => {
@@ -230,6 +233,24 @@ export default function Overtime() {
 
     // Filter mock employees based on selected filters
     let filteredMockEmployees = mockEmployees;
+    
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filteredMockEmployees = filteredMockEmployees.filter(emp => 
+        emp.name.toLowerCase().includes(query) || 
+        emp.code.toLowerCase().includes(query)
+      );
+    }
+    
+    // Department filter
+    if (deptFilter) {
+      filteredMockEmployees = filteredMockEmployees.filter(emp => {
+        const employee = employees.find(e => e.code === emp.code);
+        return employee?.dept === deptFilter;
+      });
+    }
+    
     if (selectedCategory) {
       filteredMockEmployees = filteredMockEmployees.filter(emp => emp.category === selectedCategory);
     }
@@ -343,6 +364,21 @@ export default function Overtime() {
     const days = getDaysInMonth(year, month - 1);
     
     let filteredEmployees = employees.filter(emp => emp.status === "Active");
+    
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filteredEmployees = filteredEmployees.filter(emp => 
+        emp.name.toLowerCase().includes(query) || 
+        emp.code.toLowerCase().includes(query)
+      );
+    }
+    
+    // Department filter
+    if (deptFilter) {
+      filteredEmployees = filteredEmployees.filter(emp => emp.dept === deptFilter);
+    }
+    
     if (selectedCategory) {
       filteredEmployees = filteredEmployees.filter(emp => emp.category === selectedCategory);
     }
@@ -469,16 +505,9 @@ export default function Overtime() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
       >
-        {isMock && (
-          <div className="px-6 py-3 bg-yellow-500/10 border-b border-yellow-500/30">
-            <p className="text-xs text-yellow-200 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4" />
-              <span>แสดงข้อมูลตัวอย่าง (Mock Data) เพื่อให้เห็นภาพหน้าจอ • เมื่อมีข้อมูลจริง ระบบจะแสดงรายการ OT ของพนักงานอัตโนมัติ</span>
-            </p>
-          </div>
-        )}
+
         <div className="px-6 py-4 border-b border-app bg-soft">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
             <div>
               <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
                 <Timer className="w-5 h-5 text-yellow-400" />
@@ -519,22 +548,74 @@ export default function Overtime() {
                   <ChevronRight className="w-4 h-4 text-app" />
                 </button>
               </div>
+            </div>
+          </div>
+          
+          {/* Filter Bar - Inline with table */}
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all font-light"
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            {/* Filter Dropdowns */}
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
+              >
+                <option value="">ทุกแผนก</option>
+                {departments.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
               >
-                <option value="">ทุกแผนก</option>
+                <option value="">ทุกหมวดหมู่</option>
                 {categories.map((cat) => (
                   <option key={cat} value={cat || ""}>
                     {cat}
                   </option>
                 ))}
               </select>
+
               <select
                 value={selectedShift === "" ? "" : String(selectedShift)}
                 onChange={(e) => setSelectedShift(e.target.value === "" ? "" : Number(e.target.value))}
-                className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                         text-app text-sm min-w-[150px]
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                         transition-all cursor-pointer hover:border-app/50"
               >
                 <option value="">ทุกกะ</option>
                 {(() => {
@@ -557,16 +638,16 @@ export default function Overtime() {
           <table className="w-full border-collapse">
             <thead className="bg-soft border-b-2 border-app sticky top-0 z-10">
               <tr>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-app border-r border-app sticky left-0 bg-soft z-20 min-w-[120px]">
+                <th className="px-2 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-0 bg-soft z-20 min-w-[30px] w-[30px]">
                   NO
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-app border-r border-app sticky left-[120px] bg-soft z-20 min-w-[200px]">
+                <th className="px-3 py-3 text-left text-xs font-semibold text-app border-r border-app sticky left-[30px] bg-soft z-20 min-w-[200px]">
                   ชื่อ-สกุล
                 </th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[320px] bg-soft z-20 min-w-[100px]">
+                <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[230px] bg-soft z-20 min-w-[100px]">
                   แผนก
                 </th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[420px] bg-soft z-20 min-w-[120px]">
+                <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[330px] bg-soft z-20 min-w-[120px]">
                   กะ
                 </th>
                 {days.map((day, idx) => (
@@ -588,16 +669,16 @@ export default function Overtime() {
                   transition={{ delay: empIndex * 0.02 }}
                   className="hover:bg-soft/50 transition-colors"
                 >
-                  <td className="px-3 py-3 text-sm text-app font-medium border-r border-app sticky left-0 bg-soft z-10">
+                  <td className="px-2 py-3 text-xs text-app font-semibold border-r border-app sticky left-0 bg-soft z-10 text-center min-w-[30px] w-[30px]">
                     {empIndex + 1}
                   </td>
-                  <td className="px-3 py-3 text-sm text-app font-medium border-r border-app sticky left-[120px] bg-soft z-10">
+                  <td className="px-3 py-3 text-sm text-app font-medium border-r border-app sticky left-[30px] bg-soft z-10">
                     {data.employee.name}
                   </td>
-                  <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[320px] bg-soft z-10">
+                  <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[230px] bg-soft z-10">
                     <span className="text-xs text-ptt-cyan">{data.employee.category || "-"}</span>
                   </td>
-                  <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[420px] bg-soft z-10">
+                  <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[330px] bg-soft z-10">
                     {data.shift ? (
                       <div className="text-xs">
                         <div className="text-ptt-cyan font-medium">
@@ -888,23 +969,32 @@ export default function Overtime() {
         onSubmit={handleAddOT}
         submitLabel="บันทึก OT"
       >
-        <div className="space-y-4">
-          <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-            <p className="text-xs text-yellow-200 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4" />
-              <span>พนักงานจะลงทะเบียน OT ไว้ที่เอกสารแล้ว HR/Admin จะเป็นคนมาเพิ่มข้อมูล OT ในระบบ</span>
-            </p>
+        <div className="space-y-6">
+          <div className="p-4 bg-gradient-to-r from-yellow-500/10 via-yellow-500/5 to-yellow-500/10 
+                        border border-yellow-500/30 rounded-xl shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-yellow-500/20 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-app mb-1">ข้อมูลสำคัญ</p>
+                <p className="text-xs text-muted leading-relaxed">
+                  พนักงานจะลงทะเบียน OT ไว้ที่เอกสารแล้ว HR/Admin จะเป็นคนมาเพิ่มข้อมูล OT ในระบบ
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
               เลือกพนักงาน <span className="text-red-400">*</span>
             </label>
             <select
               value={otForm.empCode}
               onChange={(e) => handleEmployeeSelect(e.target.value)}
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50 cursor-pointer"
               required
             >
               <option value="">เลือกพนักงาน</option>
@@ -940,23 +1030,24 @@ export default function Overtime() {
             );
           })()}
 
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
               วันที่ทำ OT <span className="text-red-400">*</span>
             </label>
             <input
               type="date"
               value={otForm.date}
               onChange={(e) => handleOTFormChange("date", e.target.value)}
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50 cursor-pointer"
               required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+          <div className="grid grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 OT ชั่วโมง <span className="text-red-400">*</span>
               </label>
               <input
@@ -965,14 +1056,16 @@ export default function Overtime() {
                 min="0"
                 value={otForm.otHours}
                 onChange={(e) => handleOTFormChange("otHours", e.target.value)}
-                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 placeholder="0.0"
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-app mb-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
                 OT Rate (บาท/ชั่วโมง) <span className="text-red-400">*</span>
               </label>
               <input
@@ -981,8 +1074,10 @@ export default function Overtime() {
                 min="0"
                 value={otForm.otRate}
                 onChange={(e) => handleOTFormChange("otRate", e.target.value)}
-                className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
                 placeholder="0.00"
                 required
               />
@@ -990,21 +1085,31 @@ export default function Overtime() {
           </div>
 
           {parseFloat(otForm.otHours || "0") > 0 && parseFloat(otForm.otRate || "0") > 0 && (
-            <div className="p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-app">เงิน OT:</span>
-                <span className="text-lg font-bold text-green-400 font-mono">
+            <div className="p-4 bg-gradient-to-r from-ptt-blue/10 via-ptt-cyan/10 to-ptt-blue/10 
+                          border border-ptt-blue/30 rounded-xl shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-ptt-blue/20 rounded-lg">
+                    <svg className="w-5 h-5 text-ptt-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-app mb-1">เงิน OT</p>
+                    <p className="text-xs text-muted">
+                      {parseFloat(otForm.otHours || "0").toFixed(2)} ชม. × {parseFloat(otForm.otRate || "0").toFixed(2)} บาท/ชม.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xl font-bold text-green-400 font-mono">
                   {parseFloat(otForm.otAmount || "0").toFixed(2)} บาท
                 </span>
               </div>
-              <p className="text-xs text-muted mt-1">
-                {parseFloat(otForm.otHours || "0").toFixed(2)} ชม. × {parseFloat(otForm.otRate || "0").toFixed(2)} บาท/ชม.
-              </p>
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
               หมายเหตุ
             </label>
             <textarea
@@ -1012,9 +1117,10 @@ export default function Overtime() {
               value={otForm.note}
               onChange={(e) => handleOTFormChange("note", e.target.value)}
               placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)..."
-              className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
-                       focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
+                       focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50 resize-none"
             />
           </div>
         </div>

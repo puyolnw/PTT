@@ -3690,3 +3690,267 @@ export const welfareRecords: WelfareRecord[] = [
   { id: 35, type: "scholarship", empCode: "EMP-0023", empName: "ประเสริฐ ช่าง", category: "ช่าง", amount: 22000, date: "2025-07-01", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับอุดมศึกษา" }
 ];
 
+// ========== WARNINGS (ทันบน - การเตือนจากนายจ้าง) ==========
+// ประเภทการเตือน: 4 ระดับตามลำดับความรุนแรง
+// 1. แบบไม่เป็นลายลักษณ์อักษร (เตือนด้วยการพูดคุย) - 3 ครั้ง
+// 2. แบบเป็นลายลักษณ์อักษร (เตือนด้วยเอกสาร) - 3 ครั้ง  
+// 3. พักงาน (กรณีร้ายแรง)
+// 4. ไล่ออกจากงาน (กรณีร้ายแรงที่สุด)
+
+export interface WarningRecord {
+  id: number;
+  empCode: string;
+  empName: string;
+  empCategory: string; // หมวดหมู่พนักงาน
+  warningType: "พูดคุย" | "เอกสาร" | "พักงาน" | "ไล่ออก";
+  warningLevel: number; // ระดับที่เท่าไหร่ (1-4)
+  reason: string; // เหตุการณ์/เหตุผลการเตือน เช่น "การร้องเรียนจากลูกค้า", "ทำงานไม่ถูกต้อง"
+  description: string; // รายละเอียดการเตือน
+  date: string; // วันที่ออกการเตือน
+  issuedBy: string; // ชื่อผู้ออกการเตือน (หัวหน้า)
+  status: "ระหว่างดำเนินการ" | "เสร็จสิ้น" | "ยกเลิก";
+  notes?: string;
+}
+
+export const warningRecords: WarningRecord[] = [
+  // EMP-0001 - สมชาย ใจดี
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    empCategory: "ปั๊ม",
+    warningType: "พูดคุย",
+    warningLevel: 1,
+    reason: "การร้องเรียนจากลูกค้า",
+    description: "ลูกค้ารายงานว่าพนักงานมีการบริการไม่ดี - พูดจาหลวน ไม่แย้มยิ้ม",
+    date: "2024-08-15",
+    issuedBy: "หัวหน้าปั๊ม",
+    status: "เสร็จสิ้น",
+    notes: "ได้รับการเตือนและปรับปรุงตัวเองแล้ว"
+  },
+  {
+    id: 2,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    empCategory: "ปั๊ม",
+    warningType: "พูดคุย",
+    warningLevel: 2,
+    reason: "มาสาย",
+    description: "เข้างานสาย 20 นาที โดยไม่แจ้งให้ทราบก่อนหน้า",
+    date: "2024-09-20",
+    issuedBy: "หัวหน้าปั๊ม",
+    status: "เสร็จสิ้น"
+  },
+  
+  // EMP-0002 - สมหญิง รักงาน
+  {
+    id: 3,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    empCategory: "ปั๊ม",
+    warningType: "พูดคุย",
+    warningLevel: 1,
+    reason: "ขาดงาน",
+    description: "ขาดงานโดยไม่แจ้งให้ทราบ - ปรากฏการณ์ครั้งแรก",
+    date: "2024-07-10",
+    issuedBy: "หัวหน้าปั๊ม",
+    status: "เสร็จสิ้น",
+    notes: "เหตุผลเป็นการเจ็บป่วย มีการลา แต่ขาดการแจ้งก่อนหน้า"
+  },
+  
+  // EMP-0003 - วรพล ตั้งใจ
+  {
+    id: 4,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    empCategory: "ปั๊ม",
+    warningType: "เอกสาร",
+    warningLevel: 2,
+    reason: "ทำงานไม่ตรงตามมาตรฐาน",
+    description: "ไม่ปฏิบัติตามกระบวนการการบริการตามขั้นตอนที่กำหนด - สาเหตุจากการประมาท",
+    date: "2024-10-01",
+    issuedBy: "หัวหน้าปั๊ม",
+    status: "เสร็จสิ้น",
+    notes: "ปรับปรุงวิธีการทำงาน"
+  },
+  {
+    id: 5,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    empCategory: "ปั๊ม",
+    warningType: "พูดคุย",
+    warningLevel: 1,
+    reason: "พูดจาไม่สุภาพ",
+    description: "พูดจากับลูกค้าด้วยน้ำเสียง ไม่สุภาพ เกิดความไม่พอใจต่อลูกค้า",
+    date: "2024-11-05",
+    issuedBy: "หัวหน้าปั๊ม",
+    status: "เสร็จสิ้น"
+  },
+  
+  // EMP-0005 - พิมพ์ชนก สมใจ
+  {
+    id: 6,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    empCategory: "ปึงหงี่เชียง",
+    warningType: "พูดคุย",
+    warningLevel: 1,
+    reason: "การร้องเรียนจากลูกค้า",
+    description: "ลูกค้ารายงานคำบ่นเรื่องเสื้อผ้าไม่สะอาด ดูหยาบชา",
+    date: "2024-06-12",
+    issuedBy: "หัวหน้าร้านปึงหงี่เชียง",
+    status: "เสร็จสิ้น",
+    notes: "ปรับปรุงเครื่องแต่งกายและสุขภาพอนามัยส่วนบุคคล"
+  },
+  
+  // EMP-0008 - อัญชลี มีชัย
+  {
+    id: 7,
+    empCode: "EMP-0008",
+    empName: "อัญชลี มีชัย",
+    empCategory: "ร้านเชสเตอร์",
+    warningType: "เอกสาร",
+    warningLevel: 1,
+    reason: "ขาดงาน",
+    description: "ขาดงาน 2 วันติดต่อกันโดยแจ้งล่วงหน้าผ่านแอปเท่านั้น - ไม่ติดต่อโทรศัพท์",
+    date: "2024-09-10",
+    issuedBy: "หัวหน้าร้านเชสเตอร์",
+    status: "เสร็จสิ้น",
+    notes: "ตีความเข้าใจเกี่ยวกับวิธีการขอลา"
+  },
+  {
+    id: 8,
+    empCode: "EMP-0008",
+    empName: "อัญชลี มีชัย",
+    empCategory: "ร้านเชสเตอร์",
+    warningType: "เอกสาร",
+    warningLevel: 2,
+    reason: "มาสาย",
+    description: "มาสายในการเข้างาน 5 วันในรอบเดือน - โดยไม่มีเหตุผลที่สมควร",
+    date: "2024-10-15",
+    issuedBy: "หัวหน้าร้านเชสเตอร์",
+    status: "เสร็จสิ้น"
+  },
+  {
+    id: 9,
+    empCode: "EMP-0008",
+    empName: "อัญชลี มีชัย",
+    empCategory: "ร้านเชสเตอร์",
+    warningType: "เอกสาร",
+    warningLevel: 3,
+    reason: "ไม่ปฏิบัติตามสั่งการของหัวหน้า",
+    description: "ปฏิเสธการทำงานที่หัวหน้าสั่งโดยไม่มีเหตุผลที่เหมาะสม",
+    date: "2024-11-10",
+    issuedBy: "หัวหน้าร้านเชสเตอร์",
+    status: "ระหว่างดำเนินการ",
+    notes: "สัญญาณเตือนสำคัญ - ต้องติดตามอย่างใกล้ชิด"
+  },
+  
+  // EMP-0009 - วิภา รักษ์สุข
+  {
+    id: 10,
+    empCode: "EMP-0009",
+    empName: "วิภา รักษ์สุข",
+    empCategory: "แม่บ้าน",
+    warningType: "พูดคุย",
+    warningLevel: 1,
+    reason: "ทำงานไม่ประณีต",
+    description: "สถานที่ทำงานไม่สะอาด - พื้นมีเศษอาหาร เก้าอี้ไม่เรียบร้อย",
+    date: "2024-08-20",
+    issuedBy: "หัวหน้าแม่บ้าน",
+    status: "เสร็จสิ้น",
+    notes: "ปรับปรุงมาตรฐานการทำความสะอาด"
+  },
+  
+  // EMP-0013 - ประยุทธ์ กลางคืน
+  {
+    id: 11,
+    empCode: "EMP-0013",
+    empName: "ประยุทธ์ กลางคืน",
+    empCategory: "ปั๊ม",
+    warningType: "พูดคุย",
+    warningLevel: 1,
+    reason: "มาสาย",
+    description: "เข้างานสาย 15 นาที ในวันจันทร์ - วันแรกของการเข้างาน",
+    date: "2024-11-03",
+    issuedBy: "หัวหน้าปั๊ม",
+    status: "เสร็จสิ้น"
+  },
+  
+  // EMP-0020 - อภิชัย อเมซอน
+  {
+    id: 12,
+    empCode: "EMP-0020",
+    empName: "อภิชัย อเมซอน",
+    empCategory: "Amazon",
+    warningType: "เอกสาร",
+    warningLevel: 1,
+    reason: "การร้องเรียนจากลูกค้า",
+    description: "ลูกค้าร่องเรียนเรื่องการบริการไม่สิ้นสุด - ไม่ตอบสายโทรศัพท์",
+    date: "2024-09-25",
+    issuedBy: "หัวหน้า Amazon",
+    status: "เสร็จสิ้น",
+    notes: "ปรับปรุงการติดต่อสื่อสาร"
+  },
+  
+  // EMP-0023 - ประเสริฐ ช่าง
+  {
+    id: 13,
+    empCode: "EMP-0023",
+    empName: "ประเสริฐ ช่าง",
+    empCategory: "ช่าง",
+    warningType: "พูดคุย",
+    warningLevel: 1,
+    reason: "การสูญเสียเครื่องมือ",
+    description: "สูญหายเครื่องมือซ่อมของบริษัท มูลค่า 2,500 บาท",
+    date: "2024-08-10",
+    issuedBy: "หัวหน้าช่าง",
+    status: "เสร็จสิ้น",
+    notes: "หัก เงินเดือน 2,500 บาท เพื่อชดเชย"
+  },
+  {
+    id: 14,
+    empCode: "EMP-0023",
+    empName: "ประเสริฐ ช่าง",
+    empCategory: "ช่าง",
+    warningType: "พูดคุย",
+    warningLevel: 2,
+    reason: "การเนิน",
+    description: "เนิน (ไม่ส่งงาน) ต่อเนื่อง 3 วัน ทำให้ลูกค้ารอบริการล่าช้า",
+    date: "2024-10-05",
+    issuedBy: "หัวหน้าช่าง",
+    status: "เสร็จสิ้น"
+  },
+  
+  // EMP-0026 - นิดา ออฟฟิศ
+  {
+    id: 15,
+    empCode: "EMP-0026",
+    empName: "นิดา ออฟฟิศ",
+    empCategory: "Office",
+    warningType: "พูดคุย",
+    warningLevel: 1,
+    reason: "ขาดงาน",
+    description: "ขาดงาน 1 วัน โดยแจ้งล่วงหน้าน้อยกว่า 2 ชั่วโมง",
+    date: "2024-07-18",
+    issuedBy: "หัวหน้าOffice",
+    status: "เสร็จสิ้น"
+  },
+  
+  // EMP-0032 - สมศักดิ์ ขับรถ
+  {
+    id: 16,
+    empCode: "EMP-0032",
+    empName: "สมศักดิ์ ขับรถ",
+    empCategory: "ขับรถ",
+    warningType: "เอกสาร",
+    warningLevel: 1,
+    reason: "ฝ่าฝืนกฎจราจร",
+    description: "ถูกจับเพราะขับรถเกินความเร็ว - ได้รับบัตรเดินทาง",
+    date: "2024-09-30",
+    issuedBy: "หัวหน้าขับรถ",
+    status: "เสร็จสิ้น",
+    notes: "ฝ่ายบริษัทชดเชยค่าปรับแล้ว"
+  }
+];
+
