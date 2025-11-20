@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { UserPlus, Eye } from "lucide-react";
+import { UserPlus, Eye, Users, UserCheck, UserX, Building2 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import { employees as initialEmployees, shifts, type Employee } from "@/data/mockData";
@@ -69,6 +69,19 @@ export default function Employees() {
 
   const departments = Array.from(new Set(employees.map((e) => e.dept)));
   const statuses = Array.from(new Set(employees.map((e) => e.status)));
+
+  // Calculate statistics for dashboard
+  const totalEmployees = employees.length;
+  const activeEmployees = employees.filter(e => e.status === "Active").length;
+  const leaveEmployees = employees.filter(e => e.status === "Leave").length;
+  const resignedEmployees = employees.filter(e => e.status === "Resigned").length;
+  
+  // Get department with most employees
+  const deptCounts = departments.map(dept => ({
+    dept,
+    count: employees.filter(e => e.dept === dept).length
+  }));
+  const topDept = deptCounts.sort((a, b) => b.count - a.count)[0];
 
   // Generate employee code
   const generateEmployeeCode = (): string => {
@@ -149,6 +162,133 @@ export default function Employees() {
           เพิ่มพนักงาน
         </button>
       </div>
+
+      {/* Dashboard Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-soft border border-app rounded-2xl p-6 shadow-xl"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-ptt-cyan/20 rounded-lg">
+              <Users className="w-5 h-5 text-ptt-cyan" />
+            </div>
+            <p className="text-muted text-sm font-light">พนักงานทั้งหมด</p>
+          </div>
+          <p className="text-3xl font-bold text-app font-display">
+            {totalEmployees}
+          </p>
+          <p className="text-xs text-muted mt-1">
+            แสดง {filteredEmployees.length} คน
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-soft border border-app rounded-2xl p-6 shadow-xl"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-green-500/20 rounded-lg">
+              <UserCheck className="w-5 h-5 text-green-400" />
+            </div>
+            <p className="text-muted text-sm font-light">สถานะ Active</p>
+          </div>
+          <p className="text-3xl font-bold text-app font-display">
+            {activeEmployees}
+          </p>
+          <p className="text-xs text-muted mt-1">
+            {totalEmployees > 0 ? Math.round((activeEmployees / totalEmployees) * 100) : 0}% ของทั้งหมด
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-soft border border-app rounded-2xl p-6 shadow-xl"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-yellow-500/20 rounded-lg">
+              <UserX className="w-5 h-5 text-yellow-400" />
+            </div>
+            <p className="text-muted text-sm font-light">สถานะ Leave</p>
+          </div>
+          <p className="text-3xl font-bold text-app font-display">
+            {leaveEmployees}
+          </p>
+          <p className="text-xs text-muted mt-1">
+            {totalEmployees > 0 ? Math.round((leaveEmployees / totalEmployees) * 100) : 0}% ของทั้งหมด
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-soft border border-app rounded-2xl p-6 shadow-xl"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-red-500/20 rounded-lg">
+              <UserX className="w-5 h-5 text-red-400" />
+            </div>
+            <p className="text-muted text-sm font-light">สถานะ Resigned</p>
+          </div>
+          <p className="text-3xl font-bold text-app font-display">
+            {resignedEmployees}
+          </p>
+          <p className="text-xs text-muted mt-1">
+            {totalEmployees > 0 ? Math.round((resignedEmployees / totalEmployees) * 100) : 0}% ของทั้งหมด
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Additional Stats Row */}
+      {topDept && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-soft border border-app rounded-2xl p-6 shadow-xl"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <Building2 className="w-5 h-5 text-blue-400" />
+              </div>
+              <p className="text-muted text-sm font-light">แผนกที่มีพนักงานมากที่สุด</p>
+            </div>
+            <p className="text-2xl font-bold text-app font-display">
+              {topDept.dept}
+            </p>
+            <p className="text-xs text-muted mt-1">
+              {topDept.count} คน
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-soft border border-app rounded-2xl p-6 shadow-xl"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-purple-500/20 rounded-lg">
+                <Users className="w-5 h-5 text-purple-400" />
+              </div>
+              <p className="text-muted text-sm font-light">จำนวนแผนกทั้งหมด</p>
+            </div>
+            <p className="text-2xl font-bold text-app font-display">
+              {departments.length}
+            </p>
+            <p className="text-xs text-muted mt-1">
+              แผนก
+            </p>
+          </motion.div>
+        </div>
+      )}
 
       {/* Table */}
       <motion.div
