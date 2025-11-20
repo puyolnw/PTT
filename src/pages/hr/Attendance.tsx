@@ -4,7 +4,7 @@ import { Calendar, Edit2, Clock, CheckCircle, AlertCircle, Users, Plus, FileText
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
-import { attendanceLogs as initialAttendanceLogs, employees, shifts, type AttendanceLog } from "@/data/mockData";
+import { attendanceLogs as initialAttendanceLogs, employees, shifts, shiftAssignments, type AttendanceLog } from "@/data/mockData";
 
 export default function Attendance() {
   const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>(initialAttendanceLogs);
@@ -45,6 +45,14 @@ export default function Attendance() {
     otHours: "",
     reason: ""
   });
+  
+  // Shift plan modal states
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [selectedShiftDate, setSelectedShiftDate] = useState<{ date: Date; shift: typeof shifts[0] } | null>(null);
+  const [assignEmployeeForm, setAssignEmployeeForm] = useState({
+    empCode: ""
+  });
+  
   const shiftPlanRef = useRef<HTMLDivElement | null>(null);
   const shiftColorPalette = ["bg-green-500/20", "bg-blue-500/20", "bg-purple-500/20", "bg-orange-500/20", "bg-ptt-cyan/20"];
 
@@ -513,6 +521,114 @@ export default function Attendance() {
     }
   };
 
+  // Get employees assigned to a specific shift and date
+  const getEmployeesForShift = (shift: typeof shifts[0], date: Date) => {
+    // Get all employees in the same category as the selected shift
+    const categoryEmployees = employees.filter(
+      emp => emp.status === "Active" && emp.category === shift.category
+    );
+    
+    // Get employees who are assigned to this shift (from shiftAssignments)
+    const assignedEmployees = shiftAssignments
+      .filter(
+        assignment =>
+          assignment.shiftId === shift.id &&
+          assignment.status === "Active" &&
+          new Date(assignment.effectiveDate) <= date &&
+          (!assignment.endDate || new Date(assignment.endDate) >= date)
+      )
+      .map(assignment => employees.find(emp => emp.code === assignment.empCode))
+      .filter(Boolean) as typeof employees;
+    
+    return {
+      assigned: assignedEmployees,
+      available: categoryEmployees.filter(emp => !assignedEmployees.find(ae => ae.code === emp.code))
+    };
+  };
+
+  // Handle opening shift modal
+  const handleShiftClick = (date: Date, shift: typeof shifts[0]) => {
+    setSelectedShiftDate({ date, shift });
+    setIsShiftModalOpen(true);
+    setAssignEmployeeForm({ empCode: "" });
+  };
+
+  // Handle closing shift modal
+  const handleCloseShiftModal = () => {
+    setIsShiftModalOpen(false);
+    setSelectedShiftDate(null);
+    setAssignEmployeeForm({ empCode: "" });
+  };
+
+  // Handle assigning employee to shift
+  const handleAssignEmployeeToShift = () => {
+    if (!selectedShiftDate || !assignEmployeeForm.empCode) {
+      alert("กรุณาเลือกพนักงาน");
+      return;
+    }
+
+    const employee = employees.find(e => e.code === assignEmployeeForm.empCode);
+    if (!employee) {
+      alert("ไม่พบข้อมูลพนักงาน");
+      return;
+    }
+
+    // Update employee's shift (in real app, this would be persisted to database)
+    // For now, just show confirmation
+    alert(
+      `บันทึกการมอบหมายสำเร็จ!\n` +
+      `พนักงาน: ${employee.name}\n` +
+      `กะ: ${selectedShiftDate.shift.name} (${selectedShiftDate.shift.startTime}-${selectedShiftDate.shift.endTime})\n` +
+      `วันที่: ${selectedShiftDate.date.toLocaleDateString('th-TH')}`
+    );
+    
+    setAssignEmployeeForm({ empCode: "" });
+    // Optionally close modal
+    // handleCloseShiftModal();
+  };
+
+  // Handle saving shift plan registration
+  const handleSaveShiftRegistration = () => {
+    if (!selectedShiftDate) return;
+
+    const { assigned } = getEmployeesForShift(selectedShiftDate.shift, selectedShiftDate.date);
+    
+    if (assigned.length === 0) {
+      alert("กรุณาเพิ่มพนักงานเข้ากะก่อนบันทึก");
+      return;
+    }
+
+    // Format data for registration
+    const registrationData = {
+      shiftId: selectedShiftDate.shift.id,
+      shiftName: selectedShiftDate.shift.name,
+      shiftTime: `${selectedShiftDate.shift.startTime}-${selectedShiftDate.shift.endTime}`,
+      registrationDate: selectedShiftDate.date.toLocaleDateString('th-TH'),
+      employeeCount: assigned.length,
+      employees: assigned.map(emp => `${emp.name} (${emp.code})`).join(", "),
+      category: selectedShiftDate.shift.category,
+      savedDate: new Date().toLocaleDateString('th-TH'),
+      savedTime: new Date().toLocaleTimeString('th-TH')
+    };
+
+    // Show confirmation with detailed information
+    alert(
+      `✅ บันทึกการลงทะเบียนกะล่วงหน้าสำเร็จ!\n\n` +
+      `📋 รายละเอียดการลงทะเบียน:\n` +
+      `━━━━━━━━━━━━━━━━━━━━━\n` +
+      `กะ: ${registrationData.shiftName}\n` +
+      `เวลา: ${registrationData.shiftTime}\n` +
+      `วันที่: ${registrationData.registrationDate}\n` +
+      `แผนก: ${registrationData.category}\n` +
+      `จำนวนพนักงาน: ${registrationData.employeeCount} คน\n\n` +
+      `👥 พนักงานที่ลงทะเบียน:\n` +
+      `${assigned.map(emp => `   • ${emp.name} (${emp.code})`).join("\n")}\n\n` +
+      `⏰ บันทึกเมื่อ: ${registrationData.savedDate} ${registrationData.savedTime}`
+    );
+
+    handleCloseShiftModal();
+  };
+
   // Group logs by shift
   const logsByShift = filteredLogs.reduce((acc, log) => {
     const employee = employees.find(e => e.code === log.empCode);
@@ -609,16 +725,23 @@ export default function Attendance() {
                      text-app border border-app rounded-xl transition-all duration-200 font-medium"
           >
             <Calendar className="w-4 h-4" />
-            {viewMode === "calendar" ? "ลงทะเบียนกะล่วงหน้า" : "มุมมองปฏิทิน"}
+            {viewMode === "calendar" ? "ลงทะเบียนกะล่วงหน้า" : "ตารางลงเวลาทำงาน"}
           </button>
           <button
-            onClick={() => setIsRecordModalOpen(true)}
+            onClick={() => {
+              if (viewMode === "list") {
+                // When in shift plan view, show save registration button behavior
+                alert("กรุณาเลือกกะเพื่อบันทึกการลงทะเบียน");
+              } else {
+                setIsRecordModalOpen(true);
+              }
+            }}
             className="inline-flex items-center gap-2 px-6 py-3 bg-ptt-cyan hover:bg-ptt-cyan/80 
                      text-app rounded-xl transition-all duration-200 font-semibold 
                      shadow-lg hover:shadow-xl hover:-translate-y-0.5"
           >
             <Plus className="w-5 h-5" />
-            บันทึกเวลาเข้าออกใหม่
+            {viewMode === "list" ? "บันทึกข้อมูลลงทะเบียนกะ" : "บันทึกเวลาเข้าออกใหม่"}
           </button>
         </div>
       </div>
@@ -936,7 +1059,8 @@ export default function Attendance() {
         </motion.div>
       )}
 
-      {/* Shift Plan Table */}
+      {/* Shift Plan Table - Hide in calendar view */}
+      {viewMode === "list" && (
       <motion.div
         ref={shiftPlanRef}
         initial={{ opacity: 0, y: 20 }}
@@ -954,145 +1078,387 @@ export default function Attendance() {
                 วางแผนการโยกย้ายกะในเดือนถัดไป (ข้อมูลจำลองเพื่อการทดสอบ)
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => {
-                  const [year, month] = shiftPlanMonth.split('-').map(Number);
-                  const prevMonth = month === 1 ? 12 : month - 1;
-                  const prevYear = month === 1 ? year - 1 : year;
-                  setShiftPlanMonth(`${prevYear}-${String(prevMonth).padStart(2, '0')}`);
-                }}
-                className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4 text-app" />
-              </button>
-              <input
-                type="month"
-                value={shiftPlanMonth}
-                onChange={(e) => setShiftPlanMonth(e.target.value)}
+            <div className="flex flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const [year, month] = shiftPlanMonth.split('-').map(Number);
+                    const prevMonth = month === 1 ? 12 : month - 1;
+                    const prevYear = month === 1 ? year - 1 : year;
+                    setShiftPlanMonth(`${prevYear}-${String(prevMonth).padStart(2, '0')}`);
+                  }}
+                  className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4 text-app" />
+                </button>
+                <input
+                  type="month"
+                  value={shiftPlanMonth}
+                  onChange={(e) => setShiftPlanMonth(e.target.value)}
+                  className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                />
+                <button
+                  onClick={() => {
+                    const [year, month] = shiftPlanMonth.split('-').map(Number);
+                    const nextMonth = month === 12 ? 1 : month + 1;
+                    const nextYear = month === 12 ? year + 1 : year;
+                    setShiftPlanMonth(`${nextYear}-${String(nextMonth).padStart(2, '0')}`);
+                  }}
+                  className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4 text-app" />
+                </button>
+              </div>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
                 className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-              />
-              <button
-                onClick={() => {
-                  const [year, month] = shiftPlanMonth.split('-').map(Number);
-                  const nextMonth = month === 12 ? 1 : month + 1;
-                  const nextYear = month === 12 ? year + 1 : year;
-                  setShiftPlanMonth(`${nextYear}-${String(nextMonth).padStart(2, '0')}`);
-                }}
-                className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
               >
-                <ChevronRight className="w-4 h-4 text-app" />
-              </button>
+                <option value="">ทุกแผนก</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat || ""}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={selectedShift === "" ? "" : String(selectedShift)}
+                onChange={(e) => setSelectedShift(e.target.value === "" ? "" : Number(e.target.value))}
+                className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              >
+                <option value="">ทุกกะ</option>
+                {(() => {
+                  // Filter shifts by selected category
+                  let availableShifts = shifts;
+                  if (selectedCategory) {
+                    availableShifts = shifts.filter(s => s.category === selectedCategory);
+                  }
+                  return availableShifts.map((shift) => (
+                    <option key={shift.id} value={String(shift.id)}>
+                      {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
+                    </option>
+                  ));
+                })()}
+              </select>
             </div>
           </div>
         </div>
 
         {shiftPlanRows.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead className="bg-soft border-b-2 border-app sticky top-0 z-10">
-                <tr>
-                  <th className="px-2 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-0 bg-soft z-20 min-w-[30px] w-[30px]">
-                    NO
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-app border-r border-app sticky left-[30px] bg-soft z-20 min-w-[200px]">
-                    ชื่อ-สกุล
-                  </th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[230px] bg-soft z-20 min-w-[100px]">
-                    แผนก
-                  </th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[330px] bg-soft z-20 min-w-[120px]">
-                    กะปัจจุบัน
-                  </th>
-                  {planDays.map((day, idx) => (
-                    <th
-                      key={`plan-day-${idx}`}
-                      className="px-2 py-3 text-center text-xs font-semibold text-app border-r border-app min-w-[60px]"
-                    >
-                      {day.getDate()}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-app">
-                {shiftPlanRows.map((data, empIndex) => {
-                  const currentShift = data.employee.shiftId
-                    ? shifts.find((s) => s.id === data.employee.shiftId)
-                    : undefined;
+          <>
+            {/* Calendar Header - Weekdays */}
+            <div className="bg-soft border-b border-app">
+              <div className="grid grid-cols-7 border-b-2 border-app bg-ink-800">
+                {['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'].map((day) => (
+                  <div
+                    key={day}
+                    className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app last:border-r-0"
+                  >
+                    {day}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Calendar Grid */}
+              <div className="grid grid-cols-7 gap-0">
+                {/* Empty cells for days before month starts */}
+                {planDays.length > 0 && Array.from({ length: planDays[0].getDay() }).map((_, idx) => (
+                  <div
+                    key={`empty-${idx}`}
+                    className="min-h-[120px] border-r border-b border-app last:border-r-0 bg-ink-900/50"
+                  />
+                ))}
+                
+                {/* Calendar days */}
+                {planDays.map((day, idx) => {
+                  const dayOfWeek = day.getDay();
+                  const isLastCol = dayOfWeek === 6;
+                  const isLastRow = idx === planDays.length - 1;
+                  
+                  // Get all unique shifts to display for this day
+                  let shiftsToDisplay: typeof shifts = [];
+                  
+                  if (selectedShift !== "") {
+                    // If specific shift is selected, show only that shift
+                    const specificShift = shifts.find(s => s.id === selectedShift);
+                    if (specificShift) {
+                      shiftsToDisplay = [specificShift];
+                    }
+                  } else if (selectedCategory) {
+                    // If category is selected, show all shifts for that category
+                    shiftsToDisplay = shifts.filter(s => s.category === selectedCategory);
+                  } else {
+                    // If no filter, show all shifts
+                    shiftsToDisplay = shifts;
+                  }
+                  
                   return (
-                    <motion.tr
-                      key={`plan-row-${data.employee.id}`}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: empIndex * 0.02 }}
-                      className="hover:bg-soft/50 transition-colors"
+                    <div
+                      key={`day-${idx}`}
+                      className={`min-h-[200px] border-r border-b border-app p-2 bg-soft/50 hover:bg-soft transition-colors ${
+                        isLastCol ? 'border-r-0' : ''
+                      } ${isLastRow ? 'border-b-0' : ''}`}
                     >
-                      <td className="px-2 py-3 text-xs text-app font-semibold border-r border-app sticky left-0 bg-soft z-10 text-center min-w-[30px] w-[30px]">
-                        {empIndex + 1}
-                      </td>
-                      <td className="px-3 py-3 text-sm text-app font-medium border-r border-app sticky left-[30px] bg-soft z-10">
-                        {data.employee.name}
-                      </td>
-                      <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[230px] bg-soft z-10">
-                        <span className="text-xs text-ptt-cyan">{data.employee.category || "-"}</span>
-                      </td>
-                      <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[330px] bg-soft z-10">
-                        {currentShift ? (
-                          <div className="text-xs">
-                            <div className="text-ptt-cyan font-medium">
-                              {currentShift.shiftType ? `กะ${currentShift.shiftType}` : ""} {currentShift.name}
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-app">
+                          {day.getDate()}
+                        </span>
+                        <span className="text-xs text-muted">
+                          {day.toLocaleDateString('th-TH', { month: 'short' })}
+                        </span>
+                      </div>
+                      
+                      {/* Show all shifts for this category/day */}
+                      <div className="space-y-2 text-xs">
+                        {shiftsToDisplay.map((shift) => {
+                          const shiftColor = shiftColorPalette[shift.id % shiftColorPalette.length];
+                          
+                          // Get employees assigned to this shift on this day
+                          const employeesInShift = shiftAssignments
+                            .filter(
+                              assignment =>
+                                assignment.shiftId === shift.id &&
+                                assignment.status === "Active" &&
+                                new Date(assignment.effectiveDate) <= day &&
+                                (!assignment.endDate || new Date(assignment.endDate) >= day)
+                            )
+                            .map(assignment => employees.find(emp => emp.code === assignment.empCode))
+                            .filter(Boolean) as typeof employees;
+                          
+                          return (
+                            <div
+                              key={`${shift.id}-${idx}`}
+                              onClick={() => handleShiftClick(day, shift)}
+                              className={`p-2 rounded text-[11px] font-medium ${shiftColor} cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 border border-app/30`}
+                              title={`${shift.name} (${shift.startTime}-${shift.endTime}) - คลิกเพื่อดูรายละเอียด`}
+                            >
+                              {/* Shift info */}
+                              <div className="font-semibold text-app truncate mb-1">
+                                {shift.shiftType ? `กะ${shift.shiftType}` : shift.name}
+                              </div>
+                              <div className="text-[10px] text-muted mb-1">{shift.startTime}-{shift.endTime}</div>
+                              
+                              {/* Employees in shift */}
+                              {employeesInShift.length > 0 ? (
+                                <div className="bg-app/10 rounded px-1.5 py-1 mt-1">
+                                  <div className="text-[9px] text-app font-semibold mb-0.5">
+                                    👤 {employeesInShift.length} คน
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    {employeesInShift.map((emp) => (
+                                      <div key={emp.code} className="text-[9px] text-app truncate">
+                                        {emp.name.substring(0, 10)}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="bg-red-500/20 rounded px-1.5 py-1 mt-1 text-center text-[9px] text-red-700 font-semibold">
+                                  ยังไม่มีคน
+                                </div>
+                              )}
                             </div>
-                            <div className="text-muted text-[10px]">
-                              {currentShift.startTime}-{currentShift.endTime}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted">-</span>
-                        )}
-                      </td>
-                      {data.schedule.map((plan, scheduleIdx) => {
-                        const shift = plan.shift;
-                        const colorClass = getShiftCellClass(shift);
-                        return (
-                          <td
-                            key={`plan-cell-${plan.date}-${scheduleIdx}`}
-                            className={`px-2 py-2 text-center text-xs border-r border-app ${colorClass}`}
-                            title={
-                              shift
-                                ? `${plan.date}: ${shift.name} (${shift.startTime}-${shift.endTime})`
-                                : `${plan.date}: ยังไม่กำหนด`
-                            }
-                          >
-                            {shift ? (
-                              <>
-                                <p className="text-app font-semibold">{shift.name}</p>
-                                <p className="text-[10px] text-muted">
-                                  {shift.startTime}-{shift.endTime}
-                                </p>
-                              </>
-                            ) : (
-                              <span className="text-muted">-</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </motion.tr>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </div>
+          </>
         ) : (
           <div className="text-center py-12">
             <p className="text-muted font-light">ไม่พบข้อมูลสำหรับเดือนที่เลือก</p>
           </div>
         )}
-        <div className="px-6 py-4 border-t border-app bg-soft text-xs text-muted">
-          💡 สามารถใช้ตารางนี้เป็นต้นแบบในการจัดตารางโยกย้ายกะจริงได้ตามนโยบายขององค์กร
-        </div>
+          <div className="px-6 py-4 border-t border-app bg-soft">
+            <div className="flex flex-wrap gap-4 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-green-500/20 border border-app rounded"></div>
+                <span className="text-app">กะเช้า</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-blue-500/20 border border-app rounded"></div>
+                <span className="text-app">กะบ่าย</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-purple-500/20 border border-app rounded"></div>
+                <span className="text-app">กะกลางคืน</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-orange-500/20 border border-app rounded"></div>
+                <span className="text-app">กะอื่น ๆ</span>
+              </div>
+            </div>
+          </div>
       </motion.div>
+      )}
 
+      {/* Shift Detail Modal */}
+      {isShiftModalOpen && selectedShiftDate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-soft border border-app rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 px-6 py-4 border-b border-app bg-soft flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-app font-display">
+                  {selectedShiftDate.shift.name}
+                </h3>
+                <p className="text-sm text-muted mt-1">
+                  {selectedShiftDate.shift.startTime} - {selectedShiftDate.shift.endTime}
+                  {selectedShiftDate.shift.description && ` • ${selectedShiftDate.shift.description}`}
+                </p>
+                <p className="text-sm text-ptt-cyan mt-1 font-medium">
+                  {selectedShiftDate.date.toLocaleDateString('th-TH', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </p>
+              </div>
+              <button
+                onClick={handleCloseShiftModal}
+                className="text-muted hover:text-app transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Shift Info */}
+              <div className="bg-soft/50 border border-app rounded-xl p-4">
+                <h4 className="font-semibold text-app mb-3">ข้อมูลกะ</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-muted mb-1">ชื่อกะ</p>
+                    <p className="text-sm font-medium text-app">{selectedShiftDate.shift.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-1">ประเภท</p>
+                    <p className="text-sm font-medium text-app">
+                      {selectedShiftDate.shift.shiftType ? `กะ${selectedShiftDate.shift.shiftType}` : "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-1">เวลาทำงาน</p>
+                    <p className="text-sm font-medium text-app">{selectedShiftDate.shift.startTime} - {selectedShiftDate.shift.endTime}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-1">แผนก</p>
+                    <p className="text-sm font-medium text-app">{selectedShiftDate.shift.category || "-"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Assigned Employees */}
+              {(() => {
+                const { assigned } = getEmployeesForShift(selectedShiftDate.shift, selectedShiftDate.date);
+                return (
+                  <div>
+                    <h4 className="font-semibold text-app mb-3 flex items-center gap-2">
+                      <Users className="w-4 h-4 text-ptt-cyan" />
+                      พนักงานในกะนี้ ({assigned.length})
+                    </h4>
+                    {assigned.length > 0 ? (
+                      <div className="space-y-2">
+                        {assigned.map((emp) => (
+                          <div
+                            key={emp.id}
+                            className="flex items-center justify-between bg-soft/50 border border-app rounded-lg p-3 hover:bg-soft transition-colors"
+                          >
+                            <div>
+                              <p className="font-medium text-app">{emp.name}</p>
+                              <p className="text-xs text-muted">{emp.code}</p>
+                            </div>
+                            <span className="text-xs bg-green-500/20 text-green-600 px-2 py-1 rounded">
+                              ได้รับมอบหมาย
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted bg-soft/50 rounded-lg p-4 text-center">
+                        ยังไม่มีพนักงานในกะนี้
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Add Employee Section */}
+              <div className="border-t border-app pt-6">
+                <h4 className="font-semibold text-app mb-3 flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-ptt-cyan" />
+                  เพิ่มพนักงานเข้ากะ
+                </h4>
+                
+                {(() => {
+                  const { available } = getEmployeesForShift(selectedShiftDate.shift, selectedShiftDate.date);
+                  return available.length > 0 ? (
+                    <div className="space-y-3">
+                      <select
+                        value={assignEmployeeForm.empCode}
+                        onChange={(e) => setAssignEmployeeForm({ empCode: e.target.value })}
+                        className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm"
+                      >
+                        <option value="">เลือกพนักงาน</option>
+                        {available.map((emp) => (
+                          <option key={emp.id} value={emp.code}>
+                            {emp.name} ({emp.code})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={handleAssignEmployeeToShift}
+                        disabled={!assignEmployeeForm.empCode}
+                        className="w-full px-4 py-2 bg-ptt-cyan hover:bg-ptt-cyan/80 disabled:bg-muted disabled:cursor-not-allowed 
+                                 text-app font-semibold rounded-lg transition-all duration-200"
+                      >
+                        <Plus className="w-4 h-4 inline mr-2" />
+                        เพิ่มพนักงาน
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted bg-soft/50 rounded-lg p-4 text-center">
+                      ไม่มีพนักงานที่สามารถเพิ่มเข้ากะนี้ (ทุกคนได้รับมอบหมายแล้ว)
+                    </p>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 px-6 py-4 border-t border-app bg-soft flex justify-end gap-2">
+              <button
+                onClick={handleCloseShiftModal}
+                className="px-4 py-2 bg-soft border border-app hover:bg-soft/80 text-app 
+                         font-medium rounded-lg transition-all duration-200"
+              >
+                ปิด
+              </button>
+              <button
+                onClick={handleSaveShiftRegistration}
+                className="inline-flex items-center gap-2 px-6 py-2 bg-ptt-cyan hover:bg-ptt-cyan/80 
+                         text-app font-semibold rounded-lg transition-all duration-200 
+                         shadow-md hover:shadow-lg"
+              >
+                <CheckCircle className="w-5 h-5" />
+                บันทึกการลงทะเบียน
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

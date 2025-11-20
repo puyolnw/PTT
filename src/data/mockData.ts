@@ -384,6 +384,601 @@ export interface Payroll {
   month: string;
 }
 
+// ========== SHIFT ASSIGNMENTS (การมอบหมายกะ) ==========
+export interface ShiftAssignment {
+  id: number;
+  empCode: string;
+  empName: string;
+  shiftId: number;
+  shiftName: string;
+  assignedDate: string; // วันที่มอบหมาย
+  effectiveDate: string; // วันที่ใช้งาน
+  endDate?: string; // วันที่สิ้นสุด (ถ้า null แสดงว่ายังคงใช้อยู่)
+  reason?: string; // เหตุผลการมอบหมาย
+  status: "Active" | "Completed" | "Cancelled"; // สถานะ
+  assignedBy: string; // ผู้มอบหมาย
+}
+
+export const shiftAssignments: ShiftAssignment[] = [
+  // ปั๊มน้ำมัน - กะเช้า
+  {
+    id: 1,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    shiftId: 1,
+    shiftName: "06:30-16:30",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ปั๊มน้ำมัน",
+    status: "Active",
+    assignedBy: "ผจก.ปั๊ม"
+  },
+  {
+    id: 2,
+    empCode: "EMP-0002",
+    empName: "สมหญิง รักงาน",
+    shiftId: 2,
+    shiftName: "07:00-17:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ปั๊มน้ำมัน",
+    status: "Active",
+    assignedBy: "ผจก.ปั๊ม"
+  },
+  {
+    id: 3,
+    empCode: "EMP-0003",
+    empName: "วรพล ตั้งใจ",
+    shiftId: 3,
+    shiftName: "08:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ปั๊มน้ำมัน",
+    status: "Active",
+    assignedBy: "ผจก.ปั๊ม"
+  },
+  {
+    id: 3.5,
+    empCode: "EMP-0033",
+    empName: "วินัย มั่นใจ",
+    shiftId: 1,
+    shiftName: "06:30-16:30",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ปั๊มน้ำมัน",
+    status: "Active",
+    assignedBy: "ผจก.ปั๊ม"
+  },
+  {
+    id: 3.7,
+    empCode: "EMP-0034",
+    empName: "ชนาธิป ขยัน",
+    shiftId: 2,
+    shiftName: "07:00-17:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ปั๊มน้ำมัน",
+    status: "Active",
+    assignedBy: "ผจก.ปั๊ม"
+  },
+  // ปั๊มน้ำมัน - กะกลางคืน
+  {
+    id: 4,
+    empCode: "EMP-0013",
+    empName: "ประยุทธ์ กลางคืน",
+    shiftId: 4,
+    shiftName: "16:00-07:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ปั๊มน้ำมัน",
+    status: "Active",
+    assignedBy: "ผจก.ปั๊ม"
+  },
+  {
+    id: 5,
+    empCode: "EMP-0014",
+    empName: "สุรชัย ดึก",
+    shiftId: 5,
+    shiftName: "16:30-07:30",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ปั๊มน้ำมัน",
+    status: "Active",
+    assignedBy: "ผจก.ปั๊ม"
+  },
+  {
+    id: 5.5,
+    empCode: "EMP-0035",
+    empName: "สุนทร คืนวิหาร",
+    shiftId: 4,
+    shiftName: "16:00-07:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ปั๊มน้ำมัน",
+    status: "Active",
+    assignedBy: "ผจก.ปั๊ม"
+  },
+  // 7-Eleven
+  {
+    id: 6,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    shiftId: 27,
+    shiftName: "06:30-16:30",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - เซเว่น",
+    status: "Active",
+    assignedBy: "หัวหน้าเซเว่น"
+  },
+  {
+    id: 7,
+    empCode: "EMP-0015",
+    empName: "นันทนา เซเว่น",
+    shiftId: 28,
+    shiftName: "12:00-22:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - เซเว่น",
+    status: "Active",
+    assignedBy: "หัวหน้าเซเว่น"
+  },
+  {
+    id: 8,
+    empCode: "EMP-0016",
+    empName: "วิชัย ดึก",
+    shiftId: 29,
+    shiftName: "21:30-07:30",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - เซเว่น",
+    status: "Active",
+    assignedBy: "หัวหน้าเซเว่น"
+  },
+  {
+    id: 8.3,
+    empCode: "EMP-0036",
+    empName: "เอกชัย ช่างการค้า",
+    shiftId: 27,
+    shiftName: "06:30-16:30",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - เซเว่น",
+    status: "Active",
+    assignedBy: "หัวหน้าเซเว่น"
+  },
+  {
+    id: 8.5,
+    empCode: "EMP-0037",
+    empName: "ศรีสวัสดิ์ เชื่อ",
+    shiftId: 28,
+    shiftName: "12:00-22:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - เซเว่น",
+    status: "Active",
+    assignedBy: "หัวหน้าเซเว่น"
+  },
+  // ปึงหงี่เชียง
+  {
+    id: 9,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    shiftId: 16,
+    shiftName: "07:00-17:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ปึงหงี่เชียง",
+    status: "Active",
+    assignedBy: "หัวหน้าร้าน"
+  },
+  {
+    id: 10,
+    empCode: "EMP-0017",
+    empName: "รัตนา ปึงหงี่",
+    shiftId: 17,
+    shiftName: "08:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ปึงหงี่เชียง",
+    status: "Active",
+    assignedBy: "หัวหน้าร้าน"
+  },
+  {
+    id: 10.3,
+    empCode: "EMP-0038",
+    empName: "เสาวลักษณ์ สวรรค์",
+    shiftId: 18,
+    shiftName: "14:00-00:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ปึงหงี่เชียง",
+    status: "Active",
+    assignedBy: "หัวหน้าร้าน"
+  },
+  // ร้านเจียง
+  {
+    id: 11,
+    empCode: "EMP-0007",
+    empName: "ประเสริฐ ดีงาม",
+    shiftId: 30,
+    shiftName: "07:00-17:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ร้านเจียง",
+    status: "Active",
+    assignedBy: "หัวหน้าร้าน"
+  },
+  {
+    id: 12,
+    empCode: "EMP-0018",
+    empName: "สมศักดิ์ เจียง",
+    shiftId: 31,
+    shiftName: "08:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ร้านเจียง",
+    status: "Active",
+    assignedBy: "หัวหน้าร้าน"
+  },
+  {
+    id: 12.3,
+    empCode: "EMP-0039",
+    empName: "กอบกาญจน์ เจียง",
+    shiftId: 30,
+    shiftName: "07:00-17:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ร้านเจียง",
+    status: "Active",
+    assignedBy: "หัวหน้าร้าน"
+  },
+  // Chester's
+  {
+    id: 13,
+    empCode: "EMP-0008",
+    empName: "อัญชลี มีชัย",
+    shiftId: 19,
+    shiftName: "08:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Chester's",
+    status: "Active",
+    assignedBy: "หัวหน้าร้าน"
+  },
+  {
+    id: 14,
+    empCode: "EMP-0019",
+    empName: "สุภาพ เชสเตอร์",
+    shiftId: 20,
+    shiftName: "10:30-20:30",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Chester's",
+    status: "Active",
+    assignedBy: "หัวหน้าร้าน"
+  },
+  {
+    id: 14.3,
+    empCode: "EMP-0040",
+    empName: "เจษฎา ฉ่ำ",
+    shiftId: 19,
+    shiftName: "08:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Chester's",
+    status: "Active",
+    assignedBy: "หัวหน้าร้าน"
+  },
+  // Amazon
+  {
+    id: 15,
+    empCode: "EMP-0020",
+    empName: "อภิชัย อเมซอน",
+    shiftId: 21,
+    shiftName: "05:30-15:30",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Amazon",
+    status: "Active",
+    assignedBy: "หัวหน้า Amazon"
+  },
+  {
+    id: 16,
+    empCode: "EMP-0021",
+    empName: "วิไล อเมซอน",
+    shiftId: 23,
+    shiftName: "07:00-17:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Amazon",
+    status: "Active",
+    assignedBy: "หัวหน้า Amazon"
+  },
+  {
+    id: 17,
+    empCode: "EMP-0022",
+    empName: "กาญจน์ อเมซอน",
+    shiftId: 25,
+    shiftName: "16:00-00:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Amazon",
+    status: "Active",
+    assignedBy: "หัวหน้า Amazon"
+  },
+  {
+    id: 17.3,
+    empCode: "EMP-0041",
+    empName: "นุชนาด ส่งสินค้า",
+    shiftId: 21,
+    shiftName: "05:30-15:30",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Amazon",
+    status: "Active",
+    assignedBy: "หัวหน้า Amazon"
+  },
+  {
+    id: 17.5,
+    empCode: "EMP-0042",
+    empName: "ศันต์ วาทสอบ",
+    shiftId: 23,
+    shiftName: "07:00-17:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Amazon",
+    status: "Active",
+    assignedBy: "หัวหน้า Amazon"
+  },
+  {
+    id: 17.7,
+    empCode: "EMP-0043",
+    empName: "วรินทร์ สินค้าพร้อม",
+    shiftId: 25,
+    shiftName: "16:00-00:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Amazon",
+    status: "Active",
+    assignedBy: "หัวหน้า Amazon"
+  },
+  // ช่าง/FIT AUTO
+  {
+    id: 18,
+    empCode: "EMP-0023",
+    empName: "ประเสริฐ ช่าง",
+    shiftId: 7,
+    shiftName: "08:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ช่าง",
+    status: "Active",
+    assignedBy: "หัวหน้าช่าง"
+  },
+  {
+    id: 19,
+    empCode: "EMP-0024",
+    empName: "สมชาย ช่าง",
+    shiftId: 7,
+    shiftName: "08:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ช่าง",
+    status: "Active",
+    assignedBy: "หัวหน้าช่าง"
+  },
+  {
+    id: 19.3,
+    empCode: "EMP-0044",
+    empName: "อดิศร เครื่องจักร",
+    shiftId: 7,
+    shiftName: "08:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ช่าง",
+    status: "Active",
+    assignedBy: "หัวหน้าช่าง"
+  },
+  // แม่บ้าน
+  {
+    id: 20,
+    empCode: "EMP-0009",
+    empName: "วิภา รักษ์สุข",
+    shiftId: 8,
+    shiftName: "04:00-14:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - แม่บ้าน",
+    status: "Active",
+    assignedBy: "หัวหน้าแม่บ้าน"
+  },
+  {
+    id: 21,
+    empCode: "EMP-0012",
+    empName: "กมลชนก ใสสะอาด",
+    shiftId: 9,
+    shiftName: "07:00-17:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - แม่บ้าน",
+    status: "Active",
+    assignedBy: "หัวหน้าแม่บ้าน"
+  },
+  {
+    id: 22,
+    empCode: "EMP-0025",
+    empName: "สมศรี แม่บ้าน",
+    shiftId: 10,
+    shiftName: "10:00-20:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - แม่บ้าน",
+    status: "Active",
+    assignedBy: "หัวหน้าแม่บ้าน"
+  },
+  {
+    id: 22.3,
+    empCode: "EMP-0045",
+    empName: "สุนิสา ตัดสินใจ",
+    shiftId: 8,
+    shiftName: "04:00-14:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - แม่บ้าน",
+    status: "Active",
+    assignedBy: "หัวหน้าแม่บ้าน"
+  },
+  {
+    id: 22.5,
+    empCode: "EMP-0046",
+    empName: "อรทัย ใจบริสุทธิ์",
+    shiftId: 9,
+    shiftName: "07:00-17:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - แม่บ้าน",
+    status: "Active",
+    assignedBy: "หัวหน้าแม่บ้าน"
+  },
+  // Office
+  {
+    id: 23,
+    empCode: "EMP-0026",
+    empName: "นิดา ออฟฟิศ",
+    shiftId: 13,
+    shiftName: "07:00-16:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Office",
+    status: "Active",
+    assignedBy: "ผจก.Office"
+  },
+  {
+    id: 24,
+    empCode: "EMP-0027",
+    empName: "ทา ออฟฟิศ",
+    shiftId: 14,
+    shiftName: "08:00-17:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Office",
+    status: "Active",
+    assignedBy: "ผจก.Office"
+  },
+  {
+    id: 25,
+    empCode: "EMP-0028",
+    empName: "สมเกียรติ ออฟฟิศ",
+    shiftId: 15,
+    shiftName: "09:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Office",
+    status: "Active",
+    assignedBy: "ผจก.Office"
+  },
+  {
+    id: 25.3,
+    empCode: "EMP-0047",
+    empName: "ณัฐวดี ใจเย็น",
+    shiftId: 13,
+    shiftName: "07:00-16:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - Office",
+    status: "Active",
+    assignedBy: "ผจก.Office"
+  },
+  // รักษาความปลอดภัย
+  {
+    id: 26,
+    empCode: "EMP-0029",
+    empName: "ประยุทธ์ รปภ",
+    shiftId: 11,
+    shiftName: "17:00-06:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - รักษาความปลอดภัย",
+    status: "Active",
+    assignedBy: "หัวหน้ารปภ"
+  },
+  {
+    id: 27,
+    empCode: "EMP-0030",
+    empName: "สมชาย รปภ",
+    shiftId: 12,
+    shiftName: "18:00-07:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - รักษาความปลอดภัย",
+    status: "Active",
+    assignedBy: "หัวหน้ารปภ"
+  },
+  {
+    id: 27.3,
+    empCode: "EMP-0048",
+    empName: "กรณ์ ยาม",
+    shiftId: 11,
+    shiftName: "17:00-06:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - รักษาความปลอดภัย",
+    status: "Active",
+    assignedBy: "หัวหน้ารปภ"
+  },
+  // คนสวน
+  {
+    id: 28,
+    empCode: "EMP-0031",
+    empName: "ประเสริฐ คนสวน",
+    shiftId: 36,
+    shiftName: "08:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - คนสวน",
+    status: "Active",
+    assignedBy: "หัวหน้าคนสวน"
+  },
+  {
+    id: 28.3,
+    empCode: "EMP-0049",
+    empName: "บัญชา ปลูกดี",
+    shiftId: 36,
+    shiftName: "08:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - คนสวน",
+    status: "Active",
+    assignedBy: "หัวหน้าคนสวน"
+  },
+  // ขับรถ
+  {
+    id: 29,
+    empCode: "EMP-0032",
+    empName: "สมศักดิ์ ขับรถ",
+    shiftId: 37,
+    shiftName: "08:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ขับรถ",
+    status: "Active",
+    assignedBy: "หัวหน้าขับรถ"
+  },
+  {
+    id: 29.3,
+    empCode: "EMP-0050",
+    empName: "พิเชฏฐ์ ส่งสินค้า",
+    shiftId: 37,
+    shiftName: "08:00-18:00",
+    assignedDate: "2025-10-20",
+    effectiveDate: "2025-11-01",
+    reason: "วางแผนกะล่วงหน้า - ขับรถ",
+    status: "Active",
+    assignedBy: "หัวหน้าขับรถ"
+  }
+];
+
 export const payroll: Payroll[] = [
   {
     id: 1,
