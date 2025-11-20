@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn, Filter, CalendarDays, CalendarRange, Award, AlertTriangle, ArrowRightLeft, Briefcase, DollarSign, ChevronRight, Edit, Settings, ChevronDown, ChevronLeft } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn, Filter, CalendarDays, CalendarRange, Award, AlertTriangle, ArrowRightLeft, ArrowUp, Briefcase, DollarSign, ChevronRight, Edit, Settings, ChevronDown, ChevronLeft, Search } from "lucide-react";
 import ProfileCard from "@/components/ProfileCard";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import ModalForm from "@/components/ModalForm";
@@ -19,6 +19,20 @@ import {
 
 type ViewMode = "day" | "month" | "year";
 
+type CalendarEntry = {
+  date: string;
+  day: number;
+  weekday: number;
+  log?: typeof attendanceLogs[number];
+  leave?: typeof leaves[number];
+  status: string;
+  statusColor: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  workingHours: number;
+  otHours: number;
+};
+
 export default function EmployeeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -33,6 +47,8 @@ export default function EmployeeDetail() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [calendarViewMode, setCalendarViewMode] = useState<"month" | "year">("month");
+  const [calendarYear, setCalendarYear] = useState<string>(() => new Date().getFullYear().toString());
   
   // Modal states for history details
   const [showWorkHistoryModal, setShowWorkHistoryModal] = useState(false);
@@ -79,21 +95,37 @@ export default function EmployeeDetail() {
     note: "",
     approvedBy: ""
   });
+
+  const [expandedTransferId, setExpandedTransferId] = useState<string | number | null>(null);
   
   // Date range filters
   const [attendanceDateFrom, setAttendanceDateFrom] = useState("");
   const [attendanceDateTo, setAttendanceDateTo] = useState("");
   const [leavesDateFrom, setLeavesDateFrom] = useState("");
   const [leavesDateTo, setLeavesDateTo] = useState("");
+  const [transferTypeFilter, setTransferTypeFilter] = useState<string>("all");
+  const [transferSearch, setTransferSearch] = useState("");
+  const weekDays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
   // Find employee
   const employee = employees.find((e) => e.id === Number(id));
+
+  const availableYears = useMemo(() => {
+    if (!employee) return [];
+    const years: string[] = [];
+    const startYear = new Date(employee.startDate).getFullYear();
+    const currentYear = new Date().getFullYear();
+    for (let year = startYear; year <= currentYear; year++) {
+      years.push(year.toString());
+    }
+    return years;
+  }, [employee]);
 
   // Get employee's shift (safe access)
   const employeeShift = employee?.shiftId ? shifts.find(s => s.id === employee.shiftId) : null;
 
   // Work duration calculation (safe access)
-  const startDate = employee ? new Date(employee.startDate) : new Date();
+  const startDate = useMemo(() => (employee ? new Date(employee.startDate) : new Date()), [employee]);
   const today = new Date();
   const workDuration = employee ? Math.floor(
     (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
@@ -101,57 +133,62 @@ export default function EmployeeDetail() {
   
   // Filter data to show only since employee started working
   // Attendance: only from start date onwards
-  const allAttendance = employee ? attendanceLogs
-    .filter((log) => {
-      if (log.empCode !== employee.code) return false;
-      const logDate = new Date(log.date);
-      if (logDate < startDate) return false;
-      
-      // Apply date range filter if set
-      if (attendanceDateFrom) {
-        const fromDate = new Date(attendanceDateFrom);
-        if (logDate < fromDate) return false;
-      }
-      if (attendanceDateTo) {
-        const toDate = new Date(attendanceDateTo);
-        toDate.setHours(23, 59, 59, 999); // Include the entire day
-        if (logDate > toDate) return false;
-      }
-      
-      return true;
-    })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) : [];
+  const allAttendance = useMemo(() => {
+    if (!employee) return [];
+    return attendanceLogs
+      .filter((log) => {
+        if (log.empCode !== employee.code) return false;
+        const logDate = new Date(log.date);
+        if (logDate < startDate) return false;
 
-  // Leaves: only from start date onwards
-  const allLeaves = employee ? leaves
-    .filter((leave) => {
-      if (leave.empCode !== employee.code) return false;
-      const leaveDate = new Date(leave.fromDate);
-      if (leaveDate < startDate) return false;
-      
-      // Apply date range filter if set
-      if (leavesDateFrom) {
-        const fromDate = new Date(leavesDateFrom);
-        if (leaveDate < fromDate) return false;
-      }
-      if (leavesDateTo) {
-        const toDate = new Date(leavesDateTo);
-        toDate.setHours(23, 59, 59, 999);
-        if (leaveDate > toDate) return false;
-      }
-      
-      return true;
-    })
-    .sort((a, b) => new Date(b.fromDate).getTime() - new Date(a.fromDate).getTime()) : [];
+        if (attendanceDateFrom) {
+          const fromDate = new Date(attendanceDateFrom);
+          if (logDate < fromDate) return false;
+        }
+        if (attendanceDateTo) {
+          const toDate = new Date(attendanceDateTo);
+          toDate.setHours(23, 59, 59, 999);
+          if (logDate > toDate) return false;
+        }
 
-  // Payroll: only from start date onwards (compare by month)
-  const allPayroll = employee ? payroll
-    .filter((p) => {
-      if (p.empCode !== employee.code) return false;
-      const payMonth = new Date(p.month + "-01");
-      return payMonth >= startDate;
-    })
-    .sort((a, b) => new Date(b.month + "-01").getTime() - new Date(a.month + "-01").getTime()) : [];
+        return true;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [attendanceDateFrom, attendanceDateTo, employee, startDate]);
+
+  const allLeaves = useMemo(() => {
+    if (!employee) return [];
+    return leaves
+      .filter((leave) => {
+        if (leave.empCode !== employee.code) return false;
+        const leaveDate = new Date(leave.fromDate);
+        if (leaveDate < startDate) return false;
+
+        if (leavesDateFrom) {
+          const fromDate = new Date(leavesDateFrom);
+          if (leaveDate < fromDate) return false;
+        }
+        if (leavesDateTo) {
+          const toDate = new Date(leavesDateTo);
+          toDate.setHours(23, 59, 59, 999);
+          if (leaveDate > toDate) return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => new Date(b.fromDate).getTime() - new Date(a.fromDate).getTime());
+  }, [employee, leavesDateFrom, leavesDateTo, startDate]);
+
+  const allPayroll = useMemo(() => {
+    if (!employee) return [];
+    return payroll
+      .filter((p) => {
+        if (p.empCode !== employee.code) return false;
+        const payMonth = new Date(p.month + "-01");
+        return payMonth >= startDate;
+      })
+      .sort((a, b) => new Date(b.month + "-01").getTime() - new Date(a.month + "-01").getTime());
+  }, [employee, startDate]);
 
   // Calculate statistics (only from start date)
   const totalDays = allAttendance.length;
@@ -180,34 +217,6 @@ export default function EmployeeDetail() {
     return acc;
   }, {} as Record<string, { count: number; days: number; approved: number; pending: number; rejected: number }>);
 
-  // Group leaves by month
-  const monthlyLeaves = allLeaves.reduce((acc, leave) => {
-    const month = leave.fromDate.substring(0, 7); // YYYY-MM
-    if (!acc[month]) {
-      acc[month] = {
-        month,
-        total: 0,
-        days: 0,
-        byType: {} as Record<string, number>
-      };
-    }
-    acc[month].total++;
-    acc[month].days += leave.days;
-    if (!acc[month].byType[leave.type]) {
-      acc[month].byType[leave.type] = 0;
-    }
-    acc[month].byType[leave.type] += leave.days;
-    return acc;
-  }, {} as Record<string, {
-    month: string;
-    total: number;
-    days: number;
-    byType: Record<string, number>;
-  }>);
-
-  const monthlyLeavesSummary = Object.values(monthlyLeaves)
-    .sort((a, b) => b.month.localeCompare(a.month));
-
   // Payroll statistics
   const avgSalary = allPayroll.length > 0 
     ? allPayroll.reduce((sum, p) => sum + p.salary, 0) / allPayroll.length 
@@ -220,15 +229,15 @@ export default function EmployeeDetail() {
     : 0;
   
   // Calculate working hours from attendance logs
-  const calculateWorkingHours = (checkIn: string, checkOut: string): number => {
+  const calculateWorkingHours = useCallback((checkIn: string, checkOut: string): number => {
     if (checkIn === "-" || checkOut === "-") return 0;
     const [inHour, inMin] = checkIn.split(":").map(Number);
     const [outHour, outMin] = checkOut.split(":").map(Number);
     const inMinutes = inHour * 60 + inMin;
     const outMinutes = outHour * 60 + outMin;
     const diffMinutes = outMinutes - inMinutes;
-    return diffMinutes / 60; // Convert to hours
-  };
+    return diffMinutes / 60;
+  }, []);
 
   // Calculate total working hours
   const workingHoursData = allAttendance
@@ -273,46 +282,6 @@ export default function EmployeeDetail() {
 
   const totalOTHoursFromAttendance = overtimeHoursData.reduce((sum, log) => sum + log.otHours, 0);
 
-  // Group by month for monthly summary
-  const monthlyAttendance = allAttendance.reduce((acc, log) => {
-    const month = log.date.substring(0, 7); // YYYY-MM
-    if (!acc[month]) {
-      acc[month] = {
-        month,
-        total: 0,
-        onTime: 0,
-        late: 0,
-        absent: 0,
-        leave: 0,
-        workingHours: 0,
-        workingDays: 0
-      };
-    }
-    acc[month].total++;
-    if (log.status === "ตรงเวลา") acc[month].onTime++;
-    else if (log.status.includes("สาย")) acc[month].late++;
-    else if (log.status === "ขาดงาน") acc[month].absent++;
-    else if (log.status === "ลา") acc[month].leave++;
-
-    if (log.checkIn !== "-" && log.checkOut !== "-") {
-      acc[month].workingHours += calculateWorkingHours(log.checkIn, log.checkOut);
-      acc[month].workingDays++;
-    }
-    return acc;
-  }, {} as Record<string, {
-    month: string;
-    total: number;
-    onTime: number;
-    late: number;
-    absent: number;
-    leave: number;
-    workingHours: number;
-    workingDays: number;
-  }>);
-
-  const monthlySummary = Object.values(monthlyAttendance)
-    .sort((a, b) => b.month.localeCompare(a.month));
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("th-TH", {
       style: "currency",
@@ -336,80 +305,136 @@ export default function EmployeeDetail() {
     return days;
   };
 
-  // Get calendar data for employee
-  const getCalendarData = () => {
-    if (!employee) return { days: [], calendarData: [] };
-    
-    const [year, month] = calendarMonth.split('-').map(Number);
-    const days = getDaysInMonth(year, month - 1);
-    
-    const calendarData = days.map(day => {
-      const dateStr = day.toISOString().split('T')[0];
-      const log = allAttendance.find(l => l.date === dateStr);
-      const leave = allLeaves.find(l => {
-        const fromDate = new Date(l.fromDate);
-        const toDate = new Date(l.toDate);
-        const currentDate = new Date(dateStr);
-        return currentDate >= fromDate && currentDate <= toDate;
-      });
-      
-      let status = "ไม่มีข้อมูล";
-      let statusColor = "bg-gray-500/20";
-      let checkIn = null;
-      let checkOut = null;
-      let workingHours = 0;
-      let otHours = 0;
-      
-      if (log) {
-        checkIn = log.checkIn !== "-" ? log.checkIn : null;
-        checkOut = log.checkOut !== "-" ? log.checkOut : null;
-        
-        if (log.status === "ตรงเวลา") {
-          status = "ตรงเวลา";
-          statusColor = "bg-green-500/30";
-        } else if (log.status.includes("สาย")) {
-          status = log.status;
-          statusColor = "bg-yellow-500/30";
-        } else if (log.status === "ขาดงาน") {
-          status = "ขาดงาน";
-          statusColor = "bg-red-500/30";
-        } else if (log.status === "ลา") {
-          status = "ลา";
+  const getCalendarData = useCallback(
+    (targetYear: number, targetMonth: number) => {
+      if (!employee) {
+        return { days: [] as Date[], calendarData: [] as CalendarEntry[], firstDayWeekday: 0 };
+      }
+
+      const days = getDaysInMonth(targetYear, targetMonth - 1);
+      const firstDayWeekday = days.length > 0 ? days[0].getDay() : 0;
+
+      const calendarData: CalendarEntry[] = days.map((day) => {
+        const dateStr = day.toISOString().split('T')[0];
+        const log = allAttendance.find((l) => l.date === dateStr);
+        const leave = allLeaves.find((l) => {
+          const fromDate = new Date(l.fromDate);
+          const toDate = new Date(l.toDate);
+          const currentDate = new Date(dateStr);
+          return currentDate >= fromDate && currentDate <= toDate;
+        });
+
+        let status = "ไม่มีข้อมูล";
+        let statusColor = "bg-gray-500/20";
+        let checkIn = null as string | null;
+        let checkOut = null as string | null;
+        let workingHours = 0;
+        let otHours = 0;
+
+        if (log) {
+          checkIn = log.checkIn !== "-" ? log.checkIn : null;
+          checkOut = log.checkOut !== "-" ? log.checkOut : null;
+
+          if (log.status === "ตรงเวลา") {
+            status = "ตรงเวลา";
+            statusColor = "bg-green-500/30";
+          } else if (log.status.includes("สาย")) {
+            status = log.status;
+            statusColor = "bg-yellow-500/30";
+          } else if (log.status === "ขาดงาน") {
+            status = "ขาดงาน";
+            statusColor = "bg-red-500/30";
+          } else if (log.status === "ลา") {
+            status = "ลา";
+            statusColor = "bg-blue-500/30";
+          }
+
+          if (checkIn && checkOut) {
+            workingHours = calculateWorkingHours(checkIn, checkOut);
+            if (employeeShift && workingHours > shiftHours) {
+              otHours = workingHours - shiftHours;
+            }
+          }
+
+          if (log.otHours && log.otHours > 0) {
+            otHours = log.otHours;
+          }
+        } else if (leave) {
+          status = `ลา: ${leave.type}`;
           statusColor = "bg-blue-500/30";
         }
-        
-        if (checkIn && checkOut) {
-          workingHours = calculateWorkingHours(checkIn, checkOut);
-          if (employeeShift && workingHours > shiftHours) {
-            otHours = workingHours - shiftHours;
-          }
-        }
-        
-        if (log.otHours && log.otHours > 0) {
-          otHours = log.otHours;
-        }
-      } else if (leave) {
-        status = `ลา: ${leave.type}`;
-        statusColor = "bg-blue-500/30";
-      }
-      
-      return {
-        date: dateStr,
-        day: day.getDate(),
-        weekday: day.getDay(),
-        log,
-        leave,
-        status,
-        statusColor,
-        checkIn,
-        checkOut,
-        workingHours,
-        otHours
-      };
+
+        return {
+          date: dateStr,
+          day: day.getDate(),
+          weekday: day.getDay(),
+          log,
+          leave,
+          status,
+          statusColor,
+          checkIn,
+          checkOut,
+          workingHours,
+          otHours,
+        };
+      });
+
+      return { days, calendarData, firstDayWeekday };
+    },
+    [employee, allAttendance, allLeaves, calculateWorkingHours, employeeShift, shiftHours]
+  );
+
+  const monthCalendarData = useMemo(() => {
+    const [year, month] = calendarMonth.split("-").map(Number);
+    if (!year || !month) {
+      return { days: [] as Date[], calendarData: [] as CalendarEntry[], firstDayWeekday: 0 };
+    }
+    return getCalendarData(year, month);
+  }, [calendarMonth, getCalendarData]);
+
+  const yearlyCalendars = useMemo(() => {
+    if (!employee) return [];
+    const yearNumber = parseInt(calendarYear, 10);
+    if (Number.isNaN(yearNumber)) return [];
+
+    return Array.from({ length: 12 }, (_, index) => {
+      const monthNumber = index + 1;
+      const label = new Date(`${yearNumber}-${String(monthNumber).padStart(2, "0")}-01`).toLocaleDateString("th-TH", {
+        year: "numeric",
+        month: "long",
+      });
+      const data = getCalendarData(yearNumber, monthNumber);
+      const stats = data.calendarData.reduce(
+        (acc, day) => {
+          if (day.status === "ตรงเวลา") acc.onTime += 1;
+          else if (day.status.includes("สาย")) acc.late += 1;
+          else if (day.status === "ขาดงาน") acc.absent += 1;
+          if (day.leave) acc.leaveDays += 1;
+          acc.workingHours += day.workingHours;
+          acc.otHours += day.otHours;
+          if (day.log || day.leave) acc.hasData = true;
+          return acc;
+        },
+        { onTime: 0, late: 0, absent: 0, leaveDays: 0, workingHours: 0, otHours: 0, hasData: false }
+      );
+      return { monthNumber, label, ...data, stats };
     });
-    
-    return { days, calendarData };
-  };
+  }, [calendarYear, employee, getCalendarData]);
+
+  const yearlyTotals = useMemo(() => {
+    return yearlyCalendars.reduce(
+      (acc, month) => ({
+        onTime: acc.onTime + month.stats.onTime,
+        late: acc.late + month.stats.late,
+        absent: acc.absent + month.stats.absent,
+        leaveDays: acc.leaveDays + month.stats.leaveDays,
+        workingHours: acc.workingHours + month.stats.workingHours,
+        otHours: acc.otHours + month.stats.otHours,
+        monthsWithData: acc.monthsWithData + (month.stats.hasData ? 1 : 0),
+      }),
+      { onTime: 0, late: 0, absent: 0, leaveDays: 0, workingHours: 0, otHours: 0, monthsWithData: 0 }
+    );
+  }, [yearlyCalendars]);
 
   // Group attendance by view mode (must be before early return)
   const groupedAttendance = useMemo(() => {
@@ -524,6 +549,131 @@ export default function EmployeeDetail() {
     }
   }, [allLeaves, leavesViewMode, employee]);
 
+  const employeeTransfers = useMemo(() => {
+    if (!employee) return [];
+    return positionTransferHistory
+      .filter(t => t.empCode === employee.code)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [employee]);
+
+  const transferTypeOptions = useMemo(() => {
+    if (employeeTransfers.length === 0) return ["all"];
+    return ["all", ...new Set(employeeTransfers.map((transfer) => transfer.type))];
+  }, [employeeTransfers]);
+
+  const filteredTransfers = useMemo(() => {
+    return employeeTransfers.filter((transfer) => {
+      if (transferTypeFilter !== "all" && transfer.type !== transferTypeFilter) return false;
+      if (transferSearch) {
+        const keyword = transferSearch.toLowerCase();
+        const combined = `${transfer.newPosition} ${transfer.newDept} ${transfer.oldPosition} ${transfer.oldDept} ${transfer.approvedBy}`.toLowerCase();
+        if (!combined.includes(keyword)) return false;
+      }
+      return true;
+    });
+  }, [employeeTransfers, transferTypeFilter, transferSearch]);
+
+  const transferStats = useMemo(() => {
+    const promotions = filteredTransfers.filter(t => t.type === "เลื่อนตำแหน่ง").length;
+    const relocations = filteredTransfers.filter(t => t.type === "โยกย้าย" || t.type === "เปลี่ยนแผนก").length;
+    const demotions = filteredTransfers.filter(t => t.type === "ลดตำแหน่ง").length;
+    return {
+      total: filteredTransfers.length,
+      promotions,
+      relocations,
+      demotions,
+    };
+  }, [filteredTransfers]);
+
+  const transferTimeline = useMemo(() => {
+    if (!employee) return [];
+    const sorted = [...employeeTransfers].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    if (sorted.length === 0) {
+      return [
+        {
+          id: "start",
+          position: employee.position,
+          dept: employee.dept,
+          date: employee.startDate,
+          type: "ตำแหน่งปัจจุบัน",
+        },
+      ];
+    }
+
+    const steps: { id: string | number; position: string; dept: string; date: string; type: string }[] = [];
+    const first = sorted[0];
+    steps.push({
+      id: "start",
+      position: first.oldPosition || employee.position,
+      dept: first.oldDept || employee.dept,
+      date: employee.startDate,
+      type: "จุดเริ่มต้น",
+    });
+    sorted.forEach((transfer) => {
+      steps.push({
+        id: transfer.id,
+        position: transfer.newPosition,
+        dept: transfer.newDept,
+        date: transfer.date,
+        type: transfer.type,
+      });
+    });
+    return steps;
+  }, [employee, employeeTransfers]);
+
+  const employeeRewards = useMemo(() => {
+    if (!employee) return [];
+    return rewardPenaltyHistory
+      .filter(r => r.empCode === employee.code)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [employee]);
+
+  const rewardGuide = [
+    {
+      title: "เตือนด้วยการพูดคุย",
+      description: "การเตือนแบบไม่เป็นลายลักษณ์อักษร ใช้พูดคุยปรับพฤติกรรม สูงสุด 3 ครั้งก่อนยกระดับ",
+      badge: "ระดับ 1",
+      tone: "bg-yellow-500/10 border-yellow-500/30 text-yellow-300"
+    },
+    {
+      title: "เตือนด้วยเอกสาร",
+      description: "ออกหนังสือเตือนอย่างเป็นทางการ หากพูดคุยแล้วยังไม่ปรับปรุง (สูงสุด 3 ครั้ง)",
+      badge: "ระดับ 2",
+      tone: "bg-orange-500/10 border-orange-500/30 text-orange-300"
+    },
+    {
+      title: "พักงาน",
+      description: "ใช้กับกรณีร้ายแรงเพื่อให้พักงานและทบทวนพฤติกรรม",
+      badge: "ระดับ 3",
+      tone: "bg-amber-500/10 border-amber-500/30 text-amber-300"
+    },
+    {
+      title: "ไล่ออก",
+      description: "ขั้นสูงสุดเมื่อพฤติกรรมรุนแรงและผ่านการเตือนทุกระดับแล้ว",
+      badge: "ระดับ 4",
+      tone: "bg-red-500/10 border-red-500/30 text-red-300"
+    }
+  ];
+
+  const getRewardLevel = (category?: string) => {
+    if (!category) return rewardGuide[0];
+    const match = rewardGuide.find(level => category.includes(level.title));
+    return match || rewardGuide[0];
+  };
+
+  const rewardStats = useMemo(() => {
+    const warnings = employeeRewards.filter(r => r.type === "ทันบน");
+    const disciplinary = employeeRewards.filter(r => r.type !== "ทันบน");
+    const latestAction = employeeRewards[0];
+    return {
+      warnings,
+      disciplinary,
+      latestAction,
+    };
+  }, [employeeRewards]);
+
   // Reset date filters when view mode changes
   const handleAttendanceViewModeChange = (mode: ViewMode) => {
     setAttendanceViewMode(mode);
@@ -535,6 +685,63 @@ export default function EmployeeDetail() {
     setLeavesViewMode(mode);
     setLeavesDateFrom("");
     setLeavesDateTo("");
+  };
+
+  const handleCalendarViewModeChange = (mode: "month" | "year") => {
+    setCalendarViewMode(mode);
+    if (mode === "month") {
+      setCalendarMonth((prev) => {
+        const [, month] = prev.split("-");
+        const currentMonth = month || "01";
+        return `${calendarYear}-${currentMonth}`;
+      });
+    }
+  };
+
+  const handleCalendarYearChange = (year: string) => {
+    setCalendarYear(year);
+    setCalendarMonth((prev) => {
+      const [, month] = prev.split("-");
+      const currentMonth = month || "01";
+      return `${year}-${currentMonth}`;
+    });
+  };
+
+  const handlePrevMonth = () => {
+    const [yearStr, monthStr] = calendarMonth.split("-");
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    if (Number.isNaN(year) || Number.isNaN(month)) return;
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+    setCalendarMonth(`${prevYear}-${String(prevMonth).padStart(2, '0')}`);
+  };
+
+  const handleNextMonth = () => {
+    const [yearStr, monthStr] = calendarMonth.split("-");
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    if (Number.isNaN(year) || Number.isNaN(month)) return;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+    setCalendarMonth(`${nextYear}-${String(nextMonth).padStart(2, '0')}`);
+  };
+
+  const handlePrevYear = () => {
+    const current = parseInt(calendarYear, 10);
+    if (Number.isNaN(current)) return;
+    const year = current - 1;
+    if (availableYears.length > 0 && year < parseInt(availableYears[0], 10)) return;
+    handleCalendarYearChange(year.toString());
+  };
+
+  const handleNextYear = () => {
+    const current = parseInt(calendarYear, 10);
+    if (Number.isNaN(current)) return;
+    const year = current + 1;
+    const maxYear = availableYears.length > 0 ? parseInt(availableYears[availableYears.length - 1], 10) : year;
+    if (year > maxYear) return;
+    handleCalendarYearChange(year.toString());
   };
 
   // Initialize form data when modals open
@@ -586,6 +793,13 @@ export default function EmployeeDetail() {
     }
   }, [showTransferPositionModal, employee]);
 
+  useEffect(() => {
+    const [year] = calendarMonth.split("-");
+    if (year && year !== calendarYear) {
+      setCalendarYear(year);
+    }
+  }, [calendarMonth, calendarYear]);
+
   // Early return if employee not found (after all hooks)
   if (!employee) {
     return (
@@ -594,6 +808,37 @@ export default function EmployeeDetail() {
       </div>
     );
   }
+
+  const renderCalendarLegend = () => (
+    <div className="flex flex-wrap gap-4 p-4 bg-soft rounded-xl border border-app">
+      <div className="flex items-center gap-2">
+        <div className="w-4 h-4 bg-green-500/30 border border-app rounded"></div>
+        <span className="text-xs text-app">ตรงเวลา</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-4 h-4 bg-yellow-500/30 border border-app rounded"></div>
+        <span className="text-xs text-app">มาสาย</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-4 h-4 bg-red-500/30 border border-app rounded"></div>
+        <span className="text-xs text-app">ขาดงาน</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-4 h-4 bg-blue-500/30 border border-app rounded"></div>
+        <span className="text-xs text-app">ลา</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-4 h-4 bg-gray-500/20 border border-app rounded"></div>
+        <span className="text-xs text-app">ไม่มีข้อมูล</span>
+      </div>
+      {employeeShift && (
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-green-400/50 border border-green-400 rounded"></div>
+          <span className="text-xs text-app">มี OT</span>
+        </div>
+      )}
+    </div>
+  );
 
   // Handle view payslip
   const handleViewPayslip = (pay: typeof payroll[0]) => {
@@ -619,6 +864,8 @@ export default function EmployeeDetail() {
     { id: "attendance", label: "เวลาเข้าออก" },
     { id: "leaves", label: "การลา" },
     { id: "payroll", label: "เงินเดือน" },
+    { id: "transfers", label: "การโยกย้ายตำแหน่ง" },
+    { id: "rewards", label: "ประวัติทันบน/โทษ" },
     { id: "calendar", label: "ปฏิทิน" },
   ];
 
@@ -891,10 +1138,6 @@ export default function EmployeeDetail() {
           {activeTab === "history" && (() => {
             // Filter data for current employee
             const empSalaryHistory = salaryHistory.filter(s => s.empCode === employee.code)
-              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            const empRewardPenalty = rewardPenaltyHistory.filter(r => r.empCode === employee.code)
-              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            const empTransfers = positionTransferHistory.filter(t => t.empCode === employee.code)
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             const empWorkHistory = workHistory.filter(w => w.empCode === employee.code)
               .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
@@ -1183,137 +1426,7 @@ export default function EmployeeDetail() {
                 </div>
               )}
 
-              {/* Reward & Penalty History */}
-              {empRewardPenalty.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-md font-semibold text-app font-display flex items-center gap-2">
-                      <Award className="w-4 h-4" />
-                      ประวัติทันบนและการลงโทษ
-                    </h4>
-                    <button
-                      onClick={() => setShowRewardPenaltyModal(true)}
-                      className="text-sm text-ptt-cyan hover:text-ptt-blue flex items-center gap-1 transition-colors"
-                    >
-                      ดูทั้งหมด ({empRewardPenalty.length})
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    {empRewardPenalty.slice(0, 2).map((item) => (
-                      <div key={item.id} className={`p-4 rounded-xl border ${
-                        item.type === "ทันบน"
-                          ? "bg-green-500/10 border-green-500/30"
-                          : "bg-red-500/10 border-red-500/30"
-                      }`}>
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              {item.type === "ทันบน" ? (
-                                <Award className="w-4 h-4 text-green-400" />
-                              ) : (
-                                <AlertTriangle className="w-4 h-4 text-red-400" />
-                              )}
-                              <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                                item.type === "ทันบน"
-                                  ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                  : "bg-red-500/20 text-red-400 border border-red-500/30"
-                              }`}>
-                                {item.category}
-                              </span>
-                              <span className="text-sm text-muted">
-                                {new Date(item.date).toLocaleDateString("th-TH", { 
-                                  year: "numeric", 
-                                  month: "long", 
-                                  day: "numeric" 
-                                })}
-                              </span>
-                            </div>
-                            <p className="text-sm font-semibold text-app mb-1">{item.title}</p>
-                            <p className="text-sm text-muted">{item.description}</p>
-                          </div>
-                          {item.amount && (
-                            <div className="text-right">
-                              <p className="text-xs text-muted">รางวัล</p>
-                              <p className="text-sm font-semibold text-green-400 font-mono">{formatCurrency(item.amount)}</p>
-                            </div>
-                          )}
-                        </div>
-                        <div className="mt-3 p-3 bg-soft rounded-lg border border-app">
-                          <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
-                          <p className="text-sm text-app">{item.note}</p>
-                          <p className="text-xs text-muted mt-2">ออกโดย: {item.issuedBy}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
-              {/* Position Transfer History */}
-              {empTransfers.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-md font-semibold text-app font-display flex items-center gap-2">
-                      <ArrowRightLeft className="w-4 h-4" />
-                      ประวัติการโยก-ย้ายตำแหน่ง
-                    </h4>
-                    <button
-                      onClick={() => setShowTransferHistoryModal(true)}
-                      className="text-sm text-ptt-cyan hover:text-ptt-blue flex items-center gap-1 transition-colors"
-                    >
-                      ดูทั้งหมด ({empTransfers.length})
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    {empTransfers.slice(0, 2).map((transfer) => (
-                      <div key={transfer.id} className="p-4 bg-soft rounded-xl border border-app">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                            transfer.type === "เลื่อนตำแหน่ง"
-                              ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                              : transfer.type === "ลดตำแหน่ง"
-                              ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                              : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                          }`}>
-                            {transfer.type}
-                          </span>
-                          <span className="text-sm text-muted">
-                            {new Date(transfer.date).toLocaleDateString("th-TH", { 
-                              year: "numeric", 
-                              month: "long", 
-                              day: "numeric" 
-                            })}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 mb-3">
-                          <div className="flex-1 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                            <p className="text-xs text-muted mb-1">เดิม</p>
-                            <p className="text-sm font-semibold text-app">{transfer.oldPosition}</p>
-                            <p className="text-xs text-muted">{transfer.oldDept}</p>
-                          </div>
-                          <ArrowRightLeft className="w-5 h-5 text-muted flex-shrink-0" />
-                          <div className="flex-1 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                            <p className="text-xs text-muted mb-1">ใหม่</p>
-                            <p className="text-sm font-semibold text-ptt-cyan">{transfer.newPosition}</p>
-                            <p className="text-xs text-muted">{transfer.newDept}</p>
-                          </div>
-                        </div>
-                        <div className="mb-2">
-                          <p className="text-sm text-muted mb-1">เหตุผล:</p>
-                          <p className="text-sm text-app">{transfer.reason}</p>
-                        </div>
-                        <div className="mt-3 p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
-                          <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
-                          <p className="text-sm text-app">{transfer.note}</p>
-                          <p className="text-xs text-muted mt-2">อนุมัติโดย: {transfer.approvedBy}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
             );
           })()}
@@ -1523,57 +1636,7 @@ export default function EmployeeDetail() {
                 </div>
               )}
 
-              {/* Monthly Summary */}
-              {monthlyLeavesSummary.length > 0 && (
-                <div>
-                  <h4 className="text-md font-semibold text-app mb-3 font-display flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    สรุปการลารายเดือน
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-soft border-b border-app">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-app">เดือน</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-app">จำนวนรายการ</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-app">วันลา</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-app">ประเภท</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-app">
-                        {monthlyLeavesSummary.map((month) => (
-                          <tr key={month.month} className="hover:bg-soft transition-colors">
-                            <td className="px-4 py-3 text-sm text-app font-medium">
-                              {new Date(month.month + "-01").toLocaleDateString("th-TH", { 
-                                year: "numeric", 
-                                month: "long" 
-                              })}
-                            </td>
-                            <td className="px-4 py-3 text-center text-sm text-app font-semibold">
-                              {month.total}
-                            </td>
-                            <td className="px-4 py-3 text-center text-sm text-ptt-cyan font-semibold">
-                              {month.days} วัน
-                            </td>
-                            <td className="px-4 py-3 text-sm text-muted">
-                              <div className="flex flex-wrap gap-1">
-                                {Object.entries(month.byType).map(([type, days]) => (
-                                  <span 
-                                    key={type}
-                                    className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-ptt-blue/20 text-ptt-cyan border border-ptt-blue/30"
-                                  >
-                                    {type}: {days} วัน
-                                  </span>
-                                ))}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+
 
               {/* Detailed Table */}
               <div>
@@ -1799,9 +1862,380 @@ export default function EmployeeDetail() {
             </div>
           )}
 
-          {activeTab === "calendar" && (
+          {activeTab === "transfers" && (() => {
+            return (
+              <div className="space-y-6">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-app font-display">
+                      การโยกย้ายตำแหน่ง
+                    </h3>
+                    <p className="text-xs text-muted mt-1">
+                      แสดง {filteredTransfers.length} รายการ (จากทั้งหมด {employeeTransfers.length} รายการ)
+                    </p>
+                  </div>
+                  {employeeTransfers.length > 0 && (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <select
+                        value={transferTypeFilter}
+                        onChange={(e) => setTransferTypeFilter(e.target.value)}
+                        className="px-3 py-2 bg-soft border border-app rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                      >
+                        {transferTypeOptions.map((type) => (
+                          <option key={type} value={type}>
+                            {type === "all" ? "ประเภททั้งหมด" : type}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="relative w-full sm:w-60">
+                        <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={transferSearch}
+                          onChange={(e) => setTransferSearch(e.target.value)}
+                          placeholder="ค้นหาตำแหน่ง / แผนก / ผู้อนุมัติ"
+                          className="w-full pl-10 pr-3 py-2 bg-soft border border-app rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                        />
+                      </div>
+                      <button
+                        onClick={() => setShowTransferHistoryModal(true)}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-soft hover:bg-app/10 border border-app rounded-lg text-sm text-app transition-colors"
+                      >
+                        ดูทั้งหมด
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {employeeTransfers.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="p-4 bg-soft rounded-2xl border border-app">
+                        <p className="text-xs text-muted mb-1">จำนวนทั้งหมด</p>
+                        <p className="text-3xl font-bold text-app">{transferStats.total}</p>
+                        <p className="text-xs text-muted mt-1">
+                          อัปเดตล่าสุด {employeeTransfers.length > 0 ? new Date(employeeTransfers[0].date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-"}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-2xl border border-green-500/30 bg-green-500/10">
+                        <p className="text-xs text-muted mb-1">เลื่อนตำแหน่ง</p>
+                        <p className="text-2xl font-bold text-green-400">{transferStats.promotions}</p>
+                        <p className="text-xs text-muted mt-1">เติบโตในสายงาน</p>
+                      </div>
+                      <div className="p-4 rounded-2xl border border-blue-500/30 bg-blue-500/10">
+                        <p className="text-xs text-muted mb-1">โยกย้าย/เปลี่ยนแผนก</p>
+                        <p className="text-2xl font-bold text-blue-400">{transferStats.relocations}</p>
+                        <p className="text-xs text-muted mt-1">ปรับโครงสร้างองค์กร</p>
+                      </div>
+                      <div className="p-4 rounded-2xl border border-red-500/30 bg-red-500/10">
+                        <p className="text-xs text-muted mb-1">ลดตำแหน่ง</p>
+                        <p className="text-2xl font-bold text-red-400">{transferStats.demotions}</p>
+                        <p className="text-xs text-muted mt-1">ตามผลการประเมิน</p>
+                      </div>
+                    </div>
+
+                    {transferTimeline.length > 0 && (() => {
+                      const sortedTimeline = [...transferTimeline].sort(
+                        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                      );
+                      const orderedTimeline = [] as typeof transferTimeline;
+                      sortedTimeline.forEach((step) => {
+                        const last = orderedTimeline[orderedTimeline.length - 1];
+                        if (last && last.position === step.position && last.dept === step.dept) {
+                          return;
+                        }
+                        if (orderedTimeline.length < 3) {
+                          orderedTimeline.push(step);
+                        }
+                      });
+                      const startIndex = orderedTimeline.findIndex(step => step.type === "จุดเริ่มต้น");
+                      if (startIndex !== -1 && startIndex !== orderedTimeline.length - 1) {
+                        const [startStep] = orderedTimeline.splice(startIndex, 1);
+                        orderedTimeline.push(startStep);
+                      }
+                      return (
+                        <div className="p-6 bg-soft border border-app rounded-2xl relative overflow-hidden">
+                          <div className="absolute inset-0 bg-[radial-gradient(circle,_rgba(255,255,255,0.08)_1px,_transparent_1px)] bg-[length:16px_16px] opacity-50 pointer-events-none" />
+                          <div className="relative">
+                            <h4 className="text-sm font-semibold text-app mb-4 flex items-center gap-2">
+                              <ArrowRightLeft className="w-4 h-4" />
+                              เส้นทางตำแหน่ง (ล่าสุดก่อน • แสดง 3 รายการ)
+                            </h4>
+                            <div className="flex flex-col items-center gap-6">
+                              {orderedTimeline.map((step, idx) => {
+                                const previousStep = orderedTimeline[idx - 1];
+                                const nextStep = orderedTimeline[idx + 1];
+                                const transferDetail = employeeTransfers.find(t => t.id === step.id);
+                                const isInteractive = Boolean(transferDetail);
+                                const isExpanded = isInteractive && expandedTransferId === step.id;
+                                return (
+                                  <div key={`${step.id}-${idx}`} className="flex flex-col items-center w-full">
+                                    {idx !== 0 && (
+                                      <ArrowUp className="w-4 h-4 text-app/40 mb-2" />
+                                    )}
+                                    <div
+                                      className={`w-full md:w-2/3 bg-white/90 dark:bg-ink-900 border rounded-2xl px-5 py-4 shadow-lg transition-all ${
+                                        isInteractive
+                                          ? "cursor-pointer border-ptt-blue/40 hover:border-ptt-cyan/70 hover:shadow-ptt-blue/20 hover:shadow-xl"
+                                          : "border-app"
+                                      }`}
+                                      onClick={() => {
+                                        if (!isInteractive) return;
+                                        setExpandedTransferId(isExpanded ? null : step.id);
+                                      }}
+                                    >
+                                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                        <div>
+                                          <p className="text-xs text-muted uppercase tracking-wider">{step.type}</p>
+                                          <p className="text-lg font-semibold text-app">{step.position}</p>
+                                          <p className="text-sm text-muted">แผนก: {step.dept || "-"}</p>
+                                          {nextStep && (
+                                            <p className="text-xs text-muted">
+                                              มาจาก {nextStep.position} • {nextStep.dept || "-"}
+                                            </p>
+                                          )}
+                                        </div>
+                                        <div className="text-right text-xs text-muted space-y-1">
+                                          <p>เริ่มตำแหน่ง: {new Date(step.date).toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })}</p>
+                                          {idx === 0 ? (
+                                            <p className="text-ptt-cyan font-semibold">ตำแหน่งล่าสุด</p>
+                                          ) : previousStep ? (
+                                            <p>สิ้นสุดเมื่อ: {new Date(previousStep.date).toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })}</p>
+                                          ) : null}
+                                        </div>
+                                        {isInteractive && (
+                                          <div className="flex items-center justify-end gap-2 text-xs font-semibold text-ptt-cyan">
+                                            <span>{isExpanded ? "ซ่อนรายละเอียด" : "ดูรายละเอียด"}</span>
+                                            <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    {isExpanded && transferDetail && (
+                                      <div className="w-full md:w-2/3 mt-3 bg-ptt-blue/5 border border-ptt-blue/40 rounded-2xl px-5 py-4 text-sm text-app space-y-4 backdrop-blur">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                          <div className="p-3 bg-white/40 dark:bg-ink-900/70 rounded-xl border border-red-400/30">
+                                            <p className="text-xs text-muted mb-1">ตำแหน่งเดิม / แผนกเดิม</p>
+                                            <p className="font-semibold text-red-400">{transferDetail.oldPosition || "-"}</p>
+                                            <p className="text-xs text-muted">{transferDetail.oldDept}</p>
+                                          </div>
+                                          <div className="p-3 bg-white/40 dark:bg-ink-900/70 rounded-xl border border-green-400/30">
+                                            <p className="text-xs text-muted mb-1">ตำแหน่งใหม่ / แผนกใหม่</p>
+                                            <p className="font-semibold text-green-400">{transferDetail.newPosition}</p>
+                                            <p className="text-xs text-muted">{transferDetail.newDept}</p>
+                                          </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-muted">
+                                          <div className="p-3 bg-white/30 dark:bg-ink-900/60 rounded-xl border border-app/40">
+                                            <p className="mb-1 font-semibold text-app">เหตุผล</p>
+                                            <p className="text-sm text-app/80">{transferDetail.reason || "-"}</p>
+                                          </div>
+                                          <div className="p-3 bg-white/30 dark:bg-ink-900/60 rounded-xl border border-app/40">
+                                            <p className="mb-1 font-semibold text-app">หมายเหตุ</p>
+                                            <p className="text-sm text-app/80">{transferDetail.note || "-"}</p>
+                                          </div>
+                                        </div>
+                                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-xs">
+                                          <span className="text-muted">อนุมัติโดย <span className="text-ptt-cyan font-semibold">{transferDetail.approvedBy || "-"}</span></span>
+                                          <span className="text-muted">ประเภทการเปลี่ยนแปลง: <span className="text-app font-semibold">{transferDetail.type}</span></span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                  </>
+                ) : (
+                  <p className="text-muted text-center py-10">ยังไม่มีประวัติการโยกย้ายตำแหน่ง</p>
+                )}
+              </div>
+            );
+          })()}
+
+          {activeTab === "rewards" && (
             <div className="space-y-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-app font-display">
+                    ประวัติทันบนและการลงโทษ
+                  </h3>
+                  <p className="text-xs text-muted mt-1">
+                    แสดงข้อมูลการตักเตือนและมาตรการตามลำดับขั้นของ {employee.name}
+                  </p>
+                </div>
+                {employeeRewards.length > 0 && (
+                  <button
+                    onClick={() => setShowRewardPenaltyModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-ptt-blue to-ptt-cyan/80 text-white rounded-xl text-sm shadow-sm hover:opacity-90 transition"
+                  >
+                    ดูทั้งหมด ({employeeRewards.length})
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {employeeRewards.length > 0 ? (() => {
+                const timelineItems = employeeRewards.slice(0, 5);
+                return (
+                  <>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      <div className="lg:col-span-2 p-5 rounded-2xl bg-white border border-app shadow-lg">
+                        <p className="text-xs uppercase tracking-[0.2em] text-ptt-blue mb-2">ภาพรวม</p>
+                        <div className="flex flex-wrap gap-4 items-end">
+                          <div>
+                            <p className="text-3xl font-bold text-app">{employeeRewards.length}</p>
+                            <p className="text-sm text-muted">รายการบันทึก</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted">ล่าสุด</p>
+                            <p className="text-base font-semibold text-app">
+                              {rewardStats.latestAction
+                                ? new Date(rewardStats.latestAction.date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })
+                                : "-"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted">ขั้นตอนล่าสุด</p>
+                            <p className="text-base font-semibold text-ptt-blue">
+                              {rewardStats.latestAction ? getRewardLevel(rewardStats.latestAction.category).title : "-"}
+                            </p>
+                          </div>
+                        </div>
+                        {rewardStats.latestAction && (
+                          <div className="mt-4 p-4 rounded-xl bg-soft border border-app text-sm text-app">
+                            <p className="font-semibold mb-1">{rewardStats.latestAction.title}</p>
+                            <p className="text-xs text-ptt-blue">ออกโดย {rewardStats.latestAction.issuedBy || "-"}</p>
+                            <p className="text-xs text-muted mt-1 line-clamp-2">{rewardStats.latestAction.description}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-5 bg-white rounded-2xl border border-app grid grid-cols-2 gap-4 text-center">
+                        <div className="p-3 rounded-xl bg-yellow-100 border border-yellow-200">
+                          <p className="text-xs text-muted">การเตือน (ทันบน)</p>
+                          <p className="text-2xl font-bold text-yellow-700">{rewardStats.warnings.length}</p>
+                          <p className="text-[11px] text-muted">ใช้เพื่อปรับพฤติกรรม</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-red-100 border border-red-200">
+                          <p className="text-xs text-muted">มาตรการรุนแรง</p>
+                          <p className="text-2xl font-bold text-red-600">{rewardStats.disciplinary.length}</p>
+                          <p className="text-[11px] text-muted">พักงาน / เลิกจ้าง</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-ptt-blue/10 border border-ptt-blue/20 col-span-2">
+                          <p className="text-xs text-muted">การประเมินขั้นถัดไป</p>
+                          <p className="text-sm font-semibold text-ptt-blue">
+                            {rewardStats.warnings.length >= 3
+                              ? "ควรพิจารณาเตือนเป็นลายลักษณ์อักษร"
+                              : rewardStats.disciplinary.length > 0
+                              ? "ติดตามผลหลังมาตรการ"
+                              : "อยู่ในขั้นเตือนเบื้องต้น"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                      <div className="p-5 bg-white rounded-2xl border border-app space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-sm font-semibold text-app">ขั้นตอนการเตือน (ตามคู่มือ)</h4>
+                            <p className="text-xs text-muted">อ้างอิงจากเอกสารนโยบายทันบน</p>
+                          </div>
+                          <Award className="w-5 h-5 text-ptt-cyan" />
+                        </div>
+                        <div className="space-y-3">
+                          {rewardGuide.map((level) => (
+                            <div
+                              key={level.title}
+                              className={`p-4 rounded-xl border flex flex-col gap-1 ${level.tone}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full border border-white/10 text-white/80 bg-white/10">
+                                  {level.badge}
+                                </span>
+                                <p className="text-sm font-semibold text-white">{level.title}</p>
+                              </div>
+                              <p className="text-xs text-white/80">{level.description}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="p-5 bg-soft rounded-2xl border border-app">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h4 className="text-sm font-semibold text-app">ไทม์ไลน์การบันทึก</h4>
+                            <p className="text-xs text-muted">ล่าสุด {timelineItems.length} รายการ</p>
+                          </div>
+                          <Clock className="w-4 h-4 text-ptt-cyan" />
+                        </div>
+                        <div className="space-y-5 relative">
+                          <div className="absolute left-3 top-0 bottom-0 w-px bg-app/10" />
+                          {timelineItems.map((item) => {
+                            const isWarning = item.type === "ทันบน";
+                            const levelMeta = getRewardLevel(item.category);
+                            return (
+                              <div key={item.id} className="relative pl-8">
+                                <span className={`absolute left-0 top-2 w-3 h-3 rounded-full border-2 ${isWarning ? "border-yellow-400 bg-yellow-400/30" : "border-red-400 bg-red-400/30"}`} />
+                                <div className="flex items-center gap-2 text-xs text-muted mb-1">
+                                  <span>{new Date(item.date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</span>
+                                  <span>•</span>
+                                  <span>{item.issuedBy || "ไม่ระบุผู้แจ้ง"}</span>
+                                </div>
+                                <div className={`p-4 rounded-xl border ${isWarning ? "border-yellow-500/30 bg-yellow-500/5" : "border-red-500/30 bg-red-500/5"}`}>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    {isWarning ? (
+                                      <AlertCircle className="w-4 h-4 text-yellow-400" />
+                                    ) : (
+                                      <AlertTriangle className="w-4 h-4 text-red-400" />
+                                    )}
+                                    <span className="text-xs px-2 py-0.5 rounded-md border border-app/30 text-muted">{item.category || "ไม่ระบุหมวดหมู่"}</span>
+                                    <span className="text-xs text-muted">{item.type}</span>
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/20 text-white bg-white/10">
+                                      {levelMeta.badge}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm font-semibold text-app">{item.title}</p>
+                                  <p className="text-xs text-muted mt-1">{item.description}</p>
+                                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                    <div className="bg-soft rounded-lg p-2 border border-app/40">
+                                      <p className="text-muted mb-0.5">หมายเหตุ</p>
+                                      <p className="text-app font-medium">{item.note || "-"}</p>
+                                    </div>
+                                    <div className="bg-soft rounded-lg p-2 border border-app/40">
+                                      <p className="text-muted mb-0.5">ขั้นตอนตามคู่มือ</p>
+                                      <p className="text-app font-medium">{levelMeta.title}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[11px] text-muted text-center mt-4">
+                          แสดง {timelineItems.length} รายการล่าสุด จากทั้งหมด {employeeRewards.length} รายการ
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                );
+              })() : (
+                <div className="p-10 text-center border border-dashed border-app rounded-2xl text-muted">
+                  ยังไม่มีประวัติทันบนหรือการลงโทษ
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "calendar" && (
+            <div className="space-y-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-app font-display">
                     ปฏิทินการทำงาน
@@ -1810,211 +2244,325 @@ export default function EmployeeDetail() {
                     แสดงข้อมูลการทำงานทั้งหมดของ {employee.name}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      const [year, month] = calendarMonth.split('-').map(Number);
-                      const prevMonth = month === 1 ? 12 : month - 1;
-                      const prevYear = month === 1 ? year - 1 : year;
-                      setCalendarMonth(`${prevYear}-${String(prevMonth).padStart(2, '0')}`);
-                    }}
-                    className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4 text-app" />
-                  </button>
-                  <input
-                    type="month"
-                    value={calendarMonth}
-                    onChange={(e) => setCalendarMonth(e.target.value)}
-                    className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-                  />
-                  <button
-                    onClick={() => {
-                      const [year, month] = calendarMonth.split('-').map(Number);
-                      const nextMonth = month === 12 ? 1 : month + 1;
-                      const nextYear = month === 12 ? year + 1 : year;
-                      setCalendarMonth(`${nextYear}-${String(nextMonth).padStart(2, '0')}`);
-                    }}
-                    className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
-                  >
-                    <ChevronRight className="w-4 h-4 text-app" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Legend */}
-              <div className="flex flex-wrap gap-4 p-4 bg-soft rounded-xl border border-app">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-500/30 border border-app rounded"></div>
-                  <span className="text-xs text-app">ตรงเวลา</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-yellow-500/30 border border-app rounded"></div>
-                  <span className="text-xs text-app">มาสาย</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-red-500/30 border border-app rounded"></div>
-                  <span className="text-xs text-app">ขาดงาน</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-blue-500/30 border border-app rounded"></div>
-                  <span className="text-xs text-app">ลา</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-gray-500/20 border border-app rounded"></div>
-                  <span className="text-xs text-app">ไม่มีข้อมูล</span>
-                </div>
-                {employeeShift && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-400/50 border border-green-400 rounded"></div>
-                    <span className="text-xs text-app">มี OT</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Calendar */}
-              {(() => {
-                const { days, calendarData } = getCalendarData();
-                const weekDays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
-                
-                // Get first day of month to determine offset
-                const firstDay = days[0];
-                const firstDayWeekday = firstDay.getDay();
-                
-                return (
-                  <div className="bg-soft border border-app rounded-xl overflow-hidden">
-                    {/* Calendar Header */}
-                    <div className="grid grid-cols-7 border-b border-app bg-ink-800">
-                      {weekDays.map((day) => (
-                        <div
-                          key={day}
-                          className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app last:border-r-0"
-                        >
-                          {day}
-                        </div>
-                      ))}
+                <div className="flex flex-col md:flex-row md:items-center gap-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs text-muted flex items-center gap-1">
+                      <Filter className="w-3 h-3" />
+                      แสดงแบบ:
+                    </label>
+                    <div className="flex items-center gap-1 bg-soft p-1 rounded-lg border border-app">
+                      <button
+                        onClick={() => handleCalendarViewModeChange("month")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                          calendarViewMode === "month"
+                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                            : "text-muted hover:text-app hover:bg-app/10"
+                        }`}
+                      >
+                        รายเดือน
+                      </button>
+                      <button
+                        onClick={() => handleCalendarViewModeChange("year")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                          calendarViewMode === "year"
+                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                            : "text-muted hover:text-app hover:bg-app/10"
+                        }`}
+                      >
+                        รายปี
+                      </button>
                     </div>
-                    
-                    {/* Calendar Body */}
-                    <div className="grid grid-cols-7">
-                      {/* Empty cells for days before month starts */}
-                      {Array.from({ length: firstDayWeekday }).map((_, idx) => (
-                        <div
-                          key={`empty-${idx}`}
-                          className="min-h-[100px] border-r border-b border-app last:border-r-0 bg-ink-900/50"
-                        />
-                      ))}
-                      
-                      {/* Calendar days */}
-                      {calendarData.map((dayData) => {
-                        const isToday = dayData.date === new Date().toISOString().split('T')[0];
-                        const isPast = new Date(dayData.date) < new Date(new Date().setHours(0, 0, 0, 0));
-                        
-                        return (
-                          <div
-                            key={dayData.date}
-                            className={`min-h-[100px] border-r border-b border-app last:border-r-0 p-2 ${
-                              dayData.statusColor
-                            } ${isToday ? "ring-2 ring-ptt-cyan" : ""} ${
-                              isPast ? "opacity-80" : ""
-                            }`}
-                          >
-                            <div className="flex items-start justify-between mb-1">
-                              <span className={`text-sm font-semibold ${
-                                isToday ? "text-ptt-cyan" : "text-app"
-                              }`}>
-                                {dayData.day}
-                              </span>
-                              {dayData.otHours > 0 && (
-                                <span className="text-xs bg-green-400/50 text-green-900 px-1.5 py-0.5 rounded font-medium">
-                                  OT
-                                </span>
-                              )}
+                  </div>
+                  {calendarViewMode === "month" ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handlePrevMonth}
+                        className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+                      >
+                        <ChevronLeft className="w-4 h-4 text-app" />
+                      </button>
+                      <input
+                        type="month"
+                        value={calendarMonth}
+                        onChange={(e) => setCalendarMonth(e.target.value)}
+                        className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                      />
+                      <button
+                        onClick={handleNextMonth}
+                        className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+                      >
+                        <ChevronRight className="w-4 h-4 text-app" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handlePrevYear}
+                        className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+                      >
+                        <ChevronLeft className="w-4 h-4 text-app" />
+                      </button>
+                      <select
+                        value={calendarYear}
+                        onChange={(e) => handleCalendarYearChange(e.target.value)}
+                        className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                      >
+                        {(availableYears.length > 0 ? availableYears : [calendarYear]).map((year) => (
+                          <option key={year} value={year}>
+                            ปี {year}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={handleNextYear}
+                        className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+                      >
+                        <ChevronRight className="w-4 h-4 text-app" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {calendarViewMode === "month" ? (
+                <>
+                  {renderCalendarLegend()}
+                  {(() => {
+                    const { calendarData, firstDayWeekday } = monthCalendarData;
+                    return (
+                      <div className="bg-soft border border-app rounded-xl overflow-hidden">
+                        <div className="grid grid-cols-7 border-b border-app bg-ink-800">
+                          {weekDays.map((day) => (
+                            <div
+                              key={day}
+                              className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app last:border-r-0"
+                            >
+                              {day}
                             </div>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-7">
+                          {Array.from({ length: firstDayWeekday }).map((_, idx) => (
+                            <div
+                              key={`empty-${idx}`}
+                              className="min-h-[100px] border-r border-b border-app last:border-r-0 bg-ink-900/50"
+                            />
+                          ))}
+                          {calendarData.map((dayData) => {
+                            const isToday = dayData.date === new Date().toISOString().split('T')[0];
+                            const isPast = new Date(dayData.date) < new Date(new Date().setHours(0, 0, 0, 0));
                             
-                            <div className="space-y-1 text-xs">
-                              {dayData.log && (
-                                <>
-                                  <div className="text-app font-medium truncate" title={dayData.status}>
-                                    {dayData.status}
+                            return (
+                              <div
+                                key={dayData.date}
+                                className={`min-h-[100px] border-r border-b border-app last:border-r-0 p-2 ${
+                                  dayData.statusColor
+                                } ${isToday ? "ring-2 ring-ptt-cyan" : ""} ${
+                                  isPast ? "opacity-80" : ""
+                                }`}
+                              >
+                                <div className="flex items-start justify-between mb-1">
+                                  <span className={`text-sm font-semibold ${
+                                    isToday ? "text-ptt-cyan" : "text-app"
+                                  }`}>
+                                    {dayData.day}
+                                  </span>
+                                  {dayData.otHours > 0 && (
+                                    <span className="text-xs bg-green-400/50 text-green-900 px-1.5 py-0.5 rounded font-medium">
+                                      OT
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="space-y-1 text-xs">
+                                  {dayData.log && (
+                                    <>
+                                      <div className="text-app font-medium truncate" title={dayData.status}>
+                                        {dayData.status}
+                                      </div>
+                                      {dayData.checkIn && dayData.checkOut && (
+                                        <div className="text-muted font-mono">
+                                          {dayData.checkIn} - {dayData.checkOut}
+                                        </div>
+                                      )}
+                                      {dayData.workingHours > 0 && (
+                                        <div className="text-ptt-cyan">
+                                          {formatTime(dayData.workingHours)}
+                                        </div>
+                                      )}
+                                      {dayData.otHours > 0 && (
+                                        <div className="text-green-400 font-semibold">
+                                          OT: {formatTime(dayData.otHours)}
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                  {dayData.leave && !dayData.log && (
+                                    <div className="text-blue-400 font-medium truncate" title={dayData.leave.type}>
+                                      {dayData.leave.type}
+                                    </div>
+                                  )}
+                                  {!dayData.log && !dayData.leave && (
+                                    <div className="text-muted text-[10px]">-</div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {(() => {
+                    const { calendarData } = monthCalendarData;
+                    const monthOnTime = calendarData.filter(d => d.status === "ตรงเวลา").length;
+                    const monthLate = calendarData.filter(d => d.status.includes("สาย")).length;
+                    const monthAbsent = calendarData.filter(d => d.status === "ขาดงาน").length;
+                    const monthLeave = calendarData.filter(d => d.leave !== null).length;
+                    const monthOTDays = calendarData.filter(d => d.otHours > 0).length;
+                    const monthTotalOT = calendarData.reduce((sum, d) => sum + d.otHours, 0);
+                    const monthTotalHours = calendarData.reduce((sum, d) => sum + d.workingHours, 0);
+                    
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                          <p className="text-xs text-muted mb-1">ตรงเวลา</p>
+                          <p className="text-lg font-bold text-green-400">{monthOnTime} วัน</p>
+                        </div>
+                        <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+                          <p className="text-xs text-muted mb-1">มาสาย</p>
+                          <p className="text-lg font-bold text-yellow-400">{monthLate} วัน</p>
+                        </div>
+                        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+                          <p className="text-xs text-muted mb-1">ขาดงาน</p>
+                          <p className="text-lg font-bold text-red-400">{monthAbsent} วัน</p>
+                        </div>
+                        <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                          <p className="text-xs text-muted mb-1">ลา</p>
+                          <p className="text-lg font-bold text-blue-400">{monthLeave} วัน</p>
+                        </div>
+                        {monthOTDays > 0 && (
+                          <div className="p-4 bg-green-400/10 border border-green-400/30 rounded-xl">
+                            <p className="text-xs text-muted mb-1">วันทำ OT</p>
+                            <p className="text-lg font-bold text-green-400">{monthOTDays} วัน</p>
+                            <p className="text-xs text-muted mt-1">รวม {formatTime(monthTotalOT)}</p>
+                          </div>
+                        )}
+                        <div className="p-4 bg-ptt-blue/10 border border-ptt-blue/30 rounded-xl">
+                          <p className="text-xs text-muted mb-1">ชั่วโมงทำงานรวม</p>
+                          <p className="text-lg font-bold text-ptt-cyan">{formatTime(monthTotalHours)}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
+              ) : (
+                <>
+                  {renderCalendarLegend()}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {yearlyCalendars.map((month) => (
+                      <div
+                        key={month.monthNumber}
+                        className={`p-4 rounded-xl border ${
+                          month.stats.hasData ? "bg-soft" : "bg-soft/60 opacity-80"
+                        } space-y-3`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-app">{month.label}</p>
+                          <span className="text-xs text-muted">
+                            {month.stats.hasData
+                              ? `${month.stats.onTime + month.stats.late + month.stats.absent} วันทำงาน`
+                              : "ไม่มีข้อมูล"}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-muted">
+                          {month.stats.hasData ? (
+                            <span>
+                              ตรงเวลา {month.stats.onTime} • สาย {month.stats.late} • ขาด {month.stats.absent} • ลา{" "}
+                              {month.stats.leaveDays}
+                            </span>
+                          ) : (
+                            <span>ไม่มีข้อมูล</span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="grid grid-cols-7 text-[10px] font-semibold text-muted uppercase tracking-wide">
+                            {weekDays.map((day) => (
+                              <span key={`${month.monthNumber}-${day}`} className="text-center">
+                                {day}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="mt-1 grid grid-cols-7 gap-1">
+                            {Array.from({ length: month.firstDayWeekday }).map((_, idx) => (
+                              <div
+                                key={`year-empty-${month.monthNumber}-${idx}`}
+                                className="min-h-[60px] rounded-lg border border-dashed border-app/20"
+                              />
+                            ))}
+                            {month.calendarData.map((dayData) => {
+                              const isToday = dayData.date === new Date().toISOString().split("T")[0];
+                              return (
+                                <div
+                                  key={`${month.monthNumber}-${dayData.date}`}
+                                  className={`min-h-[60px] rounded-lg border border-app/20 p-1.5 text-[11px] ${dayData.statusColor} ${
+                                    isToday ? "ring-2 ring-ptt-cyan" : ""
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between font-semibold">
+                                    <span className={isToday ? "text-ptt-cyan" : "text-app"}>{dayData.day}</span>
+                                    {dayData.otHours > 0 && (
+                                      <span className="text-[10px] text-green-400 font-semibold">OT</span>
+                                    )}
+                                  </div>
+                                  <div className="text-[10px] text-app/90 truncate" title={dayData.status}>
+                                    {dayData.log ? dayData.status : dayData.leave ? dayData.leave.type : "-"}
                                   </div>
                                   {dayData.checkIn && dayData.checkOut && (
-                                    <div className="text-muted font-mono">
+                                    <div className="text-[10px] text-muted font-mono">
                                       {dayData.checkIn} - {dayData.checkOut}
                                     </div>
                                   )}
-                                  {dayData.workingHours > 0 && (
-                                    <div className="text-ptt-cyan">
-                                      {formatTime(dayData.workingHours)}
-                                    </div>
-                                  )}
-                                  {dayData.otHours > 0 && (
-                                    <div className="text-green-400 font-semibold">
-                                      OT: {formatTime(dayData.otHours)}
-                                    </div>
-                                  )}
-                                </>
-                              )}
-                              {dayData.leave && !dayData.log && (
-                                <div className="text-blue-400 font-medium truncate" title={dayData.leave.type}>
-                                  {dayData.leave.type}
                                 </div>
-                              )}
-                              {!dayData.log && !dayData.leave && (
-                                <div className="text-muted text-[10px]">-</div>
-                              )}
-                            </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Summary for selected month */}
-              {(() => {
-                const { calendarData } = getCalendarData();
-                const monthOnTime = calendarData.filter(d => d.status === "ตรงเวลา").length;
-                const monthLate = calendarData.filter(d => d.status.includes("สาย")).length;
-                const monthAbsent = calendarData.filter(d => d.status === "ขาดงาน").length;
-                const monthLeave = calendarData.filter(d => d.leave !== null).length;
-                const monthOTDays = calendarData.filter(d => d.otHours > 0).length;
-                const monthTotalOT = calendarData.reduce((sum, d) => sum + d.otHours, 0);
-                const monthTotalHours = calendarData.reduce((sum, d) => sum + d.workingHours, 0);
-                
-                return (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
-                      <p className="text-xs text-muted mb-1">ตรงเวลา</p>
-                      <p className="text-lg font-bold text-green-400">{monthOnTime} วัน</p>
-                    </div>
-                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-                      <p className="text-xs text-muted mb-1">มาสาย</p>
-                      <p className="text-lg font-bold text-yellow-400">{monthLate} วัน</p>
-                    </div>
-                    <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-                      <p className="text-xs text-muted mb-1">ขาดงาน</p>
-                      <p className="text-lg font-bold text-red-400">{monthAbsent} วัน</p>
-                    </div>
-                    <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                      <p className="text-xs text-muted mb-1">ลา</p>
-                      <p className="text-lg font-bold text-blue-400">{monthLeave} วัน</p>
-                    </div>
-                    {monthOTDays > 0 && (
-                      <div className="p-4 bg-green-400/10 border border-green-400/30 rounded-xl">
-                        <p className="text-xs text-muted mb-1">วันทำ OT</p>
-                        <p className="text-lg font-bold text-green-400">{monthOTDays} วัน</p>
-                        <p className="text-xs text-muted mt-1">รวม {formatTime(monthTotalOT)}</p>
+                        </div>
                       </div>
-                    )}
-                    <div className="p-4 bg-ptt-blue/10 border border-ptt-blue/30 rounded-xl">
+                    ))}
+                  </div>
+                  <div className="p-4 bg-ptt-blue/10 border border-ptt-blue/30 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-muted mb-1">รวมตรงเวลา</p>
+                      <p className="text-xl font-bold text-green-400">{yearlyTotals.onTime} วัน</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted mb-1">รวมมาสาย</p>
+                      <p className="text-xl font-bold text-yellow-400">{yearlyTotals.late} วัน</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted mb-1">รวมขาดงาน</p>
+                      <p className="text-xl font-bold text-red-400">{yearlyTotals.absent} วัน</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted mb-1">วันลา (ทั้งหมด)</p>
+                      <p className="text-xl font-bold text-blue-400">{yearlyTotals.leaveDays} วัน</p>
+                    </div>
+                    <div>
                       <p className="text-xs text-muted mb-1">ชั่วโมงทำงานรวม</p>
-                      <p className="text-lg font-bold text-ptt-cyan">{formatTime(monthTotalHours)}</p>
+                      <p className="text-xl font-bold text-ptt-cyan">{formatTime(yearlyTotals.workingHours)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted mb-1">OT สะสม</p>
+                      <p className="text-xl font-bold text-green-400">{formatTime(yearlyTotals.otHours)}</p>
+                      <p className="text-[11px] text-muted mt-1">
+                        ข้อมูลจาก {yearlyTotals.monthsWithData} เดือน
+                      </p>
                     </div>
                   </div>
-                );
-              })()}
+                </>
+              )}
             </div>
           )}
 
@@ -2343,57 +2891,64 @@ export default function EmployeeDetail() {
             size="lg"
           >
             {(() => {
-              const empRewardPenalty = rewardPenaltyHistory.filter(r => r.empCode === employee.code)
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-              
               return (
                 <div className="space-y-4">
-                  {empRewardPenalty.map((item) => (
-                    <div key={item.id} className={`p-4 rounded-xl border ${
-                      item.type === "ทันบน"
-                        ? "bg-green-500/10 border-green-500/30"
-                        : "bg-red-500/10 border-red-500/30"
-                    }`}>
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            {item.type === "ทันบน" ? (
-                              <Award className="w-4 h-4 text-green-400" />
-                            ) : (
-                              <AlertTriangle className="w-4 h-4 text-red-400" />
-                            )}
-                            <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                              item.type === "ทันบน"
-                                ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                : "bg-red-500/20 text-red-400 border border-red-500/30"
-                            }`}>
-                              {item.category}
-                            </span>
-                            <span className="text-sm text-muted">
-                              {new Date(item.date).toLocaleDateString("th-TH", { 
-                                year: "numeric", 
-                                month: "long", 
-                                day: "numeric" 
-                              })}
-                            </span>
+                  {employeeRewards.map((item) => {
+                    const isWarning = item.type === "ทันบน";
+                    return (
+                      <div
+                        key={item.id}
+                        className={`p-4 rounded-xl border ${
+                          isWarning
+                            ? "bg-yellow-500/10 border-yellow-500/30"
+                            : "bg-red-500/10 border-red-500/30"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              {isWarning ? (
+                                <AlertCircle className="w-4 h-4 text-yellow-400" />
+                              ) : (
+                                <AlertTriangle className="w-4 h-4 text-red-400" />
+                              )}
+                              <span
+                                className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                                  isWarning
+                                    ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                                    : "bg-red-500/20 text-red-400 border border-red-500/30"
+                                }`}
+                              >
+                                {item.category}
+                              </span>
+                              <span className="text-sm text-muted">
+                                {new Date(item.date).toLocaleDateString("th-TH", {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })}
+                              </span>
+                            </div>
+                            <p className="text-sm font-semibold text-app mb-1">{item.title}</p>
+                            <p className="text-sm text-muted">{item.description}</p>
                           </div>
-                          <p className="text-sm font-semibold text-app mb-1">{item.title}</p>
-                          <p className="text-sm text-muted">{item.description}</p>
+                          {item.amount && (
+                            <div className="text-right">
+                              <p className="text-xs text-muted">ค่าปรับ</p>
+                              <p className="text-sm font-semibold text-red-400 font-mono">
+                                {formatCurrency(-item.amount)}
+                              </p>
+                            </div>
+                          )}
                         </div>
-                        {item.amount && (
-                          <div className="text-right">
-                            <p className="text-xs text-muted">รางวัล</p>
-                            <p className="text-sm font-semibold text-green-400 font-mono">{formatCurrency(item.amount)}</p>
-                          </div>
-                        )}
+                        <div className="mt-3 p-3 bg-soft rounded-lg border border-app">
+                          <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
+                          <p className="text-sm text-app">{item.note}</p>
+                          <p className="text-xs text-muted mt-2">ออกโดย: {item.issuedBy}</p>
+                        </div>
                       </div>
-                      <div className="mt-3 p-3 bg-soft rounded-lg border border-app">
-                        <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
-                        <p className="text-sm text-app">{item.note}</p>
-                        <p className="text-xs text-muted mt-2">ออกโดย: {item.issuedBy}</p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               );
             })()}
@@ -2407,12 +2962,9 @@ export default function EmployeeDetail() {
             size="lg"
           >
             {(() => {
-              const empTransfers = positionTransferHistory.filter(t => t.empCode === employee.code)
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-              
               return (
                 <div className="space-y-4">
-                  {empTransfers.map((transfer) => (
+                  {employeeTransfers.map((transfer) => (
                     <div key={transfer.id} className="p-4 bg-soft rounded-xl border border-app">
                       <div className="flex items-center justify-between mb-3">
                         <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
@@ -2432,27 +2984,21 @@ export default function EmployeeDetail() {
                           })}
                         </span>
                       </div>
-                      <div className="flex items-center gap-4 mb-3">
-                        <div className="flex-1 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                          <p className="text-xs text-muted mb-1">เดิม</p>
+                      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-center">
+                        <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                          <p className="text-xs text-muted mb-1">ตำแหน่งเดิม</p>
                           <p className="text-sm font-semibold text-app">{transfer.oldPosition}</p>
                           <p className="text-xs text-muted">{transfer.oldDept}</p>
                         </div>
-                        <ArrowRightLeft className="w-5 h-5 text-muted flex-shrink-0" />
-                        <div className="flex-1 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                          <p className="text-xs text-muted mb-1">ใหม่</p>
+                        <ArrowRightLeft className="w-5 h-5 text-muted mx-auto" />
+                        <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                          <p className="text-xs text-muted mb-1">ตำแหน่งใหม่</p>
                           <p className="text-sm font-semibold text-ptt-cyan">{transfer.newPosition}</p>
                           <p className="text-xs text-muted">{transfer.newDept}</p>
                         </div>
                       </div>
-                      <div className="mb-2">
-                        <p className="text-sm text-muted mb-1">เหตุผล:</p>
-                        <p className="text-sm text-app">{transfer.reason}</p>
-                      </div>
-                      <div className="mt-3 p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
-                        <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
-                        <p className="text-sm text-app">{transfer.note}</p>
-                        <p className="text-xs text-muted mt-2">อนุมัติโดย: {transfer.approvedBy}</p>
+                      <div className="mt-3 text-xs text-muted">
+                        อนุมัติโดย {transfer.approvedBy}
                       </div>
                     </div>
                   ))}
@@ -2630,112 +3176,6 @@ export default function EmployeeDetail() {
                 </div>
               </div>
 
-              {/* Monthly Summary */}
-              {monthlySummary.length > 0 && (
-                <div>
-                  <h4 className="text-md font-semibold text-app mb-3 font-display flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    สรุปการเข้างานรายเดือน
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-soft border-b border-app">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-app">เดือน</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-app">วันทำงาน</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-app">ตรงเวลา</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-app">มาสาย</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-app">ขาดงาน</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-app">ลา</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-app">ชั่วโมงทำงาน</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-app">อัตรา</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-app">
-                        {monthlySummary.map((month) => {
-                          const monthRate = month.total > 0 
-                            ? ((month.onTime / month.total) * 100).toFixed(1) 
-                            : "0.0";
-                          return (
-                            <tr key={month.month} className="hover:bg-soft transition-colors">
-                              <td className="px-4 py-3 text-sm text-app font-medium">
-                                {new Date(month.month + "-01").toLocaleDateString("th-TH", { 
-                                  year: "numeric", 
-                                  month: "long" 
-                                })}
-                              </td>
-                              <td className="px-4 py-3 text-center text-sm text-app">{month.workingDays}</td>
-                              <td className="px-4 py-3 text-center">
-                                <span className="text-green-400 font-semibold">{month.onTime}</span>
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <span className="text-yellow-400 font-semibold">{month.late}</span>
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <span className="text-red-400 font-semibold">{month.absent}</span>
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <span className="text-blue-400 font-semibold">{month.leave}</span>
-                              </td>
-                              <td className="px-4 py-3 text-right text-sm text-app font-mono">
-                                {formatTime(month.workingHours)}
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <span className="text-ptt-cyan font-semibold">{monthRate}%</span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Shift Comparison */}
-              {employeeShift && (
-                <div className="p-4 bg-ptt-blue/10 border border-ptt-blue/30 rounded-xl">
-                  <h4 className="text-sm font-semibold text-app mb-3 flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    เปรียบเทียบกับกะการทำงาน
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-xs text-muted mb-1">กะการทำงาน</p>
-                      <p className="text-sm font-semibold text-app">
-                        กะ{employeeShift.name}: {employeeShift.startTime} - {employeeShift.endTime}
-                      </p>
-                      <p className="text-xs text-muted mt-1">
-                        {shiftHours} ชั่วโมง/วัน
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted mb-1">ชั่วโมงทำงานเฉลี่ย</p>
-                      <p className="text-sm font-semibold text-ptt-cyan font-mono">
-                        {formatTime(avgWorkingHours)}/วัน
-                      </p>
-                      <p className="text-xs text-muted mt-1">
-                        {avgWorkingHours > shiftHours 
-                          ? `มากกว่ากะ ${(avgWorkingHours - shiftHours).toFixed(1)} ชม.` 
-                          : avgWorkingHours < shiftHours
-                          ? `น้อยกว่ากะ ${(shiftHours - avgWorkingHours).toFixed(1)} ชม.`
-                          : "ตรงกับกะ"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted mb-1">OT จากเวลาเข้างาน</p>
-                      <p className="text-sm font-semibold text-green-400 font-mono">
-                        {formatTime(totalOTHoursFromAttendance)}
-                      </p>
-                      <p className="text-xs text-muted mt-1">
-                        {overtimeHoursData.length} วันที่มี OT
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Detailed Table */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-md font-semibold text-app font-display flex items-center gap-2">
@@ -3104,21 +3544,19 @@ export default function EmployeeDetail() {
                 />
               </div>
 
-              {rewardPenaltyFormData.type === "ทันบน" && (
-                <div>
-                  <label className="block text-sm font-medium text-app mb-2">จำนวนเงินรางวัล (บาท)</label>
-                  <input
-                    type="number"
-                    name="amount"
-                    value={rewardPenaltyFormData.amount}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app font-mono
-                             focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
-                    placeholder="0"
-                    min="0"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-app mb-2">จำนวนเงินค่าปรับ (บาท)</label>
+                <input
+                  type="number"
+                  name="amount"
+                  value={rewardPenaltyFormData.amount}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-sm text-app font-mono
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue"
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-app mb-2">วันที่</label>
@@ -3347,4 +3785,6 @@ export default function EmployeeDetail() {
     </div>
   );
 }
+
+
 

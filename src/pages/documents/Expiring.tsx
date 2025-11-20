@@ -117,7 +117,7 @@ export default function Expiring() {
     .filter(d => d.renewalCost)
     .reduce((sum, d) => sum + (d.renewalCost || 0), 0);
 
-  // Get days in month for calendar
+  
   const getDaysInMonth = (year: number, month: number): Date[] => {
     const lastDay = new Date(year, month + 1, 0);
     const days: Date[] = [];
