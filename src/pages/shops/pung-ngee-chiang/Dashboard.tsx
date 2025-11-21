@@ -20,6 +20,10 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
 });
 
 const numberFormatter = new Intl.NumberFormat("th-TH");
+const decimalFormatter = new Intl.NumberFormat("th-TH", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 // Mock data สำหรับปึงหงี่เชียง
 const mockSalesData = {
@@ -54,6 +58,87 @@ const mockTopSellingItems = [
   { name: "กุนเชียง", sales: 12000, quantity: 150, trend: "+8%" },
   { name: "หมูแผ่น", sales: 8000, quantity: 100, trend: "-5%" },
   { name: "แหนม", sales: 5000, quantity: 80, trend: "-12%" },
+];
+
+const mockSalesTable = [
+  {
+    invoice: "INV-241201",
+    date: "2024-12-15",
+    productId: "00540",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    subCategory: "03",
+    name: "ไม้กวาดดอกหญ้า",
+    unit: "ชิ้น",
+    barcode: "00540",
+    price: 42,
+    quantity: 12,
+  },
+  {
+    invoice: "INV-241202",
+    date: "2024-12-15",
+    productId: "00541",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    subCategory: "03",
+    name: "ม็อบดันฝุ่นสแตนเลส",
+    unit: "ชิ้น",
+    barcode: "00541",
+    price: 42,
+    quantity: 8,
+  },
+  {
+    invoice: "INV-241203",
+    date: "2024-12-15",
+    productId: "00542",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    subCategory: "03",
+    name: "ม็อบกดเหล็กด้ามยาว",
+    unit: "ชิ้น",
+    barcode: "00542",
+    price: 45,
+    quantity: 5,
+  },
+  {
+    invoice: "INV-241204",
+    date: "2024-12-15",
+    productId: "00548",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    subCategory: "03",
+    name: "ไม้กวาดทางมะพร้าว",
+    unit: "ชิ้น",
+    barcode: "00548",
+    price: 20,
+    quantity: 20,
+  },
+  {
+    invoice: "INV-241205",
+    date: "2024-12-14",
+    productId: "01001",
+    transferCode: "001001",
+    category: "สินค้าอุปโภค",
+    subCategory: "01",
+    name: "แชมพูลูกปัด 1 ระดับ (ขวดเล็ก)",
+    unit: "ขวด",
+    barcode: "01001",
+    price: 40,
+    quantity: 30,
+  },
+  {
+    invoice: "INV-241206",
+    date: "2024-12-14",
+    productId: "01002",
+    transferCode: "001001",
+    category: "สินค้าอุปโภค",
+    subCategory: "01",
+    name: "แชมพูลูกปัด 2 ระดับ (ขวดใหญ่)",
+    unit: "ขวด",
+    barcode: "01002",
+    price: 60,
+    quantity: 18,
+  },
 ];
 
 export default function PungNgeeChiangDashboard() {
@@ -152,6 +237,87 @@ export default function PungNgeeChiangDashboard() {
           </motion.div>
         ))}
       </div>
+
+      {/* Sales Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="panel rounded-2xl p-6 shadow-app"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-xl font-semibold text-app">ยอดขาย - ปึงหงี่เชียง</h3>
+            <p className="text-sm text-muted">ตารางยอดขายประจำวันที่ออกจากระบบ POS</p>
+          </div>
+          <div className="text-xs text-muted bg-soft border border-app rounded-lg px-3 py-1.5">
+            รวมบิล {numberFormatter.format(mockSalesTable.length)} รายการ
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gradient-to-r from-sky-50 to-blue-50 border border-app/40 text-[11px] uppercase tracking-wide text-slate-600">
+                <th className="py-3 px-3 text-center font-semibold">ลำดับ</th>
+                <th className="py-3 px-3 text-left font-semibold">เลขที่บิล</th>
+                <th className="py-3 px-3 text-left font-semibold">รหัสสินค้า</th>
+                <th className="py-3 px-3 text-left font-semibold">รหัสโอน</th>
+                <th className="py-3 px-3 text-left font-semibold">หมวด</th>
+                <th className="py-3 px-3 text-center font-semibold">หมวดรอง</th>
+                <th className="py-3 px-3 text-left font-semibold">ชื่อสินค้า</th>
+                <th className="py-3 px-3 text-left font-semibold">หน่วย</th>
+                <th className="py-3 px-3 text-left font-semibold">รหัสบาร์โค้ด</th>
+                <th className="py-3 px-3 text-right font-semibold">ราคาขาย</th>
+                <th className="py-3 px-3 text-right font-semibold">จำนวนขาย</th>
+                <th className="py-3 px-3 text-right font-semibold">ยอดรวม</th>
+                <th className="py-3 px-3 text-right font-semibold">วันที่</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mockSalesTable.map((sale, index) => {
+                const qtyColor =
+                  sale.quantity >= 20
+                    ? "text-emerald-500"
+                    : sale.quantity >= 10
+                    ? "text-sky-500"
+                    : "text-orange-500";
+                return (
+                  <tr
+                    key={`${sale.invoice}-${sale.productId}`}
+                    className="border-b border-app/30 hover:bg-sky-50/70 transition-colors"
+                  >
+                    <td className="py-2.5 px-3 text-center text-xs text-muted font-medium">
+                      {String(index + 1).padStart(2, "0")}
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-app">{sale.invoice}</td>
+                    <td className="py-2.5 px-3 font-mono text-app">{sale.productId}</td>
+                    <td className="py-2.5 px-3 font-mono text-xs text-muted">{sale.transferCode}</td>
+                    <td className="py-2.5 px-3 text-xs text-muted">{sale.category}</td>
+                    <td className="py-2.5 px-3 text-center text-xs font-semibold text-app">
+                      {sale.subCategory}
+                    </td>
+                    <td className="py-2.5 px-3 text-app font-medium">{sale.name}</td>
+                    <td className="py-2.5 px-3 text-xs text-muted">{sale.unit}</td>
+                    <td className="py-2.5 px-3 font-mono text-xs text-muted">{sale.barcode}</td>
+                    <td className="py-2.5 px-3 text-right text-app font-semibold">
+                      {decimalFormatter.format(sale.price)}
+                    </td>
+                    <td className={`py-2.5 px-3 text-right font-semibold ${qtyColor}`}>
+                      {numberFormatter.format(sale.quantity)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-semibold text-app">
+                      {decimalFormatter.format(sale.price * sale.quantity)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-xs text-muted">
+                      {new Date(sale.date).toLocaleDateString("th-TH")}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* สต็อกสินค้า */}

@@ -134,6 +134,12 @@ import EVMotorbikeSales from "@/pages/shops/ev-motorbike/Sales";
 import EVMotorbikePurchases from "@/pages/shops/ev-motorbike/Purchases";
 import EVMotorbikeReports from "@/pages/shops/ev-motorbike/Reports";
 import EVMotorbikeSettings from "@/pages/shops/ev-motorbike/Settings";
+import OtopDashboard from "@/pages/shops/otop/Dashboard";
+import OtopStock from "@/pages/shops/otop/Stock";
+import OtopSales from "@/pages/shops/otop/Sales";
+import OtopPurchases from "@/pages/shops/otop/Purchases";
+import OtopReports from "@/pages/shops/otop/Reports";
+import OtopSettings from "@/pages/shops/otop/Settings";
 import GasStationDashboard from "@/pages/gas-station/Dashboard";
 import GasStationPurchases from "@/pages/gas-station/Purchases";
 import GasStationSales from "@/pages/gas-station/Sales";
@@ -669,6 +675,30 @@ const router = createBrowserRouter([
           {
             path: "quick/settings",
             element: <QuickSettings />,
+          },
+          {
+            path: "otop",
+            element: <OtopDashboard />,
+          },
+          {
+            path: "otop/stock",
+            element: <OtopStock />,
+          },
+          {
+            path: "otop/sales",
+            element: <OtopSales />,
+          },
+          {
+            path: "otop/purchases",
+            element: <OtopPurchases />,
+          },
+          {
+            path: "otop/reports",
+            element: <OtopReports />,
+          },
+          {
+            path: "otop/settings",
+            element: <OtopSettings />,
           },
           {
             path: "ev-motorbike",

@@ -75,6 +75,14 @@ const shops = [
     sales: 450000,
     status: "เปิดดำเนินการ"
   },
+  { 
+    id: "otop", 
+    name: "ร้าน OTOP ชุมชน", 
+    path: "/app/shops/otop",
+    color: "green",
+    sales: 320000,
+    status: "เปิดดำเนินการ"
+  },
 ];
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {

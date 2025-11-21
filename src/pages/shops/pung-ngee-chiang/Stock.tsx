@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Package,
@@ -20,84 +20,266 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
 });
 
 const numberFormatter = new Intl.NumberFormat("th-TH");
+const decimalFormatter = new Intl.NumberFormat("th-TH", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
-// Mock data
-const initialStockData = [
+interface StockItem {
+  id: string;
+  transferCode: string;
+  category: string;
+  categorySecondary: string;
+  name: string;
+  barcode: string;
+  unit: string;
+  quantity: number;
+  cost: number;
+  price: number;
+  expiry: string;
+  supplier: string;
+  lowStockThreshold: number;
+}
+
+// Mock data matching legacy stock layout
+const initialStockData: StockItem[] = [
   {
-    id: "1",
-    name: "กุนเชียง",
-    quantity: 500,
+    id: "00540",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    categorySecondary: "03",
+    name: "ไม้กวาดดอกหญ้า",
+    barcode: "00540",
     unit: "ชิ้น",
-    cost: 50,
-    price: 80,
-    expiry: "2024-12-31",
-    supplier: "ตลาดสด",
-    lowStockThreshold: 100,
-    category: "อาหารแปรรูป",
+    quantity: 0,
+    cost: 28,
+    price: 42,
+    expiry: "2025-01-31",
+    supplier: "คลังหลัก",
+    lowStockThreshold: 50,
   },
   {
-    id: "2",
-    name: "หมูหยอง",
-    quantity: 100,
-    unit: "กรัม",
-    cost: 200,
-    price: 350,
-    expiry: "2024-12-25",
-    supplier: "ตลาดสด",
-    lowStockThreshold: 200,
-    category: "อาหารแปรรูป",
-  },
-  {
-    id: "3",
-    name: "หมูแผ่น",
-    quantity: 300,
+    id: "00541",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    categorySecondary: "03",
+    name: "ม็อบดันฝุ่นสแตนเลส",
+    barcode: "00541",
     unit: "ชิ้น",
+    quantity: 0,
     cost: 30,
-    price: 50,
-    expiry: "2025-01-15",
-    supplier: "ซัพพลายเออร์ A",
-    lowStockThreshold: 150,
-    category: "อาหารแปรรูป",
+    price: 42,
+    expiry: "2025-01-31",
+    supplier: "คลังหลัก",
+    lowStockThreshold: 50,
   },
   {
-    id: "4",
-    name: "แหนม",
-    quantity: 50,
+    id: "00542",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    categorySecondary: "03",
+    name: "ม็อบกดเหล็กด้ามยาว",
+    barcode: "00542",
     unit: "ชิ้น",
+    quantity: 0,
+    cost: 32,
+    price: 45,
+    expiry: "2025-01-31",
+    supplier: "คลังหลัก",
+    lowStockThreshold: 50,
+  },
+  {
+    id: "00543",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    categorySecondary: "03",
+    name: "ราวตากผ้าไม้ไผ่ยาว",
+    barcode: "00543",
+    unit: "ชิ้น",
+    quantity: 0,
+    cost: 33,
+    price: 45,
+    expiry: "2025-01-31",
+    supplier: "คลังหลัก",
+    lowStockThreshold: 40,
+  },
+  {
+    id: "00544",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    categorySecondary: "03",
+    name: "ด้ามถูพื้นไม้เนื้อแข็ง",
+    barcode: "00544",
+    unit: "ชิ้น",
+    quantity: 0,
+    cost: 20,
+    price: 30,
+    expiry: "2025-02-28",
+    supplier: "คลังหลัก",
+    lowStockThreshold: 40,
+  },
+  {
+    id: "00545",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    categorySecondary: "03",
+    name: "ม็อบเช็ดกระจกสแตนเลส",
+    barcode: "00545",
+    unit: "ชิ้น",
+    quantity: 0,
+    cost: 26,
+    price: 39,
+    expiry: "2025-02-28",
+    supplier: "คลังหลัก",
+    lowStockThreshold: 40,
+  },
+  {
+    id: "00546",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    categorySecondary: "03",
+    name: "ไม้กวาดพลาสติกสีแดง",
+    barcode: "00546",
+    unit: "ชิ้น",
+    quantity: 0,
+    cost: 26,
+    price: 39,
+    expiry: "2025-03-15",
+    supplier: "คลังหลัก",
+    lowStockThreshold: 40,
+  },
+  {
+    id: "00547",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    categorySecondary: "03",
+    name: "ไฮยีนครอสบาร์",
+    barcode: "00547",
+    unit: "ชุด",
+    quantity: 0,
+    cost: 14,
+    price: 20,
+    expiry: "2025-03-15",
+    supplier: "ศูนย์จัดจำหน่าย",
+    lowStockThreshold: 30,
+  },
+  {
+    id: "00548",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    categorySecondary: "03",
+    name: "ไม้กวาดทางมะพร้าว",
+    barcode: "00548",
+    unit: "ชิ้น",
+    quantity: 0,
+    cost: 12,
+    price: 20,
+    expiry: "2025-04-10",
+    supplier: "ศูนย์จัดจำหน่าย",
+    lowStockThreshold: 30,
+  },
+  {
+    id: "00549",
+    transferCode: "001001",
+    category: "อุปกรณ์ทำความสะอาด",
+    categorySecondary: "03",
+    name: "ไฮยีนกลิ่นซีตรัส",
+    barcode: "00549",
+    unit: "ชิ้น",
+    quantity: 0,
+    cost: 5,
+    price: 7,
+    expiry: "2025-04-10",
+    supplier: "ศูนย์จัดจำหน่าย",
+    lowStockThreshold: 30,
+  },
+  {
+    id: "01001",
+    transferCode: "001001",
+    category: "สินค้าอุปโภค",
+    categorySecondary: "01",
+    name: "แชมพูลูกปัด 1 ระดับ (ขวดเล็ก)",
+    barcode: "01001",
+    unit: "ขวด",
+    quantity: 95,
+    cost: 28,
+    price: 40,
+    expiry: "2025-05-05",
+    supplier: "โรงงาน PNC",
+    lowStockThreshold: 60,
+  },
+  {
+    id: "01002",
+    transferCode: "001001",
+    category: "สินค้าอุปโภค",
+    categorySecondary: "01",
+    name: "แชมพูลูกปัด 2 ระดับ (ขวดใหญ่)",
+    barcode: "01002",
+    unit: "ขวด",
+    quantity: 23,
     cost: 40,
     price: 60,
-    expiry: "2024-12-20",
-    supplier: "ตลาดสด",
-    lowStockThreshold: 100,
-    category: "อาหารแปรรูป",
+    expiry: "2025-05-05",
+    supplier: "โรงงาน PNC",
+    lowStockThreshold: 60,
+  },
+  {
+    id: "01003",
+    transferCode: "001001",
+    category: "สินค้าอุปโภค",
+    categorySecondary: "01",
+    name: "น้ำยาปรับผ้านุ่ม 2.5 ลิตร",
+    barcode: "01003",
+    unit: "แกลลอน",
+    quantity: 1,
+    cost: 45,
+    price: 70,
+    expiry: "2025-05-05",
+    supplier: "โรงงาน PNC",
+    lowStockThreshold: 40,
   },
 ];
+
+const getNextProductCode = (items: StockItem[]) => {
+  const numericCodes = items
+    .map((item) => Number(item.id))
+    .filter((code) => !Number.isNaN(code));
+  const nextCode = numericCodes.length ? Math.max(...numericCodes) + 1 : 1;
+  return nextCode.toString().padStart(5, "0");
+};
+
+const createEmptyFormState = () => ({
+  name: "",
+  quantity: "",
+  unit: "ชิ้น",
+  cost: "",
+  price: "",
+  expiry: "",
+  supplier: "",
+  lowStockThreshold: "",
+  category: "อุปกรณ์ทำความสะอาด",
+  transferCode: "001001",
+  categorySecondary: "01",
+  barcode: "",
+});
 
 export default function Stock() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "ปึงหงี่เชียง";
-  
-  const [stockData, setStockData] = useState(initialStockData);
+
+  const [stockData, setStockData] = useState<StockItem[]>(initialStockData);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<typeof initialStockData[0] | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    quantity: "",
-    unit: "ชิ้น",
-    cost: "",
-    price: "",
-    expiry: "",
-    supplier: "",
-    lowStockThreshold: "",
-    category: "อาหารแปรรูป",
-  });
+  const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
+  const [formData, setFormData] = useState(createEmptyFormState());
+  const nextProductCode = useMemo(() => getNextProductCode(stockData), [stockData]);
 
   // Calculate stock status
-  const getStockStatus = (item: typeof initialStockData[0]) => {
-    const percentage = (item.quantity / item.lowStockThreshold) * 100;
+  const getStockStatus = (item: StockItem) => {
+    const percentage =
+      item.lowStockThreshold > 0 ? (item.quantity / item.lowStockThreshold) * 100 : 100;
     const daysUntilExpiry = Math.ceil(
       (new Date(item.expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -110,8 +292,14 @@ export default function Stock() {
 
   // Filter stock data
   const filteredStock = stockData.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.supplier.toLowerCase().includes(searchQuery.toLowerCase());
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
+      item.name.toLowerCase().includes(query) ||
+      item.supplier.toLowerCase().includes(query) ||
+      item.id.toLowerCase().includes(query) ||
+      item.transferCode.toLowerCase().includes(query) ||
+      item.barcode.toLowerCase().includes(query);
     const matchesCategory = !categoryFilter || item.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -123,13 +311,21 @@ export default function Stock() {
   });
 
   const handleAddItem = () => {
-    const newItem = {
-      id: String(stockData.length + 1),
-      ...formData,
-      quantity: Number(formData.quantity),
-      cost: Number(formData.cost),
-      price: Number(formData.price),
-      lowStockThreshold: Number(formData.lowStockThreshold),
+    const newProductCode = getNextProductCode(stockData);
+    const newItem: StockItem = {
+      id: newProductCode,
+      transferCode: formData.transferCode || "001001",
+      category: formData.category || "ไม่ระบุหมวดหมู่",
+      categorySecondary: formData.categorySecondary || "01",
+      name: formData.name,
+      barcode: formData.barcode || newProductCode,
+      unit: formData.unit,
+      quantity: Number(formData.quantity) || 0,
+      cost: Number(formData.cost) || 0,
+      price: Number(formData.price) || 0,
+      expiry: formData.expiry,
+      supplier: formData.supplier,
+      lowStockThreshold: Number(formData.lowStockThreshold) || 0,
     };
     setStockData([...stockData, newItem]);
     setIsAddModalOpen(false);
@@ -143,11 +339,18 @@ export default function Stock() {
         item.id === selectedItem.id
           ? {
               ...selectedItem,
-              ...formData,
-              quantity: Number(formData.quantity),
-              cost: Number(formData.cost),
-              price: Number(formData.price),
-              lowStockThreshold: Number(formData.lowStockThreshold),
+              name: formData.name,
+              quantity: Number(formData.quantity) || 0,
+              unit: formData.unit,
+              cost: Number(formData.cost) || 0,
+              price: Number(formData.price) || 0,
+              expiry: formData.expiry,
+              supplier: formData.supplier,
+              lowStockThreshold: Number(formData.lowStockThreshold) || 0,
+              category: formData.category || selectedItem.category,
+              transferCode: formData.transferCode || selectedItem.transferCode,
+              categorySecondary: formData.categorySecondary || selectedItem.categorySecondary,
+              barcode: formData.barcode || selectedItem.barcode,
             }
           : item
       )
@@ -164,20 +367,10 @@ export default function Stock() {
   };
 
   const resetForm = () => {
-    setFormData({
-      name: "",
-      quantity: "",
-      unit: "ชิ้น",
-      cost: "",
-      price: "",
-      expiry: "",
-      supplier: "",
-      lowStockThreshold: "",
-      category: "อาหารแปรรูป",
-    });
+    setFormData(createEmptyFormState());
   };
 
-  const openEditModal = (item: typeof initialStockData[0]) => {
+  const openEditModal = (item: StockItem) => {
     setSelectedItem(item);
     setFormData({
       name: item.name,
@@ -189,6 +382,9 @@ export default function Stock() {
       supplier: item.supplier,
       lowStockThreshold: String(item.lowStockThreshold),
       category: item.category,
+      transferCode: item.transferCode,
+      categorySecondary: item.categorySecondary,
+      barcode: item.barcode,
     });
     setIsEditModalOpen(true);
   };
@@ -325,61 +521,57 @@ export default function Stock() {
         className="panel rounded-2xl p-6"
       >
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-app">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-app">สินค้า</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-app">คงเหลือ</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-app">ต้นทุน</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-app">ราคาขาย</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-app">หมดอายุ</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-app">ซัพพลายเออร์</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-app">สถานะ</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-app">จัดการ</th>
+              <tr className="bg-gradient-to-r from-sky-50 to-blue-50 border border-app/40 text-[11px] uppercase tracking-wide text-slate-600">
+                <th className="py-3 px-3 text-center font-semibold">ลำดับ</th>
+                <th className="py-3 px-3 text-left font-semibold">รหัสสินค้า</th>
+                <th className="py-3 px-3 text-left font-semibold">รหัสโอน</th>
+                <th className="py-3 px-3 text-left font-semibold">หมวดหลัก</th>
+                <th className="py-3 px-3 text-left font-semibold">ชื่อสินค้า</th>
+                <th className="py-3 px-3 text-center font-semibold">หมวดรอง</th>
+                <th className="py-3 px-3 text-left font-semibold">รหัสบาร์โค้ด</th>
+                <th className="py-3 px-3 text-left font-semibold">ชื่อหน่วย</th>
+                <th className="py-3 px-3 text-right font-semibold">ราคาขาย</th>
+                <th className="py-3 px-3 text-right font-semibold">คงเหลือ</th>
+                <th className="py-3 px-3 text-right font-semibold">จัดการ</th>
               </tr>
             </thead>
             <tbody>
-              {filteredStock.map((item) => {
+              {filteredStock.map((item, index) => {
                 const status = getStockStatus(item);
+                const qtyColor =
+                  status.type === "critical"
+                    ? "text-red-500"
+                    : status.type === "warning"
+                    ? "text-orange-500"
+                    : status.type === "expiring"
+                    ? "text-amber-500"
+                    : "text-emerald-500";
                 return (
-                  <tr key={item.id} className="border-b border-app/50 hover:bg-soft/50">
-                    <td className="py-3 px-4">
-                      <p className="font-medium text-app">{item.name}</p>
-                      <p className="text-xs text-muted">{item.category}</p>
+                  <tr
+                    key={item.id}
+                    className="border-b border-app/30 hover:bg-sky-50/70 transition-colors"
+                  >
+                    <td className="py-2.5 px-3 text-center text-xs text-muted font-medium">
+                      {String(index + 1).padStart(2, "0")}
                     </td>
-                    <td className="py-3 px-4">
-                      <p className="text-app">
-                        {numberFormatter.format(item.quantity)} {item.unit}
-                      </p>
+                    <td className="py-2.5 px-3 font-mono text-app">{item.id}</td>
+                    <td className="py-2.5 px-3 font-mono text-xs text-muted">{item.transferCode}</td>
+                    <td className="py-2.5 px-3 text-xs text-muted">{item.category}</td>
+                    <td className="py-2.5 px-3 text-app font-medium">{item.name}</td>
+                    <td className="py-2.5 px-3 text-center text-xs font-semibold text-app">
+                      {item.categorySecondary}
                     </td>
-                    <td className="py-3 px-4">
-                      <p className="text-app">{currencyFormatter.format(item.cost)}</p>
+                    <td className="py-2.5 px-3 font-mono text-xs text-muted">{item.barcode}</td>
+                    <td className="py-2.5 px-3 text-xs text-muted">{item.unit}</td>
+                    <td className="py-2.5 px-3 text-right text-app font-semibold">
+                      {decimalFormatter.format(item.price)}
                     </td>
-                    <td className="py-3 px-4">
-                      <p className="text-app font-semibold">{currencyFormatter.format(item.price)}</p>
+                    <td className={`py-2.5 px-3 text-right font-semibold ${qtyColor}`}>
+                      {numberFormatter.format(item.quantity)}
                     </td>
-                    <td className="py-3 px-4">
-                      <p className="text-app">
-                        {new Date(item.expiry).toLocaleDateString("th-TH")}
-                      </p>
-                    </td>
-                    <td className="py-3 px-4">
-                      <p className="text-sm text-muted">{item.supplier}</p>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          status.color === "red"
-                            ? "bg-red-500/10 text-red-400 border border-red-500/30"
-                            : status.color === "orange"
-                            ? "bg-orange-500/10 text-orange-400 border border-orange-500/30"
-                            : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                        }`}
-                      >
-                        {status.label}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
+                    <td className="py-2.5 px-3">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => openEditModal(item)}
@@ -421,6 +613,40 @@ export default function Stock() {
         onSubmit={handleAddItem}
       >
         <div className="space-y-4">
+          <div className="text-xs text-muted bg-soft border border-app rounded-lg px-3 py-2">
+            รหัสสินค้าถัดไป:{" "}
+            <span className="font-semibold text-app">{nextProductCode}</span>{" "}
+            (ระบบจะสร้างให้อัตโนมัติเมื่อบันทึก)
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">รหัสโอน</label>
+              <input
+                type="text"
+                value={formData.transferCode}
+                onChange={(e) => setFormData({ ...formData, transferCode: e.target.value })}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">หมวดหลัก</label>
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">หมวดรอง (รหัส)</label>
+              <input
+                type="text"
+                value={formData.categorySecondary}
+                onChange={(e) => setFormData({ ...formData, categorySecondary: e.target.value })}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              />
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
             <input
@@ -453,6 +679,9 @@ export default function Stock() {
                 <option value="กรัม">กรัม</option>
                 <option value="กิโลกรัม">กิโลกรัม</option>
                 <option value="แพ็ค">แพ็ค</option>
+                <option value="ชุด">ชุด</option>
+                <option value="ขวด">ขวด</option>
+                <option value="แกลลอน">แกลลอน</option>
               </select>
             </div>
           </div>
@@ -477,6 +706,16 @@ export default function Stock() {
                 required
               />
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-app mb-2">รหัสบาร์โค้ด</label>
+            <input
+              type="text"
+              value={formData.barcode}
+              onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+              className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              placeholder="หากเว้นว่าง ระบบจะใช้รหัสสินค้า"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
@@ -509,15 +748,6 @@ export default function Stock() {
               required
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
-            <input
-              type="text"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
-            />
-          </div>
         </div>
       </ModalForm>
 
@@ -533,6 +763,45 @@ export default function Stock() {
         onSubmit={handleEditItem}
       >
         <div className="space-y-4">
+          {selectedItem && (
+            <div className="text-xs text-muted bg-soft border border-app rounded-lg px-3 py-2 flex flex-wrap gap-2">
+              <span>
+                รหัสสินค้า: <span className="font-semibold text-app">{selectedItem.id}</span>
+              </span>
+              <span>
+                บาร์โค้ด: <span className="font-semibold text-app">{selectedItem.barcode}</span>
+              </span>
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">รหัสโอน</label>
+              <input
+                type="text"
+                value={formData.transferCode}
+                onChange={(e) => setFormData({ ...formData, transferCode: e.target.value })}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">หมวดหลัก</label>
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">หมวดรอง (รหัส)</label>
+              <input
+                type="text"
+                value={formData.categorySecondary}
+                onChange={(e) => setFormData({ ...formData, categorySecondary: e.target.value })}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              />
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
             <input
@@ -565,6 +834,9 @@ export default function Stock() {
                 <option value="กรัม">กรัม</option>
                 <option value="กิโลกรัม">กิโลกรัม</option>
                 <option value="แพ็ค">แพ็ค</option>
+                <option value="ชุด">ชุด</option>
+                <option value="ขวด">ขวด</option>
+                <option value="แกลลอน">แกลลอน</option>
               </select>
             </div>
           </div>
@@ -589,6 +861,15 @@ export default function Stock() {
                 required
               />
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-app mb-2">รหัสบาร์โค้ด</label>
+            <input
+              type="text"
+              value={formData.barcode}
+              onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+              className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
@@ -618,15 +899,6 @@ export default function Stock() {
               onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
               required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
-            <input
-              type="text"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
             />
           </div>
         </div>
