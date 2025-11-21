@@ -309,17 +309,8 @@ export default function OtopStock() {
               : "border-transparent text-gray-500 hover:text-gray-700"
           }`}
         >
-          <FileText className="h-4 w-4" />
-          ประวัติการซื้อเข้า (Transactions)
-        </button>
-        <button
-          onClick={() => setActiveTab("planning")}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "planning"
-              ? "border-purple-600 text-purple-600 bg-purple-50/50"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
-        >
+          
+
           <ClipboardList className="h-4 w-4" />
           วางแผนสั่งซื้อ (Planning)
         </button>
