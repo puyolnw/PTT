@@ -1,5 +1,4 @@
-import { motion } from "framer-motion";
-import { Bell, AlertTriangle, Settings, Fuel } from "lucide-react";
+import { Bell, AlertCircle, Settings, Fuel, Droplet } from "lucide-react";
 import { useState } from "react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH");
@@ -50,196 +49,178 @@ export default function StockAlerts() {
   const [settings, setSettings] = useState(mockStockAlerts.settings);
 
   const activeAlerts = mockStockAlerts.alerts.filter(a => a.status !== "ok");
+  const warningAlerts = activeAlerts.filter(a => a.status === "warning");
+  const criticalAlerts = activeAlerts.filter(a => a.status === "critical");
 
   return (
-    <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h2 className="text-3xl font-bold text-app mb-2 font-display">แจ้งเตือนสต็อกต่ำ</h2>
-        <p className="text-muted font-light">
+    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+      {/* Header Section */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <Droplet className="h-8 w-8 text-blue-600" />
+          แจ้งเตือนสต็อกต่ำ
+        </h2>
+        <p className="text-slate-500 text-sm mt-1">
           ตั้งระดับต่ำสุด → แจ้งเตือนผ่านแอป/ไลน์/อีเมล เมื่อสต็อก &lt; ระดับต่ำสุด
         </p>
-      </motion.div>
+      </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="panel rounded-2xl p-6 shadow-app border-2 border-orange-500/30"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <AlertTriangle className="w-6 h-6 text-orange-400" />
-            <span className="text-xs text-muted">เตือน (Warning)</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+          <div className="flex items-center gap-2 text-blue-700 mb-2">
+            <AlertCircle className="h-5 w-5" />
+            <span className="font-bold">เตือน (Warning)</span>
           </div>
-          <p className="text-2xl font-bold text-orange-400">
-            {activeAlerts.filter(a => a.status === "warning").length}
-          </p>
-          <p className="text-xs text-muted mt-1">ถัง</p>
-        </motion.div>
+          <div className="text-2xl font-bold text-blue-900">
+            {warningAlerts.length}
+          </div>
+          <div className="text-xs text-blue-600 mt-1">ถัง</div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="panel rounded-2xl p-6 shadow-app border-2 border-red-500/30"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <AlertTriangle className="w-6 h-6 text-red-400" />
-            <span className="text-xs text-muted">วิกฤต (Critical)</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">วิกฤต (Critical)</div>
+          <div className="text-xl font-bold text-slate-800">
+            {criticalAlerts.length}
           </div>
-          <p className="text-2xl font-bold text-red-400">
-            {activeAlerts.filter(a => a.status === "critical").length}
-          </p>
-          <p className="text-xs text-muted mt-1">ถัง</p>
-        </motion.div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-red-500 h-1.5 rounded-full"
+              style={{ width: `${(criticalAlerts.length / activeAlerts.length) * 100 || 0}%` }}
+            />
+          </div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="panel rounded-2xl p-6 shadow-app"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Bell className="w-6 h-6 text-ptt-cyan" />
-            <span className="text-xs text-muted">ช่องทางแจ้งเตือน</span>
-          </div>
-          <p className="text-2xl font-bold text-app">
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">ช่องทางแจ้งเตือน</div>
+          <div className="text-xl font-bold text-slate-800">
             {settings.alertChannels.length}
-          </p>
-          <p className="text-xs text-muted mt-1">ช่องทาง</p>
-        </motion.div>
+          </div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-green-500 h-1.5 rounded-full"
+              style={{ width: `${(settings.alertChannels.length / 3) * 100}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Active Alerts */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="panel rounded-2xl p-6 shadow-app"
-      >
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-xl font-semibold text-app">แจ้งเตือนที่ยังไม่แก้ไข</h3>
-            <p className="text-sm text-muted">
+            <h3 className="text-xl font-semibold text-slate-800">แจ้งเตือนที่ยังไม่แก้ไข</h3>
+            <p className="text-sm text-gray-500">
               {activeAlerts.length} รายการ
             </p>
           </div>
-          <Bell className="w-6 h-6 text-muted" />
+          <Bell className="w-6 h-6 text-gray-500" />
         </div>
         <div className="space-y-3">
           {activeAlerts.map((alert) => (
             <div
               key={alert.id}
-              className={`p-4 rounded-xl border-2 ${
+              className={`p-4 rounded-xl border ${
                 alert.status === "critical"
-                  ? "bg-red-500/10 border-red-500/30"
-                  : "bg-orange-500/10 border-orange-500/30"
+                  ? "bg-red-50 border-red-200"
+                  : "bg-orange-50 border-orange-200"
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <Fuel className="w-5 h-5 text-ptt-cyan" />
-                    <h4 className="font-semibold text-app">{alert.fuelType}</h4>
+                    <Fuel className="w-5 h-5 text-blue-600" />
+                    <h4 className="font-semibold text-slate-800">{alert.fuelType}</h4>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       alert.status === "critical"
-                        ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                        : "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                        ? "bg-red-100 text-red-700 border border-red-300"
+                        : "bg-orange-100 text-orange-700 border border-orange-300"
                     }`}>
                       {alert.status === "critical" ? "วิกฤต" : "เตือน"}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
                     <div>
-                      <span className="text-muted">สาขา: </span>
-                      <span className="text-app">{alert.branch}</span>
+                      <span className="text-gray-500">สาขา: </span>
+                      <span className="text-slate-800">{alert.branch}</span>
                     </div>
                     <div>
-                      <span className="text-muted">ถัง: </span>
-                      <span className="text-app">{alert.tank}</span>
+                      <span className="text-gray-500">ถัง: </span>
+                      <span className="text-slate-800">{alert.tank}</span>
                     </div>
                     <div>
-                      <span className="text-muted">สต็อกปัจจุบัน: </span>
+                      <span className="text-gray-500">สต็อกปัจจุบัน: </span>
                       <span className={`font-bold ${
-                        alert.status === "critical" ? "text-red-400" : "text-orange-400"
+                        alert.status === "critical" ? "text-red-600" : "text-orange-600"
                       }`}>
                         {numberFormatter.format(alert.currentStock)} ลิตร
                       </span>
                     </div>
                   </div>
                   <div className="mt-2">
-                    <p className="text-xs text-muted">
+                    <p className="text-xs text-gray-500">
                       ระดับต่ำสุด: {numberFormatter.format(alert.threshold)} ลิตร
                       {alert.currentStock < alert.threshold && (
-                        <span className="text-red-400 ml-2">
+                        <span className="text-red-600 ml-2">
                           (ต่ำกว่า {numberFormatter.format(alert.threshold - alert.currentStock)} ลิตร)
                         </span>
                       )}
                     </p>
                     {alert.alertTime && (
-                      <p className="text-xs text-muted mt-1">
+                      <p className="text-xs text-gray-500 mt-1">
                         แจ้งเตือนเมื่อ: {new Date(alert.alertTime).toLocaleString("th-TH")}
                       </p>
                     )}
                   </div>
                 </div>
-                <button className="ml-4 px-4 py-2 bg-ptt-blue/10 hover:bg-ptt-blue/20 border border-ptt-blue/30 rounded-xl text-ptt-cyan text-sm transition-colors">
+                <button className="ml-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors shadow-sm">
                   ตรวจสอบ
                 </button>
               </div>
             </div>
           ))}
           {activeAlerts.length === 0 && (
-            <div className="text-center py-8 text-muted">
+            <div className="text-center py-8 text-gray-500">
               ไม่มีแจ้งเตือนสต็อกต่ำ
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
 
       {/* Settings */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="panel rounded-2xl p-6 shadow-app"
-      >
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-xl font-semibold text-app">ตั้งค่าแจ้งเตือน</h3>
-            <p className="text-sm text-muted">กำหนดระดับต่ำสุดและช่องทางแจ้งเตือน</p>
+            <h3 className="text-xl font-semibold text-slate-800">ตั้งค่าแจ้งเตือน</h3>
+            <p className="text-sm text-gray-500">กำหนดระดับต่ำสุดและช่องทางแจ้งเตือน</p>
           </div>
-          <Settings className="w-6 h-6 text-muted" />
+          <Settings className="w-6 h-6 text-gray-500" />
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               ระดับต่ำสุด (Warning) - ลิตร
             </label>
             <input
               type="number"
               value={settings.lowStockThreshold}
               onChange={(e) => setSettings({ ...settings, lowStockThreshold: Number(e.target.value) })}
-              className="w-full px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               ระดับวิกฤต (Critical) - ลิตร
             </label>
             <input
               type="number"
               value={settings.criticalStockThreshold}
               onChange={(e) => setSettings({ ...settings, criticalStockThreshold: Number(e.target.value) })}
-              className="w-full px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               ช่องทางแจ้งเตือน
             </label>
             <div className="flex gap-4">
@@ -255,19 +236,18 @@ export default function StockAlerts() {
                         setSettings({ ...settings, alertChannels: settings.alertChannels.filter(c => c !== channel) });
                       }
                     }}
-                    className="w-4 h-4 rounded border-app text-ptt-blue focus:ring-ptt-blue/30"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm text-app capitalize">{channel}</span>
+                  <span className="text-sm text-slate-800 capitalize">{channel}</span>
                 </label>
               ))}
             </div>
           </div>
-          <button className="w-full px-4 py-2 bg-ptt-blue/10 hover:bg-ptt-blue/20 border border-ptt-blue/30 rounded-xl text-ptt-cyan transition-colors">
+          <button className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm">
             บันทึกการตั้งค่า
           </button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
-

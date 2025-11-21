@@ -1,21 +1,14 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useMemo } from "react";
 import {
   DollarSign,
   Upload,
-  TrendingUp,
-  FileText,
   Fuel,
-  CreditCard,
   Ticket,
+  Droplet,
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 
-const currencyFormatter = new Intl.NumberFormat("th-TH", {
-  style: "currency",
-  currency: "THB",
-  maximumFractionDigits: 0,
-});
+const numberFormatter = new Intl.NumberFormat("th-TH");
 
 // ช่องทางชำระเงิน 12 ช่องทาง
 const paymentMethods = [
@@ -102,26 +95,51 @@ export default function Sales() {
   const [dateFilter, setDateFilter] = useState("");
 
   // Calculate statistics
-  const todaySales = salesData
-    .filter((sale) => sale.date === new Date().toISOString().split("T")[0])
-    .reduce((sum, sale) => sum + sale.amount, 0);
+  const stats = useMemo(() => {
+    const todaySales = salesData
+      .filter((sale) => sale.date === new Date().toISOString().split("T")[0])
+      .reduce((sum, sale) => sum + sale.amount, 0);
 
-  const thisMonthSales = salesData.reduce((sum, sale) => {
-    const saleMonth = sale.date.substring(0, 7);
-    const currentMonth = new Date().toISOString().substring(0, 7);
-    return saleMonth === currentMonth ? sum + sale.amount : sum;
-  }, 0);
+    const thisMonthSales = salesData.reduce((sum, sale) => {
+      const saleMonth = sale.date.substring(0, 7);
+      const currentMonth = new Date().toISOString().substring(0, 7);
+      return saleMonth === currentMonth ? sum + sale.amount : sum;
+    }, 0);
 
-  // Calculate sales by payment method
-  const salesByPayment = salesData.reduce((acc, sale) => {
-    if (!acc[sale.paymentMethod]) {
-      acc[sale.paymentMethod] = 0;
-    }
-    acc[sale.paymentMethod] += sale.amount;
-    return acc;
-  }, {} as Record<string, number>);
+    // Calculate sales by payment method
+    const salesByPayment = salesData.reduce((acc, sale) => {
+      if (!acc[sale.paymentMethod]) {
+        acc[sale.paymentMethod] = 0;
+      }
+      acc[sale.paymentMethod] += sale.amount;
+      return acc;
+    }, {} as Record<string, number>);
 
-  const totalSales = Object.values(salesByPayment).reduce((sum, val) => sum + val, 0);
+    const totalSales = Object.values(salesByPayment).reduce((sum, val) => sum + val, 0);
+
+    const couponSales = salesData
+      .filter((s) => s.paymentMethod === "คูปองสถานี")
+      .reduce((sum, s) => sum + s.amount, 0);
+
+    const couponCount = salesData.filter((s) => s.couponCode).length;
+    const uniqueCoupons = salesData
+      .filter((s) => s.couponCode)
+      .map((s) => s.couponCode)
+      .filter((code, index, self) => self.indexOf(code) === index);
+
+    return {
+      todaySales,
+      thisMonthSales,
+      totalSales,
+      salesByPayment,
+      couponSales,
+      couponCount,
+      uniqueCoupons,
+      totalRecords: salesData.length,
+      paymentMethodsCount: Object.keys(salesByPayment).length,
+      todayRecords: salesData.filter((s) => s.date === new Date().toISOString().split("T")[0]).length,
+    };
+  }, [salesData]);
 
   // Filter sales data
   const filteredSales = salesData.filter((sale) => {
@@ -136,170 +154,141 @@ export default function Sales() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Simulate file processing from PTT BackOffice
       alert(`กำลังประมวลผลไฟล์ ${file.name}...\n\nระบบจะประมวลผลยอดขายแยกตามช่องทางชำระเงิน 12 ช่องทาง`);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h2 className="text-3xl font-bold text-app mb-2 font-display">ยอดขาย - M1</h2>
-        <p className="text-muted font-light">
+    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+      {/* Header Section */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <Droplet className="h-8 w-8 text-blue-600" />
+          ยอดขาย - M1
+        </h2>
+        <p className="text-slate-500 text-sm mt-1">
           ประมวลผลยอดขายแยกตามช่องทางชำระเงิน 12 ช่องทาง (เงินสด, Master/VISA, KBANK-CARD, PTT Privilege Energy Card, Fleet Card, Top up Card, ttb Fill&GO+, BBL Fleet Card, Visa Local Card, QR/KPLUS/PROMPTPAY, คูปองสถานี, ลูกหนี้เงินเชื่อ) นำเข้า Excel จาก PTT BackOffice
         </p>
-      </motion.div>
+      </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <DollarSign className="w-8 h-8 text-emerald-400" />
-            <span className="text-sm text-muted">ยอดขายวันนี้</span>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+          <div className="flex items-center gap-2 text-blue-700 mb-2">
+            <DollarSign className="h-5 w-5" />
+            <span className="font-bold">ยอดขายวันนี้</span>
           </div>
-          <p className="text-2xl font-bold text-app">{currencyFormatter.format(todaySales)}</p>
-          <p className="text-sm text-muted">
-            {salesData.filter((s) => s.date === new Date().toISOString().split("T")[0]).length} รายการ
-          </p>
-        </motion.div>
+          <div className="text-2xl font-bold text-blue-900">
+            ฿{numberFormatter.format(stats.todaySales)}
+          </div>
+          <div className="text-xs text-blue-600 mt-1">
+            {stats.todayRecords} รายการ
+          </div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <TrendingUp className="w-8 h-8 text-ptt-cyan" />
-            <span className="text-sm text-muted">ยอดขายเดือนนี้</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">ยอดขายเดือนนี้</div>
+          <div className="text-xl font-bold text-slate-800">
+            ฿{numberFormatter.format(stats.thisMonthSales)}
           </div>
-          <p className="text-2xl font-bold text-app">{currencyFormatter.format(thisMonthSales)}</p>
-          <p className="text-sm text-muted">รายเดือน</p>
-        </motion.div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-blue-500 h-1.5 rounded-full"
+              style={{ width: `${Math.min(100, (stats.thisMonthSales / 20000000) * 100)}%` }}
+            />
+          </div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <FileText className="w-8 h-8 text-purple-400" />
-            <span className="text-sm text-muted">รายการทั้งหมด</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">รายการทั้งหมด</div>
+          <div className="text-xl font-bold text-slate-800">
+            {stats.totalRecords}
           </div>
-          <p className="text-2xl font-bold text-app">{salesData.length}</p>
-          <p className="text-sm text-muted">รายการขาย</p>
-        </motion.div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-purple-500 h-1.5 rounded-full"
+              style={{ width: `${Math.min(100, (stats.totalRecords / 1000) * 100)}%` }}
+            />
+          </div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <CreditCard className="w-8 h-8 text-green-400" />
-            <span className="text-sm text-muted">ช่องทางชำระ</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">ช่องทางชำระ</div>
+          <div className="text-xl font-bold text-slate-800">
+            {stats.paymentMethodsCount}
           </div>
-          <p className="text-2xl font-bold text-app">
-            {Object.keys(salesByPayment).length}
-          </p>
-          <p className="text-sm text-muted">ช่องทาง</p>
-        </motion.div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-green-500 h-1.5 rounded-full"
+              style={{ width: `${(stats.paymentMethodsCount / 12) * 100}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* คูปองสถานี - ส่วนสรุปแยกต่างหาก */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-        className="panel rounded-2xl p-6 border-2 border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-500/5"
-      >
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-orange-500/20 border border-orange-500/30">
-              <Ticket className="w-6 h-6 text-orange-400" />
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-app">ระบบคูปองสถานี</h3>
-              <p className="text-sm text-muted">ยอดขายด้วยคูปองสถานี (ยอดขายเต็มราคา - ไม่มีส่วนลด)</p>
-            </div>
-          </div>
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+            <Ticket className="h-5 w-5 text-orange-600" />
+            ระบบคูปองสถานี
+          </h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-app/50 rounded-xl p-4 border border-orange-500/20">
-            <p className="text-sm text-muted mb-1">ยอดขายด้วยคูปอง</p>
-            <p className="text-2xl font-bold text-orange-400">
-              {currencyFormatter.format(
-                salesData
-                  .filter((s) => s.paymentMethod === "คูปองสถานี")
-                  .reduce((sum, s) => sum + s.amount, 0)
-              )}
+          <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+            <p className="text-sm text-orange-600 mb-1">ยอดขายด้วยคูปอง</p>
+            <p className="text-2xl font-bold text-orange-900">
+              ฿{numberFormatter.format(stats.couponSales)}
             </p>
-            <p className="text-xs text-muted mt-1">
+            <p className="text-xs text-orange-600 mt-1">
               {salesData.filter((s) => s.paymentMethod === "คูปองสถานี").length} รายการ
             </p>
           </div>
-          <div className="bg-app/50 rounded-xl p-4 border border-orange-500/20">
-            <p className="text-sm text-muted mb-1">จำนวนคูปองที่ใช้</p>
-            <p className="text-2xl font-bold text-orange-400">
-              {salesData.filter((s) => s.couponCode).length} ใบ
+          <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+            <p className="text-sm text-orange-600 mb-1">จำนวนคูปองที่ใช้</p>
+            <p className="text-2xl font-bold text-orange-900">
+              {stats.couponCount} ใบ
             </p>
-            <p className="text-xs text-muted mt-1">
-              {salesData
-                .filter((s) => s.couponCode)
-                .map((s) => s.couponCode)
-                .filter((code, index, self) => self.indexOf(code) === index)
-                .join(", ")}
+            <p className="text-xs text-orange-600 mt-1">
+              {stats.uniqueCoupons.join(", ") || "-"}
             </p>
           </div>
-          <div className="bg-app/50 rounded-xl p-4 border border-orange-500/20">
-            <p className="text-sm text-muted mb-1">สถานะ</p>
-            <p className="text-2xl font-bold text-emerald-400">ปกติ</p>
-            <p className="text-xs text-muted mt-1">ยอดขายเต็มราคา - ไม่หักส่วนลด</p>
+          <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+            <p className="text-sm text-orange-600 mb-1">สถานะ</p>
+            <p className="text-2xl font-bold text-green-700">ปกติ</p>
+            <p className="text-xs text-orange-600 mt-1">ยอดขายเต็มราคา - ไม่หักส่วนลด</p>
           </div>
         </div>
-        <div className="mt-4 p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-          <p className="text-xs text-orange-400/80">
+        <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
+          <p className="text-xs text-orange-700">
             <strong>หมายเหตุ:</strong> คูปองสถานีใน M1 เป็นช่องทางการชำระเงินเท่านั้น (PaymentType = Coupon) 
             ไม่มีการหักส่วนลด ยอดขายยังคงเต็มราคา (Full Price) ตามข้อมูลจาก PTT BackOffice
           </p>
         </div>
-      </motion.div>
+      </div>
 
       {/* Sales by Payment Method */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="panel rounded-2xl p-6"
-      >
-        <h3 className="text-xl font-semibold text-app mb-4">ยอดขายแยกตามช่องทางชำระเงิน (เงินสด 60%, QR 25%, คูปองสถานี {((salesData.filter((s) => s.paymentMethod === "คูปองสถานี").reduce((sum, s) => sum + s.amount, 0) / totalSales) * 100).toFixed(1)}%)</h3>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-xl font-semibold text-slate-800 mb-4">
+          ยอดขายแยกตามช่องทางชำระเงิน (เงินสด 60%, QR 25%, คูปองสถานี {stats.totalSales > 0 ? ((stats.couponSales / stats.totalSales) * 100).toFixed(1) : 0}%)
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Object.entries(salesByPayment)
+          {Object.entries(stats.salesByPayment)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 8)
             .map(([method, amount]) => (
-              <div key={method} className="bg-ptt-blue/10 border border-ptt-blue/30 rounded-xl p-4">
-                <p className="text-sm text-muted mb-1">{method}</p>
-                <p className="text-2xl font-bold text-ptt-cyan">
-                  {currencyFormatter.format(amount)}
+              <div key={method} className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                <p className="text-sm text-blue-600 mb-1">{method}</p>
+                <p className="text-2xl font-bold text-blue-900">
+                  ฿{numberFormatter.format(amount)}
                 </p>
-                <p className="text-xs text-muted mt-1">
-                  {totalSales > 0 ? ((amount / totalSales) * 100).toFixed(1) : 0}% ของยอดขาย
+                <p className="text-xs text-blue-600 mt-1">
+                  {stats.totalSales > 0 ? ((amount / stats.totalSales) * 100).toFixed(1) : 0}% ของยอดขาย
                 </p>
               </div>
             ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* Actions Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
@@ -328,7 +317,7 @@ export default function Sales() {
         />
 
         <div className="flex gap-2">
-          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
+          <label className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-slate-800 rounded-lg border border-blue-200 transition-colors cursor-pointer">
             <Upload className="w-4 h-4" />
             <span>นำเข้า SALES_YYYYMMDD.xlsx</span>
             <input
@@ -342,36 +331,31 @@ export default function Sales() {
       </div>
 
       {/* Sales List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="panel rounded-2xl p-6"
-      >
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="space-y-4">
           {filteredSales.map((sale) => (
             <div
               key={sale.id}
-              className="p-4 bg-soft rounded-xl border border-app hover:border-ptt-blue/30 transition-colors"
+              className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 transition-colors"
             >
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="font-semibold text-app">
+                  <p className="font-semibold text-slate-800">
                     {new Date(sale.date).toLocaleDateString("th-TH", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
                     })}
                   </p>
-                  <p className="text-sm text-muted">{sale.branch}</p>
+                  <p className="text-sm text-gray-500">{sale.branch}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xl font-bold text-app">{currencyFormatter.format(sale.amount)}</p>
+                  <p className="text-xl font-bold text-slate-800">฿{numberFormatter.format(sale.amount)}</p>
                   <div className="flex items-center gap-2 mt-1 justify-end">
-                    <span className="text-xs px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30">
+                    <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-300">
                       {sale.paymentMethod}
                     </span>
-                    <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                    <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300">
                       {sale.source}
                     </span>
                   </div>
@@ -379,18 +363,18 @@ export default function Sales() {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  <Fuel className="w-4 h-4 text-ptt-cyan" />
-                  <span className="text-muted">
+                  <Fuel className="w-4 h-4 text-blue-600" />
+                  <span className="text-gray-600">
                     {sale.fuelType} • {sale.quantity.toLocaleString("th-TH")} ลิตร
                   </span>
                   {sale.couponCode && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/30">
+                    <span className="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-700 border border-orange-300">
                       คูปอง: {sale.couponCode}
                     </span>
                   )}
                 </div>
                 {sale.paymentMethod === "คูปองสถานี" && (
-                  <span className="text-xs text-muted italic">
+                  <span className="text-xs text-gray-500 italic">
                     (ยอดขายเต็มราคา - ไม่มีส่วนลด)
                   </span>
                 )}
@@ -398,13 +382,12 @@ export default function Sales() {
             </div>
           ))}
           {filteredSales.length === 0 && (
-            <div className="text-center py-12 text-muted">
+            <div className="text-center py-12 text-gray-500">
               ไม่พบข้อมูลยอดขาย
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
-

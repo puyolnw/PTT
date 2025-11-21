@@ -36,8 +36,6 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
     { to: "/app/gas-station/balance", icon: FileText, label: "Balance Petrel", end: false },
     { to: "/app/gas-station/price-management", icon: TrendingUp, label: "ปรับราคา", end: false },
     { to: "/app/gas-station/requisitions", icon: FileCheck, label: "สั่งซื้อน้ำมัน", end: false },
-    { to: "/app/gas-station/shift-management", icon: Clock, label: "กะพนักงาน", end: false },
-    { to: "/app/gas-station/pos-integration", icon: Camera, label: "POS & CCTV", end: false },
     { to: "/app/gas-station/reports", icon: BarChart3, label: "รายงาน", end: false },
     { to: "/app/gas-station/settings", icon: SettingsIcon, label: "ตั้งค่า", end: false },
   ];

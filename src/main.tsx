@@ -150,8 +150,7 @@ import GasStationMeterDip from "@/pages/gas-station/MeterDipReading";
 import GasStationBalance from "@/pages/gas-station/Balance";
 import GasStationPriceManagement from "@/pages/gas-station/PriceManagement";
 import GasStationRequisitions from "@/pages/gas-station/Requisitions";
-import GasStationShiftManagement from "@/pages/gas-station/ShiftManagement";
-import GasStationPOSIntegration from "@/pages/gas-station/POSIntegration";
+
 import GasStationReports from "@/pages/gas-station/Reports";
 import GasStationSettings from "@/pages/gas-station/Settings";
 import RentalDashboard from "@/pages/rental/Dashboard";
@@ -772,14 +771,8 @@ const router = createBrowserRouter([
             path: "requisitions",
             element: <GasStationRequisitions />,
           },
-          {
-            path: "shift-management",
-            element: <GasStationShiftManagement />,
-          },
-          {
-            path: "pos-integration",
-            element: <GasStationPOSIntegration />,
-          },
+
+
           {
             path: "reports",
             element: <GasStationReports />,

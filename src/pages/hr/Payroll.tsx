@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { FileText, Download, TrendingUp, Users, DollarSign, CheckCircle, Clock, ShieldCheck } from "lucide-react";
+import { FileText, Download, TrendingUp, Users, DollarSign, CheckCircle, Clock, ShieldCheck, View } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import { payroll as initialPayroll, employees, shifts, type Payroll as PayrollType } from "@/data/mockData";
 
@@ -904,7 +904,7 @@ export default function Payroll() {
                     onClick={() => handleOpenPaymentModal(record)}
                     className="text-xs px-3 py-1 rounded-lg bg-ptt-cyan/20 text-ptt-cyan hover:bg-ptt-cyan/30 transition-colors"
                   >
-                    บันทึกการจ่าย
+                    ตรวจสอบ
                   </button>
                 </div>
 
@@ -954,8 +954,8 @@ export default function Payroll() {
                              bg-ptt-cyan/20 hover:bg-ptt-cyan/30 text-ptt-cyan rounded-lg
                              transition-colors font-medium"
                   >
-                    <CheckCircle className="w-4 h-4" />
-                    บันทึกการจ่าย
+                    <View className="w-4 h-4" />
+                    ตรวจสอบ
                   </button>
                 </div>
               </div>
@@ -972,7 +972,7 @@ export default function Payroll() {
           setPaymentModalRecord(null);
           setPaymentNote("");
         }}
-        title="บันทึกการจ่ายเงินเดือน"
+        title="ตรวจสอบ"
         onSubmit={handleConfirmPayment}
         submitLabel="ยืนยันการจ่าย"
       >

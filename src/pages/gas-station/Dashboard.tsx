@@ -1,9 +1,9 @@
-import { motion } from "framer-motion";
+import { useMemo } from "react";
 import {
   DollarSign,
   TrendingUp,
   Package,
-  AlertTriangle,
+  AlertCircle,
   BarChart3,
   FileText,
   ArrowUpRight,
@@ -17,12 +17,14 @@ import {
   FileCheck,
   Clock,
   Camera,
+  Droplet,
 } from "lucide-react";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
   currency: "THB",
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
 
 const numberFormatter = new Intl.NumberFormat("th-TH");
@@ -76,355 +78,323 @@ const mockTopSellingBranches = [
 ];
 
 export default function GasStationDashboard() {
-  const salesChange = ((mockSalesData.today - mockSalesData.yesterday) / mockSalesData.yesterday) * 100;
-  const monthlyChange = ((mockSalesData.thisMonth - mockSalesData.lastMonth) / mockSalesData.lastMonth) * 100;
-  const lowStockItems = mockStockData.filter(item => item.lowStock);
+  const dashboardStats = useMemo(() => {
+    const salesChange = ((mockSalesData.today - mockSalesData.yesterday) / mockSalesData.yesterday) * 100;
+    const monthlyChange = ((mockSalesData.thisMonth - mockSalesData.lastMonth) / mockSalesData.lastMonth) * 100;
+    const lowStockItems = mockStockData.filter(item => item.lowStock);
+    const totalStock = mockStockData.reduce((sum, item) => sum + item.quantity, 0);
 
-  const overviewStats = [
-    {
-      title: "ยอดขายวันนี้",
-      value: currencyFormatter.format(mockSalesData.today),
-      subtitle: `เมื่อวาน ${currencyFormatter.format(mockSalesData.yesterday)}`,
-      icon: DollarSign,
-      gradient: "from-emerald-500 to-teal-500",
-      change: salesChange > 0 ? `+${salesChange.toFixed(1)}%` : `${salesChange.toFixed(1)}%`,
-    },
-    {
-      title: "ยอดขายเดือนนี้",
-      value: currencyFormatter.format(mockSalesData.thisMonth),
-      subtitle: `เดือนที่แล้ว ${currencyFormatter.format(mockSalesData.lastMonth)}`,
-      icon: TrendingUp,
-      gradient: "from-ptt-blue to-ptt-cyan",
-      change: monthlyChange > 0 ? `+${monthlyChange.toFixed(1)}%` : `${monthlyChange.toFixed(1)}%`,
-    },
-    {
-      title: "กำไรสุทธิวันนี้",
-      value: currencyFormatter.format(mockFinancialData.netProfit),
-      subtitle: `รายรับ ${currencyFormatter.format(mockFinancialData.revenue)} - ต้นทุน ${currencyFormatter.format(mockFinancialData.cost)}`,
-      icon: BarChart3,
-      gradient: "from-purple-500 to-pink-500",
-    },
-    {
-      title: "สต็อกใกล้หมด",
-      value: numberFormatter.format(lowStockItems.length),
-      subtitle: `${mockStockData.length} ถังทั้งหมด`,
-      icon: AlertTriangle,
-      gradient: "from-orange-500 to-red-500",
-    },
-  ];
+    return {
+      todaySales: mockSalesData.today,
+      yesterdaySales: mockSalesData.yesterday,
+      thisMonthSales: mockSalesData.thisMonth,
+      lastMonthSales: mockSalesData.lastMonth,
+      salesChange,
+      monthlyChange,
+      lowStockItems: lowStockItems.length,
+      totalStockItems: mockStockData.length,
+      totalStock,
+      netProfit: mockFinancialData.netProfit,
+      revenue: mockFinancialData.revenue,
+      cost: mockFinancialData.cost,
+      profit: mockFinancialData.profit,
+      expenses: mockFinancialData.expenses,
+    };
+  }, []);
 
   return (
-    <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h2 className="text-3xl font-bold text-app mb-2 font-display">M1: บริหารจัดการปั๊มน้ำมัน</h2>
-        <p className="text-muted font-light">
+    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+      {/* Header Section */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <Droplet className="h-8 w-8 text-blue-600" />
+          M1: บริหารจัดการปั๊มน้ำมัน
+        </h2>
+        <p className="text-slate-500 text-sm mt-1">
           ภาพรวมยอดขาย สต็อก กำไรแบบเรียลไทม์ สำหรับ 5 ปั๊ม (1 สำนักงานใหญ่ + 4 สาขา) นำเข้าข้อมูลจาก PTT BackOffice (Excel)
         </p>
-        <p className="text-xs text-muted/70">
-          อัปเดตล่าสุด: {new Date().toLocaleDateString("th-TH", { 
-            year: "numeric", 
-            month: "long", 
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit"
-          })}
-        </p>
-      </motion.div>
+      </div>
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {overviewStats.map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="panel rounded-2xl p-6 hover:border-ptt-blue/30 transition-all duration-200 shadow-app"
-          >
-            <div className="flex items-center justify-between mb-5">
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient}`}>
-                <stat.icon className="w-6 h-6 text-app" />
-              </div>
-              {stat.change && (
-                <div className={`flex items-center gap-1 text-sm font-medium ${
-                  stat.change.startsWith('+') ? 'text-emerald-400' : 'text-red-400'
-                }`}>
-                  {stat.change.startsWith('+') ? (
-                    <ArrowUpRight className="w-4 h-4" />
-                  ) : (
-                    <ArrowDownRight className="w-4 h-4" />
-                  )}
-                  {stat.change}
-                </div>
-              )}
-            </div>
-            <h3 className="text-muted text-sm mb-2">{stat.title}</h3>
-            <p className="text-2xl font-bold text-app mb-1">{stat.value}</p>
-            <p className="text-sm text-muted">{stat.subtitle}</p>
-          </motion.div>
-        ))}
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+          <div className="flex items-center gap-2 text-blue-700 mb-2">
+            <DollarSign className="h-5 w-5" />
+            <span className="font-bold">ยอดขายวันนี้</span>
+          </div>
+          <div className="text-2xl font-bold text-blue-900">
+            ฿{numberFormatter.format(dashboardStats.todaySales)}
+          </div>
+          <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
+            {dashboardStats.salesChange >= 0 ? (
+              <ArrowUpRight className="h-3 w-3" />
+            ) : (
+              <ArrowDownRight className="h-3 w-3" />
+            )}
+            {dashboardStats.salesChange >= 0 ? "+" : ""}
+            {dashboardStats.salesChange.toFixed(1)}% เทียบเมื่อวาน
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">ยอดขายรวมเดือนนี้</div>
+          <div className="text-xl font-bold text-slate-800">
+            ฿{numberFormatter.format(dashboardStats.thisMonthSales)}
+          </div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-emerald-500 h-1.5 rounded-full"
+              style={{ width: `${Math.min(100, (dashboardStats.thisMonthSales / 20000000) * 100)}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">กำไรสุทธิวันนี้</div>
+          <div className="text-xl font-bold text-slate-800">
+            ฿{numberFormatter.format(dashboardStats.netProfit)}
+          </div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-purple-500 h-1.5 rounded-full"
+              style={{ width: `${Math.min(100, (dashboardStats.netProfit / dashboardStats.revenue) * 100)}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">สต็อกใกล้หมด</div>
+          <div className="text-xl font-bold text-slate-800">
+            {dashboardStats.lowStockItems} ถัง
+          </div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-orange-500 h-1.5 rounded-full"
+              style={{ width: `${(dashboardStats.lowStockItems / dashboardStats.totalStockItems) * 100}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* คูปองสถานี - ส่วนสรุปแยกต่างหาก */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-        className="panel rounded-2xl p-6 shadow-app border-2 border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-500/5"
-      >
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-orange-500/20 border border-orange-500/30">
-              <Ticket className="w-6 h-6 text-orange-400" />
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-app">ระบบคูปองสถานี</h3>
-              <p className="text-sm text-muted">ยอดขายด้วยคูปองสถานี (ยอดขายเต็มราคา - ไม่มีส่วนลด)</p>
-            </div>
-          </div>
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+            <Ticket className="h-5 w-5 text-orange-600" />
+            ระบบคูปองสถานี
+          </h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-app/50 rounded-xl p-4 border border-orange-500/20">
-            <p className="text-sm text-muted mb-1">ยอดขายด้วยคูปองวันนี้</p>
-            <p className="text-2xl font-bold text-orange-400">
-              {currencyFormatter.format(mockSalesData.byPaymentMethod.coupon.amount)}
+          <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+            <p className="text-sm text-orange-600 mb-1">ยอดขายด้วยคูปองวันนี้</p>
+            <p className="text-2xl font-bold text-orange-900">
+              ฿{numberFormatter.format(mockSalesData.byPaymentMethod.coupon.amount)}
             </p>
-            <p className="text-xs text-muted mt-1">
+            <p className="text-xs text-orange-600 mt-1">
               {mockSalesData.byPaymentMethod.coupon.percentage}% ของยอดขายทั้งหมด
             </p>
           </div>
-          <div className="bg-app/50 rounded-xl p-4 border border-orange-500/20">
-            <p className="text-sm text-muted mb-1">จำนวนคูปองที่ใช้</p>
-            <p className="text-2xl font-bold text-orange-400">2 ใบ</p>
-            <p className="text-xs text-muted mt-1">C001, C002</p>
+          <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+            <p className="text-sm text-orange-600 mb-1">จำนวนคูปองที่ใช้</p>
+            <p className="text-2xl font-bold text-orange-900">2 ใบ</p>
+            <p className="text-xs text-orange-600 mt-1">C001, C002</p>
           </div>
-          <div className="bg-app/50 rounded-xl p-4 border border-orange-500/20">
-            <p className="text-sm text-muted mb-1">สถานะ</p>
-            <p className="text-2xl font-bold text-emerald-400">ปกติ</p>
-            <p className="text-xs text-muted mt-1">ยอดขายเต็มราคา - ไม่หักส่วนลด</p>
+          <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+            <p className="text-sm text-orange-600 mb-1">สถานะ</p>
+            <p className="text-2xl font-bold text-green-700">ปกติ</p>
+            <p className="text-xs text-orange-600 mt-1">ยอดขายเต็มราคา - ไม่หักส่วนลด</p>
           </div>
         </div>
-        <div className="mt-4 p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-          <p className="text-xs text-orange-400/80">
+        <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
+          <p className="text-xs text-orange-700">
             <strong>หมายเหตุ:</strong> คูปองสถานีใน M1 เป็นช่องทางการชำระเงินเท่านั้น (PaymentType = Coupon) ไม่มีการหักส่วนลด 
             ยอดขายยังคงเต็มราคา (Full Price) ตามข้อมูลจาก PTT BackOffice
           </p>
         </div>
-      </motion.div>
+      </div>
 
       {/* Sales by Payment Method */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="panel rounded-2xl p-6 shadow-app"
-      >
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-xl font-semibold text-app">ยอดขายแยกตามช่องทางชำระเงิน</h3>
-            <p className="text-sm text-muted">ยอดขายวันนี้: {currencyFormatter.format(mockSalesData.today)} (เงินสด 60%, QR 25%, คูปองสถานี {mockSalesData.byPaymentMethod.coupon.percentage}%)</p>
-          </div>
-          <BarChart3 className="w-6 h-6 text-muted" />
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-blue-600" />
+            ยอดขายแยกตามช่องทางชำระเงิน
+          </h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
-            <p className="text-sm text-muted mb-1">{mockSalesData.byPaymentMethod.cash.name}</p>
-            <p className="text-2xl font-bold text-emerald-400">
-              {currencyFormatter.format(mockSalesData.byPaymentMethod.cash.amount)}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+            <p className="text-sm text-emerald-600 mb-1">{mockSalesData.byPaymentMethod.cash.name}</p>
+            <p className="text-2xl font-bold text-emerald-900">
+              ฿{numberFormatter.format(mockSalesData.byPaymentMethod.cash.amount)}
             </p>
-            <p className="text-xs text-muted mt-1">
+            <p className="text-xs text-emerald-600 mt-1">
               {mockSalesData.byPaymentMethod.cash.percentage}% ของยอดขาย
             </p>
           </div>
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-            <p className="text-sm text-muted mb-1">{mockSalesData.byPaymentMethod.qr.name}</p>
-            <p className="text-2xl font-bold text-blue-400">
-              {currencyFormatter.format(mockSalesData.byPaymentMethod.qr.amount)}
+          <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+            <p className="text-sm text-blue-600 mb-1">{mockSalesData.byPaymentMethod.qr.name}</p>
+            <p className="text-2xl font-bold text-blue-900">
+              ฿{numberFormatter.format(mockSalesData.byPaymentMethod.qr.amount)}
             </p>
-            <p className="text-xs text-muted mt-1">
+            <p className="text-xs text-blue-600 mt-1">
               {mockSalesData.byPaymentMethod.qr.percentage}% ของยอดขาย
             </p>
           </div>
-          <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
-            <p className="text-sm text-muted mb-1">{mockSalesData.byPaymentMethod.card.name}</p>
-            <p className="text-2xl font-bold text-purple-400">
-              {currencyFormatter.format(mockSalesData.byPaymentMethod.card.amount)}
+          <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+            <p className="text-sm text-purple-600 mb-1">{mockSalesData.byPaymentMethod.card.name}</p>
+            <p className="text-2xl font-bold text-purple-900">
+              ฿{numberFormatter.format(mockSalesData.byPaymentMethod.card.amount)}
             </p>
-            <p className="text-xs text-muted mt-1">
+            <p className="text-xs text-purple-600 mt-1">
               {mockSalesData.byPaymentMethod.card.percentage}% ของยอดขาย
             </p>
           </div>
-          <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
-            <p className="text-sm text-muted mb-1">{mockSalesData.byPaymentMethod.coupon.name}</p>
-            <p className="text-2xl font-bold text-orange-400">
-              {currencyFormatter.format(mockSalesData.byPaymentMethod.coupon.amount)}
+          <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+            <p className="text-sm text-orange-600 mb-1">{mockSalesData.byPaymentMethod.coupon.name}</p>
+            <p className="text-2xl font-bold text-orange-900">
+              ฿{numberFormatter.format(mockSalesData.byPaymentMethod.coupon.amount)}
             </p>
-            <p className="text-xs text-muted mt-1">
+            <p className="text-xs text-orange-600 mt-1">
               {mockSalesData.byPaymentMethod.coupon.percentage}% ของยอดขาย
             </p>
-            <p className="text-xs text-orange-400/70 mt-1 italic">
+            <p className="text-xs text-orange-700 mt-1 italic">
               (ยอดขายเต็มราคา - ไม่มีส่วนลด)
             </p>
           </div>
-          <div className="bg-gray-500/10 border border-gray-500/30 rounded-xl p-4">
-            <p className="text-sm text-muted mb-1">{mockSalesData.byPaymentMethod.others.name}</p>
-            <p className="text-2xl font-bold text-gray-400">
-              {currencyFormatter.format(mockSalesData.byPaymentMethod.others.amount)}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <p className="text-sm text-gray-600 mb-1">{mockSalesData.byPaymentMethod.others.name}</p>
+            <p className="text-2xl font-bold text-gray-900">
+              ฿{numberFormatter.format(mockSalesData.byPaymentMethod.others.amount)}
             </p>
-            <p className="text-xs text-muted mt-1">
+            <p className="text-xs text-gray-600 mt-1">
               {mockSalesData.byPaymentMethod.others.percentage}% ของยอดขาย
             </p>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* สต็อกน้ำมัน */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="panel rounded-2xl p-6 shadow-app xl:col-span-2"
-        >
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 xl:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-semibold text-app">สต็อกน้ำมัน</h3>
-              <p className="text-sm text-muted">สต็อกน้ำมันทุกถัง แยกตามปั๊มและชนิด (สต็อกรวม: 120,000 ลิตร)</p>
-            </div>
-            <Fuel className="w-6 h-6 text-muted" />
+            <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+              <Fuel className="h-5 w-5 text-blue-600" />
+              สต็อกน้ำมัน
+            </h3>
           </div>
           <div className="space-y-3">
             {mockStockData.map((item) => (
               <div
                 key={item.name}
-                className={`flex items-center justify-between p-4 rounded-xl border ${
+                className={`p-4 rounded-xl border ${
                   item.lowStock 
-                    ? "bg-orange-500/10 border-orange-500/30" 
-                    : "bg-soft border-app"
+                    ? "bg-orange-50 border-orange-200" 
+                    : "bg-gray-50 border-gray-200"
                 }`}
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <Fuel className="w-5 h-5 text-ptt-cyan" />
-                    <p className="font-medium text-app">{item.name}</p>
-                    {item.lowStock && (
-                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                        ใกล้หมด
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-medium text-slate-800">{item.name}</p>
+                      {item.lowStock && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">
+                          ใกล้หมด
+                        </span>
+                      )}
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-300">
+                        {item.branch}
                       </span>
-                    )}
-                    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30">
-                      {item.branch}
-                    </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-gray-600">
+                      <span>ถัง: {item.tank}</span>
+                      <span>คงเหลือ: {numberFormatter.format(item.quantity)} {item.unit}</span>
+                    </div>
                   </div>
-                  <p className="text-sm text-muted mt-1">
-                    ถัง: {item.tank} • คงเหลือ: {numberFormatter.format(item.quantity)} {item.unit}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                    item.lowStock 
-                      ? "bg-orange-500/20 border-2 border-orange-500/50" 
-                      : "bg-emerald-500/20 border-2 border-emerald-500/50"
-                  }`}>
-                    <Fuel className={`w-6 h-6 ${
-                      item.lowStock ? "text-orange-400" : "text-emerald-400"
-                    }`} />
-                  </div>
+                  <Fuel className={`h-6 w-6 ${
+                    item.lowStock ? "text-orange-400" : "text-emerald-400"
+                  }`} />
                 </div>
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
         {/* สรุปการเงิน */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="panel rounded-2xl p-6 shadow-app"
-        >
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-semibold text-app">สรุปการเงินวันนี้</h3>
-            <DollarSign className="w-5 h-5 text-muted" />
+            <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-blue-600" />
+              สรุปการเงินวันนี้
+            </h3>
           </div>
           <div className="space-y-4">
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
-              <p className="text-sm text-muted mb-1">รายรับ</p>
-              <p className="text-2xl font-semibold text-emerald-400">
-                {currencyFormatter.format(mockFinancialData.revenue)}
+            <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+              <p className="text-sm text-emerald-600 mb-1">รายรับ</p>
+              <p className="text-2xl font-bold text-emerald-900">
+                ฿{numberFormatter.format(dashboardStats.revenue)}
               </p>
             </div>
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-              <p className="text-sm text-muted mb-1">ต้นทุน</p>
-              <p className="text-2xl font-semibold text-red-400">
-                {currencyFormatter.format(mockFinancialData.cost)}
+            <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+              <p className="text-sm text-red-600 mb-1">ต้นทุน</p>
+              <p className="text-2xl font-bold text-red-900">
+                ฿{numberFormatter.format(dashboardStats.cost)}
               </p>
             </div>
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-              <p className="text-sm text-muted mb-1">กำไรขั้นต้น</p>
-              <p className="text-2xl font-semibold text-blue-400">
-                {currencyFormatter.format(mockFinancialData.profit)}
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-600 mb-1">กำไรขั้นต้น</p>
+              <p className="text-2xl font-bold text-blue-900">
+                ฿{numberFormatter.format(dashboardStats.profit)}
               </p>
             </div>
-            <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
-              <p className="text-sm text-muted mb-1">รายจ่าย</p>
-              <p className="text-2xl font-semibold text-orange-400">
-                {currencyFormatter.format(mockFinancialData.expenses)}
+            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <p className="text-sm text-orange-600 mb-1">รายจ่าย</p>
+              <p className="text-2xl font-bold text-orange-900">
+                ฿{numberFormatter.format(dashboardStats.expenses)}
               </p>
             </div>
-            <div className="bg-ptt-blue/10 border border-ptt-blue/30 rounded-xl p-4">
-              <p className="text-sm text-muted mb-1">กำไรสุทธิ</p>
-              <p className="text-2xl font-semibold text-ptt-cyan">
-                {currencyFormatter.format(mockFinancialData.netProfit)}
+            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <p className="text-sm text-purple-600 mb-1">กำไรสุทธิ</p>
+              <p className="text-2xl font-bold text-purple-900">
+                ฿{numberFormatter.format(dashboardStats.netProfit)}
               </p>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* สาขาขายดี */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="panel rounded-2xl p-6 shadow-app"
-        >
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-semibold text-app">ยอดขายแยกตามสาขา</h3>
-              <p className="text-sm text-muted">เปรียบเทียบ 5 ปั๊ม</p>
-            </div>
-            <Building2 className="w-6 h-6 text-muted" />
+            <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-blue-600" />
+              ยอดขายแยกตามสาขา
+            </h3>
           </div>
           <div className="space-y-3">
             {mockTopSellingBranches.map((branch, index) => (
               <div
                 key={branch.name}
-                className="flex items-center justify-between p-4 bg-soft rounded-xl border border-app"
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200"
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    index === 0 ? "bg-ptt-blue/20 text-ptt-cyan" :
-                    index === 1 ? "bg-emerald-500/20 text-emerald-400" :
-                    "bg-muted/20 text-muted"
+                    index === 0 ? "bg-blue-100 text-blue-600" :
+                    index === 1 ? "bg-emerald-100 text-emerald-600" :
+                    "bg-gray-100 text-gray-600"
                   }`}>
                     <span className="text-sm font-bold">{index + 1}</span>
                   </div>
                   <div>
-                    <p className="font-medium text-app">{branch.name}</p>
-                    <p className="text-xs text-muted">กำไร: {currencyFormatter.format(branch.profit)}</p>
+                    <p className="font-medium text-slate-800">{branch.name}</p>
+                    <p className="text-xs text-gray-500">กำไร: ฿{numberFormatter.format(branch.profit)}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-app">
-                    {currencyFormatter.format(branch.sales)}
+                  <p className="font-semibold text-slate-800">
+                    ฿{numberFormatter.format(branch.sales)}
                   </p>
-                  <div className={`flex items-center gap-1 text-xs text-emerald-400 mt-1`}>
+                  <div className={`flex items-center gap-1 text-xs text-emerald-600 mt-1`}>
                     <TrendingUp className="w-3 h-3" />
                     {branch.trend}
                   </div>
@@ -432,127 +402,113 @@ export default function GasStationDashboard() {
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
         {/* การซื้อน้ำมันเข้า */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="panel rounded-2xl p-6 shadow-app"
-        >
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-semibold text-app">การซื้อน้ำมันเข้า</h3>
-              <p className="text-sm text-muted">รายการล่าสุด (จาก PTT BackOffice)</p>
-            </div>
-            <Package className="w-6 h-6 text-muted" />
+            <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+              <Package className="h-5 w-5 text-blue-600" />
+              การซื้อน้ำมันเข้า
+            </h3>
           </div>
           <div className="space-y-3">
             {mockRecentPurchases.map((purchase) => (
               <div
                 key={purchase.id}
-                className="p-4 bg-soft rounded-xl border border-app"
+                className="p-4 bg-gray-50 rounded-xl border border-gray-200"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <p className="font-medium text-app">{purchase.fuelType}</p>
-                    <p className="text-xs text-muted">{purchase.branch}</p>
+                    <p className="font-medium text-slate-800">{purchase.fuelType}</p>
+                    <p className="text-xs text-gray-500">{purchase.branch}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-app">
-                      {currencyFormatter.format(purchase.amount)}
+                    <p className="font-semibold text-slate-800">
+                      ฿{numberFormatter.format(purchase.amount)}
                     </p>
-                    <p className="text-xs text-muted">
+                    <p className="text-xs text-gray-500">
                       {numberFormatter.format(purchase.quantity)} ลิตร
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted">
+                  <span className="text-gray-500">
                     {new Date(purchase.date).toLocaleDateString("th-TH")}
                   </span>
-                  <span className="text-xs px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30">
+                  <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-300">
                     {purchase.source}
                   </span>
                 </div>
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.9 }}
-        className="panel/40 border border-app rounded-2xl p-6"
-      >
-        <h3 className="text-lg font-semibold text-app mb-4 font-display">การดำเนินการด่วน</h3>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">การดำเนินการด่วน</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <label className="flex items-center gap-3 p-4 bg-ptt-blue/10 hover:bg-ptt-blue/20 border border-ptt-blue/30 rounded-xl transition-colors cursor-pointer">
-            <Upload className="w-5 h-5 text-ptt-cyan" />
-            <span className="text-app font-medium">นำเข้า Excel จาก PTT BackOffice</span>
+          <label className="flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors cursor-pointer">
+            <Upload className="w-5 h-5 text-blue-600" />
+            <span className="text-slate-800 font-medium">นำเข้า Excel จาก PTT BackOffice</span>
             <input
               type="file"
               accept=".xlsx,.xls"
               className="hidden"
             />
           </label>
-          <button className="flex items-center gap-3 p-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl transition-colors">
-            <DollarSign className="w-5 h-5 text-emerald-400" />
-            <span className="text-app font-medium">ดูรายงานยอดขาย</span>
+          <button className="flex items-center gap-3 p-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors">
+            <DollarSign className="w-5 h-5 text-emerald-600" />
+            <span className="text-slate-800 font-medium">ดูรายงานยอดขาย</span>
           </button>
-          <button className="flex items-center gap-3 p-4 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-xl transition-colors">
-            <FileText className="w-5 h-5 text-purple-400" />
-            <span className="text-app font-medium">ออกรายงาน PDF</span>
+          <button className="flex items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition-colors">
+            <FileText className="w-5 h-5 text-purple-600" />
+            <span className="text-slate-800 font-medium">ออกรายงาน PDF</span>
           </button>
-          <button className="flex items-center gap-3 p-4 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 rounded-xl transition-colors">
-            <BarChart3 className="w-5 h-5 text-orange-400" />
-            <span className="text-app font-medium">ส่งข้อมูลไป M6</span>
+          <button className="flex items-center gap-3 p-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl transition-colors">
+            <BarChart3 className="w-5 h-5 text-orange-600" />
+            <span className="text-slate-800 font-medium">ส่งข้อมูลไป M6</span>
           </button>
         </div>
-      </motion.div>
+      </div>
 
       {/* Quick Links to New Features */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.9 }}
-        className="panel rounded-2xl p-6 shadow-app"
-      >
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold text-app">ฟีเจอร์เพิ่มเติม</h3>
-          <BarChart3 className="w-6 h-6 text-muted" />
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-blue-600" />
+            ฟีเจอร์เพิ่มเติม
+          </h3>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <a href="/app/gas-station/meter-dip" className="flex flex-col items-center gap-2 p-4 bg-soft hover:bg-soft/80 border border-app rounded-xl transition-all hover:border-ptt-blue/30 hover:scale-105">
-            <Gauge className="w-6 h-6 text-ptt-cyan" />
-            <span className="text-xs text-center text-app font-medium">Meter & Dip</span>
+          <a href="/app/gas-station/meter-dip" className="flex flex-col items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all hover:border-blue-300 hover:scale-105">
+            <Gauge className="w-6 h-6 text-blue-600" />
+            <span className="text-xs text-center text-slate-800 font-medium">Meter & Dip</span>
           </a>
-          <a href="/app/gas-station/stock-alerts" className="flex flex-col items-center gap-2 p-4 bg-soft hover:bg-soft/80 border border-app rounded-xl transition-all hover:border-ptt-blue/30 hover:scale-105">
-            <Bell className="w-6 h-6 text-orange-400" />
-            <span className="text-xs text-center text-app font-medium">แจ้งเตือนสต็อก</span>
+          <a href="/app/gas-station/stock-alerts" className="flex flex-col items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all hover:border-blue-300 hover:scale-105">
+            <Bell className="w-6 h-6 text-orange-600" />
+            <span className="text-xs text-center text-slate-800 font-medium">แจ้งเตือนสต็อก</span>
           </a>
-          <a href="/app/gas-station/price-management" className="flex flex-col items-center gap-2 p-4 bg-soft hover:bg-soft/80 border border-app rounded-xl transition-all hover:border-ptt-blue/30 hover:scale-105">
-            <TrendingUp className="w-6 h-6 text-emerald-400" />
-            <span className="text-xs text-center text-app font-medium">ปรับราคา</span>
+          <a href="/app/gas-station/price-management" className="flex flex-col items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all hover:border-blue-300 hover:scale-105">
+            <TrendingUp className="w-6 h-6 text-emerald-600" />
+            <span className="text-xs text-center text-slate-800 font-medium">ปรับราคา</span>
           </a>
-          <a href="/app/gas-station/requisitions" className="flex flex-col items-center gap-2 p-4 bg-soft hover:bg-soft/80 border border-app rounded-xl transition-all hover:border-ptt-blue/30 hover:scale-105">
-            <FileCheck className="w-6 h-6 text-blue-400" />
-            <span className="text-xs text-center text-app font-medium">สั่งซื้อน้ำมัน</span>
+          <a href="/app/gas-station/requisitions" className="flex flex-col items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all hover:border-blue-300 hover:scale-105">
+            <FileCheck className="w-6 h-6 text-blue-600" />
+            <span className="text-xs text-center text-slate-800 font-medium">สั่งซื้อน้ำมัน</span>
           </a>
-          <a href="/app/gas-station/shift-management" className="flex flex-col items-center gap-2 p-4 bg-soft hover:bg-soft/80 border border-app rounded-xl transition-all hover:border-ptt-blue/30 hover:scale-105">
-            <Clock className="w-6 h-6 text-purple-400" />
-            <span className="text-xs text-center text-app font-medium">กะพนักงาน</span>
+          <a href="/app/gas-station/shift-management" className="flex flex-col items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all hover:border-blue-300 hover:scale-105">
+            <Clock className="w-6 h-6 text-purple-600" />
+            <span className="text-xs text-center text-slate-800 font-medium">กะพนักงาน</span>
           </a>
-          <a href="/app/gas-station/pos-integration" className="flex flex-col items-center gap-2 p-4 bg-soft hover:bg-soft/80 border border-app rounded-xl transition-all hover:border-ptt-blue/30 hover:scale-105">
-            <Camera className="w-6 h-6 text-red-400" />
-            <span className="text-xs text-center text-app font-medium">POS & CCTV</span>
+          <a href="/app/gas-station/pos-integration" className="flex flex-col items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all hover:border-blue-300 hover:scale-105">
+            <Camera className="w-6 h-6 text-red-600" />
+            <span className="text-xs text-center text-slate-800 font-medium">POS & CCTV</span>
           </a>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

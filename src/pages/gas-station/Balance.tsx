@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import {
   FileText,
   Upload,
-  AlertTriangle,
+  AlertCircle,
   Fuel,
   TrendingDown,
   TrendingUp,
+  Droplet,
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 
@@ -69,6 +69,7 @@ export default function Balance() {
   });
 
   const alertItems = balanceData.filter(item => Math.abs(item.diff) > 50);
+  const normalItems = balanceData.filter(item => item.status === "ปกติ");
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -78,76 +79,61 @@ export default function Balance() {
   };
 
   return (
-    <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h2 className="text-3xl font-bold text-app mb-2 font-display">Balance Petrel / Dip Reading - M1</h2>
-        <p className="text-muted font-light">
+    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+      {/* Header Section */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <Droplet className="h-8 w-8 text-blue-600" />
+          Balance Petrel / Dip Reading - M1
+        </h2>
+        <p className="text-slate-500 text-sm mt-1">
           ประมวลผลสมุดน้ำมันใต้ดิน (Dip Reading) และสมุด Balance Petrel เปรียบเทียบ Dip vs ขายจริง → แจ้งเตือน Diff (ป้องกันการรั่วไหล) นำเข้า Excel จาก PTT BackOffice
         </p>
-      </motion.div>
+      </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <FileText className="w-8 h-8 text-ptt-cyan" />
-            <span className="text-sm text-muted">รายการทั้งหมด</span>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+          <div className="flex items-center gap-2 text-blue-700 mb-2">
+            <FileText className="h-5 w-5" />
+            <span className="font-bold">รายการทั้งหมด</span>
           </div>
-          <p className="text-2xl font-bold text-app">{balanceData.length}</p>
-          <p className="text-sm text-muted">รายการ</p>
-        </motion.div>
+          <div className="text-2xl font-bold text-blue-900">{balanceData.length}</div>
+          <div className="text-xs text-blue-600 mt-1">รายการ</div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <AlertTriangle className="w-8 h-8 text-orange-400" />
-            <span className="text-sm text-muted">แจ้งเตือน Diff</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">แจ้งเตือน Diff</div>
+          <div className="text-xl font-bold text-slate-800">{alertItems.length}</div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-orange-500 h-1.5 rounded-full"
+              style={{ width: `${(alertItems.length / balanceData.length) * 100}%` }}
+            />
           </div>
-          <p className="text-2xl font-bold text-orange-400">{alertItems.length}</p>
-          <p className="text-sm text-muted">รายการ</p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Fuel className="w-8 h-8 text-emerald-400" />
-            <span className="text-sm text-muted">สถานะปกติ</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">สถานะปกติ</div>
+          <div className="text-xl font-bold text-slate-800">{normalItems.length}</div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-green-500 h-1.5 rounded-full"
+              style={{ width: `${(normalItems.length / balanceData.length) * 100}%` }}
+            />
           </div>
-          <p className="text-2xl font-bold text-app">
-            {balanceData.filter(item => item.status === "ปกติ").length}
-          </p>
-          <p className="text-sm text-muted">รายการ</p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Upload className="w-8 h-8 text-purple-400" />
-            <span className="text-sm text-muted">จาก Excel</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">จาก Excel</div>
+          <div className="text-xl font-bold text-slate-800">BALANCE</div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-purple-500 h-1.5 rounded-full"
+              style={{ width: "100%" }}
+            />
           </div>
-          <p className="text-2xl font-bold text-app">BALANCE_YYYYMMDD.xlsx</p>
-          <p className="text-sm text-muted">PTT BackOffice</p>
-        </motion.div>
+        </div>
       </div>
 
       {/* Actions Bar */}
@@ -171,8 +157,8 @@ export default function Balance() {
         />
 
         <div className="flex gap-2">
-          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
-            <Upload className="w-4 h-4" />
+          <label className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer">
+            <Upload className="h-4 w-4" />
             <span>นำเข้า BALANCE_YYYYMMDD.xlsx</span>
             <input
               type="file"
@@ -181,8 +167,8 @@ export default function Balance() {
               className="hidden"
             />
           </label>
-          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
-            <Upload className="w-4 h-4" />
+          <label className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer">
+            <Upload className="h-4 w-4" />
             <span>นำเข้า DIP_YYYYMMDD.xlsx</span>
             <input
               type="file"
@@ -194,82 +180,81 @@ export default function Balance() {
         </div>
       </div>
 
-      {/* Balance List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="panel rounded-2xl p-6"
-      >
-        <div className="space-y-4">
-          {filteredBalance.map((item) => (
-            <div
-              key={item.id}
-              className={`p-4 rounded-xl border ${
-                item.status === "แจ้งเตือน"
-                  ? "bg-orange-500/10 border-orange-500/30"
-                  : "bg-soft border-app"
-              } hover:border-ptt-blue/30 transition-colors`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="font-semibold text-app">{item.fuelType}</p>
-                  <p className="text-sm text-muted">{item.branch} • {item.tank}</p>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-2">
-                    {item.diff < 0 ? (
-                      <TrendingDown className="w-5 h-5 text-red-400" />
-                    ) : item.diff > 0 ? (
-                      <TrendingUp className="w-5 h-5 text-emerald-400" />
-                    ) : null}
-                    <span className={`text-lg font-bold ${
-                      item.diff < 0 ? "text-red-400" : item.diff > 0 ? "text-emerald-400" : "text-app"
-                    }`}>
-                      {item.diff > 0 ? "+" : ""}{item.diff} ลิตร
+      {/* Balance Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="font-bold text-slate-700">รายการ Balance Petrel / Dip Reading</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+              <tr>
+                <th className="p-3">วันที่</th>
+                <th className="p-3">ชนิดน้ำมัน</th>
+                <th className="p-3">สาขา / ถัง</th>
+                <th className="p-3 text-right">Dip Reading (L)</th>
+                <th className="p-3 text-right">Balance Petrel (L)</th>
+                <th className="p-3 text-right">Diff (L)</th>
+                <th className="p-3 text-center">สถานะ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-sm">
+              {filteredBalance.map((item) => (
+                <tr key={item.id} className="hover:bg-gray-50">
+                  <td className="p-3 text-gray-600">
+                    {new Date(item.date).toLocaleDateString("th-TH")}
+                  </td>
+                  <td className="p-3 font-medium text-slate-700">
+                    <div className="flex items-center gap-2">
+                      <Fuel className="w-4 h-4 text-blue-600" />
+                      {item.fuelType}
+                    </div>
+                  </td>
+                  <td className="p-3 text-gray-600">
+                    {item.branch} • {item.tank}
+                  </td>
+                  <td className="p-3 text-right font-mono text-slate-800">
+                    {numberFormatter.format(item.dipReading)}
+                  </td>
+                  <td className="p-3 text-right font-mono text-slate-800">
+                    {numberFormatter.format(item.balancePetrel)}
+                  </td>
+                  <td className="p-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {item.diff < 0 ? (
+                        <TrendingDown className="w-4 h-4 text-red-500" />
+                      ) : item.diff > 0 ? (
+                        <TrendingUp className="w-4 h-4 text-green-500" />
+                      ) : null}
+                      <span className={`font-mono font-bold ${
+                        item.diff < 0 ? "text-red-600" : item.diff > 0 ? "text-green-600" : "text-gray-600"
+                      }`}>
+                        {item.diff > 0 ? "+" : ""}{item.diff}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="p-3 text-center">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        item.status === "แจ้งเตือน"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-green-100 text-green-700"
+                      }`}
+                    >
+                      {item.status}
                     </span>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-full mt-1 inline-block ${
-                    item.status === "แจ้งเตือน"
-                      ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                      : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                  }`}>
-                    {item.status}
-                  </span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-3">
-                <div className="bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg p-3">
-                  <p className="text-xs text-muted mb-1">Dip Reading</p>
-                  <p className="text-lg font-semibold text-ptt-cyan">
-                    {numberFormatter.format(item.dipReading)} ลิตร
-                  </p>
-                </div>
-                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
-                  <p className="text-xs text-muted mb-1">Balance Petrel</p>
-                  <p className="text-lg font-semibold text-purple-400">
-                    {numberFormatter.format(item.balancePetrel)} ลิตร
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-sm mt-3">
-                <span className="text-muted">
-                  วันที่: {new Date(item.date).toLocaleDateString("th-TH")}
-                </span>
-                <span className="text-xs px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30">
-                  {item.source}
-                </span>
-              </div>
-            </div>
-          ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           {filteredBalance.length === 0 && (
-            <div className="text-center py-12 text-muted">
+            <div className="text-center py-12 text-gray-500">
               ไม่พบข้อมูล Balance Petrel
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
-

@@ -1,5 +1,4 @@
-import { motion } from "framer-motion";
-import { Gauge, Droplets, TrendingUp, TrendingDown, AlertTriangle, Calendar, Plus } from "lucide-react";
+import { Gauge, Droplets, TrendingUp, TrendingDown, AlertCircle, Calendar, Plus, Droplet } from "lucide-react";
 import { useState } from "react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -74,116 +73,107 @@ export default function MeterDipReading() {
     return sum + branch.tanks.reduce((tankSum, tank) => tankSum + tank.lossGain, 0);
   }, 0);
 
+  const totalTanks = mockMeterDipData.branches.reduce((sum, b) => sum + b.tanks.length, 0);
+  const totalSales = mockMeterDipData.branches.reduce((sum, branch) => {
+    return sum + branch.tanks.reduce((tankSum, tank) => tankSum + tank.sales, 0);
+  }, 0);
+  const warningTanks = mockMeterDipData.branches.reduce((sum, branch) => {
+    return sum + branch.tanks.filter(t => t.status === "warning" || t.status === "error").length;
+  }, 0);
+
   return (
-    <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h2 className="text-3xl font-bold text-app mb-2 font-display">Meter & Dip Reading</h2>
-        <p className="text-muted font-light">
+    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+      {/* Header Section */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <Droplet className="h-8 w-8 text-blue-600" />
+          Meter & Dip Reading
+        </h2>
+        <p className="text-slate-500 text-sm mt-1">
           บันทึกมิเตอร์หัวจ่าย + Dip ถังทุกวัน → คำนวณ Loss/Gain อัตโนมัติ
         </p>
-      </motion.div>
+      </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="panel rounded-2xl p-6 shadow-app"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Gauge className="w-6 h-6 text-ptt-cyan" />
-            <span className="text-xs text-muted">ถังทั้งหมด</span>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+          <div className="flex items-center gap-2 text-blue-700 mb-2">
+            <Gauge className="h-5 w-5" />
+            <span className="font-bold">ถังทั้งหมด</span>
           </div>
-          <p className="text-2xl font-bold text-app">
-            {mockMeterDipData.branches.reduce((sum, b) => sum + b.tanks.length, 0)}
-          </p>
-          <p className="text-xs text-muted mt-1">ถัง</p>
-        </motion.div>
+          <div className="text-2xl font-bold text-blue-900">
+            {totalTanks}
+          </div>
+          <div className="text-xs text-blue-600 mt-1">ถัง</div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="panel rounded-2xl p-6 shadow-app"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Droplets className="w-6 h-6 text-blue-400" />
-            <span className="text-xs text-muted">Loss/Gain รวม</span>
-          </div>
-          <p className={`text-2xl font-bold ${
-            totalLossGain < 0 ? "text-red-400" : "text-emerald-400"
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">Loss/Gain รวม</div>
+          <div className={`text-xl font-bold ${
+            totalLossGain < 0 ? "text-red-600" : "text-green-600"
           }`}>
             {totalLossGain > 0 ? "+" : ""}
-            {numberFormatter.format(totalLossGain)}
-          </p>
-          <p className="text-xs text-muted mt-1">ลิตร</p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="panel rounded-2xl p-6 shadow-app"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <TrendingUp className="w-6 h-6 text-emerald-400" />
-            <span className="text-xs text-muted">ยอดขายรวม</span>
+            {numberFormatter.format(totalLossGain)} L
           </div>
-          <p className="text-2xl font-bold text-emerald-400">
-            {numberFormatter.format(
-              mockMeterDipData.branches.reduce((sum, branch) => {
-                return sum + branch.tanks.reduce((tankSum, tank) => tankSum + tank.sales, 0);
-              }, 0)
-            )}
-          </p>
-          <p className="text-xs text-muted mt-1">ลิตร</p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="panel rounded-2xl p-6 shadow-app"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <AlertTriangle className="w-6 h-6 text-orange-400" />
-            <span className="text-xs text-muted">เตือน</span>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className={`h-1.5 rounded-full ${
+                totalLossGain < 0 ? "bg-red-500" : "bg-green-500"
+              }`}
+              style={{ width: `${Math.min(100, Math.abs(totalLossGain) / 10)}%` }}
+            />
           </div>
-          <p className="text-2xl font-bold text-orange-400">
-            {mockMeterDipData.branches.reduce((sum, branch) => {
-              return sum + branch.tanks.filter(t => t.status === "warning" || t.status === "error").length;
-            }, 0)}
-          </p>
-          <p className="text-xs text-muted mt-1">ถัง</p>
-        </motion.div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">ยอดขายรวม</div>
+          <div className="text-xl font-bold text-slate-800">
+            {numberFormatter.format(totalSales)} L
+          </div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-emerald-500 h-1.5 rounded-full"
+              style={{ width: `${Math.min(100, (totalSales / 10000) * 100)}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">เตือน</div>
+          <div className="text-xl font-bold text-slate-800">
+            {warningTanks} ถัง
+          </div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-orange-500 h-1.5 rounded-full"
+              style={{ width: `${(warningTanks / totalTanks) * 100}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-4 items-center">
         <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="pl-10 pr-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+            className="pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <select
           value={selectedBranch || ""}
           onChange={(e) => setSelectedBranch(e.target.value || null)}
-          className="px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+          className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">ทุกสาขา</option>
           {mockMeterDipData.branches.map(branch => (
             <option key={branch.id} value={branch.id}>{branch.name}</option>
           ))}
         </select>
-        <button className="flex items-center gap-2 px-4 py-2 bg-ptt-blue/10 hover:bg-ptt-blue/20 border border-ptt-blue/30 rounded-xl text-ptt-cyan transition-colors">
+        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm">
           <Plus className="w-5 h-5" />
           <span>บันทึก Meter/Dip</span>
         </button>
@@ -191,106 +181,104 @@ export default function MeterDipReading() {
 
       {/* Meter & Dip Reading List */}
       {filteredBranches.map((branch) => (
-        <motion.div
+        <div
           key={branch.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="panel rounded-2xl p-6 shadow-app"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xl font-semibold text-app">{branch.name}</h3>
-              <p className="text-sm text-muted">วันที่: {new Date(selectedDate).toLocaleDateString("th-TH")}</p>
+              <h3 className="text-xl font-semibold text-slate-800">{branch.name}</h3>
+              <p className="text-sm text-gray-500">วันที่: {new Date(selectedDate).toLocaleDateString("th-TH")}</p>
             </div>
-            <Gauge className="w-6 h-6 text-muted" />
+            <Gauge className="w-6 h-6 text-gray-500" />
           </div>
           <div className="space-y-4">
             {branch.tanks.map((tank) => (
               <div
                 key={tank.id}
-                className={`p-4 rounded-xl border-2 ${
+                className={`p-4 rounded-xl border ${
                   tank.status === "ok"
-                    ? "bg-soft border-app"
+                    ? "bg-gray-50 border-gray-200"
                     : tank.status === "warning"
-                    ? "bg-orange-500/10 border-orange-500/30"
-                    : "bg-red-500/10 border-red-500/30"
+                    ? "bg-orange-50 border-orange-200"
+                    : "bg-red-50 border-red-200"
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h4 className="font-semibold text-app">{tank.fuelType}</h4>
-                    <p className="text-xs text-muted">ถัง: {tank.id}</p>
+                    <h4 className="font-semibold text-slate-800">{tank.fuelType}</h4>
+                    <p className="text-xs text-gray-500">ถัง: {tank.id}</p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     tank.status === "ok"
-                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                      ? "bg-green-100 text-green-700 border border-green-300"
                       : tank.status === "warning"
-                      ? "bg-orange-500/10 text-orange-400 border border-orange-500/30"
-                      : "bg-red-500/10 text-red-400 border border-red-500/30"
+                      ? "bg-orange-100 text-orange-700 border border-orange-300"
+                      : "bg-red-100 text-red-700 border border-red-300"
                   }`}>
                     {tank.status === "ok" ? "ปกติ" : tank.status === "warning" ? "เตือน" : "ผิดปกติ"}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <p className="text-xs text-muted mb-1">มิเตอร์หัวจ่าย</p>
+                    <p className="text-xs text-gray-500 mb-1">มิเตอร์หัวจ่าย</p>
                     <div className="flex items-center gap-2">
-                      <Gauge className="w-4 h-4 text-ptt-cyan" />
-                      <p className="text-lg font-bold text-app">
+                      <Gauge className="w-4 h-4 text-blue-600" />
+                      <p className="text-lg font-bold text-slate-800">
                         {numberFormatter.format(tank.meterReading)} ลิตร
                       </p>
                     </div>
-                    <p className="text-xs text-muted mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                       ก่อนหน้า: {numberFormatter.format(tank.previousMeter)} ลิตร
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted mb-1">Dip ถัง</p>
+                    <p className="text-xs text-gray-500 mb-1">Dip ถัง</p>
                     <div className="flex items-center gap-2">
-                      <Droplets className="w-4 h-4 text-blue-400" />
-                      <p className="text-lg font-bold text-app">
+                      <Droplets className="w-4 h-4 text-blue-600" />
+                      <p className="text-lg font-bold text-slate-800">
                         {numberFormatter.format(tank.dipReading)} ลิตร
                       </p>
                     </div>
-                    <p className="text-xs text-muted mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                       ก่อนหน้า: {numberFormatter.format(tank.previousDip)} ลิตร
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted mb-1">ยอดขาย</p>
+                    <p className="text-xs text-gray-500 mb-1">ยอดขาย</p>
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-emerald-400" />
-                      <p className="text-lg font-bold text-emerald-400">
+                      <TrendingUp className="w-4 h-4 text-green-600" />
+                      <p className="text-lg font-bold text-green-600">
                         {numberFormatter.format(tank.sales)} ลิตร
                       </p>
                     </div>
-                    <p className="text-xs text-muted mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                       = มิเตอร์ - Dip
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted mb-1">Loss/Gain</p>
+                    <p className="text-xs text-gray-500 mb-1">Loss/Gain</p>
                     <div className="flex items-center gap-2">
                       {tank.lossGain < 0 ? (
-                        <TrendingDown className="w-4 h-4 text-red-400" />
+                        <TrendingDown className="w-4 h-4 text-red-600" />
                       ) : (
-                        <TrendingUp className="w-4 h-4 text-emerald-400" />
+                        <TrendingUp className="w-4 h-4 text-green-600" />
                       )}
                       <p className={`text-lg font-bold ${
-                        tank.lossGain < 0 ? "text-red-400" : "text-emerald-400"
+                        tank.lossGain < 0 ? "text-red-600" : "text-green-600"
                       }`}>
                         {tank.lossGain > 0 ? "+" : ""}
                         {numberFormatter.format(tank.lossGain)} ลิตร
                       </p>
                     </div>
-                    <p className="text-xs text-muted mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                       ({tank.lossGainPercent > 0 ? "+" : ""}{tank.lossGainPercent.toFixed(2)}%)
                     </p>
                   </div>
                 </div>
                 {Math.abs(tank.lossGainPercent) > 0.5 && (
-                  <div className="mt-3 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-                    <p className="text-xs text-orange-400">
+                  <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-xs text-orange-700">
                       <strong>เตือน:</strong> Loss/Gain เกิน 0.5% ควรตรวจสอบสาเหตุ (รั่วไหล, ระเหย, ความคลาดเคลื่อน)
                     </p>
                   </div>
@@ -298,9 +286,8 @@ export default function MeterDipReading() {
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       ))}
     </div>
   );
 }
-

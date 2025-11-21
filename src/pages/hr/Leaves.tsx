@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { UserPlus, Calendar, CheckCircle, Clock, Edit, X } from "lucide-react";
+import { UserPlus, Calendar, CheckCircle, Clock, Edit, X, View } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import { leaves as initialLeaves, attendanceLogs as initialAttendanceLogs, employees, shifts, type Leave, type AttendanceLog } from "@/data/mockData";
@@ -720,10 +720,10 @@ export default function Leaves() {
                           className="inline-flex items-center gap-2 px-4 py-2 bg-ptt-blue/20 hover:bg-ptt-blue/30 
                                    text-ptt-cyan rounded-lg transition-all duration-200 text-sm font-medium
                                    border border-ptt-blue/30 hover:border-ptt-blue/50"
-                          title="แก้ไขการลา (กรณีกลับมาก่อนกำหนด)"
+                          title="ตรวจสอบ"
                         >
-                          <Edit className="w-4 h-4" />
-                          แก้ไข
+                          <View className="w-4 h-4" />
+                          ตรวจสอบ
                         </button>
                       )}
                     </div>
@@ -754,9 +754,9 @@ export default function Leaves() {
       <ModalForm
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        title="แก้ไขการลา (กรณีกลับมาก่อนกำหนด)"
+        title="ตรวจสอบ"
         onSubmit={handleUpdateLeave}
-        submitLabel="บันทึกการแก้ไข"
+        submitLabel="บันทึก"
       >
         <div className="space-y-4">
           <div className="p-3 bg-soft rounded-lg border border-app">

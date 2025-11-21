@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import {
   Ticket,
   Plus,
   Upload,
   DollarSign,
-  TrendingUp,
   Fuel,
+  Droplet,
 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import FilterBar from "@/components/FilterBar";
@@ -14,7 +13,8 @@ import FilterBar from "@/components/FilterBar";
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
   currency: "THB",
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
 
 const numberFormatter = new Intl.NumberFormat("th-TH");
@@ -124,99 +124,81 @@ export default function Coupons() {
   };
 
   return (
-    <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h2 className="text-3xl font-bold text-app mb-2 font-display">ระบบคูปองสถานี - M1</h2>
-        <p className="text-muted font-light">
+    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+      {/* Header Section */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <Droplet className="h-8 w-8 text-blue-600" />
+          ระบบคูปองสถานี - M1
+        </h2>
+        <p className="text-slate-500 text-sm mt-1">
           จัดการคูปองสถานี (PaymentType = Coupon) คูปองใน M1 เป็นช่องทางการชำระเงินเท่านั้น ไม่มีการหักส่วนลด ยอดขายยังคงเต็มราคา (Full Price) ตามข้อมูลจาก PTT BackOffice
         </p>
-      </motion.div>
+      </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="panel rounded-2xl p-6 border-2 border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-500/5"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Ticket className="w-8 h-8 text-orange-400" />
-            <span className="text-sm text-muted">คูปองทั้งหมด</span>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+          <div className="flex items-center gap-2 text-blue-700 mb-2">
+            <Ticket className="h-5 w-5" />
+            <span className="font-bold">คูปองทั้งหมด</span>
           </div>
-          <p className="text-2xl font-bold text-orange-400">{totalCoupons}</p>
-          <p className="text-sm text-muted">ใบ</p>
-        </motion.div>
+          <div className="text-2xl font-bold text-blue-900">{totalCoupons}</div>
+          <div className="text-xs text-blue-600 mt-1">ใบ</div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <DollarSign className="w-8 h-8 text-emerald-400" />
-            <span className="text-sm text-muted">ยอดขายด้วยคูปอง</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">ยอดขายด้วยคูปอง</div>
+          <div className="text-xl font-bold text-slate-800">
+            ฿{numberFormatter.format(totalAmount)}
           </div>
-          <p className="text-2xl font-bold text-app">{currencyFormatter.format(totalAmount)}</p>
-          <p className="text-sm text-muted">บาท (เต็มราคา)</p>
-        </motion.div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-orange-500 h-1.5 rounded-full"
+              style={{ width: `${Math.min(100, (totalAmount / 10000) * 100)}%` }}
+            />
+          </div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <TrendingUp className="w-8 h-8 text-ptt-cyan" />
-            <span className="text-sm text-muted">คูปองที่ใช้แล้ว</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">คูปองที่ใช้แล้ว</div>
+          <div className="text-xl font-bold text-slate-800">{usedCoupons}</div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-green-500 h-1.5 rounded-full"
+              style={{ width: `${(usedCoupons / totalCoupons) * 100}%` }}
+            />
           </div>
-          <p className="text-2xl font-bold text-app">{usedCoupons}</p>
-          <p className="text-sm text-muted">ใบ</p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Upload className="w-8 h-8 text-purple-400" />
-            <span className="text-sm text-muted">จาก Excel</span>
-          </div>
-          <p className="text-2xl font-bold text-app">
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">จาก Excel</div>
+          <div className="text-xl font-bold text-slate-800">
             {coupons.filter((c) => c.source.includes("SALES")).length}
-          </p>
-          <p className="text-sm text-muted">รายการ</p>
-        </motion.div>
+          </div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-purple-500 h-1.5 rounded-full"
+              style={{ width: `${(coupons.filter((c) => c.source.includes("SALES")).length / totalCoupons) * 100}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Important Notice */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-        className="panel rounded-2xl p-6 border-2 border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-500/5"
-      >
+      <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
         <div className="flex items-start gap-3">
-          <Ticket className="w-6 h-6 text-orange-400 mt-1" />
+          <Ticket className="w-6 h-6 text-orange-600 mt-1" />
           <div>
-            <h3 className="text-lg font-semibold text-app mb-2">หมายเหตุสำคัญ: ระบบคูปองสถานี</h3>
-            <ul className="text-sm text-muted space-y-1">
-              <li>• คูปองสถานีใน M1 เป็น <strong className="text-app">ช่องทางการชำระเงินเท่านั้น</strong> (PaymentType = Coupon)</li>
-              <li>• <strong className="text-app">ไม่มีการหักส่วนลด</strong> - ยอดขายยังคงเต็มราคา (Full Price)</li>
+            <h3 className="text-sm font-semibold text-orange-900 mb-2">หมายเหตุสำคัญ: ระบบคูปองสถานี</h3>
+            <ul className="text-xs text-orange-800 space-y-1">
+              <li>• คูปองสถานีใน M1 เป็น <strong>ช่องทางการชำระเงินเท่านั้น</strong> (PaymentType = Coupon)</li>
+              <li>• <strong>ไม่มีการหักส่วนลด</strong> - ยอดขายยังคงเต็มราคา (Full Price)</li>
               <li>• ข้อมูลมาจาก PTT BackOffice (SALES_YYYYMMDD.xlsx) - คอลัมน์ PaymentType = "Coupon"</li>
-              <li>• ระบบจะบันทึก CouponCode และยอดขายเต็มราคา ไม่มีคอลัมน์ Discount</li>
-              <li>• ลงบัญชี (M6) เป็นรายได้จากการขายน้ำมัน (4110) เต็มจำนวน</li>
             </ul>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Actions Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
@@ -239,8 +221,8 @@ export default function Coupons() {
         />
 
         <div className="flex gap-2">
-          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
-            <Upload className="w-4 h-4" />
+          <label className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer">
+            <Upload className="h-4 w-4" />
             <span>นำเข้าจาก SALES_YYYYMMDD.xlsx</span>
             <input
               type="file"
@@ -251,83 +233,79 @@ export default function Coupons() {
           </label>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-500/90 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="h-4 w-4" />
             <span>บันทึกคูปอง</span>
           </button>
         </div>
       </div>
 
-      {/* Coupons List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="panel rounded-2xl p-6"
-      >
-        <div className="space-y-4">
-          {filteredCoupons.map((coupon) => (
-            <div
-              key={coupon.id}
-              className="p-4 bg-soft rounded-xl border border-app hover:border-orange-500/30 transition-colors"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-orange-500/20 border border-orange-500/30">
-                    <Ticket className="w-5 h-5 text-orange-400" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-app">คูปอง: {coupon.couponCode}</p>
-                    <p className="text-sm text-muted">{coupon.branch}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-app">{currencyFormatter.format(coupon.amount)}</p>
-                  <div className="flex items-center gap-2 mt-1 justify-end">
-                    <span className="text-xs px-2 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/30">
+      {/* Coupons Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="font-bold text-slate-700">รายการคูปองสถานี</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+              <tr>
+                <th className="p-3">รหัสคูปอง</th>
+                <th className="p-3">วันที่</th>
+                <th className="p-3">ชนิดน้ำมัน</th>
+                <th className="p-3">สาขา</th>
+                <th className="p-3 text-right">ปริมาณ (ลิตร)</th>
+                <th className="p-3 text-right">ยอดขาย (บาท)</th>
+                <th className="p-3">แหล่งที่มา</th>
+                <th className="p-3 text-center">สถานะ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-sm">
+              {filteredCoupons.map((coupon) => (
+                <tr key={coupon.id} className="hover:bg-gray-50">
+                  <td className="p-3 font-medium text-slate-700">
+                    <div className="flex items-center gap-2">
+                      <Ticket className="w-4 h-4 text-orange-600" />
+                      {coupon.couponCode}
+                    </div>
+                  </td>
+                  <td className="p-3 text-gray-600">
+                    {new Date(coupon.date).toLocaleDateString("th-TH")}
+                  </td>
+                  <td className="p-3 text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Fuel className="w-4 h-4 text-blue-600" />
+                      {coupon.fuelType}
+                    </div>
+                  </td>
+                  <td className="p-3 text-gray-600">{coupon.branch}</td>
+                  <td className="p-3 text-right font-mono text-slate-800">
+                    {numberFormatter.format(coupon.quantity)}
+                  </td>
+                  <td className="p-3 text-right font-bold text-slate-800">
+                    ฿{numberFormatter.format(coupon.amount)}
+                  </td>
+                  <td className="p-3">
+                    <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-300">
+                      {coupon.source}
+                    </span>
+                  </td>
+                  <td className="p-3 text-center">
+                    <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
                       {coupon.status}
                     </span>
-                    <span className="text-xs px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30">
-                      {coupon.paymentType}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <Fuel className="w-4 h-4 text-ptt-cyan" />
-                  <span className="text-muted">
-                    {coupon.fuelType} • {numberFormatter.format(coupon.quantity)} ลิตร
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted">
-                    วันที่: {new Date(coupon.date).toLocaleDateString("th-TH", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </span>
-                  <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                    {coupon.source}
-                  </span>
-                </div>
-              </div>
-              <div className="mt-2 p-2 bg-orange-500/5 rounded-lg border border-orange-500/10">
-                <p className="text-xs text-orange-400/80">
-                  <strong>ยอดขายเต็มราคา:</strong> {currencyFormatter.format(coupon.amount)} (ไม่มีการหักส่วนลด)
-                </p>
-              </div>
-            </div>
-          ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           {filteredCoupons.length === 0 && (
-            <div className="text-center py-12 text-muted">
+            <div className="text-center py-12 text-gray-500">
               ไม่พบข้อมูลคูปองสถานี
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
 
       {/* Add Coupon Modal */}
       <ModalForm
@@ -340,8 +318,8 @@ export default function Coupons() {
         onSubmit={handleAddCoupon}
       >
         <div className="space-y-4">
-          <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-            <p className="text-xs text-orange-400/80">
+          <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+            <p className="text-xs text-orange-700">
               <strong>หมายเหตุ:</strong> คูปองสถานีเป็นช่องทางการชำระเงินเท่านั้น ไม่มีการหักส่วนลด ยอดขายยังคงเต็มราคา
             </p>
           </div>
@@ -351,7 +329,7 @@ export default function Coupons() {
               type="text"
               value={formData.couponCode}
               onChange={(e) => setFormData({ ...formData, couponCode: e.target.value })}
-              className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="เช่น C001, C002"
               required
             />
@@ -363,7 +341,7 @@ export default function Coupons() {
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
@@ -372,7 +350,7 @@ export default function Coupons() {
               <select
                 value={formData.branch}
                 onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {branches.map((branch) => (
                   <option key={branch} value={branch}>
@@ -387,7 +365,7 @@ export default function Coupons() {
             <select
               value={formData.fuelType}
               onChange={(e) => setFormData({ ...formData, fuelType: e.target.value })}
-              className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="Premium Diesel">Premium Diesel</option>
               <option value="Premium Gasohol 95">Premium Gasohol 95</option>
@@ -405,7 +383,7 @@ export default function Coupons() {
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
@@ -415,7 +393,7 @@ export default function Coupons() {
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="ยอดขายเต็มราคา (ไม่หักส่วนลด)"
                 required
               />
@@ -426,7 +404,7 @@ export default function Coupons() {
             <select
               value={formData.source}
               onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-              className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="Manual">กรอกด้วยมือ</option>
               <option value="SALES_YYYYMMDD.xlsx">SALES_YYYYMMDD.xlsx (PTT BackOffice)</option>
@@ -437,4 +415,3 @@ export default function Coupons() {
     </div>
   );
 }
-

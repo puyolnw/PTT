@@ -18,7 +18,7 @@ const items = [
   { to: "/app/fund/loan-requests", icon: FileText, label: "คำขอกู้", end: false },
   { to: "/app/fund/savings", icon: PiggyBank, label: "บัญชีสัจจะ", end: false },
   { to: "/app/fund/committee", icon: Shield, label: "กรรมการกองทุน", end: false },
-  { to: "/app/fund/penalties", icon: AlertTriangle, label: "บทลงโทษ", end: false },
+  // { to: "/app/fund/penalties", icon: AlertTriangle, label: "บทลงโทษ", end: false },
   { to: "/app/fund/reports", icon: FileSpreadsheet, label: "รายงาน", end: false },
 ];
 

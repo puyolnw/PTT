@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import {
   Package,
   Upload,
-  AlertTriangle,
+  AlertCircle,
   Fuel,
+  Droplet,
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 
@@ -35,6 +35,8 @@ export default function Stock() {
 
   const totalStock = stockData.reduce((sum, item) => sum + item.quantity, 0);
   const lowStockItems = stockData.filter(item => item.lowStock);
+  const dieselStock = stockData.filter(item => item.fuelType === "Diesel").reduce((sum, item) => sum + item.quantity, 0);
+  const g95Stock = stockData.filter(item => item.fuelType === "Gasohol 95").reduce((sum, item) => sum + item.quantity, 0);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -44,74 +46,69 @@ export default function Stock() {
   };
 
   return (
-    <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h2 className="text-3xl font-bold text-app mb-2 font-display">สต็อกน้ำมัน - M1</h2>
-        <p className="text-muted font-light">
-          ติดตามสต็อกน้ำมันทุกถัง แยกตามปั๊มและชนิด (สต็อกรวม: 120,000 ลิตร - Diesel 40%, G95 30%) นำเข้า Excel จาก PTT BackOffice
+    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+      {/* Header Section */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <Droplet className="h-8 w-8 text-blue-600" />
+          สต็อกน้ำมัน - M1
+        </h2>
+        <p className="text-slate-500 text-sm mt-1">
+          ติดตามสต็อกน้ำมันทุกถัง แยกตามปั๊มและชนิด นำเข้า Excel จาก PTT BackOffice
         </p>
-      </motion.div>
+      </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Fuel className="w-8 h-8 text-ptt-cyan" />
-            <span className="text-sm text-muted">สต็อกรวม</span>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+          <div className="flex items-center gap-2 text-blue-700 mb-2">
+            <Fuel className="h-5 w-5" />
+            <span className="font-bold">สต็อกรวม</span>
           </div>
-          <p className="text-2xl font-bold text-app">{numberFormatter.format(totalStock)}</p>
-          <p className="text-sm text-muted">ลิตร</p>
-        </motion.div>
+          <div className="text-2xl font-bold text-blue-900">
+            {numberFormatter.format(totalStock)} ลิตร
+          </div>
+          <div className="text-xs text-blue-600 mt-1">จาก {stockData.length} ถัง</div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Package className="w-8 h-8 text-emerald-400" />
-            <span className="text-sm text-muted">ถังทั้งหมด</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">Diesel</div>
+          <div className="text-xl font-bold text-slate-800">
+            {numberFormatter.format(dieselStock)} L
           </div>
-          <p className="text-2xl font-bold text-app">{stockData.length}</p>
-          <p className="text-sm text-muted">ถัง</p>
-        </motion.div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-yellow-400 h-1.5 rounded-full"
+              style={{ width: `${(dieselStock / totalStock) * 100}%` }}
+            />
+          </div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <AlertTriangle className="w-8 h-8 text-orange-400" />
-            <span className="text-sm text-muted">ใกล้หมด</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">Gasohol 95</div>
+          <div className="text-xl font-bold text-slate-800">
+            {numberFormatter.format(g95Stock)} L
           </div>
-          <p className="text-2xl font-bold text-orange-400">{lowStockItems.length}</p>
-          <p className="text-sm text-muted">ถัง</p>
-        </motion.div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-orange-500 h-1.5 rounded-full"
+              style={{ width: `${(g95Stock / totalStock) * 100}%` }}
+            />
+          </div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Upload className="w-8 h-8 text-purple-400" />
-            <span className="text-sm text-muted">จาก Excel</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">สต็อกใกล้หมด</div>
+          <div className="text-xl font-bold text-slate-800">
+            {lowStockItems.length} ถัง
           </div>
-          <p className="text-2xl font-bold text-app">STOCK_YYYYMMDD.xlsx</p>
-          <p className="text-sm text-muted">PTT BackOffice</p>
-        </motion.div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-orange-500 h-1.5 rounded-full"
+              style={{ width: `${(lowStockItems.length / stockData.length) * 100}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Actions Bar */}
@@ -129,8 +126,8 @@ export default function Stock() {
         />
 
         <div className="flex gap-2">
-          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
-            <Upload className="w-4 h-4" />
+          <label className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer">
+            <Upload className="h-4 w-4" />
             <span>นำเข้า STOCK_YYYYMMDD.xlsx</span>
             <input
               type="file"
@@ -143,49 +140,41 @@ export default function Stock() {
       </div>
 
       {/* Stock Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="panel rounded-2xl p-6"
-      >
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="font-bold text-slate-700">รายการสต็อกน้ำมันทั้งหมด</h3>
+        </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-app">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-app">ชนิดน้ำมัน</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-app">ถัง</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-app">สาขา</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-app">คงเหลือ</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-app">สถานะ</th>
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+              <tr>
+                <th className="p-3">ชนิดน้ำมัน</th>
+                <th className="p-3">ถัง</th>
+                <th className="p-3">สาขา</th>
+                <th className="p-3 text-right">คงเหลือ</th>
+                <th className="p-3 text-center">สถานะ</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100 text-sm">
               {filteredStock.map((item) => (
-                <tr key={item.id} className="border-b border-app/50 hover:bg-soft/50">
-                  <td className="py-3 px-4">
+                <tr key={item.id} className="hover:bg-gray-50">
+                  <td className="p-3 font-medium text-slate-700">
                     <div className="flex items-center gap-2">
-                      <Fuel className="w-4 h-4 text-ptt-cyan" />
-                      <p className="font-medium text-app">{item.fuelType}</p>
+                      <Fuel className="w-4 h-4 text-blue-600" />
+                      {item.fuelType}
                     </div>
                   </td>
-                  <td className="py-3 px-4">
-                    <p className="text-app">{item.tank}</p>
+                  <td className="p-3 text-slate-700">{item.tank}</td>
+                  <td className="p-3 text-gray-600">{item.branch}</td>
+                  <td className="p-3 text-right font-mono text-slate-800">
+                    {numberFormatter.format(item.quantity)} {item.unit}
                   </td>
-                  <td className="py-3 px-4">
-                    <p className="text-app">{item.branch}</p>
-                  </td>
-                  <td className="py-3 px-4">
-                    <p className="text-app">
-                      {numberFormatter.format(item.quantity)} {item.unit}
-                    </p>
-                  </td>
-                  <td className="py-3 px-4">
+                  <td className="p-3 text-center">
                     <span
-                      className={`px-2 py-1 text-xs rounded-full ${
+                      className={`px-2 py-1 rounded-full text-xs ${
                         item.lowStock
-                          ? "bg-orange-500/10 text-orange-400 border border-orange-500/30"
-                          : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-green-100 text-green-700"
                       }`}
                     >
                       {item.lowStock ? "ใกล้หมด" : "ปกติ"}
@@ -196,13 +185,12 @@ export default function Stock() {
             </tbody>
           </table>
           {filteredStock.length === 0 && (
-            <div className="text-center py-12 text-muted">
+            <div className="text-center py-12 text-gray-500">
               ไม่พบข้อมูลสต็อกน้ำมัน
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
-

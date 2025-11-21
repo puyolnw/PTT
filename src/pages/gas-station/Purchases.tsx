@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import {
   ShoppingCart,
   Plus,
   Upload,
   DollarSign,
   Fuel,
+  Droplet,
 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import FilterBar from "@/components/FilterBar";
@@ -13,7 +13,8 @@ import FilterBar from "@/components/FilterBar";
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
   currency: "THB",
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
 
 const numberFormatter = new Intl.NumberFormat("th-TH");
@@ -90,6 +91,8 @@ export default function Purchases() {
 
   const totalAmount = purchases.reduce((sum, p) => sum + p.amount, 0);
   const totalQuantity = purchases.reduce((sum, p) => sum + p.quantity, 0);
+  const dieselPurchases = purchases.filter(p => p.fuelType === "Diesel").reduce((sum, p) => sum + p.quantity, 0);
+  const g95Purchases = purchases.filter(p => p.fuelType === "Gasohol 95").reduce((sum, p) => sum + p.quantity, 0);
 
   const handleAddPurchase = () => {
     const newPurchase = {
@@ -118,84 +121,72 @@ export default function Purchases() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Simulate file processing from PTT BackOffice
       alert(`กำลังประมวลผลไฟล์ ${file.name}...\n\nระบบจะสร้างใบรับสินค้าอัตโนมัติจากข้อมูล PTT BackOffice`);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h2 className="text-3xl font-bold text-app mb-2 font-display">ซื้อเข้าน้ำมัน - M1</h2>
-        <p className="text-muted font-light">
-          ประมวลผลซื้อเข้าน้ำมันแยกตามชนิดน้ำมัน 8 ชนิด (Premium Diesel, Premium Gasohol 95, Diesel, E85, E20, Gasohol 91, Gasohol 95) นำเข้า Excel จาก PTT BackOffice ระบบสร้างใบรับสินค้าอัตโนมัติ
+    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+      {/* Header Section */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <Droplet className="h-8 w-8 text-blue-600" />
+          ซื้อเข้าน้ำมัน - M1
+        </h2>
+        <p className="text-slate-500 text-sm mt-1">
+          ประมวลผลซื้อเข้าน้ำมันแยกตามชนิดน้ำมัน 8 ชนิด นำเข้า Excel จาก PTT BackOffice ระบบสร้างใบรับสินค้าอัตโนมัติ
         </p>
-      </motion.div>
+      </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <ShoppingCart className="w-8 h-8 text-ptt-cyan" />
-            <span className="text-sm text-muted">รายการทั้งหมด</span>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+          <div className="flex items-center gap-2 text-blue-700 mb-2">
+            <ShoppingCart className="h-5 w-5" />
+            <span className="font-bold">รายการทั้งหมด</span>
           </div>
-          <p className="text-2xl font-bold text-app">{purchases.length}</p>
-          <p className="text-sm text-muted">ใบรับสินค้า</p>
-        </motion.div>
+          <div className="text-2xl font-bold text-blue-900">{purchases.length}</div>
+          <div className="text-xs text-blue-600 mt-1">ใบรับสินค้า</div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Fuel className="w-8 h-8 text-emerald-400" />
-            <span className="text-sm text-muted">ปริมาณรวม</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">ปริมาณรวม</div>
+          <div className="text-xl font-bold text-slate-800">
+            {numberFormatter.format(totalQuantity)} L
           </div>
-          <p className="text-2xl font-bold text-app">
-            {numberFormatter.format(totalQuantity)} ลิตร
-          </p>
-          <p className="text-sm text-muted">น้ำมันทั้งหมด</p>
-        </motion.div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-emerald-500 h-1.5 rounded-full"
+              style={{ width: `${Math.min(100, (totalQuantity / 200000) * 100)}%` }}
+            />
+          </div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <DollarSign className="w-8 h-8 text-purple-400" />
-            <span className="text-sm text-muted">ยอดรวม</span>
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">ยอดรวม</div>
+          <div className="text-xl font-bold text-slate-800">
+            ฿{numberFormatter.format(totalAmount)}
           </div>
-          <p className="text-2xl font-bold text-app">{currencyFormatter.format(totalAmount)}</p>
-          <p className="text-sm text-muted">บาท</p>
-        </motion.div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-purple-500 h-1.5 rounded-full"
+              style={{ width: `${Math.min(100, (totalAmount / 10000000) * 100)}%` }}
+            />
+          </div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="panel rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Upload className="w-8 h-8 text-orange-400" />
-            <span className="text-sm text-muted">จาก Excel</span>
-          </div>
-          <p className="text-2xl font-bold text-app">
+        <div className="bg-white p-4 rounded-xl border border-gray-200">
+          <div className="text-xs text-gray-500 mb-1">จาก Excel</div>
+          <div className="text-xl font-bold text-slate-800">
             {purchases.filter((p) => p.source.includes("PURCHASE")).length}
-          </p>
-          <p className="text-sm text-muted">รายการ</p>
-        </motion.div>
+          </div>
+          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2">
+            <div
+              className="bg-orange-500 h-1.5 rounded-full"
+              style={{ width: `${(purchases.filter((p) => p.source.includes("PURCHASE")).length / purchases.length) * 100}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Actions Bar */}
@@ -219,8 +210,8 @@ export default function Purchases() {
         />
 
         <div className="flex gap-2">
-          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
-            <Upload className="w-4 h-4" />
+          <label className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer">
+            <Upload className="h-4 w-4" />
             <span>นำเข้า PURCHASE_YYYYMMDD.xlsx</span>
             <input
               type="file"
@@ -231,68 +222,72 @@ export default function Purchases() {
           </label>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-ptt-blue text-white rounded-lg hover:bg-ptt-blue/90 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="h-4 w-4" />
             <span>บันทึกการซื้อ</span>
           </button>
         </div>
       </div>
 
-      {/* Purchases List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="panel rounded-2xl p-6"
-      >
-        <div className="space-y-4">
-          {filteredPurchases.map((purchase) => (
-            <div
-              key={purchase.id}
-              className="p-4 bg-soft rounded-xl border border-app hover:border-ptt-blue/30 transition-colors"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <Fuel className="w-5 h-5 text-ptt-cyan" />
-                  <div>
-                    <p className="font-semibold text-app">{purchase.fuelType}</p>
-                    <p className="text-sm text-muted">{purchase.branch}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-app">{currencyFormatter.format(purchase.amount)}</p>
-                  <p className="text-sm text-muted">
-                    {numberFormatter.format(purchase.quantity)} ลิตร
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted">
-                  วันที่: {new Date(purchase.date).toLocaleDateString("th-TH", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                    {purchase.status}
-                  </span>
-                  <span className="text-xs px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30">
-                    {purchase.source}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
+      {/* Purchases Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="font-bold text-slate-700">รายการซื้อเข้าน้ำมัน</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+              <tr>
+                <th className="p-3">วันที่</th>
+                <th className="p-3">ชนิดน้ำมัน</th>
+                <th className="p-3">สาขา</th>
+                <th className="p-3 text-right">ปริมาณ (ลิตร)</th>
+                <th className="p-3 text-right">จำนวนเงิน</th>
+                <th className="p-3">แหล่งที่มา</th>
+                <th className="p-3 text-center">สถานะ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-sm">
+              {filteredPurchases.map((purchase) => (
+                <tr key={purchase.id} className="hover:bg-gray-50">
+                  <td className="p-3 text-gray-600">
+                    {new Date(purchase.date).toLocaleDateString("th-TH")}
+                  </td>
+                  <td className="p-3 font-medium text-slate-700">
+                    <div className="flex items-center gap-2">
+                      <Fuel className="w-4 h-4 text-blue-600" />
+                      {purchase.fuelType}
+                    </div>
+                  </td>
+                  <td className="p-3 text-gray-600">{purchase.branch}</td>
+                  <td className="p-3 text-right font-mono text-slate-800">
+                    {numberFormatter.format(purchase.quantity)}
+                  </td>
+                  <td className="p-3 text-right font-bold text-slate-800">
+                    ฿{numberFormatter.format(purchase.amount)}
+                  </td>
+                  <td className="p-3">
+                    <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-300">
+                      {purchase.source}
+                    </span>
+                  </td>
+                  <td className="p-3 text-center">
+                    <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
+                      {purchase.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           {filteredPurchases.length === 0 && (
-            <div className="text-center py-12 text-muted">
+            <div className="text-center py-12 text-gray-500">
               ไม่พบข้อมูลการซื้อเข้าน้ำมัน
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
 
       {/* Add Purchase Modal */}
       <ModalForm
@@ -312,7 +307,7 @@ export default function Purchases() {
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
@@ -321,7 +316,7 @@ export default function Purchases() {
               <select
                 value={formData.branch}
                 onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {branches.map((branch) => (
                   <option key={branch} value={branch}>
@@ -336,7 +331,7 @@ export default function Purchases() {
             <select
               value={formData.fuelType}
               onChange={(e) => setFormData({ ...formData, fuelType: e.target.value })}
-              className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {fuelTypes.map((fuel) => (
                 <option key={fuel} value={fuel}>
@@ -352,7 +347,7 @@ export default function Purchases() {
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
@@ -362,7 +357,7 @@ export default function Purchases() {
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
@@ -372,7 +367,7 @@ export default function Purchases() {
             <select
               value={formData.source}
               onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-              className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="Manual">กรอกด้วยมือ</option>
               <option value="PURCHASE_YYYYMMDD.xlsx">PURCHASE_YYYYMMDD.xlsx (PTT BackOffice)</option>
@@ -383,4 +378,3 @@ export default function Purchases() {
     </div>
   );
 }
-
