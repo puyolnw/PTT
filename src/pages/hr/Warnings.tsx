@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { AlertTriangle, Search, Download, Eye, Edit2, Trash2, User, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { AlertTriangle, Search, Download, Eye, Edit2, Trash2, User, CheckCircle, AlertCircle, XCircle, Plus } from "lucide-react";
 import { warningRecords, employees, shifts, type WarningRecord } from "@/data/mockData";
 
 export default function Warnings() {
@@ -14,10 +14,21 @@ export default function Warnings() {
   const [selectedWarning, setSelectedWarning] = useState<WarningRecord | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     reason: "",
     description: "",
     status: "" as WarningRecord["status"] | "",
+  });
+  const [addForm, setAddForm] = useState({
+    empCode: "",
+    warningType: "" as WarningRecord["warningType"] | "",
+    reason: "",
+    description: "",
+    date: new Date().toISOString().split('T')[0],
+    issuedBy: "",
+    status: "ระหว่างดำเนินการ" as WarningRecord["status"],
+    notes: "",
   });
 
   // Warning type colors and labels
@@ -48,7 +59,7 @@ export default function Warnings() {
     }
   };
 
-  const statusInfo: Record<WarningRecord["status"], { icon: any; color: string; bgColor: string }> = {
+  const statusInfo: Record<WarningRecord["status"], { icon: typeof AlertCircle; color: string; bgColor: string }> = {
     "ระหว่างดำเนินการ": {
       icon: AlertCircle,
       color: "text-yellow-500",
@@ -69,6 +80,27 @@ export default function Warnings() {
   // Get employee info by code
   const getEmployeeInfo = (empCode: string) => {
     return employees.find(e => e.code === empCode);
+  };
+
+  // Calculate warning level based on employee's warning history
+  const calculateWarningLevel = (empCode: string, warningType: WarningRecord["warningType"]): number => {
+    const employeeWarnings = warnings.filter(w => w.empCode === empCode && w.warningType === warningType);
+    
+    if (warningType === "พูดคุย") {
+      // สำหรับ "พูดคุย" นับเฉพาะประเภทเดียวกัน (สูงสุด 3 ครั้ง)
+      return Math.min(employeeWarnings.length + 1, 3);
+    } else if (warningType === "เอกสาร") {
+      // สำหรับ "เอกสาร" นับเฉพาะประเภทเดียวกัน (สูงสุด 3 ครั้ง)
+      return Math.min(employeeWarnings.length + 1, 3);
+    } else if (warningType === "พักงาน") {
+      // สำหรับ "พักงาน" เริ่มที่ระดับ 3
+      return 3;
+    } else if (warningType === "ไล่ออก") {
+      // สำหรับ "ไล่ออก" เริ่มที่ระดับ 4
+      return 4;
+    }
+    
+    return 1;
   };
 
   // Handle filter
@@ -196,6 +228,55 @@ export default function Warnings() {
     }
   };
 
+  // Handle add new warning
+  const handleAddWarning = () => {
+    if (!addForm.empCode || !addForm.warningType || !addForm.reason || !addForm.description) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+
+    const employee = getEmployeeInfo(addForm.empCode);
+    if (!employee) {
+      alert("ไม่พบข้อมูลพนักงาน");
+      return;
+    }
+
+    const warningLevel = calculateWarningLevel(addForm.empCode, addForm.warningType);
+    const newId = Math.max(...warnings.map(w => w.id), 0) + 1;
+
+    const newWarning: WarningRecord = {
+      id: newId,
+      empCode: addForm.empCode,
+      empName: employee.name,
+      empCategory: employee.category || employee.dept,
+      warningType: addForm.warningType,
+      warningLevel: warningLevel,
+      reason: addForm.reason,
+      description: addForm.description,
+      date: addForm.date,
+      issuedBy: addForm.issuedBy || "หัวหน้าแผนก",
+      status: addForm.status,
+      notes: addForm.notes || undefined,
+    };
+
+    const updatedWarnings = [...warnings, newWarning];
+    setWarnings(updatedWarnings);
+    setFilteredWarnings(updatedWarnings);
+    setIsAddModalOpen(false);
+    
+    // Reset form
+    setAddForm({
+      empCode: "",
+      warningType: "" as WarningRecord["warningType"] | "",
+      reason: "",
+      description: "",
+      date: new Date().toISOString().split('T')[0],
+      issuedBy: "",
+      status: "ระหว่างดำเนินการ" as WarningRecord["status"],
+      notes: "",
+    });
+  };
+
   // Export report
   const handleExportReport = () => {
     let csv = `"ลำดับ","รหัสพนักงาน","ชื่อ-สกุล","แผนก","ประเภทการเตือน","ระดับ","เหตุผล","วันที่","สถานะ"\n`;
@@ -228,15 +309,26 @@ export default function Warnings() {
             บันทึกการเตือนพนักงานจากนายจ้าง ตามระดับความรุนแรง
           </p>
         </div>
-        <button
-          onClick={handleExportReport}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-ptt-cyan hover:bg-ptt-cyan/80 
-                   text-app rounded-xl transition-all duration-200 font-semibold 
-                   shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-        >
-          <Download className="w-5 h-5" />
-          Export Report
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 
+                     text-white rounded-xl transition-all duration-200 font-semibold 
+                     shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+          >
+            <Plus className="w-5 h-5" />
+            ทันปน (เพิ่มการเตือน)
+          </button>
+          <button
+            onClick={handleExportReport}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-ptt-cyan hover:bg-ptt-cyan/80 
+                     text-app rounded-xl transition-all duration-200 font-semibold 
+                     shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+          >
+            <Download className="w-5 h-5" />
+            Export Report
+          </button>
+        </div>
       </div>
 
       {/* Warning System Info */}
@@ -730,6 +822,215 @@ export default function Warnings() {
                          font-medium rounded-lg transition-all duration-200"
               >
                 ปิด
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Add Warning Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-soft border border-app rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            {/* Header */}
+            <div className="sticky top-0 px-6 py-4 border-b border-app bg-soft flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+                <h3 className="text-xl font-bold text-app">ทันปน (เพิ่มการเตือนใหม่)</h3>
+              </div>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-muted hover:text-app transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              {/* Employee Selection */}
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">
+                  พนักงาน <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={addForm.empCode}
+                  onChange={(e) => {
+                    const empCode = e.target.value;
+                    setAddForm({ 
+                      ...addForm, 
+                      empCode,
+                      warningType: "" as WarningRecord["warningType"] | "",
+                    });
+                  }}
+                  className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app 
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue cursor-pointer"
+                >
+                  <option value="">เลือกพนักงาน</option>
+                  {employees
+                    .filter(e => e.status === "Active")
+                    .map((emp) => (
+                      <option key={emp.code} value={emp.code}>
+                        {emp.code} - {emp.name} ({emp.dept})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Warning Type */}
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">
+                  ประเภทการเตือน <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={addForm.warningType}
+                  onChange={(e) => setAddForm({ ...addForm, warningType: e.target.value as WarningRecord["warningType"] })}
+                  className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app 
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue cursor-pointer"
+                >
+                  <option value="">เลือกประเภทการเตือน</option>
+                  <option value="พูดคุย">พูดคุย (ไม่เป็นลายลักษณ์อักษร)</option>
+                  <option value="เอกสาร">เอกสาร (เป็นลายลักษณ์อักษร)</option>
+                  <option value="พักงาน">พักงาน (ร้ายแรง)</option>
+                  <option value="ไล่ออก">ไล่ออก (ร้ายแรงที่สุด)</option>
+                </select>
+                {addForm.empCode && addForm.warningType && (
+                  <p className="text-xs text-muted mt-2">
+                    ระดับการเตือนที่จะได้รับ: {calculateWarningLevel(addForm.empCode, addForm.warningType)}/4
+                    {addForm.warningType === "พูดคุย" || addForm.warningType === "เอกสาร" ? (
+                      <span className="block mt-1">
+                        (พนักงานนี้มีประวัติการเตือนประเภทนี้ {warnings.filter(w => w.empCode === addForm.empCode && w.warningType === addForm.warningType).length} ครั้ง)
+                      </span>
+                    ) : null}
+                  </p>
+                )}
+              </div>
+
+              {/* Reason */}
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">
+                  เหตุการณ์/เหตุผลการเตือน <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={addForm.reason}
+                  onChange={(e) => setAddForm({ ...addForm, reason: e.target.value })}
+                  placeholder="เช่น การร้องเรียนจากลูกค้า, มาสาย, ขาดงาน"
+                  className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app 
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">
+                  รายละเอียดการเตือน <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={addForm.description}
+                  onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
+                  rows={4}
+                  placeholder="อธิบายรายละเอียดเหตุการณ์ที่เกิดขึ้น..."
+                  className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app 
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
+                />
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">
+                  วันที่ออกการเตือน
+                </label>
+                <input
+                  type="date"
+                  value={addForm.date}
+                  onChange={(e) => setAddForm({ ...addForm, date: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app 
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                />
+              </div>
+
+              {/* Issued By */}
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">
+                  ออกโดย
+                </label>
+                <input
+                  type="text"
+                  value={addForm.issuedBy}
+                  onChange={(e) => setAddForm({ ...addForm, issuedBy: e.target.value })}
+                  placeholder="เช่น หัวหน้าปั๊ม, หัวหน้าแผนก"
+                  className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app 
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                />
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">
+                  สถานะ
+                </label>
+                <select
+                  value={addForm.status}
+                  onChange={(e) => setAddForm({ ...addForm, status: e.target.value as WarningRecord["status"] })}
+                  className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app 
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue cursor-pointer"
+                >
+                  <option value="ระหว่างดำเนินการ">ระหว่างดำเนินการ</option>
+                  <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+                  <option value="ยกเลิก">ยกเลิก</option>
+                </select>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">
+                  หมายเหตุ
+                </label>
+                <textarea
+                  value={addForm.notes}
+                  onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })}
+                  rows={2}
+                  placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
+                  className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app 
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 px-6 py-4 border-t border-app bg-soft flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  setAddForm({
+                    empCode: "",
+                    warningType: "" as WarningRecord["warningType"] | "",
+                    reason: "",
+                    description: "",
+                    date: new Date().toISOString().split('T')[0],
+                    issuedBy: "",
+                    status: "ระหว่างดำเนินการ" as WarningRecord["status"],
+                    notes: "",
+                  });
+                }}
+                className="px-4 py-2 bg-soft border border-app hover:bg-soft/80 text-app 
+                         font-medium rounded-lg transition-all duration-200"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleAddWarning}
+                className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white 
+                         font-semibold rounded-lg transition-all duration-200"
+              >
+                บันทึกการเตือน
               </button>
             </div>
           </motion.div>

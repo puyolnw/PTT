@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Award,
@@ -10,232 +10,323 @@ import {
   Trophy,
   Medal,
   Crown,
-  Filter,
   Download,
   FileText,
+  ClipboardList,
+  Edit3,
+  Plus,
+  Save,
 } from "lucide-react";
-import { employees, attendanceLogs, evaluations, shifts } from "@/data/mockData";
 import { useNavigate } from "react-router-dom";
+import { employees, attendanceLogs } from "@/data/mockData";
 
-// Mock data for outstanding employees
-interface OutstandingEmployee {
+interface PumpChampion {
   id: number;
   empCode: string;
   empName: string;
   dept: string;
   position: string;
   avatar?: string;
-  period: string; // "2025-11" or "2025"
-  type: "monthly" | "yearly";
-  score: number;
-  criteria: {
-    attendance: number; // เปอร์เซ็นต์การมาทำงาน
-    punctuality: number; // เปอร์เซ็นต์การมาทำงานตรงเวลา
-    performance: number; // คะแนนประเมินผล
-    customerSatisfaction?: number; // ความพึงพอใจลูกค้า (ถ้ามี)
-    teamwork?: number; // การทำงานเป็นทีม
-    initiative?: number; // ความคิดริเริ่ม
-  };
-  achievements: string[];
-  reward?: {
-    type: "เงินรางวัล" | "ประกาศเกียรติคุณ" | "ของรางวัล";
-    amount?: number;
-    description: string;
-  };
+  month: string;
+  departmentHighlight: string[];
+  auditNote: string;
+  attendanceRate: number;
+  punctualityRate: number;
+  auditScore: number;
+  totalScore: number;
 }
 
-// Generate mock outstanding employees
-const generateOutstandingEmployees = (): OutstandingEmployee[] => {
-  const monthly: OutstandingEmployee[] = [];
-  const yearly: OutstandingEmployee[] = [];
+interface AuditAward {
+  id: number;
+  empCode: string;
+  empName: string;
+  dept: string;
+  categoryKey: string;
+  categoryLabel: string;
+  month: string;
+  auditScore: number;
+  pttScore: number;
+  totalScore: number;
+  remarks: string;
+  avatar?: string;
+}
 
-  // Monthly outstanding employees (last 6 months)
-  const months = ["2025-11", "2025-10", "2025-09", "2025-08", "2025-07", "2025-06"];
-  months.forEach((month) => {
-    const topEmployees = employees
-      .filter((emp) => emp.status === "Active")
-      .slice(0, 3)
-      .map((emp, index) => {
-        const attendance = attendanceLogs.filter(
-          (log) => log.empCode === emp.code && log.date.startsWith(month)
-        );
-        const onTimeCount = attendance.filter((log) => log.status === "ตรงเวลา").length;
-        const totalDays = attendance.length;
-        const attendanceRate = totalDays > 0 ? (totalDays / 30) * 100 : 0;
-        const punctualityRate = totalDays > 0 ? (onTimeCount / totalDays) * 100 : 0;
+interface NewAuditFormState {
+  month: string;
+  categoryKey: string;
+  empCode: string;
+  empName: string;
+  dept: string;
+  auditScore: string;
+  pttScore: string;
+  remarks: string;
+}
 
-        const evaluation = evaluations.find((evalItem) => evalItem.empCode === emp.code);
-        // Convert score (1.0-5.0) to percentage (0-100)
-        const performanceScore = evaluation ? (evaluation.score / 5.0) * 100 : 85;
+interface ChampionRewardFormState {
+  rewardName: string;
+  amount: string;
+  note: string;
+}
 
-        const score = attendanceRate * 0.3 + punctualityRate * 0.3 + performanceScore * 0.4;
-
-        return {
-          id: emp.id,
-          empCode: emp.code,
-          empName: emp.name,
-          dept: emp.dept,
-          position: emp.position,
-          avatar: emp.avatar,
-          period: month,
-          type: "monthly" as const,
-          score: Math.round(score),
-          criteria: {
-            attendance: Math.round(attendanceRate),
-            punctuality: Math.round(punctualityRate),
-            performance: performanceScore,
-            customerSatisfaction: 90 + Math.floor(Math.random() * 10),
-            teamwork: 85 + Math.floor(Math.random() * 15),
-            initiative: 80 + Math.floor(Math.random() * 20),
-          },
-          achievements: [
-            "มาทำงานครบทุกวัน",
-            "ไม่มีประวัติมาสาย",
-            "ได้รับคำชมจากลูกค้า",
-            "ช่วยงานเพื่อนร่วมงาน",
-          ],
-          reward: {
-            type: (index === 0 ? "เงินรางวัล" : "ประกาศเกียรติคุณ") as "เงินรางวัล" | "ประกาศเกียรติคุณ" | "ของรางวัล",
-            amount: index === 0 ? 5000 : undefined,
-            description: index === 0 ? "เงินรางวัล 5,000 บาท" : "ประกาศเกียรติคุณ",
-          },
-        };
-      });
-
-    monthly.push(...topEmployees);
-  });
-
-  // Yearly outstanding employees (last 2 years)
-  const years = ["2025", "2024"];
-  years.forEach((year) => {
-    const topEmployees = employees
-      .filter((emp) => emp.status === "Active")
-      .slice(0, 5)
-      .map((emp, index) => {
-        const attendance = attendanceLogs.filter((log) => log.empCode === emp.code && log.date.startsWith(year));
-        const onTimeCount = attendance.filter((log) => log.status === "ตรงเวลา").length;
-        const totalDays = attendance.length;
-        const attendanceRate = totalDays > 0 ? (totalDays / 365) * 100 : 0;
-        const punctualityRate = totalDays > 0 ? (onTimeCount / totalDays) * 100 : 0;
-
-        const evaluation = evaluations.find((evalItem) => evalItem.empCode === emp.code);
-        // Convert score (1.0-5.0) to percentage (0-100)
-        const performanceScore = evaluation ? (evaluation.score / 5.0) * 100 : 88;
-
-        const score = attendanceRate * 0.3 + punctualityRate * 0.3 + performanceScore * 0.4;
-
-        return {
-          id: emp.id,
-          empCode: emp.code,
-          empName: emp.name,
-          dept: emp.dept,
-          position: emp.position,
-          avatar: emp.avatar,
-          period: year,
-          type: "yearly" as const,
-          score: Math.round(score),
-          criteria: {
-            attendance: Math.round(attendanceRate),
-            punctuality: Math.round(punctualityRate),
-            performance: performanceScore,
-            customerSatisfaction: 92 + Math.floor(Math.random() * 8),
-            teamwork: 88 + Math.floor(Math.random() * 12),
-            initiative: 85 + Math.floor(Math.random() * 15),
-          },
-          achievements: [
-            "มาทำงานครบทุกวันตลอดทั้งปี",
-            "ไม่มีประวัติมาสาย",
-            "ได้รับคำชมจากลูกค้าอย่างต่อเนื่อง",
-            "เป็นที่ยอมรับจากเพื่อนร่วมงาน",
-            "มีผลงานโดดเด่น",
-          ],
-          reward: {
-            type: (index === 0 ? "เงินรางวัล" : index < 3 ? "เงินรางวัล" : "ประกาศเกียรติคุณ") as "เงินรางวัล" | "ประกาศเกียรติคุณ" | "ของรางวัล",
-            amount: index === 0 ? 50000 : index < 3 ? 20000 : undefined,
-            description:
-              index === 0
-                ? "เงินรางวัล 50,000 บาท"
-                : index < 3
-                ? "เงินรางวัล 20,000 บาท"
-                : "ประกาศเกียรติคุณ",
-          },
-        };
-      });
-
-    yearly.push(...topEmployees);
-  });
-
-  return [...monthly, ...yearly];
-};
-
-const outstandingEmployees = generateOutstandingEmployees();
-
-const formatPeriod = (period: string, type: "monthly" | "yearly") => {
-  if (type === "monthly") {
-    const [year, month] = period.split("-");
-    const date = new Date(Number(year), Number(month) - 1, 1);
-    return date.toLocaleDateString("th-TH", { month: "long", year: "numeric" });
-  } else {
-    return `ปี ${period}`;
-  }
-};
-
-const currencyFormatter = new Intl.NumberFormat("th-TH", {
-  style: "currency",
-  currency: "THB",
-  maximumFractionDigits: 0,
+const monthFormatter = new Intl.DateTimeFormat("th-TH", {
+  year: "numeric",
+  month: "long",
 });
+
+const pumpChampionMonths = ["2025-11", "2025-10", "2025-09", "2025-08", "2025-07", "2025-06"];
+
+const awardCategories = [
+  {
+    key: "housekeeping",
+    label: "พนักงานแม่บ้าน",
+    matcher: (emp: (typeof employees)[number]) =>
+      emp.dept === "แม่บ้าน" || emp.category === "แม่บ้าน",
+  },
+  {
+    key: "frontline",
+    label: "พนักงานหน้าลาน",
+    matcher: (emp: (typeof employees)[number]) =>
+      emp.dept === "ปั๊มน้ำมัน" || emp.category === "ปั๊ม",
+  },
+  {
+    key: "office",
+    label: "พนักงานใน Office",
+    matcher: (emp: (typeof employees)[number]) =>
+      emp.dept === "Office" || emp.category === "Office",
+  },
+];
+
+const calculateAttendanceStats = (empCode: string, month: string) => {
+  const logs = attendanceLogs.filter(
+    (log) => log.empCode === empCode && log.date.startsWith(month)
+  );
+  const totalDays = logs.length;
+  const onTime = logs.filter((log) => log.status === "ตรงเวลา").length;
+  const attendanceRate = totalDays > 0 ? Math.min(100, (totalDays / 26) * 100) : 0;
+  const punctualityRate = totalDays > 0 ? (onTime / totalDays) * 100 : 0;
+  return {
+    attendanceRate: Math.round(attendanceRate),
+    punctualityRate: Math.round(punctualityRate),
+  };
+};
+
+const generatePumpChampions = (): PumpChampion[] => {
+  const pumpEmployees = employees.filter(
+    (emp) => emp.dept === "ปั๊มน้ำมัน" || emp.category === "ปั๊ม" || emp.dept === "แม่บ้าน"
+  );
+  if (pumpEmployees.length === 0) return [];
+
+  const champions: PumpChampion[] = [];
+
+  pumpChampionMonths.forEach((month, monthIdx) => {
+    const sampleSize = Math.min(4, pumpEmployees.length);
+    for (let i = 0; i < sampleSize; i++) {
+      const emp = pumpEmployees[(monthIdx * sampleSize + i) % pumpEmployees.length];
+      const { attendanceRate, punctualityRate } = calculateAttendanceStats(emp.code, month);
+      const auditScore = 80 + ((emp.id + monthIdx * 5 + i * 3) % 20);
+      const totalScore = Math.round(attendanceRate * 0.3 + punctualityRate * 0.3 + auditScore * 0.4);
+
+      champions.push({
+        id: Number(`${emp.id}${monthIdx}${i}`),
+        empCode: emp.code,
+        empName: emp.name,
+        dept: emp.dept,
+        position: emp.position,
+        avatar: emp.avatar,
+        month,
+        departmentHighlight: [
+          emp.dept,
+          emp.category ? `หมวด ${emp.category}` : "บริษัทย่อย PTT",
+        ],
+        auditNote: "ผ่านการประเมินจากคณะกรรมการพิเศษฝ่ายปั๊ม",
+        attendanceRate,
+        punctualityRate,
+        auditScore,
+        totalScore,
+      });
+    }
+  });
+
+  return champions;
+};
+
+const generateAuditAwards = (): AuditAward[] => {
+  const months = ["2025-11", "2025-10", "2025-09", "2025-08"];
+
+  return months.flatMap((month, monthIndex) =>
+    awardCategories.map((category, catIndex) => {
+      const pool = employees.filter(category.matcher);
+      const fallback = employees.filter((emp) => emp.status === "Active");
+      const candidatePool = pool.length > 0 ? pool : fallback;
+      const emp = candidatePool[(monthIndex + catIndex * 2) % candidatePool.length];
+
+      const auditScore = 80 + ((emp.id + monthIndex * 5 + catIndex * 3) % 20);
+      const pttScore = 80 + ((emp.id + monthIndex * 4 + catIndex * 5) % 20);
+      const totalScore = Math.round(auditScore * 0.6 + pttScore * 0.4);
+
+      return {
+        id: emp.id * 100 + monthIndex * 10 + catIndex,
+        empCode: emp.code,
+        empName: emp.name,
+        dept: emp.dept,
+        categoryKey: category.key,
+        categoryLabel: category.label,
+        month,
+        auditScore,
+        pttScore,
+        totalScore,
+        remarks:
+          category.key === "frontline"
+            ? "ให้บริการลูกค้าได้มาตรฐานและรักษาความปลอดภัย"
+            : category.key === "housekeeping"
+            ? "ดูแลความสะอาดและความเป็นระเบียบเรียบร้อยของปั๊ม"
+            : "ดูแลงานเอกสารและระบบสนับสนุนรวดเร็วมีประสิทธิภาพ",
+        avatar: emp.avatar,
+      };
+    })
+  );
+};
+
+const pumpChampions = generatePumpChampions();
+const auditAwards = generateAuditAwards();
 
 export default function OutstandingEmployees() {
   const navigate = useNavigate();
-  const [filterType, setFilterType] = useState<"all" | "monthly" | "yearly">("all");
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [deptFilter, setDeptFilter] = useState("");
-  const [shiftFilter, setShiftFilter] = useState<number | "">("");
+  const auditSectionRef = useRef<HTMLDivElement | null>(null);
+  const [viewMode, setViewMode] = useState<"pump" | "audit">("pump");
 
-  const filteredEmployees = outstandingEmployees.filter((emp) => {
-    // Filter by type and period
-    let matches = false;
-    if (filterType === "all") {
-      matches = selectedPeriod === "" || emp.period === selectedPeriod;
-    } else {
-      matches = emp.type === filterType && (selectedPeriod === "" || emp.period === selectedPeriod);
-    }
-    
-    if (!matches) return false;
+  const [awardMonthFilter, setAwardMonthFilter] = useState("");
+  const [awardCategoryFilter, setAwardCategoryFilter] = useState("");
+  const [awardSearchQuery, setAwardSearchQuery] = useState("");
+  const [activeChampionReward, setActiveChampionReward] = useState<string | null>(null);
+  const [championRewards, setChampionRewards] = useState<
+    Record<string, ChampionRewardFormState>
+  >({});
 
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      if (!emp.empName.toLowerCase().includes(query) && !emp.empCode.toLowerCase().includes(query)) {
-        return false;
+  const awardMonths = useMemo(
+    () => Array.from(new Set(auditAwards.map((award) => award.month))),
+    []
+  );
+
+  const filteredAwards = useMemo(() => {
+    return auditAwards.filter((award) => {
+      if (awardMonthFilter && award.month !== awardMonthFilter) return false;
+      if (awardCategoryFilter && award.categoryKey !== awardCategoryFilter) return false;
+      if (awardSearchQuery) {
+        const query = awardSearchQuery.toLowerCase();
+        return (
+          award.empName.toLowerCase().includes(query) ||
+          award.empCode.toLowerCase().includes(query) ||
+          award.dept.toLowerCase().includes(query)
+        );
       }
+      return true;
+    });
+  }, [awardMonthFilter, awardCategoryFilter, awardSearchQuery]);
+
+  const awardHistory = useMemo(
+    () =>
+      [...auditAwards]
+        .sort((a, b) => (a.month > b.month ? -1 : 1))
+        .slice(0, 6),
+    []
+  );
+
+  const defaultNewAudit: NewAuditFormState = {
+    month: pumpChampionMonths[0],
+    categoryKey: awardCategories[0].key,
+    empCode: "",
+    empName: "",
+    dept: "",
+    auditScore: "",
+    pttScore: "",
+    remarks: "",
+  };
+  const [newAudit, setNewAudit] = useState<NewAuditFormState>(defaultNewAudit);
+
+  const handleNewAuditChange = (
+    field: keyof NewAuditFormState,
+    value: string
+  ) => {
+    setNewAudit((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveNewAudit = () => {
+    if (!newAudit.empName || !newAudit.auditScore || !newAudit.pttScore) {
+      alert("กรุณากรอกชื่อและคะแนนให้ครบ");
+      return;
     }
 
-    // Department filter
-    if (deptFilter && emp.dept !== deptFilter) {
-      return false;
+    const auditScore = Number(newAudit.auditScore);
+    const pttScore = Number(newAudit.pttScore);
+
+    if (Number.isNaN(auditScore) || Number.isNaN(pttScore)) {
+      alert("คะแนนต้องเป็นตัวเลข");
+      return;
     }
 
-    // Shift filter
-    if (shiftFilter !== "") {
-      const employee = employees.find(e => e.code === emp.empCode);
-      if (!employee || employee.shiftId !== shiftFilter) {
-        return false;
-      }
+    const totalScore = Math.round(auditScore * 0.6 + pttScore * 0.4);
+
+    const summary = [
+      `เดือน: ${monthFormatter.format(new Date(newAudit.month + "-01"))}`,
+      `ประเภท: ${
+        awardCategories.find((c) => c.key === newAudit.categoryKey)?.label || ""
+      }`,
+      `พนักงาน: ${newAudit.empName} (${newAudit.empCode || "ไม่ระบุรหัส"})`,
+      `แผนก: ${newAudit.dept || "-"}`,
+      `คะแนน Audit: ${auditScore}`,
+      `คะแนน PTT: ${pttScore}`,
+      `รวม: ${totalScore}`,
+      `หมายเหตุ: ${newAudit.remarks || "-"}`,
+    ].join("\n");
+
+    alert(`บันทึกรางวัล Audit & PTT สำเร็จ\n\n${summary}\n\n(ข้อมูลยังไม่ถูกเพิ่มจริง เป็น mock)`);
+    setNewAudit(defaultNewAudit);
+  };
+
+  const handleChampionRewardChange = (
+    empCode: string,
+    field: keyof ChampionRewardFormState,
+    value: string
+  ) => {
+    setChampionRewards((prev) => ({
+      ...prev,
+      [empCode]: {
+        rewardName: prev[empCode]?.rewardName || "",
+        amount: prev[empCode]?.amount || "",
+        note: prev[empCode]?.note || "",
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleChampionRewardSave = (champion: PumpChampion) => {
+    const entry = championRewards[champion.empCode];
+
+    if (!entry?.rewardName || !entry.amount) {
+      alert("กรุณากรอกรายละเอียดรางวัลและจำนวนเงิน");
+      return;
     }
 
-    return true;
-  });
+    const amountNumber = Number(entry.amount);
+    if (Number.isNaN(amountNumber)) {
+      alert("จำนวนเงินต้องเป็นตัวเลข");
+      return;
+    }
 
-  const availablePeriods = Array.from(
-    new Set(outstandingEmployees.map((emp) => emp.period))
-  ).sort((a, b) => (b > a ? 1 : -1));
+    const summary = [
+      `พนักงาน: ${champion.empName} (${champion.empCode})`,
+      `เดือน: ${monthFormatter.format(new Date(champion.month + "-01"))}`,
+      `รางวัล: ${entry.rewardName}`,
+      `จำนวนเงิน: ${amountNumber.toLocaleString("th-TH")} บาท`,
+      entry.note ? `หมายเหตุ: ${entry.note}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
 
-  const topEmployee = filteredEmployees
-    .filter((emp) => emp.type === filterType || filterType === "all")
-    .sort((a, b) => b.score - a.score)[0];
+    alert(`บันทึกรางวัลพิเศษสำเร็จ\n\n${summary}\n\n(ข้อมูลยังไม่ถูกเพิ่มจริง เป็น mock)`);
+    setActiveChampionReward(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -252,380 +343,415 @@ export default function OutstandingEmployees() {
             </div>
             พนักงานดีเด่น
           </h1>
-          <p className="text-muted mt-2">รางวัลและเกียรติยศสำหรับพนักงานที่ทำผลงานดี</p>
+          <p className="text-muted mt-2">
+            สรุปพนักงานดีเด่นจากทุกแผนกในปั๊ม พร้อมรางวัลประจำเดือนจากการประเมินของทีม Audit และ PTT
+          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setViewMode("audit")}
+            className={`px-4 py-2 rounded-xl transition-colors flex items-center gap-2 ${
+              viewMode === "audit" ? "bg-ptt-blue text-app" : "bg-soft hover:bg-app/10 text-app"
+            }`}
+          >
+            <Medal className="w-4 h-4" />
+            ไปยังรางวัล Audit & PTT
+          </button>
+          <button
+            onClick={() => setViewMode("pump")}
+            className={`px-4 py-2 rounded-xl transition-colors flex items-center gap-2 ${
+              viewMode === "pump" ? "bg-ptt-blue text-app" : "bg-soft hover:bg-app/10 text-app"
+            }`}
+          >
+            <Trophy className="w-4 h-4" />
+            ดูพนักงานดีเด่นปั๊ม
+          </button>
           <button className="px-4 py-2 bg-soft hover:bg-app/10 text-app rounded-xl transition-colors flex items-center gap-2">
             <FileText className="w-4 h-4" />
-            ส่งออก PDF
+            ส่งออก (PDF)
           </button>
           <button className="px-4 py-2 bg-soft hover:bg-app/10 text-app rounded-xl transition-colors flex items-center gap-2">
             <Download className="w-4 h-4" />
-            ส่งออก Excel
+            ส่งออก (Excel)
           </button>
         </div>
       </motion.div>
 
-      {/* Top Employee Highlight */}
-      {topEmployee && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-yellow-500/10 via-orange-500/10 to-yellow-500/10 border-2 border-yellow-500/30 rounded-2xl p-6"
-        >
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 p-1">
-                <div className="w-full h-full rounded-full bg-soft overflow-hidden">
-                  {topEmployee.avatar ? (
-                    <img src={topEmployee.avatar} alt={topEmployee.empName} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-ptt-blue to-ptt-cyan text-app text-2xl font-bold">
-                      {topEmployee.empName.charAt(0)}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="absolute -top-2 -right-2">
-                <Crown className="w-8 h-8 text-yellow-400" fill="currentColor" />
-              </div>
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <h2 className="text-2xl font-bold text-app font-display">{topEmployee.empName}</h2>
-                <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-lg text-sm font-medium">
-                  อันดับ 1
-                </span>
-              </div>
-              <p className="text-muted mb-1">
-                {topEmployee.empCode} • {topEmployee.position} • {topEmployee.dept}
-              </p>
-              <p className="text-sm text-muted mb-3">
-                {formatPeriod(topEmployee.period, topEmployee.type)}
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Star className="w-5 h-5 text-yellow-400" fill="currentColor" />
-                  <span className="text-lg font-bold text-app">{topEmployee.score} คะแนน</span>
-                </div>
-                {topEmployee.reward?.amount && (
-                  <div className="px-3 py-1 bg-green-500/20 text-green-400 rounded-lg text-sm font-medium">
-                    {currencyFormatter.format(topEmployee.reward.amount)}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Filters */}
+      {/* Pump Champions */}
+      {viewMode === "pump" && (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
+        className="bg-soft border border-app rounded-2zl shadow-xl p-6 space-y-6"
       >
-        <div className="px-6 py-4 border-b border-app bg-soft">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-app font-display">
-                รายการพนักงานดีเด่น
-              </h3>
-              <p className="text-xs text-muted mt-1">
-                แสดง {filteredEmployees.length} รายการ
-              </p>
-            </div>
-          </div>
-          
-          {/* Filter Bar - Inline */}
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search Input */}
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app placeholder:text-muted
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all font-light"
-              />
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-
-            {/* Filter Dropdowns */}
-            <div className="flex flex-wrap gap-3">
-              <select
-                value={deptFilter}
-                onChange={(e) => setDeptFilter(e.target.value)}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกแผนก</option>
-                {Array.from(new Set(employees.map(e => e.dept))).map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={shiftFilter === "" ? "" : String(shiftFilter)}
-                onChange={(e) => setShiftFilter(e.target.value === "" ? "" : Number(e.target.value))}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกกะ</option>
-                {shifts.map((shift) => (
-                  <option key={shift.id} value={String(shift.id)}>
-                    {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
-                  </option>
-                ))}
-              </select>
-
-              <div className="flex gap-2">
-                {(["all", "monthly", "yearly"] as const).map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => {
-                      setFilterType(type);
-                      setSelectedPeriod("");
-                    }}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                      filterType === type
-                        ? "bg-ptt-blue text-app"
-                        : "bg-soft hover:bg-app/10 text-app border border-app"
-                    }`}
-                  >
-                    {type === "all" && "ทั้งหมด"}
-                    {type === "monthly" && "รายเดือน"}
-                    {type === "yearly" && "รายปี"}
-                  </button>
-                ))}
-              </div>
-
-              <select
-                value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกระยะเวลา</option>
-                {availablePeriods
-                  .filter((period) => {
-                    if (filterType === "monthly") {
-                      return period.includes("-");
-                    } else if (filterType === "yearly") {
-                      return !period.includes("-");
-                    }
-                    return true;
-                  })
-                  .map((period) => {
-                    const emp = outstandingEmployees.find((e) => e.period === period);
-                    return (
-                      <option key={period} value={period}>
-                        {emp ? formatPeriod(period, emp.type) : period}
-                      </option>
-                    );
-                  })}
-              </select>
-            </div>
-          </div>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-app font-display flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-yellow-400" />
+            พนักงานดีเด่นจากทุกแผนกในปั๊ม
+          </h2>
+          <p className="text-xs text-muted">ข้อมูลเก็บเป็นประวัติอ้างอิง</p>
         </div>
-      </motion.div>
 
-      {/* Outstanding Employees List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredEmployees
-          .sort((a, b) => b.score - a.score)
-          .map((emp, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {pumpChampions.map((champion, index) => (
             <motion.div
-              key={`${emp.id}-${emp.period}-${emp.type}`}
+              key={champion.empCode + champion.month}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-soft border border-app rounded-2xl p-6 hover:shadow-xl transition-all cursor-pointer"
-              onClick={() => navigate(`/app/hr/employees/${emp.id}`)}
+              className="bg-soft border border-app rounded-2xl p-5 hover:shadow-xl transition-all cursor-pointer"
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest("button[data-reward-button]")) {
+                  return;
+                }
+                navigate(`/app/hr/employees/${champion.id}`);
+              }}
             >
               <div className="flex items-start gap-4">
                 <div className="relative">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-ptt-blue to-ptt-cyan p-1">
                     <div className="w-full h-full rounded-full bg-soft overflow-hidden">
-                      {emp.avatar ? (
+                      {champion.avatar ? (
                         <img
-                          src={emp.avatar}
-                          alt={emp.empName}
+                          src={champion.avatar}
+                          alt={champion.empName}
                           className="w-full h-full object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-ptt-blue to-ptt-cyan text-app text-lg font-bold">
-                          {emp.empName.charAt(0)}
+                          {champion.empName.charAt(0)}
                         </div>
                       )}
                     </div>
                   </div>
-                  {index < 3 && (
-                    <div className="absolute -top-1 -right-1">
-                      {index === 0 ? (
-                        <Crown className="w-6 h-6 text-yellow-400" fill="currentColor" />
-                      ) : index === 1 ? (
-                        <Medal className="w-6 h-6 text-gray-400" fill="currentColor" />
-                      ) : (
-                        <Award className="w-6 h-6 text-orange-400" fill="currentColor" />
-                      )}
+                  {index === 0 && (
+                    <div className="absolute -top-2 -right-2">
+                      <Crown className="w-6 h-6 text-yellow-400" />
                     </div>
                   )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <h3 className="text-lg font-semibold text-app font-display">
-                        {emp.empName}
-                      </h3>
+                      <h3 className="text-lg font-semibold text-app font-display">{champion.empName}</h3>
                       <p className="text-sm text-muted">
-                        {emp.empCode} • {emp.position}
+                        {champion.empCode} • {champion.position}
                       </p>
-                      <p className="text-xs text-muted">{emp.dept}</p>
+                      <p className="text-xs text-muted">{champion.dept}</p>
                     </div>
                     <div className="text-right">
                       <div className="flex items-center gap-1 mb-1">
-                        <Star className="w-5 h-5 text-yellow-400" fill="currentColor" />
-                        <span className="text-xl font-bold text-app">{emp.score}</span>
+                        <Star className="w-5 h-5 text-yellow-400" />
+                        <span className="text-xl font-bold text-app">{champion.totalScore}</span>
                       </div>
-                      <p className="text-xs text-muted">คะแนน</p>
+                      <p className="text-xs text-muted">คะแนนรวม</p>
+                      <button
+                        type="button"
+                        data-reward-button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveChampionReward((prev) =>
+                            prev === champion.empCode ? null : champion.empCode
+                          );
+                        }}
+                        className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-ptt-blue/10 text-ptt-blue text-xs font-semibold hover:bg-ptt-blue/20 transition"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        บันทึกรางวัล
+                      </button>
                     </div>
                   </div>
 
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center justify-between text-sm">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center justify-between">
                       <span className="text-muted flex items-center gap-1">
                         <Clock className="w-4 h-4" />
                         การมาทำงาน
                       </span>
-                      <span className="text-app font-medium">{emp.criteria.attendance}%</span>
+                      <span className="text-app font-medium">{champion.attendanceRate}%</span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between">
                       <span className="text-muted flex items-center gap-1">
                         <Target className="w-4 h-4" />
                         ตรงเวลา
                       </span>
-                      <span className="text-app font-medium">{emp.criteria.punctuality}%</span>
+                      <span className="text-app font-medium">{champion.punctualityRate}%</span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between">
                       <span className="text-muted flex items-center gap-1">
                         <TrendingUp className="w-4 h-4" />
-                        ประสิทธิภาพ
+                        Audit
                       </span>
-                      <span className="text-app font-medium">{emp.criteria.performance}%</span>
+                      <span className="text-app font-medium">{champion.auditScore} คะแนน</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        เดือน
+                      </span>
+                      <span className="text-app font-medium">
+                        {monthFormatter.format(new Date(champion.month + "-01"))}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-app">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-app">
-                        {formatPeriod(emp.period, emp.type)}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {champion.departmentHighlight.map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-2 py-1 bg-ptt-blue/20 text-ptt-cyan rounded text-xs font-medium"
+                      >
+                        {tag}
                       </span>
-                      {emp.reward && (
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${
-                            emp.reward.type === "เงินรางวัล"
-                              ? "bg-green-500/20 text-green-400"
-                              : "bg-blue-500/20 text-blue-400"
-                          }`}
-                        >
-                          {emp.reward.description}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {emp.achievements.slice(0, 2).map((achievement, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2 py-1 bg-ptt-blue/20 text-ptt-cyan rounded text-xs"
-                        >
-                          {achievement}
-                        </span>
-                      ))}
-                    </div>
+                    ))}
                   </div>
                 </div>
               </div>
+              {activeChampionReward === champion.empCode && (
+                <div
+                  className="mt-4 p-4 border border-dashed border-ptt-blue/40 rounded-2xl bg-ptt-blue/5 space-y-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <p className="text-sm font-semibold text-app flex items-center gap-2">
+                    <Award className="w-4 h-4 text-ptt-blue" />
+                    บันทึกรางวัลพิเศษ
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                    <div className="md:col-span-1">
+                      <label className="text-xs text-muted mb-1 block">ชื่อรางวัล/เหตุผล</label>
+                      <input
+                        type="text"
+                        value={championRewards[champion.empCode]?.rewardName || ""}
+                        onChange={(e) =>
+                          handleChampionRewardChange(champion.empCode, "rewardName", e.target.value)
+                        }
+                        className="w-full px-3 py-2 bg-soft border border-app rounded-lg focus:outline-none focus:ring-2 focus:ring-ptt-blue/60"
+                        placeholder="เช่น รางวัลยอดขายสูงสุด"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted mb-1 block">จำนวนเงิน (บาท)</label>
+                      <input
+                        type="number"
+                        value={championRewards[champion.empCode]?.amount || ""}
+                        onChange={(e) =>
+                          handleChampionRewardChange(champion.empCode, "amount", e.target.value)
+                        }
+                        className="w-full px-3 py-2 bg-soft border border-app rounded-lg focus:outline-none focus:ring-2 focus:ring-ptt-blue/60"
+                        placeholder="เช่น 1,500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted mb-1 block">หมายเหตุเพิ่มเติม</label>
+                      <input
+                        type="text"
+                        value={championRewards[champion.empCode]?.note || ""}
+                        onChange={(e) =>
+                          handleChampionRewardChange(champion.empCode, "note", e.target.value)
+                        }
+                        className="w-full px-3 py-2 bg-soft border border-app rounded-lg focus:outline-none focus:ring-2 focus:ring-ptt-blue/60"
+                        placeholder="(ถ้ามี)"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      className="px-4 py-2 text-xs font-semibold text-muted hover:text-app transition"
+                      onClick={() => setActiveChampionReward(null)}
+                    >
+                      ยกเลิก
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-ptt-cyan text-app rounded-xl text-sm font-semibold hover:bg-ptt-cyan/80 transition"
+                      onClick={() => handleChampionRewardSave(champion)}
+                    >
+                      <Save className="w-4 h-4" />
+                      บันทึกรางวัลนี้
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           ))}
-      </div>
-
-      {filteredEmployees.length === 0 && (
-        <div className="text-center py-12">
-          <Trophy className="w-16 h-16 text-muted mx-auto mb-4" />
-          <p className="text-muted font-light">ไม่พบข้อมูลพนักงานดีเด่น</p>
         </div>
+      </motion.div>
       )}
 
-      {/* Statistics */}
+
+
+
+
+      {/* Monthly Audit Awards */}
+      {viewMode === "audit" && (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+        className="bg-soft border border-app rounded-2xl shadow-xl overflow-hidden"
+        ref={auditSectionRef}
       >
-        <div className="bg-soft border border-app rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-yellow-500/20 rounded-lg">
-              <Trophy className="w-6 h-6 text-yellow-400" />
-            </div>
+        <div className="px-6 py-4 border-b border-app flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <p className="text-sm text-muted">พนักงานดีเด่นทั้งหมด</p>
-              <p className="text-2xl font-bold text-app">
-                {outstandingEmployees.length}
+              <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
+                <Medal className="w-5 h-5 text-ptt-cyan" />
+                รางวัลประจำเดือน (ทีม Audit & PTT)
+              </h3>
+              <p className="text-xs text-muted">
+                พิจารณาจากผลงานจริงและคะแนนประเมินของทีม Audit ร่วมกับคะแนนกลางของ ปตท.
               </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <input
+                type="text"
+                placeholder="ค้นหาชื่อ, รหัส หรือแผนก"
+                value={awardSearchQuery}
+                onChange={(e) => setAwardSearchQuery(e.target.value)}
+                className="px-4 py-2 bg-soft border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              />
+              <select
+                value={awardMonthFilter}
+                onChange={(e) => setAwardMonthFilter(e.target.value)}
+                className="px-4 py-2 bg-soft border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              >
+                <option value="">ทุกเดือน</option>
+                {awardMonths.map((month) => (
+                  <option key={month} value={month}>
+                    {monthFormatter.format(new Date(month + "-01"))}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={awardCategoryFilter}
+                onChange={(e) => setAwardCategoryFilter(e.target.value)}
+                className="px-4 py-2 bg-soft border border-app rounded-xl text-app text-sm focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              >
+                <option value="">ทุกประเภท</option>
+                {awardCategories.map((category) => (
+                  <option key={category.key} value={category.key}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
 
-        <div className="bg-soft border border-app rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <Calendar className="w-6 h-6 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted">รายเดือน</p>
-              <p className="text-2xl font-bold text-app">
-                {outstandingEmployees.filter((e) => e.type === "monthly").length}
-              </p>
-            </div>
-          </div>
-        </div>
 
-        <div className="bg-soft border border-app rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-green-500/20 rounded-lg">
-              <Award className="w-6 h-6 text-green-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted">รายปี</p>
-              <p className="text-2xl font-bold text-app">
-                {outstandingEmployees.filter((e) => e.type === "yearly").length}
-              </p>
-            </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {filteredAwards.map((award, index) => (
+              <motion.div
+                key={`${award.empCode}-${award.month}-${award.categoryKey}`}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+                className="bg-soft border border-app rounded-2xl p-5 shadow-sm hover:shadow-xl transition-all"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-ptt-blue/20 to-ptt-cyan/20">
+                      <Medal className="w-5 h-5 text-ptt-blue" />
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-app">{award.empName}</p>
+                      <p className="text-xs text-muted">{award.empCode}</p>
+                      <p className="text-xs text-muted">
+                        {monthFormatter.format(new Date(award.month + "-01"))}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs uppercase tracking-wide text-muted">รวม</p>
+                    <p className="text-2xl font-bold text-app">{award.totalScore}</p>
+                    <p className="text-[10px] text-muted">คะแนน</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mt-4">
+                  <div className="bg-ptt-blue/5 rounded-xl px-3 py-2">
+                    <p className="text-[10px] uppercase text-muted">Audit Team</p>
+                    <p className="text-lg font-semibold text-green-500">{award.auditScore}</p>
+                  </div>
+                  <div className="bg-ptt-cyan/5 rounded-xl px-3 py-2">
+                    <p className="text-[10px] uppercase text-muted">PTT Score</p>
+                    <p className="text-lg font-semibold text-blue-500">{award.pttScore}</p>
+                  </div>
+                  <div className="bg-soft/70 rounded-xl px-3 py-2 col-span-2 sm:col-span-2">
+                    <p className="text-[10px] uppercase text-muted">แผนก</p>
+                    <p className="text-sm font-medium text-app">{award.dept}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="px-3 py-1 text-xs font-semibold rounded-full bg-ptt-blue/15 text-ptt-blue">
+                    {award.categoryLabel}
+                  </span>
+                  <span className="px-3 py-1 text-xs font-semibold rounded-full bg-app/10 text-app">
+                    {monthFormatter.format(new Date(award.month + "-01"))}
+                  </span>
+                </div>
+
+                {award.remarks && (
+                  <div className="mt-4 flex items-start gap-2 text-xs text-muted bg-soft/70 border border-dashed border-app rounded-xl px-3 py-2">
+                    <ClipboardList className="w-4 h-4 flex-shrink-0 text-ptt-cyan" />
+                    <p>{award.remarks}</p>
+                  </div>
+                )}
+              </motion.div>
+            ))}
           </div>
+          {filteredAwards.length === 0 && (
+            <div className="px-6 py-8 text-center text-muted border border-dashed border-app rounded-2xl">
+              ไม่พบข้อมูลรางวัลตามเงื่อนไขที่เลือก
+            </div>
+          )}
         </div>
       </motion.div>
+      )}
+
+      {/* Award History */}
+      {viewMode === "audit" && (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-soft border border-app rounded-2xl shadow-xl p-6 space-y-4"
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
+            <Edit3 className="w-5 h-5 text-orange-400" />
+            ประวัติการมอบรางวัล
+          </h3>
+          <p className="text-xs text-muted">เก็บบันทึกรายการล่าสุด 6 รายการ</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {awardHistory.map((award) => (
+            <div
+              key={`history-${award.empCode}-${award.month}`}
+              className="bg-soft/60 border border-app rounded-2xl p-4 flex items-center gap-3"
+            >
+              <div className="p-2 bg-ptt-cyan/20 rounded-lg">
+                <Calendar className="w-5 h-5 text-ptt-cyan" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-app">{award.empName}</p>
+                <p className="text-xs text-muted">
+                  {award.categoryLabel} • {award.dept}
+                </p>
+                <p className="text-xs text-muted">
+                  {monthFormatter.format(new Date(award.month + "-01"))}
+                </p>
+              </div>
+              <div className="text-right text-sm font-semibold text-app">
+                {award.totalScore} คะแนน
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+      )}
     </div>
   );
 }
-

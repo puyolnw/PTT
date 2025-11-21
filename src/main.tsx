@@ -20,6 +20,7 @@ import Employees from "@/pages/hr/Employees";
 import EmployeeNew from "@/pages/hr/EmployeeNew";
 import EmployeeDetail from "@/pages/hr/EmployeeDetail";
 import Attendance from "@/pages/hr/Attendance";
+import AttendanceAbsence from "@/pages/hr/AttendanceAbsence";
 import Overtime from "@/pages/hr/Overtime";
 import Shifts from "@/pages/hr/Shifts";
 import Leaves from "@/pages/hr/Leaves";
@@ -236,6 +237,10 @@ const router = createBrowserRouter([
           {
             path: "attendance",
             element: <Attendance />,
+          },
+          {
+            path: "attendance-absence",
+            element: <AttendanceAbsence />,
           },
           {
             path: "attendance/shifts",

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Edit2, Clock, CheckCircle, AlertCircle, Users, Plus, FileText, ChevronLeft, ChevronRight, ArrowRightLeft } from "lucide-react";
+import { Calendar, Edit2, Clock, CheckCircle, AlertCircle, Users, Plus, FileText, ChevronLeft, ChevronRight, ArrowRightLeft, BarChart3 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
@@ -699,6 +699,10 @@ export default function Attendance() {
     }
   };
 
+  const handleOpenAbsenceDashboard = () => {
+    window.open("/app/hr/attendance-absence", "_blank");
+  };
+
 
   const { days, calendarData } = getCalendarData();
 
@@ -726,6 +730,14 @@ export default function Attendance() {
           >
             <Calendar className="w-4 h-4" />
             {viewMode === "calendar" ? "ลงทะเบียนกะล่วงหน้า" : "ตารางลงเวลาทำงาน"}
+          </button>
+          <button
+            onClick={handleOpenAbsenceDashboard}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-soft hover:bg-soft/80 
+                     text-app border border-app rounded-xl transition-all duration-200 font-medium"
+          >
+            <BarChart3 className="w-4 h-4 text-red-400" />
+            แสดงพนักงานขาด/ลา
           </button>
           <button
             onClick={() => {
