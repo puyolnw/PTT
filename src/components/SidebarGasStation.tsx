@@ -13,8 +13,6 @@ import {
   Bell,
   TrendingUp,
   FileCheck,
-  Clock,
-  Camera,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 

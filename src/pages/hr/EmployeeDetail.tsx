@@ -2082,7 +2082,6 @@ export default function EmployeeDetail() {
               </div>
 
               {employeeRewards.length > 0 ? (() => {
-                const timelineItems = employeeRewards.slice(0, 5);
                 return (
                   <>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

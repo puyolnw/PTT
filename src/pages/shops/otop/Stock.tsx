@@ -7,7 +7,6 @@ import {
   TrendingUp,
   Store,
   AlertCircle,
-  FileText,
   ClipboardList,
   Search,
   Gift,

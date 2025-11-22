@@ -3,19 +3,11 @@ import {
   ShoppingCart,
   Plus,
   Upload,
-  DollarSign,
   Fuel,
   Droplet,
 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import FilterBar from "@/components/FilterBar";
-
-const currencyFormatter = new Intl.NumberFormat("th-TH", {
-  style: "currency",
-  currency: "THB",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 
 const numberFormatter = new Intl.NumberFormat("th-TH");
 
@@ -91,8 +83,6 @@ export default function Purchases() {
 
   const totalAmount = purchases.reduce((sum, p) => sum + p.amount, 0);
   const totalQuantity = purchases.reduce((sum, p) => sum + p.quantity, 0);
-  const dieselPurchases = purchases.filter(p => p.fuelType === "Diesel").reduce((sum, p) => sum + p.quantity, 0);
-  const g95Purchases = purchases.filter(p => p.fuelType === "Gasohol 95").reduce((sum, p) => sum + p.quantity, 0);
 
   const handleAddPurchase = () => {
     const newPurchase = {

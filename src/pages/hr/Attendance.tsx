@@ -1,21 +1,18 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Edit2, Clock, CheckCircle, AlertCircle, Users, Plus, FileText, ChevronLeft, ChevronRight, ArrowRightLeft, BarChart3 } from "lucide-react";
-import FilterBar from "@/components/FilterBar";
-import ModalForm from "@/components/ModalForm";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import { Calendar, Clock, CheckCircle, AlertCircle, Users, Plus, FileText, ChevronLeft, ChevronRight, ArrowRightLeft, BarChart3 } from "lucide-react";
 import { attendanceLogs as initialAttendanceLogs, employees, shifts, shiftAssignments, type AttendanceLog } from "@/data/mockData";
 
 export default function Attendance() {
-  const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>(initialAttendanceLogs);
-  const [filteredLogs, setFilteredLogs] = useState<AttendanceLog[]>(attendanceLogs);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [shiftFilter, setShiftFilter] = useState<number | "">("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<AttendanceLog | null>(null);
+  const [attendanceLogs] = useState<AttendanceLog[]>(initialAttendanceLogs);
+  const [_filteredLogs, setFilteredLogs] = useState<AttendanceLog[]>(attendanceLogs);
+  const [searchQuery] = useState("");
+  const [statusFilter] = useState("");
+  const [shiftFilter] = useState<number | "">("");
+  const [categoryFilter] = useState("");
+  const [_isEditModalOpen, _setIsEditModalOpen] = useState(false);
+  const [_isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  const [_selectedLog, _setSelectedLog] = useState<AttendanceLog | null>(null);
   
   // Calendar view states
   const [viewMode, setViewMode] = useState<"list" | "calendar">("calendar");
@@ -30,13 +27,13 @@ export default function Attendance() {
   });
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedShift, setSelectedShift] = useState<number | "">("");
-  const [editForm, setEditForm] = useState({
+  const [_editForm, _setEditForm] = useState({
     checkIn: "",
     checkOut: "",
     reason: "",
     status: "" as AttendanceLog["status"] | ""
   });
-  const [recordForm, setRecordForm] = useState({
+  const [_recordForm, _setRecordForm] = useState({
     empCode: "",
     empName: "",
     date: "",
@@ -56,104 +53,7 @@ export default function Attendance() {
   const shiftPlanRef = useRef<HTMLDivElement | null>(null);
   const shiftColorPalette = ["bg-green-500/20", "bg-blue-500/20", "bg-purple-500/20", "bg-orange-500/20", "bg-ptt-cyan/20"];
 
-  // Standard work time: 08:30
-  const STANDARD_CHECK_IN = "06:00";
-  const STANDARD_CHECK_OUT = "12:00";
 
-  // Get employee's shift
-  const getEmployeeShift = (empCode: string) => {
-    const employee = employees.find(e => e.code === empCode);
-    if (employee && employee.shiftId) {
-      return shifts.find(s => s.id === employee.shiftId);
-    }
-    return shifts[0]; // Default to morning shift
-  };
-
-  // Get employee's OT rate
-  const getEmployeeOTRate = (empCode: string): number => {
-    const employee = employees.find(e => e.code === empCode);
-    return employee?.otRate || 0;
-  };
-
-  // Calculate OT hours based on shift
-  const calculateOTHours = (empCode: string, checkIn: string, checkOut: string): number => {
-    if (checkIn === "-" || checkOut === "-") return 0;
-    
-    const shift = getEmployeeShift(empCode);
-    if (!shift) return 0;
-
-    const [inHour, inMin] = checkIn.split(":").map(Number);
-    const [outHour, outMin] = checkOut.split(":").map(Number);
-    const [shiftStartHour, shiftStartMin] = shift.startTime.split(":").map(Number);
-    const [shiftEndHour, shiftEndMin] = shift.endTime.split(":").map(Number);
-
-    const inMinutes = inHour * 60 + inMin;
-    const outMinutes = outHour * 60 + outMin;
-    const shiftStartMinutes = shiftStartHour * 60 + shiftStartMin;
-    const shiftEndMinutes = shiftEndHour * 60 + shiftEndMin;
-
-    // Handle overnight shifts
-    let shiftEnd = shiftEndMinutes;
-    if (shiftEndMinutes < shiftStartMinutes) {
-      shiftEnd = shiftEndMinutes + (24 * 60);
-    }
-
-    // Calculate actual working hours
-    let actualEnd = outMinutes;
-    if (outMinutes < inMinutes) {
-      actualEnd = outMinutes + (24 * 60);
-    }
-
-    const actualWorkingMinutes = actualEnd - inMinutes;
-    const shiftDurationMinutes = shiftEnd - shiftStartMinutes;
-
-    // OT = actual working hours - shift duration
-    const otMinutes = actualWorkingMinutes - shiftDurationMinutes;
-    return otMinutes > 0 ? otMinutes / 60 : 0;
-  };
-
-  // Calculate status based on check-in time and shift
-  const calculateStatus = (checkIn: string, currentStatus: AttendanceLog["status"], empCode?: string): AttendanceLog["status"] => {
-    // If already on leave, keep it
-    if (currentStatus === "ลา") {
-      return "ลา";
-    }
-
-    // If no check-in, it's absent
-    if (!checkIn || checkIn === "-") {
-      return "ขาดงาน";
-    }
-
-    // Get shift time for employee
-    const shift = empCode ? getEmployeeShift(empCode) : null;
-    const standardTime = shift ? shift.startTime : STANDARD_CHECK_IN;
-
-    // Parse time
-    const [checkInHour, checkInMinute] = checkIn.split(":").map(Number);
-    const [standardHour, standardMinute] = standardTime.split(":").map(Number);
-
-    const checkInTime = checkInHour * 60 + checkInMinute;
-    const standardTimeMinutes = standardHour * 60 + standardMinute;
-
-    // Handle overnight shifts
-    let lateMinutes = checkInTime - standardTimeMinutes;
-    if (shift && shift.endTime < shift.startTime) {
-      // For overnight shifts, check if check-in is after midnight
-      if (checkInTime < standardTimeMinutes) {
-        lateMinutes = checkInTime + (24 * 60) - standardTimeMinutes;
-      }
-    }
-
-    if (lateMinutes <= 0) {
-      return "ตรงเวลา";
-    } else if (lateMinutes === 1) {
-      return "สาย 1 นาที";
-    } else if (lateMinutes <= 15) {
-      return "สาย 15 นาที";
-    } else {
-      return "สาย 15 นาที";
-    }
-  };
 
   const handleFilter = () => {
     let filtered = attendanceLogs;
@@ -191,8 +91,6 @@ export default function Attendance() {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attendanceLogs, searchQuery, statusFilter, shiftFilter, categoryFilter]);
-
-  const statuses = Array.from(new Set(attendanceLogs.map((l) => l.status)));
 
   // Get all unique categories
   const categories = Array.from(new Set(employees.map(e => e.category).filter(Boolean)));
@@ -357,169 +255,6 @@ export default function Attendance() {
     return `${h} ชม. ${m} นาที`;
   };
 
-  const getShiftCellClass = (shift?: (typeof shifts)[number] | null) => {
-    if (!shiftColorPalette.length || !shift) return "";
-    const paletteIndex = shift.id % shiftColorPalette.length;
-    return shiftColorPalette[paletteIndex];
-  };
-
-  // Handle edit button click
-  const handleEdit = (log: AttendanceLog) => {
-    setSelectedLog(log);
-    setEditForm({
-      checkIn: log.checkIn === "-" ? "" : log.checkIn,
-      checkOut: log.checkOut === "-" ? "" : log.checkOut,
-      reason: "",
-      status: log.status
-    });
-    setIsEditModalOpen(true);
-  };
-
-  // Handle save edit
-  const handleSaveEdit = () => {
-    if (!selectedLog) return;
-
-    // Determine new status
-    let newStatus: AttendanceLog["status"];
-    let lateMinutes: number | undefined = undefined;
-
-    // If manual status is selected, use it
-    if (editForm.status) {
-      newStatus = editForm.status;
-    } else if (editForm.checkIn) {
-      // Calculate status from check-in time
-      newStatus = calculateStatus(editForm.checkIn, selectedLog.status, selectedLog.empCode);
-    } else if (!editForm.checkIn && !editForm.checkOut) {
-      // If both empty, set to absent
-      newStatus = "ขาดงาน";
-    } else {
-      // Keep current status
-      newStatus = selectedLog.status;
-    }
-
-    // Calculate late minutes if late
-    if (editForm.checkIn && newStatus.includes("สาย")) {
-      const shift = getEmployeeShift(selectedLog.empCode);
-      const standardTime = shift ? shift.startTime : STANDARD_CHECK_IN;
-      const [checkInHour, checkInMinute] = editForm.checkIn.split(":").map(Number);
-      const [standardHour, standardMinute] = standardTime.split(":").map(Number);
-      const checkInTime = checkInHour * 60 + checkInMinute;
-      const standardTimeMinutes = standardHour * 60 + standardMinute;
-      
-      // Handle overnight shifts
-      if (shift && shift.endTime < shift.startTime) {
-        if (checkInTime < standardTimeMinutes) {
-          lateMinutes = checkInTime + (24 * 60) - standardTimeMinutes;
-        } else {
-          lateMinutes = checkInTime - standardTimeMinutes;
-        }
-      } else {
-        lateMinutes = checkInTime - standardTimeMinutes;
-      }
-    }
-
-    // Update attendance log
-    const updatedLogs = attendanceLogs.map((log) =>
-      log.id === selectedLog.id
-        ? {
-            ...log,
-            checkIn: editForm.checkIn || "-",
-            checkOut: editForm.checkOut || "-",
-            status: newStatus,
-            lateMinutes: lateMinutes
-          }
-        : log
-    );
-
-    setAttendanceLogs(updatedLogs);
-    setIsEditModalOpen(false);
-    setSelectedLog(null);
-    setEditForm({
-      checkIn: "",
-      checkOut: "",
-      reason: "",
-      status: "" as AttendanceLog["status"] | ""
-    });
-
-    // Show success message
-    alert(`แก้ไขข้อมูลลงเวลาสำเร็จ! ${editForm.reason ? `เหตุผล: ${editForm.reason}` : ""}`);
-  };
-
-  // Handle record new attendance
-  const handleRecordAttendance = () => {
-    if (!recordForm.empCode || !recordForm.date || !recordForm.checkIn || !recordForm.checkOut) {
-      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
-    }
-
-    const employee = employees.find(e => e.code === recordForm.empCode);
-    if (!employee) {
-      alert("ไม่พบข้อมูลพนักงาน");
-      return;
-    }
-
-    // Calculate status
-    const newStatus = calculateStatus(recordForm.checkIn, "ตรงเวลา" as AttendanceLog["status"], recordForm.empCode);
-    
-    // Calculate late minutes
-    let lateMinutes: number | undefined = undefined;
-    if (newStatus.includes("สาย")) {
-      const shift = getEmployeeShift(recordForm.empCode);
-      if (shift) {
-        const [checkInHour, checkInMinute] = recordForm.checkIn.split(":").map(Number);
-        const [shiftStartHour, shiftStartMinute] = shift.startTime.split(":").map(Number);
-        const checkInTime = checkInHour * 60 + checkInMinute;
-        const shiftStartTime = shiftStartHour * 60 + shiftStartMinute;
-        lateMinutes = checkInTime - shiftStartTime;
-      }
-    }
-
-    // Calculate OT hours
-    const otHours = calculateOTHours(recordForm.empCode, recordForm.checkIn, recordForm.checkOut);
-    const otRate = getEmployeeOTRate(recordForm.empCode);
-    const otAmount = otHours * otRate;
-
-    const newLog: AttendanceLog = {
-      id: Math.max(...attendanceLogs.map(l => l.id), 0) + 1,
-      empCode: recordForm.empCode,
-      empName: recordForm.empName,
-      date: recordForm.date,
-      checkIn: recordForm.checkIn,
-      checkOut: recordForm.checkOut,
-      status: newStatus,
-      lateMinutes: lateMinutes,
-      otHours: otHours,
-      otAmount: otAmount
-    };
-
-    setAttendanceLogs([...attendanceLogs, newLog]);
-
-    // Reset form
-    setRecordForm({
-      empCode: "",
-      empName: "",
-      date: "",
-      checkIn: "",
-      checkOut: "",
-      otHours: "",
-      reason: ""
-    });
-    setIsRecordModalOpen(false);
-
-    alert(`บันทึกเวลาเข้าออกสำเร็จ! ${otHours > 0 ? `OT: ${otHours.toFixed(2)} ชั่วโมง (${otAmount.toFixed(2)} บาท)` : ""}`);
-  };
-
-  // Handle employee selection for record
-  const handleEmployeeSelect = (empCode: string) => {
-    const employee = employees.find(e => e.code === empCode);
-    if (employee) {
-      setRecordForm({
-        ...recordForm,
-        empCode: employee.code,
-        empName: employee.name
-      });
-    }
-  };
 
   // Get employees assigned to a specific shift and date
   const getEmployeesForShift = (shift: typeof shifts[0], date: Date) => {
@@ -629,30 +364,6 @@ export default function Attendance() {
     handleCloseShiftModal();
   };
 
-  // Group logs by shift
-  const logsByShift = filteredLogs.reduce((acc, log) => {
-    const employee = employees.find(e => e.code === log.empCode);
-    const shiftId = employee?.shiftId || 0;
-    const shift = shifts.find(s => s.id === shiftId);
-    const shiftName = shift?.name || "ไม่ระบุ";
-
-    if (!acc[shiftName]) {
-      acc[shiftName] = {
-        shiftId: shiftId,
-        shiftName: shiftName,
-        shift: shift,
-        logs: []
-      };
-    }
-    acc[shiftName].logs.push(log);
-    return acc;
-  }, {} as Record<string, {
-    shiftId: number;
-    shiftName: string;
-    shift: typeof shifts[0] | undefined;
-    logs: AttendanceLog[];
-  }>);
-
   const shiftPlanDataset = useMemo(() => {
     const [year, month] = shiftPlanMonth.split('-').map(Number);
     if (!year || !month) {
@@ -692,12 +403,6 @@ export default function Attendance() {
   }, [shiftPlanMonth, selectedCategory, selectedShift]);
 
   const { days: planDays, planData: shiftPlanRows } = shiftPlanDataset;
-
-  const handleShiftPlanScroll = () => {
-    if (shiftPlanRef.current) {
-      shiftPlanRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
 
   const handleOpenAbsenceDashboard = () => {
     window.open("/app/hr/attendance-absence", "_blank");

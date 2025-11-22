@@ -242,47 +242,7 @@ export default function OutstandingEmployees() {
     pttScore: "",
     remarks: "",
   };
-  const [newAudit, setNewAudit] = useState<NewAuditFormState>(defaultNewAudit);
-
-  const handleNewAuditChange = (
-    field: keyof NewAuditFormState,
-    value: string
-  ) => {
-    setNewAudit((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSaveNewAudit = () => {
-    if (!newAudit.empName || !newAudit.auditScore || !newAudit.pttScore) {
-      alert("กรุณากรอกชื่อและคะแนนให้ครบ");
-      return;
-    }
-
-    const auditScore = Number(newAudit.auditScore);
-    const pttScore = Number(newAudit.pttScore);
-
-    if (Number.isNaN(auditScore) || Number.isNaN(pttScore)) {
-      alert("คะแนนต้องเป็นตัวเลข");
-      return;
-    }
-
-    const totalScore = Math.round(auditScore * 0.6 + pttScore * 0.4);
-
-    const summary = [
-      `เดือน: ${monthFormatter.format(new Date(newAudit.month + "-01"))}`,
-      `ประเภท: ${
-        awardCategories.find((c) => c.key === newAudit.categoryKey)?.label || ""
-      }`,
-      `พนักงาน: ${newAudit.empName} (${newAudit.empCode || "ไม่ระบุรหัส"})`,
-      `แผนก: ${newAudit.dept || "-"}`,
-      `คะแนน Audit: ${auditScore}`,
-      `คะแนน PTT: ${pttScore}`,
-      `รวม: ${totalScore}`,
-      `หมายเหตุ: ${newAudit.remarks || "-"}`,
-    ].join("\n");
-
-    alert(`บันทึกรางวัล Audit & PTT สำเร็จ\n\n${summary}\n\n(ข้อมูลยังไม่ถูกเพิ่มจริง เป็น mock)`);
-    setNewAudit(defaultNewAudit);
-  };
+  const [_newAudit, _setNewAudit] = useState<NewAuditFormState>(defaultNewAudit);
 
   const handleChampionRewardChange = (
     empCode: string,

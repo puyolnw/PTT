@@ -3,7 +3,6 @@ import {
   DollarSign,
   TrendingUp,
   Package,
-  AlertCircle,
   BarChart3,
   FileText,
   ArrowUpRight,
@@ -19,13 +18,6 @@ import {
   Camera,
   Droplet,
 } from "lucide-react";
-
-const currencyFormatter = new Intl.NumberFormat("th-TH", {
-  style: "currency",
-  currency: "THB",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 
 const numberFormatter = new Intl.NumberFormat("th-TH");
 

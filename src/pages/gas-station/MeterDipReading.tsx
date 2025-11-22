@@ -1,4 +1,4 @@
-import { Gauge, Droplets, TrendingUp, TrendingDown, AlertCircle, Calendar, Plus, Droplet } from "lucide-react";
+import { Gauge, Droplets, TrendingUp, TrendingDown, Calendar, Plus, Droplet } from "lucide-react";
 import { useState } from "react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {

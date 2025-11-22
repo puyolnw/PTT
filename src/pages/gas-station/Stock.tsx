@@ -1,8 +1,6 @@
 import { useState } from "react";
 import {
-  Package,
   Upload,
-  AlertCircle,
   Fuel,
   Droplet,
 } from "lucide-react";

@@ -6,7 +6,6 @@ import {
   PiggyBank,
   FileSpreadsheet,
   Shield,
-  AlertTriangle,
   X,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";

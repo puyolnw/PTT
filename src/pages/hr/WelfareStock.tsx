@@ -6,7 +6,6 @@ import {
   Home as HomeIcon, 
   Fuel, 
   Plane, 
-  Calendar as CalendarIcon,
   HeartHandshake,
   GraduationCap,
   Plus,

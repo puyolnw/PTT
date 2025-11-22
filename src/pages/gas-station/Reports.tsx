@@ -15,8 +15,6 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 2,
 });
 
-const numberFormatter = new Intl.NumberFormat("th-TH");
-
 const branches = ["สำนักงานใหญ่", "สาขา A", "สาขา B", "สาขา C", "สาขา D"];
 
 // Mock data สำหรับรายงาน

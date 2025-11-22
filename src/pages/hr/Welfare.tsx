@@ -15,8 +15,7 @@ import {
   Search,
   Filter,
   Edit2,
-  Trash2,
-  Warehouse
+  Trash2
 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import { employees, welfareRecords as initialWelfareRecords } from "@/data/mockData";

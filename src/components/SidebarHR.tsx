@@ -11,7 +11,6 @@ import {
   BarChart3,
   Trophy,
   Heart,
-  Timer,
   AlertTriangle,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
