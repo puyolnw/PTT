@@ -10,9 +10,9 @@ import LayoutFund from "@/layouts/LayoutFund";
 import LayoutDocuments from "@/layouts/LayoutDocuments";
 import LayoutReports from "@/layouts/LayoutReports";
 import LayoutShops from "@/layouts/LayoutShops";
-import LayoutGasStation from "@/layouts/LayoutGasStation";
 import LayoutRental from "@/layouts/LayoutRental";
 import LayoutAccounting from "@/layouts/LayoutAccounting";
+import LayoutGasStation from "@/layouts/LayoutGasStation";
 
 // ========== HR Pages ==========
 import HRDashboard from "@/pages/hr/Dashboard";
@@ -140,19 +140,6 @@ import OtopSales from "@/pages/shops/otop/Sales";
 import OtopPurchases from "@/pages/shops/otop/Purchases";
 import OtopReports from "@/pages/shops/otop/Reports";
 import OtopSettings from "@/pages/shops/otop/Settings";
-import GasStationDashboard from "@/pages/gas-station/Dashboard";
-import GasStationPurchases from "@/pages/gas-station/Purchases";
-import GasStationSales from "@/pages/gas-station/Sales";
-import GasStationCoupons from "@/pages/gas-station/Coupons";
-import GasStationStock from "@/pages/gas-station/Stock";
-import GasStationStockAlerts from "@/pages/gas-station/StockAlerts";
-import GasStationMeterDip from "@/pages/gas-station/MeterDipReading";
-import GasStationBalance from "@/pages/gas-station/Balance";
-import GasStationPriceManagement from "@/pages/gas-station/PriceManagement";
-import GasStationRequisitions from "@/pages/gas-station/Requisitions";
-
-import GasStationReports from "@/pages/gas-station/Reports";
-import GasStationSettings from "@/pages/gas-station/Settings";
 import RentalDashboard from "@/pages/rental/Dashboard";
 import RentalLeaseDashboard from "@/pages/rental/LeaseDashboard";
 import RentalContracts from "@/pages/rental/Contracts";
@@ -190,6 +177,28 @@ import RiskDashboard from "@/pages/accounting/RiskDashboard";
 import Alerts from "@/pages/accounting/Alerts";
 import AccountingSettings from "@/pages/accounting/Settings";
 
+// ========== Gas Station Pages ==========
+import GasStationDashboard from "@/pages/gas-station/Dashboard";
+import Orders from "@/pages/gas-station/Orders";
+import PurchaseBills from "@/pages/gas-station/PurchaseBills";
+import Receiving from "@/pages/gas-station/Receiving";
+import Payments from "@/pages/gas-station/Payments";
+import Sales from "@/pages/gas-station/Sales";
+import UndergroundBook from "@/pages/gas-station/UndergroundBook";
+import UndergroundMeasurement from "@/pages/gas-station/UndergroundMeasurement";
+import PendingBook from "@/pages/gas-station/PendingBook";
+import BalancePetrol from "@/pages/gas-station/BalancePetrol";
+import PurchaseBook from "@/pages/gas-station/PurchaseBook";
+import WholesaleBook from "@/pages/gas-station/WholesaleBook";
+import TankEntryBook from "@/pages/gas-station/TankEntryBook";
+import QualityTest from "@/pages/gas-station/QualityTest";
+import DepositSlips from "@/pages/gas-station/DepositSlips";
+import Lubricants from "@/pages/gas-station/Lubricants";
+import Gas from "@/pages/gas-station/Gas";
+import PriceAdjustment from "@/pages/gas-station/PriceAdjustment";
+import Reports from "@/pages/gas-station/Reports";
+import GasStationSettings from "@/pages/gas-station/Settings";
+
 import { isAuthenticated } from "@/lib/auth";
 
 // Protected Route Component
@@ -217,7 +226,7 @@ const router = createBrowserRouter([
         index: true,
         element: <Navigate to="/app/hr" replace />,
       },
-      
+
       // ========== HR MODULE ==========
       {
         path: "hr",
@@ -317,7 +326,7 @@ const router = createBrowserRouter([
           },
         ],
       },
-      
+
       // ========== FUND MODULE ==========
       {
         path: "fund",
@@ -369,7 +378,7 @@ const router = createBrowserRouter([
           },
         ],
       },
-      
+
       // ========== DOCUMENTS MODULE ==========
       {
         path: "documents",
@@ -421,7 +430,7 @@ const router = createBrowserRouter([
           },
         ],
       },
-      
+
       // ========== REPORTS MODULE ==========
       {
         path: "reports",
@@ -453,7 +462,7 @@ const router = createBrowserRouter([
           },
         ],
       },
-      
+
       // ========== SHOPS MODULE ==========
       {
         path: "shops",
@@ -487,14 +496,14 @@ const router = createBrowserRouter([
             path: "pung-ngee-chiang/settings",
             element: <PungNgeeChiangSettings />,
           },
-        {
-          path: "seven-eleven",
-          element: <SevenElevenDashboard />,
-        },
-        {
-          path: "seven-eleven/sales",
-          element: <SevenElevenSales />,
-        },
+          {
+            path: "seven-eleven",
+            element: <SevenElevenDashboard />,
+          },
+          {
+            path: "seven-eleven/sales",
+            element: <SevenElevenSales />,
+          },
           {
             path: "seven-eleven/purchases",
             element: <SevenElevenPurchases />,
@@ -725,65 +734,7 @@ const router = createBrowserRouter([
           },
         ],
       },
-      
-      // ========== GAS STATION MODULE (M1) ==========
-      {
-        path: "gas-station",
-        element: <LayoutGasStation />,
-        children: [
-          {
-            index: true,
-            element: <GasStationDashboard />,
-          },
-          {
-            path: "purchases",
-            element: <GasStationPurchases />,
-          },
-          {
-            path: "sales",
-            element: <GasStationSales />,
-          },
-          {
-            path: "coupons",
-            element: <GasStationCoupons />,
-          },
-          {
-            path: "stock",
-            element: <GasStationStock />,
-          },
-          {
-            path: "stock-alerts",
-            element: <GasStationStockAlerts />,
-          },
-          {
-            path: "meter-dip",
-            element: <GasStationMeterDip />,
-          },
-          {
-            path: "balance",
-            element: <GasStationBalance />,
-          },
-          {
-            path: "price-management",
-            element: <GasStationPriceManagement />,
-          },
-          {
-            path: "requisitions",
-            element: <GasStationRequisitions />,
-          },
 
-
-          {
-            path: "reports",
-            element: <GasStationReports />,
-          },
-          {
-            path: "settings",
-            element: <GasStationSettings />,
-          },
-        ],
-      },
-      
       // ========== RENTAL MODULE (M2) ==========
       {
         path: "rental",
@@ -847,7 +798,7 @@ const router = createBrowserRouter([
           },
         ],
       },
-      
+
       // ========== ACCOUNTING MODULE (M6) ==========
       {
         path: "accounting",
@@ -932,6 +883,94 @@ const router = createBrowserRouter([
           {
             path: "settings",
             element: <AccountingSettings />,
+          },
+        ],
+      },
+
+      // ========== GAS STATION MODULE ==========
+      {
+        path: "gas-station",
+        element: <LayoutGasStation />,
+        children: [
+          {
+            index: true,
+            element: <GasStationDashboard />,
+          },
+          {
+            path: "orders",
+            element: <Orders />,
+          },
+          {
+            path: "purchase-bills",
+            element: <PurchaseBills />,
+          },
+          {
+            path: "receiving",
+            element: <Receiving />,
+          },
+          {
+            path: "payments",
+            element: <Payments />,
+          },
+          {
+            path: "sales",
+            element: <Sales />,
+          },
+          {
+            path: "underground-book",
+            element: <UndergroundBook />,
+          },
+          {
+            path: "underground-measurement",
+            element: <UndergroundMeasurement />,
+          },
+          {
+            path: "pending-book",
+            element: <PendingBook />,
+          },
+          {
+            path: "balance-petrol",
+            element: <BalancePetrol />,
+          },
+          {
+            path: "purchase-book",
+            element: <PurchaseBook />,
+          },
+          {
+            path: "wholesale-book",
+            element: <WholesaleBook />,
+          },
+          {
+            path: "tank-entry-book",
+            element: <TankEntryBook />,
+          },
+          {
+            path: "quality-test",
+            element: <QualityTest />,
+          },
+          {
+            path: "deposit-slips",
+            element: <DepositSlips />,
+          },
+          {
+            path: "lubricants",
+            element: <Lubricants />,
+          },
+          {
+            path: "gas",
+            element: <Gas />,
+          },
+          {
+            path: "price-adjustment",
+            element: <PriceAdjustment />,
+          },
+          {
+            path: "reports",
+            element: <Reports />,
+          },
+          {
+            path: "settings",
+            element: <GasStationSettings />,
           },
         ],
       },

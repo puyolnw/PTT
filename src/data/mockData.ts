@@ -146,23 +146,23 @@ const generateAttendanceLogs = (empCode: string, empName: string, shiftId: numbe
   const logs: AttendanceLog[] = [];
   const shift = shifts.find(s => s.id === shiftId);
   if (!shift) return logs;
-  
+
   const start = new Date(startDate);
   const end = new Date(endDate);
   const current = new Date(start);
-  
+
   while (current <= end) {
     const dateStr = current.toISOString().split('T')[0];
-    
+
     // Include all days (can add weekend filtering if needed)
-    
+
     // Random attendance status (80% on time, 10% late, 5% absent, 5% leave)
     const rand = Math.random();
     let status: AttendanceLog["status"] = "ตรงเวลา";
     let checkIn = shift.startTime;
     let checkOut = shift.endTime;
     let lateMinutes: number | undefined = undefined;
-    
+
     if (rand < 0.05) {
       // Leave
       status = "ลา";
@@ -185,13 +185,13 @@ const generateAttendanceLogs = (empCode: string, empName: string, shiftId: numbe
       else status = "สาย 15 นาที";
       lateMinutes = lateMins;
     }
-    
+
     // Handle overnight shifts
     if (shift.endTime < shift.startTime && checkOut !== "-") {
       const [outHour, outMin] = checkOut.split(':').map(Number);
       checkOut = `${String((outHour + 24) % 24).padStart(2, '0')}:${String(outMin).padStart(2, '0')}`;
     }
-    
+
     logs.push({
       id: logs.length + 1,
       empCode,
@@ -204,10 +204,10 @@ const generateAttendanceLogs = (empCode: string, empName: string, shiftId: numbe
       otHours: 0,
       otAmount: 0
     });
-    
+
     current.setDate(current.getDate() + 1);
   }
-  
+
   return logs;
 };
 
@@ -3647,41 +3647,41 @@ export const welfareRecords: WelfareRecord[] = [
   { id: 4, type: "benefits", empCode: "EMP-0004", empName: "กิตติคุณ ใฝ่รู้", category: "เซเว่น", item: "ชุดฟอร์ม", date: "2025-02-01", status: "อนุมัติ" },
   { id: 5, type: "benefits", empCode: "EMP-0005", empName: "พิมพ์ชนก สมใจ", category: "ปึงหงี่เชียง", item: "เสื้อกันหนาว", date: "2025-02-05", status: "อนุมัติ" },
   { id: 6, type: "benefits", empCode: "EMP-0009", empName: "วิภา รักษ์สุข", category: "แม่บ้าน", item: "รองเท้า", date: "2025-02-10", status: "อนุมัติ" },
-  
+
   // BONUS รายปี (bonus)
   { id: 7, type: "bonus", empCode: "EMP-0001", empName: "สมชาย ใจดี", category: "ปั๊ม", amount: 50000, date: "2025-01-31", status: "อนุมัติ", notes: "รางวัลพนักงานดีเด่นประจำปี 2024" },
   { id: 8, type: "bonus", empCode: "EMP-0005", empName: "พิมพ์ชนก สมใจ", category: "ปึงหงี่เชียง", amount: 45000, date: "2025-01-31", status: "อนุมัติ", notes: "รางวัลพนักงานดีเด่นประจำปี 2024" },
   { id: 9, type: "bonus", empCode: "EMP-0009", empName: "วิภา รักษ์สุข", category: "แม่บ้าน", amount: 40000, date: "2025-01-31", status: "อนุมัติ", notes: "รางวัลพนักงานดีเด่นประจำปี 2024" },
   { id: 10, type: "bonus", empCode: "EMP-0026", empName: "นิดา ออฟฟิศ", category: "Office", amount: 48000, date: "2025-01-31", status: "อนุมัติ", notes: "รางวัลพนักงานดีเด่นประจำปี 2024" },
   { id: 11, type: "bonus", empCode: "EMP-0023", empName: "ประเสริฐ ช่าง", category: "ช่าง", amount: 42000, date: "2025-01-31", status: "อนุมัติ", notes: "รางวัลพนักงานดีเด่นประจำปี 2024" },
-  
+
   // หอพัก (dormitory)
   { id: 12, type: "dormitory", empCode: "EMP-0013", empName: "ประยุทธ์ กลางคืน", category: "ปั๊ม", date: "2025-01-01", status: "อนุมัติ", notes: "พักฟรี หอพัก A ห้อง 201" },
   { id: 13, type: "dormitory", empCode: "EMP-0014", empName: "สุรชัย ดึก", category: "ปั๊ม", date: "2025-01-01", status: "อนุมัติ", notes: "พักฟรี หอพัก A ห้อง 202" },
   { id: 14, type: "dormitory", empCode: "EMP-0016", empName: "วิชัย ดึก", category: "เซเว่น", date: "2025-01-01", status: "อนุมัติ", notes: "พักฟรี หอพัก B ห้อง 301" },
   { id: 15, type: "dormitory", empCode: "EMP-0020", empName: "อภิชัย อเมซอน", category: "Amazon", date: "2025-01-15", status: "อนุมัติ", notes: "ขอใช้หอพัก" },
   { id: 16, type: "dormitory", empCode: "EMP-0023", empName: "ประเสริฐ ช่าง", category: "ช่าง", date: "2025-01-01", status: "อนุมัติ", notes: "พักฟรี หอพัก C ห้อง 401" },
-  
+
   // ค่าน้ำมัน (fuel)
   { id: 17, type: "fuel", empCode: "EMP-0032", empName: "สมศักดิ์ ขับรถ", category: "ขับรถ", item: "ค่าน้ำมัน", amount: 1500, date: "2025-01-10", status: "อนุมัติ", notes: "เบิกค่าน้ำมันสำหรับงานขับรถ" },
   { id: 18, type: "fuel", empCode: "EMP-0032", empName: "สมศักดิ์ ขับรถ", category: "ขับรถ", item: "ค่าน้ำมัน", amount: 1800, date: "2025-01-20", status: "อนุมัติ", notes: "เบิกค่าน้ำมันสำหรับงานขับรถ" },
   { id: 19, type: "fuel", empCode: "EMP-0023", empName: "ประเสริฐ ช่าง", category: "ช่าง", item: "ค่าน้ำมัน", amount: 1200, date: "2025-02-01", status: "อนุมัติ", notes: "เบิกค่าน้ำมันสำหรับงานซ่อมนอกสถานที่" },
   { id: 20, type: "fuel", empCode: "EMP-0024", empName: "สมชาย ช่าง", category: "ช่าง", item: "ค่าน้ำมัน", amount: 1000, date: "2025-02-05", status: "อนุมัติ" },
-  
+
   // ทัศนศึกษาพาสุข (trip)
   { id: 21, type: "trip", empCode: "EMP-0001", empName: "สมชาย ใจดี", category: "ปั๊ม", date: "2025-03-15", status: "อนุมัติ", notes: "ทัศนศึกษาในประเทศ - เชียงใหม่" },
   { id: 22, type: "trip", empCode: "EMP-0005", empName: "พิมพ์ชนก สมใจ", category: "ปึงหงี่เชียง", date: "2025-03-15", status: "อนุมัติ", notes: "ทัศนศึกษาในประเทศ - เชียงใหม่" },
   { id: 23, type: "trip", empCode: "EMP-0009", empName: "วิภา รักษ์สุข", category: "แม่บ้าน", date: "2025-03-15", status: "อนุมัติ", notes: "ทัศนศึกษาในประเทศ - เชียงใหม่" },
   { id: 24, type: "trip", empCode: "EMP-0026", empName: "นิดา ออฟฟิศ", category: "Office", date: "2025-06-01", status: "อนุมัติ", notes: "ทัศนศึกษาต่างประเทศ - ญี่ปุ่น" },
   { id: 25, type: "trip", empCode: "EMP-0027", empName: "ทา ออฟฟิศ", category: "Office", date: "2025-06-01", status: "อนุมัติ", notes: "ทัศนศึกษาต่างประเทศ - ญี่ปุ่น" },
-  
+
   // เยี่ยมไข้/คลอด/งานศพ (condolence)
   { id: 26, type: "condolence", empCode: "EMP-0002", empName: "สมหญิง รักงาน", category: "ปั๊ม", amount: 2000, date: "2025-01-12", status: "อนุมัติ", notes: "เยี่ยมไข้ - ครอบครัว" },
   { id: 27, type: "condolence", empCode: "EMP-0003", empName: "วรพล ตั้งใจ", category: "ปั๊ม", amount: 3000, date: "2025-01-18", status: "อนุมัติ", notes: "งานศพ - บิดา" },
   { id: 28, type: "condolence", empCode: "EMP-0004", empName: "กิตติคุณ ใฝ่รู้", category: "เซเว่น", amount: 2000, date: "2025-02-08", status: "อนุมัติ", notes: "คลอดบุตร" },
   { id: 29, type: "condolence", empCode: "EMP-0015", empName: "นันทนา เซเว่น", category: "เซเว่น", amount: 2500, date: "2025-02-15", status: "อนุมัติ", notes: "เยี่ยมไข้ - ครอบครัว" },
   { id: 30, type: "condolence", empCode: "EMP-0029", empName: "ประยุทธ์ รปภ", category: "รักษาความปลอดภัย", amount: 2000, date: "2025-02-20", status: "อนุมัติ", notes: "งานศพ - มารดา" },
-  
+
   // ทุนการศึกษาบุตร (scholarship)
   { id: 31, type: "scholarship", empCode: "EMP-0001", empName: "สมชาย ใจดี", category: "ปั๊ม", amount: 15000, date: "2025-01-05", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับประถมศึกษา" },
   { id: 32, type: "scholarship", empCode: "EMP-0005", empName: "พิมพ์ชนก สมใจ", category: "ปึงหงี่เชียง", amount: 20000, date: "2025-01-05", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับมัธยมศึกษา" },
@@ -3741,7 +3741,7 @@ export const warningRecords: WarningRecord[] = [
     issuedBy: "หัวหน้าปั๊ม",
     status: "เสร็จสิ้น"
   },
-  
+
   // EMP-0002 - สมหญิง รักงาน
   {
     id: 3,
@@ -3757,7 +3757,7 @@ export const warningRecords: WarningRecord[] = [
     status: "เสร็จสิ้น",
     notes: "เหตุผลเป็นการเจ็บป่วย มีการลา แต่ขาดการแจ้งก่อนหน้า"
   },
-  
+
   // EMP-0003 - วรพล ตั้งใจ
   {
     id: 4,
@@ -3786,7 +3786,7 @@ export const warningRecords: WarningRecord[] = [
     issuedBy: "หัวหน้าปั๊ม",
     status: "เสร็จสิ้น"
   },
-  
+
   // EMP-0005 - พิมพ์ชนก สมใจ
   {
     id: 6,
@@ -3802,7 +3802,7 @@ export const warningRecords: WarningRecord[] = [
     status: "เสร็จสิ้น",
     notes: "ปรับปรุงเครื่องแต่งกายและสุขภาพอนามัยส่วนบุคคล"
   },
-  
+
   // EMP-0008 - อัญชลี มีชัย
   {
     id: 7,
@@ -3845,7 +3845,7 @@ export const warningRecords: WarningRecord[] = [
     status: "ระหว่างดำเนินการ",
     notes: "สัญญาณเตือนสำคัญ - ต้องติดตามอย่างใกล้ชิด"
   },
-  
+
   // EMP-0009 - วิภา รักษ์สุข
   {
     id: 10,
@@ -3861,7 +3861,7 @@ export const warningRecords: WarningRecord[] = [
     status: "เสร็จสิ้น",
     notes: "ปรับปรุงมาตรฐานการทำความสะอาด"
   },
-  
+
   // EMP-0013 - ประยุทธ์ กลางคืน
   {
     id: 11,
@@ -3876,7 +3876,7 @@ export const warningRecords: WarningRecord[] = [
     issuedBy: "หัวหน้าปั๊ม",
     status: "เสร็จสิ้น"
   },
-  
+
   // EMP-0020 - อภิชัย อเมซอน
   {
     id: 12,
@@ -3892,7 +3892,7 @@ export const warningRecords: WarningRecord[] = [
     status: "เสร็จสิ้น",
     notes: "ปรับปรุงการติดต่อสื่อสาร"
   },
-  
+
   // EMP-0023 - ประเสริฐ ช่าง
   {
     id: 13,
@@ -3921,7 +3921,7 @@ export const warningRecords: WarningRecord[] = [
     issuedBy: "หัวหน้าช่าง",
     status: "เสร็จสิ้น"
   },
-  
+
   // EMP-0026 - นิดา ออฟฟิศ
   {
     id: 15,
@@ -3936,7 +3936,7 @@ export const warningRecords: WarningRecord[] = [
     issuedBy: "หัวหน้าOffice",
     status: "เสร็จสิ้น"
   },
-  
+
   // EMP-0032 - สมศักดิ์ ขับรถ
   {
     id: 16,
