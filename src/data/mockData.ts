@@ -281,12 +281,43 @@ export interface Leave {
   id: number;
   empCode: string;
   empName: string;
-  type: "ลาพักร้อน" | "ลาป่วย" | "ลากิจ" | "ลาคลอด";
+  type: "ลาพักร้อน" | "ลาป่วย" | "ลากิจ" | "ลาคลอด" | "ลางานศพ";
   fromDate: string;
   toDate: string;
   days: number;
-  status: "รออนุมัติ" | "อนุมัติแล้ว" | "ไม่อนุมัติ";
+  status: "รอผู้จัดการ" | "รอ HR" | "รอหัวหน้าสถานี" | "อนุมัติแล้ว" | "ไม่อนุมัติ";
   reason?: string;
+  // การลาระหว่างวัน
+  isPartialLeave?: boolean; // ลาระหว่างวันหรือไม่
+  fromTime?: string; // เวลาเริ่ม (ถ้าลาระหว่างวัน)
+  toTime?: string; // เวลาสิ้นสุด (ถ้าลาระหว่างวัน)
+  // คนมาทำงานแทน
+  replacementEmpCode?: string; // รหัสพนักงานที่มาทำงานแทน
+  replacementEmpName?: string; // ชื่อพนักงานที่มาทำงานแทน
+  // เอกสาร
+  attachments?: Array<{
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    fileSize: number;
+    uploadedAt: string;
+  }>;
+  // Workflow
+  submittedDate?: string; // วันที่ยื่นลา
+  managerApprovedDate?: string; // วันที่ผู้จัดการอนุมัติ
+  hrApprovedDate?: string; // วันที่ HR อนุมัติ
+  adminApprovedDate?: string; // วันที่หัวหน้าสถานีอนุมัติ
+  managerComment?: string; // ความคิดเห็นผู้จัดการ
+  hrComment?: string; // ความคิดเห็น HR
+  adminComment?: string; // ความคิดเห็นหัวหน้าสถานี
+  // ผลต่อการประเมิน
+  exceedsLimit?: boolean; // ลาเกินกำหนดหรือไม่
+  affectsEvaluation?: boolean; // มีผลต่อการประเมินเงินเดือน/การทดลองงาน
+  // สร้างโดย
+  createdBy?: string; // "employee" | "manager" | "hr"
+  // พิมพ์ใบลา
+  printedBy?: string; // HR ที่พิมพ์ใบลา
+  printedDate?: string; // วันที่พิมพ์ใบลา
 }
 
 export const leaves: Leave[] = [
@@ -320,7 +351,7 @@ export const leaves: Leave[] = [
     fromDate: "2025-11-01",
     toDate: "2025-11-02",
     days: 2,
-    status: "รออนุมัติ",
+    status: "รอผู้จัดการ",
     reason: "ธุระส่วนตัว"
   },
   {
@@ -331,7 +362,7 @@ export const leaves: Leave[] = [
     fromDate: "2025-12-20",
     toDate: "2025-12-30",
     days: 11,
-    status: "รออนุมัติ",
+    status: "รอผู้จัดการ",
     reason: "เที่ยวต่างประเทศ"
   },
   {
@@ -3736,11 +3767,14 @@ export interface WarningRecord {
   warningType: "พูดคุย" | "เอกสาร" | "พักงาน" | "ไล่ออก";
   warningLevel: number; // ระดับที่เท่าไหร่ (1-4)
   reason: string; // เหตุการณ์/เหตุผลการเตือน เช่น "การร้องเรียนจากลูกค้า", "ทำงานไม่ถูกต้อง"
+  eventType?: string; // ประเภทเหตุการณ์ เช่น "การร้องเรียนเฉพาะบุคคล", "การร้องเรียนทั่วไป", "มาสาย", "ขาดงาน"
   description: string; // รายละเอียดการเตือน
   date: string; // วันที่ออกการเตือน
   issuedBy: string; // ชื่อผู้ออกการเตือน (หัวหน้า)
   status: "ระหว่างดำเนินการ" | "เสร็จสิ้น" | "ยกเลิก";
   notes?: string;
+  clearedDate?: string; // วันที่ล้างทัณฑ์บน (1 ปี เริ่มนับใหม่)
+  isCleared?: boolean; // สถานะการล้างทัณฑ์บน
 }
 
 export const warningRecords: WarningRecord[] = [

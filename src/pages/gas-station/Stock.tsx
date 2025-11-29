@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Droplet,
   Package,
@@ -10,6 +11,8 @@ import {
   CheckCircle,
   XCircle,
   Eye,
+  ShoppingCart,
+  RefreshCw,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -151,20 +154,26 @@ const mockStockData: StockItem[] = [
 ];
 
 export default function Stock() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOilType, setSelectedOilType] = useState("ทั้งหมด");
   const [selectedStatus, setSelectedStatus] = useState<"ทั้งหมด" | StockStatus>("ทั้งหมด");
 
-  const filteredStock = mockStockData.filter((item) => {
-    const matchesSearch =
-      item.oilType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredStock = mockStockData
+    .filter((item) => {
+      const matchesSearch =
+        item.oilType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.id.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesOilType = selectedOilType === "ทั้งหมด" || item.oilType === selectedOilType;
-    const matchesStatus = selectedStatus === "ทั้งหมด" || item.status === selectedStatus;
+      const matchesOilType = selectedOilType === "ทั้งหมด" || item.oilType === selectedOilType;
+      const matchesStatus = selectedStatus === "ทั้งหมด" || item.status === selectedStatus;
 
-    return matchesSearch && matchesOilType && matchesStatus;
-  });
+      return matchesSearch && matchesOilType && matchesStatus;
+    })
+    .sort((a, b) => {
+      // เรียงตาม currentStock จากน้อยไปมาก (เหลือน้อยสุดไว้บนสุด)
+      return a.currentStock - b.currentStock;
+    });
 
   const summary = {
     totalItems: mockStockData.length,
@@ -201,6 +210,15 @@ export default function Stock() {
     return "bg-emerald-500";
   };
 
+  // ไปหน้าสั่งน้ำมันพร้อมเลือกน้ำมันที่เหลือน้อย
+  const goToOrderLowStock = (oilType?: string) => {
+    navigate("/app/gas-station/station-order", {
+      state: {
+        lowStockOil: oilType,
+      },
+    });
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -210,13 +228,24 @@ export default function Stock() {
         transition={{ duration: 0.5 }}
         className="mb-6"
       >
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
-          <Package className="w-8 h-8 text-blue-500" />
-          สต็อกน้ำมัน
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          ตรวจสอบและจัดการสต็อกน้ำมันปั๊มไฮโซ แยกตามประเภทน้ำมัน พร้อมแจ้งเตือนสต็อกต่ำ
-        </p>
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
+              <Package className="w-8 h-8 text-blue-500" />
+              สต็อกน้ำมัน
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              ตรวจสอบและจัดการสต็อกน้ำมันปั๊มไฮโซ แยกตามประเภทน้ำมัน พร้อมแจ้งเตือนสต็อกต่ำ
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/app/gas-station/update-stock")}
+            className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 whitespace-nowrap"
+          >
+            <RefreshCw className="w-4 h-4" />
+            อัพเดตสต็อก
+          </button>
+        </div>
       </motion.div>
 
       {/* Summary Cards */}
@@ -325,6 +354,72 @@ export default function Stock() {
           <option value="critical">วิกฤต</option>
         </select>
       </motion.div>
+
+      {/* Alert Section */}
+      {(summary.criticalCount > 0 || summary.warningCount > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.45 }}
+          className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 dark:border-red-600 rounded-xl p-6 shadow-md"
+        >
+          <div className="flex items-start gap-4">
+            <div className="p-2 bg-red-500/20 rounded-xl flex-shrink-0">
+              <AlertTriangle className="w-6 h-6 text-red-500" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between flex-wrap gap-4 mb-3">
+                <div>
+                  <h3 className="text-lg font-bold text-red-900 dark:text-red-100 mb-1">
+                    แจ้งเตือนสต็อกต่ำ
+                  </h3>
+                  <p className="text-sm text-red-800 dark:text-red-200">
+                    มีสต็อกน้ำมันที่ต่ำกว่าเกณฑ์หรืออยู่ในระดับวิกฤต กรุณาตรวจสอบและสั่งซื้อน้ำมันเพิ่มเติม
+                  </p>
+                </div>
+                <button
+                  onClick={() => goToOrderLowStock()}
+                  className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 whitespace-nowrap"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  สั่งน้ำมันที่เหลือน้อยทั้งหมด
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {mockStockData
+                  .filter((item) => item.status === "critical" || item.status === "warning")
+                  .sort((a, b) => a.currentStock - b.currentStock) // เรียงจากน้อยไปมาก
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-800 rounded-lg flex items-center justify-between gap-3 hover:border-red-300 dark:hover:border-red-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 flex-1">
+                        <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-red-900 dark:text-red-100 text-sm truncate">
+                            {item.oilType}
+                          </div>
+                          <div className="text-xs text-red-700 dark:text-red-300">
+                            เหลือ {numberFormatter.format(item.currentStock)} ลิตร
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => goToOrderLowStock(item.oilType)}
+                        className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap"
+                        title={`สั่ง${item.oilType}`}
+                      >
+                        <ShoppingCart className="w-3.5 h-3.5" />
+                        สั่ง
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Stock Table */}
       <motion.div
@@ -463,6 +558,15 @@ export default function Stock() {
                         >
                           <Eye className="w-4 h-4 text-gray-400 hover:text-blue-500" />
                         </button>
+                        {(item.status === "critical" || item.status === "warning") && (
+                          <button
+                            onClick={() => goToOrderLowStock(item.oilType)}
+                            className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-colors"
+                            title="สั่งน้ำมัน"
+                          >
+                            <ShoppingCart className="w-4 h-4 text-blue-500 hover:text-blue-600" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </motion.tr>
@@ -472,46 +576,6 @@ export default function Stock() {
           </table>
         </div>
       </motion.div>
-
-      {/* Alert Section */}
-      {(summary.criticalCount > 0 || summary.warningCount > 0) && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6"
-        >
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-lg font-bold text-red-900 dark:text-red-100 mb-2">
-                แจ้งเตือนสต็อกต่ำ
-              </h3>
-              <p className="text-sm text-red-800 dark:text-red-200 mb-3">
-                มีสต็อกน้ำมันที่ต่ำกว่าเกณฑ์หรืออยู่ในระดับวิกฤต กรุณาตรวจสอบและสั่งซื้อน้ำมันเพิ่มเติม
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {mockStockData
-                  .filter((item) => item.status === "critical" || item.status === "warning")
-                  .map((item) => (
-                    <span
-                      key={item.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-red-200 dark:border-red-800 text-sm"
-                    >
-                      <AlertTriangle className="w-4 h-4 text-red-500" />
-                      <span className="font-semibold text-red-900 dark:text-red-100">
-                        {item.branch} - {item.oilType}
-                      </span>
-                      <span className="text-red-700 dark:text-red-300">
-                        เหลือ {numberFormatter.format(item.currentStock)} ลิตร
-                      </span>
-                    </span>
-                  ))}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 }

@@ -179,6 +179,7 @@ import AccountingSettings from "@/pages/accounting/Settings";
 
 // ========== Gas Station Pages ==========
 import GasStationDashboard from "@/pages/gas-station/Dashboard";
+import StationOrder from "@/pages/gas-station/StationOrder";
 import Orders from "@/pages/gas-station/Orders";
 import Receiving from "@/pages/gas-station/Receiving";
 import Payments from "@/pages/gas-station/Payments";
@@ -199,7 +200,10 @@ import PriceAdjustment from "@/pages/gas-station/PriceAdjustment";
 import Reports from "@/pages/gas-station/Reports";
 import GasStationSettings from "@/pages/gas-station/Settings";
 import Stock from "@/pages/gas-station/Stock";
+import UpdateStock from "@/pages/gas-station/UpdateStock";
+import StockUpdateHistory from "@/pages/gas-station/StockUpdateHistory";
 import SalesInstrumentReport from "@/pages/gas-station/SalesInstrumentReport";
+import OilDeficitReport from "@/pages/gas-station/OilDeficitReport";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -899,6 +903,10 @@ const router = createBrowserRouter([
             element: <GasStationDashboard />,
           },
           {
+            path: "station-order",
+            element: <StationOrder />,
+          },
+          {
             path: "orders",
             element: <Orders />,
           },
@@ -971,12 +979,24 @@ const router = createBrowserRouter([
             element: <Stock />,
           },
           {
+            path: "update-stock",
+            element: <UpdateStock />,
+          },
+          {
+            path: "stock-update-history",
+            element: <StockUpdateHistory />,
+          },
+          {
             path: "reports",
             element: <Reports />,
           },
           {
             path: "sales-instrument-report",
             element: <SalesInstrumentReport />,
+          },
+          {
+            path: "oil-deficit-report",
+            element: <OilDeficitReport />,
           },
           {
             path: "settings",

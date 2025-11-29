@@ -643,6 +643,8 @@ export default function Attendance() {
 
     // In a real app, this would update the database
     // For now, we'll just show a confirmation
+    // Note: updatedLog is created but not used in this mock implementation
+    void updatedLog;
     alert(
       `บันทึกข้อมูลสำเร็จ!\n\n` +
       `พนักงาน: ${employee.name} (${employee.code})\n` +

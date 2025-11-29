@@ -24,6 +24,7 @@ export default function Warnings() {
     empCode: "",
     warningType: "" as WarningRecord["warningType"] | "",
     reason: "",
+    eventType: "",
     description: "",
     date: new Date().toISOString().split('T')[0],
     issuedBy: "",
@@ -82,16 +83,41 @@ export default function Warnings() {
     return employees.find(e => e.code === empCode);
   };
 
-  // Calculate warning level based on employee's warning history
+  // Check if warning is cleared (1 year passed)
+  const isWarningCleared = (warning: WarningRecord): boolean => {
+    if (warning.isCleared || warning.clearedDate) return true;
+    
+    const warningDate = new Date(warning.date);
+    const oneYearLater = new Date(warningDate);
+    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+    
+    return new Date() > oneYearLater;
+  };
+
+  // Get active warnings (not cleared within 1 year)
+  const getActiveWarnings = (empCode: string, warningType: WarningRecord["warningType"]): WarningRecord[] => {
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    
+    return warnings.filter(w => 
+      w.empCode === empCode && 
+      w.warningType === warningType &&
+      !w.isCleared &&
+      !isWarningCleared(w) &&
+      new Date(w.date) >= oneYearAgo
+    );
+  };
+
+  // Calculate warning level based on employee's warning history (only count active warnings within 1 year)
   const calculateWarningLevel = (empCode: string, warningType: WarningRecord["warningType"]): number => {
-    const employeeWarnings = warnings.filter(w => w.empCode === empCode && w.warningType === warningType);
+    const activeWarnings = getActiveWarnings(empCode, warningType);
     
     if (warningType === "พูดคุย") {
       // สำหรับ "พูดคุย" นับเฉพาะประเภทเดียวกัน (สูงสุด 3 ครั้ง)
-      return Math.min(employeeWarnings.length + 1, 3);
+      return Math.min(activeWarnings.length + 1, 3);
     } else if (warningType === "เอกสาร") {
       // สำหรับ "เอกสาร" นับเฉพาะประเภทเดียวกัน (สูงสุด 3 ครั้ง)
-      return Math.min(employeeWarnings.length + 1, 3);
+      return Math.min(activeWarnings.length + 1, 3);
     } else if (warningType === "พักงาน") {
       // สำหรับ "พักงาน" เริ่มที่ระดับ 3
       return 3;
@@ -101,6 +127,24 @@ export default function Warnings() {
     }
     
     return 1;
+  };
+
+  // Handle clear warnings (ล้างทัณฑ์บน 1 ปี)
+  const handleClearWarnings = (empCode: string) => {
+    if (!confirm(`คุณต้องการล้างทัณฑ์บนให้พนักงาน ${employees.find(e => e.code === empCode)?.name || empCode} หรือไม่?\n\nการล้างทัณฑ์บนจะเริ่มนับใหม่จาก 1 ปี`)) {
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const updatedWarnings = warnings.map(w => 
+      w.empCode === empCode && !w.isCleared && !isWarningCleared(w)
+        ? { ...w, isCleared: true, clearedDate: today }
+        : w
+    );
+    
+    setWarnings(updatedWarnings);
+    setFilteredWarnings(updatedWarnings);
+    alert("ล้างทัณฑ์บนสำเร็จ! เริ่มนับใหม่จาก 1 ปี");
   };
 
   // Handle filter
@@ -252,11 +296,13 @@ export default function Warnings() {
       warningType: addForm.warningType,
       warningLevel: warningLevel,
       reason: addForm.reason,
+      eventType: addForm.eventType || undefined,
       description: addForm.description,
       date: addForm.date,
       issuedBy: addForm.issuedBy || "หัวหน้าแผนก",
       status: addForm.status,
       notes: addForm.notes || undefined,
+      isCleared: false,
     };
 
     const updatedWarnings = [...warnings, newWarning];
@@ -269,6 +315,7 @@ export default function Warnings() {
       empCode: "",
       warningType: "" as WarningRecord["warningType"] | "",
       reason: "",
+      eventType: "",
       description: "",
       date: new Date().toISOString().split('T')[0],
       issuedBy: "",
@@ -346,17 +393,26 @@ export default function Warnings() {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                { level: 1, type: "พูดคุย", desc: "ไม่เป็นลายลักษณ์อักษร (สูงสุด 3 ครั้ง)" },
-                { level: 2, type: "เอกสาร", desc: "เป็นลายลักษณ์อักษร (สูงสุด 3 ครั้ง)" },
-                { level: 3, type: "พักงาน", desc: "กรณีร้ายแรง" },
-                { level: 4, type: "ไล่ออก", desc: "กรณีร้ายแรงที่สุด" }
+                { level: 1, type: "พูดคุย", desc: "ไม่เป็นลายลักษณ์อักษร", limit: "สูงสุด 3 ครั้ง", color: "yellow" },
+                { level: 2, type: "เอกสาร", desc: "เป็นลายลักษณ์อักษร", limit: "สูงสุด 3 ครั้ง", color: "orange" },
+                { level: 3, type: "พักงาน", desc: "กรณีร้ายแรง", limit: "ไม่มีขีดจำกัด", color: "red" },
+                { level: 4, type: "ไล่ออก", desc: "กรณีร้ายแรงที่สุด", limit: "ไม่มีขีดจำกัด", color: "red" }
               ].map((item) => (
-                <div key={item.level} className="bg-soft/50 border border-app rounded-lg p-3">
+                <div key={item.level} className={`bg-soft/50 border border-app rounded-lg p-3 ${
+                  item.color === "red" ? "border-red-500/30" : ""
+                }`}>
                   <div className="text-xs text-muted mb-1">ระดับ {item.level}</div>
                   <div className="font-semibold text-app text-sm mb-1">{item.type}</div>
-                  <div className="text-xs text-muted">{item.desc}</div>
+                  <div className="text-xs text-muted mb-1">{item.desc}</div>
+                  <div className="text-xs font-semibold text-ptt-cyan">{item.limit}</div>
                 </div>
               ))}
+            </div>
+            <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <p className="text-xs text-app">
+                <strong>ระบบล้างทัณฑ์บน:</strong> ทัณฑ์บนจะถูกล้างอัตโนมัติเมื่อครบ 1 ปีนับจากวันที่ออกการเตือน 
+                และเริ่มนับใหม่ (เฉพาะ "พูดคุย" และ "เอกสาร" จะนับใหม่ได้)
+              </p>
             </div>
           </div>
         </div>
@@ -577,10 +633,12 @@ export default function Warnings() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-app">ชื่อ-สกุล</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-app">ประเภท</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">ประเภทเหตุการณ์</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-app">ระดับ</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-app">เหตุผล</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-app">วันที่</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-app">ทัณฑ์บน</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-app">การจัดการ</th>
                 </tr>
               </thead>
@@ -612,6 +670,9 @@ export default function Warnings() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
+                        <p className="text-xs text-app">{warning.eventType || "-"}</p>
+                      </td>
+                      <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-ptt-blue/20 text-ptt-cyan font-bold text-xs">
                             {warning.warningLevel}
@@ -634,6 +695,19 @@ export default function Warnings() {
                             {warning.status}
                           </span>
                         </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {isWarningCleared(warning) || warning.isCleared ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-500/20 text-green-400 border border-green-500/30">
+                            <CheckCircle className="w-3 h-3" />
+                            ถูกล้างแล้ว
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                            <AlertCircle className="w-3 h-3" />
+                            ยังไม่ถูกล้าง
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-2">
@@ -728,6 +802,12 @@ export default function Warnings() {
                     </div>
                   </div>
                   <div>
+                    <p className="text-xs text-muted mb-1">ประเภทเหตุการณ์</p>
+                    <p className="text-sm font-medium text-app">
+                      {selectedWarning.eventType || "-"}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-xs text-muted mb-1">วันที่ออกการเตือน</p>
                     <p className="text-sm font-medium text-app">
                       {new Date(selectedWarning.date).toLocaleDateString('th-TH')}
@@ -747,6 +827,20 @@ export default function Warnings() {
                         );
                       })()}
                     </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-1">สถานะทัณฑ์บน</p>
+                    {isWarningCleared(selectedWarning) || selectedWarning.isCleared ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-500/20 text-green-400 border border-green-500/30">
+                        <CheckCircle className="w-3 h-3" />
+                        ถูกล้างแล้ว {selectedWarning.clearedDate && `(${new Date(selectedWarning.clearedDate).toLocaleDateString('th-TH')})`}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                        <AlertCircle className="w-3 h-3" />
+                        ยังไม่ถูกล้าง (จะล้างอัตโนมัติเมื่อครบ 1 ปี)
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -787,29 +881,73 @@ export default function Warnings() {
 
               {/* Warning History for this employee */}
               <div className="border-t border-app pt-4">
-                <h4 className="font-semibold text-app mb-3">ประวัติการเตือนทั้งหมด</h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold text-app">ประวัติการเตือนทั้งหมด</h4>
+                  <button
+                    onClick={() => handleClearWarnings(selectedWarning.empCode)}
+                    className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-medium transition-colors"
+                    title="ล้างทัณฑ์บนทั้งหมด (1 ปี เริ่มนับใหม่)"
+                  >
+                    ล้างทัณฑ์บน
+                  </button>
+                </div>
                 <div className="space-y-2">
                   {warnings
                     .filter(w => w.empCode === selectedWarning.empCode)
                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                    .map((warning) => (
-                      <div key={warning.id} className="flex items-center justify-between bg-soft/50 border border-app rounded-lg p-3">
-                        <div className="flex items-center gap-3">
-                          <span className={`text-xs font-bold px-2 py-1 rounded ${warningTypeInfo[warning.warningType].bgColor} ${warningTypeInfo[warning.warningType].color}`}>
-                            {warning.warningLevel}
-                          </span>
-                          <div>
-                            <p className="text-sm font-medium text-app">{warning.reason}</p>
-                            <p className="text-xs text-muted">{new Date(warning.date).toLocaleDateString('th-TH')}</p>
+                    .map((warning) => {
+                      const isCleared = isWarningCleared(warning) || warning.isCleared;
+                      return (
+                        <div 
+                          key={warning.id} 
+                          className={`flex items-center justify-between border rounded-lg p-3 ${
+                            isCleared 
+                              ? "bg-gray-500/10 border-gray-500/30 opacity-60" 
+                              : "bg-soft/50 border-app"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className={`text-xs font-bold px-2 py-1 rounded ${warningTypeInfo[warning.warningType].bgColor} ${warningTypeInfo[warning.warningType].color}`}>
+                              {warning.warningLevel}
+                            </span>
+                            <div>
+                              <p className="text-sm font-medium text-app">
+                                {warning.reason}
+                                {warning.eventType && (
+                                  <span className="text-xs text-muted ml-2">({warning.eventType})</span>
+                                )}
+                              </p>
+                              <p className="text-xs text-muted">
+                                {new Date(warning.date).toLocaleDateString('th-TH')}
+                                {isCleared && (
+                                  <span className="ml-2 text-green-500">
+                                    • ถูกล้างแล้ว {warning.clearedDate && `(${new Date(warning.clearedDate).toLocaleDateString('th-TH')})`}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const status = statusInfo[warning.status];
+                              const Icon = status.icon;
+                              return <Icon className={`w-4 h-4 ${status.color}`} />;
+                            })()}
+                            {isCleared && (
+                              <div title="ถูกล้างแล้ว">
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                              </div>
+                            )}
                           </div>
                         </div>
-                        {(() => {
-                          const status = statusInfo[warning.status];
-                          const Icon = status.icon;
-                          return <Icon className={`w-4 h-4 ${status.color}`} />;
-                        })()}
-                      </div>
-                    ))}
+                      );
+                    })}
+                </div>
+                <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <p className="text-xs text-app">
+                    <strong>หมายเหตุ:</strong> ทัณฑ์บนจะถูกล้างอัตโนมัติเมื่อครบ 1 ปีนับจากวันที่ออกการเตือน 
+                    หรือสามารถล้างด้วยตนเองได้โดยคลิกปุ่ม "ล้างทัณฑ์บน"
+                  </p>
                 </div>
               </div>
             </div>
@@ -900,16 +1038,53 @@ export default function Warnings() {
                   <option value="พักงาน">พักงาน (ร้ายแรง)</option>
                   <option value="ไล่ออก">ไล่ออก (ร้ายแรงที่สุด)</option>
                 </select>
-                {addForm.empCode && addForm.warningType && (
-                  <p className="text-xs text-muted mt-2">
-                    ระดับการเตือนที่จะได้รับ: {calculateWarningLevel(addForm.empCode, addForm.warningType)}/4
-                    {addForm.warningType === "พูดคุย" || addForm.warningType === "เอกสาร" ? (
-                      <span className="block mt-1">
-                        (พนักงานนี้มีประวัติการเตือนประเภทนี้ {warnings.filter(w => w.empCode === addForm.empCode && w.warningType === addForm.warningType).length} ครั้ง)
-                      </span>
-                    ) : null}
-                  </p>
-                )}
+                {addForm.empCode && addForm.warningType && (() => {
+                  const activeWarnings = getActiveWarnings(addForm.empCode, addForm.warningType);
+                  const warningLevel = calculateWarningLevel(addForm.empCode, addForm.warningType);
+                  return (
+                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mt-2">
+                      <p className="text-xs font-semibold text-app mb-1">
+                        ระดับการเตือนที่จะได้รับ: {warningLevel}/4
+                      </p>
+                      {addForm.warningType === "พูดคุย" || addForm.warningType === "เอกสาร" ? (
+                        <p className="text-xs text-muted">
+                          พนักงานนี้มีประวัติการเตือนประเภทนี้ที่ยังไม่ถูกล้าง: {activeWarnings.length} ครั้ง
+                          {activeWarnings.length >= 2 && (
+                            <span className="block mt-1 text-orange-500 font-semibold">
+                              ⚠️ ใกล้ถึงขีดจำกัด (สูงสุด 3 ครั้ง)
+                            </span>
+                          )}
+                        </p>
+                      ) : null}
+                      <p className="text-xs text-muted mt-1">
+                        * ทัณฑ์บนจะถูกล้างอัตโนมัติเมื่อครบ 1 ปี
+                      </p>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Event Type */}
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">
+                  ประเภทเหตุการณ์ <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={addForm.eventType}
+                  onChange={(e) => setAddForm({ ...addForm, eventType: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app 
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue cursor-pointer"
+                >
+                  <option value="">เลือกประเภทเหตุการณ์</option>
+                  <option value="การร้องเรียนเฉพาะบุคคล">การร้องเรียนเฉพาะบุคคล</option>
+                  <option value="การร้องเรียนทั่วไป">การร้องเรียนทั่วไป</option>
+                  <option value="มาสาย">มาสาย</option>
+                  <option value="ขาดงาน">ขาดงาน</option>
+                  <option value="ทำงานไม่ถูกต้อง">ทำงานไม่ถูกต้อง</option>
+                  <option value="ไม่ปฏิบัติตามระเบียบ">ไม่ปฏิบัติตามระเบียบ</option>
+                  <option value="พฤติกรรมไม่เหมาะสม">พฤติกรรมไม่เหมาะสม</option>
+                  <option value="อื่นๆ">อื่นๆ</option>
+                </select>
               </div>
 
               {/* Reason */}
@@ -1013,6 +1188,7 @@ export default function Warnings() {
                     empCode: "",
                     warningType: "" as WarningRecord["warningType"] | "",
                     reason: "",
+                    eventType: "",
                     description: "",
                     date: new Date().toISOString().split('T')[0],
                     issuedBy: "",

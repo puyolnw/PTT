@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
   Plus,
@@ -287,6 +287,7 @@ const mockTruckCapacity = {
 };
 
 export default function Orders() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ทั้งหมด");
   const [filterBranch, setFilterBranch] = useState("ทั้งหมด");
@@ -343,6 +344,44 @@ export default function Orders() {
     
     return matchesSearch && matchesStatus && matchesBranch;
   });
+
+  // จัดกลุ่มตาม branchId
+  const groupedOrders = filteredOrders.reduce((acc, order) => {
+    const key = order.branchId;
+    if (!acc[key]) {
+      acc[key] = {
+        branchId: order.branchId,
+        branchName: order.branchName,
+        legalEntityId: order.legalEntityId,
+        legalEntityName: order.legalEntityName,
+        status: order.status,
+        orders: [],
+        totalEstimated: 0,
+        totalRecommended: 0,
+        totalOrdered: 0,
+        hasLowStock: false,
+      };
+    }
+    acc[key].orders.push(order);
+    acc[key].totalEstimated += order.estimatedOrderAmount;
+    acc[key].totalRecommended += order.systemRecommended;
+    acc[key].totalOrdered += order.quantityOrdered;
+    if (order.lowStockAlert) acc[key].hasLowStock = true;
+    return acc;
+  }, {} as Record<number, {
+    branchId: number;
+    branchName: string;
+    legalEntityId: number;
+    legalEntityName: string;
+    status: string;
+    orders: typeof mockOrderSummary;
+    totalEstimated: number;
+    totalRecommended: number;
+    totalOrdered: number;
+    hasLowStock: boolean;
+  }>);
+
+  const groupedOrdersArray = Object.values(groupedOrders);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -543,175 +582,287 @@ export default function Orders() {
         </div>
       </motion.div>
 
-      {/* Summary View - ตารางเปรียบเทียบ */}
+      {/* Summary View - Card Style จัดกลุ่มตามปั้ม */}
       {showSummaryView && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6"
+          className="space-y-4 mb-6"
         >
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                  สรุปคำขอสั่งน้ำมันทั้ง 5 สาขา
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">เปรียบเทียบยอดขอจากสาขา vs ยอดวิเคราะห์จากระบบ</p>
-              </div>
-              <button
-                onClick={() => {
-                  setEditingOrders([...mockOrderSummary.filter((o) => o.status === "รออนุมัติ")]);
-                  setShowConsolidateModal(true);
-                }}
-                disabled={mockOrderSummary.filter((o) => o.status === "รออนุมัติ").length === 0}
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-              >
-                <ShoppingCart className="w-4 h-4" />
-                รวบรวมและสั่งน้ำมัน
-              </button>
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
+                สรุปคำขอสั่งน้ำมันทั้ง 5 สาขา
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">รายการน้ำมันทั้งหมดของแต่ละปั้มรวมกัน</p>
             </div>
+            <button
+              onClick={() => {
+                setEditingOrders([...mockOrderSummary.filter((o) => o.status === "รออนุมัติ")]);
+                setShowConsolidateModal(true);
+              }}
+              disabled={mockOrderSummary.filter((o) => o.status === "รออนุมัติ").length === 0}
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              รวบรวมและสั่งน้ำมัน
+            </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">สาขา</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">ประเภทน้ำมัน</th>
-                  <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">ยอดขอจากสาขา</th>
-                  <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">ยอดวิเคราะห์</th>
-                  <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">สต็อกปัจจุบัน</th>
-                  <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">ยอดสั่งจริง</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">นิติบุคคล</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">สถานะ</th>
-                  <th className="text-center py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredOrders.map((order, index) => {
-                  const isEditing = editingOrder === index;
-                  const difference = order.quantityOrdered - order.estimatedOrderAmount;
-                  const stockStatus = order.lowStockAlert ? "danger" : order.currentStock < order.systemRecommended * 0.3 ? "warning" : "normal";
-
-                  return (
-                    <motion.tr
-                      key={`${order.branchId}-${order.oilType}`}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                        order.lowStockAlert ? "bg-red-50/50 dark:bg-red-900/10" : ""
-                      }`}
-                    >
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div>
-                          <span className="text-sm font-semibold text-gray-800 dark:text-white">{order.branchName}</span>
+          {/* Branch Cards */}
+          <div className="grid grid-cols-1 gap-4">
+            {groupedOrdersArray.map((group, groupIndex) => {
+              const mainStatus = group.orders[0]?.status || "รออนุมัติ";
+              
+              return (
+                <motion.div
+                  key={group.branchId}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: groupIndex * 0.1 }}
+                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border-l-4 ${
+                    group.hasLowStock 
+                      ? "border-red-500 dark:border-red-600" 
+                      : mainStatus === "รออนุมัติ"
+                      ? "border-orange-500 dark:border-orange-600"
+                      : mainStatus === "อนุมัติแล้ว"
+                      ? "border-blue-500 dark:border-blue-600"
+                      : "border-emerald-500 dark:border-emerald-600"
+                  }`}
+                >
+                  {/* Branch Header */}
+                  <div className={`p-5 border-b border-gray-200 dark:border-gray-700 ${
+                    group.hasLowStock ? "bg-red-50/30 dark:bg-red-900/10" : "bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900"
+                  }`}>
+                    <div className="flex items-start justify-between flex-wrap gap-4">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 ${
+                          mainStatus === "รออนุมัติ"
+                            ? "bg-gradient-to-br from-orange-500 to-orange-600"
+                            : mainStatus === "อนุมัติแล้ว"
+                            ? "bg-gradient-to-br from-blue-500 to-blue-600"
+                            : "bg-gradient-to-br from-emerald-500 to-emerald-600"
+                        }`}>
+                          <MapPin className="w-7 h-7 text-white" />
                         </div>
-                      </td>
-                      <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">{order.oilType}</td>
-                      <td className="py-4 px-6 text-sm text-right">
-                        <span className="font-semibold text-gray-800 dark:text-white">{numberFormatter.format(order.estimatedOrderAmount)}</span>
-                      </td>
-                      <td className="py-4 px-6 text-sm text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <span className="font-semibold text-blue-600 dark:text-blue-400">{numberFormatter.format(order.systemRecommended)}</span>
-                          {order.systemRecommended > order.estimatedOrderAmount && (
-                            <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
-                          )}
-                          {order.systemRecommended < order.estimatedOrderAmount && (
-                            <TrendingDown className="w-3.5 h-3.5 text-orange-500" />
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-sm text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <span className={stockStatus === "danger" ? "text-red-600 dark:text-red-400 font-semibold" : "text-gray-600 dark:text-gray-400"}>
-                            {numberFormatter.format(order.currentStock)}
-                          </span>
-                          {order.lowStockAlert && (
-                            <AlertTriangle className="w-4 h-4 text-red-500" />
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        {isEditing ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              defaultValue={order.quantityOrdered}
-                              className="w-24 px-2 py-1.5 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
-                              onBlur={(e) => {
-                                handleEditQuantity(index, parseInt(e.target.value) || 0);
-                                setEditingOrder(null);
-                              }}
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => setEditingOrder(null)}
-                              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                            >
-                              <X className="w-3.5 h-3.5 text-gray-400" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="text-sm font-semibold text-right text-gray-800 dark:text-white">
-                              {numberFormatter.format(order.quantityOrdered)}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-white">
+                              {group.branchName}
+                            </h3>
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${getStatusColor(mainStatus)}`}>
+                              {mainStatus === "รออนุมัติ" && <Clock className="w-3.5 h-3.5" />}
+                              {mainStatus === "อนุมัติแล้ว" && <CheckCircle className="w-3.5 h-3.5" />}
+                              {mainStatus === "ส่งแล้ว" && <CheckCircle className="w-3.5 h-3.5" />}
+                              {mainStatus}
                             </span>
-                            {difference !== 0 && (
-                              <span className={`text-xs font-medium ${difference > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                                ({difference > 0 ? '+' : ''}{numberFormatter.format(difference)})
-                              </span>
+                            {group.hasLowStock && (
+                              <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2.5 py-1 rounded-lg border border-red-200 dark:border-red-800">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                <span className="text-xs font-semibold">สต็อกต่ำ</span>
+                              </div>
                             )}
-                            <button
-                              onClick={() => setEditingOrder(index)}
-                              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" 
-                              title="แก้ไขยอด"
-                            >
-                              <Edit className="w-3.5 h-3.5 text-gray-400 hover:text-blue-500" />
-                            </button>
                           </div>
-                        )}
-                      </td>
-                      <td className="py-4 px-6">
-                        <select
-                          defaultValue={order.legalEntityId}
-                          className="text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
-                        >
-                          {legalEntities.map((entity) => (
-                            <option key={entity.id} value={entity.id}>
-                              {entity.name}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${getStatusColor(order.status)}`}>
-                          {order.status === "รออนุมัติ" && <Clock className="w-3.5 h-3.5" />}
-                          {order.status === "อนุมัติแล้ว" && <CheckCircle className="w-3.5 h-3.5" />}
-                          {order.status === "ส่งแล้ว" && <CheckCircle className="w-3.5 h-3.5" />}
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => setSelectedOrderDetail(order)}
-                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors" 
-                            title="ดูรายละเอียด"
-                          >
-                            <Eye className="w-4 h-4 text-gray-400 hover:text-blue-500" />
-                          </button>
+                          <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-4 h-4 text-gray-400" />
+                              <span className="text-gray-600 dark:text-gray-400">{group.legalEntityName}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Droplet className="w-4 h-4 text-blue-500" />
+                              <span className="text-gray-600 dark:text-gray-400">
+                                {group.orders.length} ประเภทน้ำมัน
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </td>
-                    </motion.tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedOrderDetail(group.orders[0])}
+                          className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors" 
+                          title="ดูรายละเอียด"
+                        >
+                          <Eye className="w-5 h-5 text-gray-400 hover:text-blue-500" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Oil Items List */}
+                  <div className="p-5">
+                    <div className="space-y-3">
+                      {group.orders.map((order, orderIndex) => {
+                        const difference = order.quantityOrdered - order.estimatedOrderAmount;
+                        const isEditing = editingOrder === orderIndex && group.branchId === order.branchId;
+                        
+                        return (
+                          <div
+                            key={`${order.branchId}-${order.oilType}`}
+                            className={`p-4 rounded-xl border transition-all ${
+                              order.lowStockAlert
+                                ? "bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800"
+                                : "bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700"
+                            }`}
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                              {/* Oil Type */}
+                              <div className="md:col-span-3">
+                                <div className="flex items-center gap-2">
+                                  <Droplet className={`w-4 h-4 ${order.lowStockAlert ? "text-red-500" : "text-blue-500"}`} />
+                                  <span className="font-semibold text-gray-800 dark:text-white">{order.oilType}</span>
+                                  {order.lowStockAlert && (
+                                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* ยอดขอจากสาขา */}
+                              <div className="md:col-span-2">
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ยอดขอ</div>
+                                <div className="font-semibold text-gray-800 dark:text-white">
+                                  {numberFormatter.format(order.estimatedOrderAmount)} ลิตร
+                                </div>
+                              </div>
+
+                              {/* ยอดวิเคราะห์ */}
+                              <div className="md:col-span-2">
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ยอดวิเคราะห์</div>
+                                <div className="flex items-center gap-1">
+                                  <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                    {numberFormatter.format(order.systemRecommended)}
+                                  </span>
+                                  {order.systemRecommended > order.estimatedOrderAmount && (
+                                    <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
+                                  )}
+                                  {order.systemRecommended < order.estimatedOrderAmount && (
+                                    <TrendingDown className="w-3.5 h-3.5 text-orange-500" />
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">ลิตร</div>
+                              </div>
+
+                              {/* สต็อกปัจจุบัน */}
+                              <div className="md:col-span-2">
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">สต็อกปัจจุบัน</div>
+                                <div className={`font-semibold ${
+                                  order.lowStockAlert 
+                                    ? "text-red-600 dark:text-red-400" 
+                                    : "text-gray-800 dark:text-white"
+                                }`}>
+                                  {numberFormatter.format(order.currentStock)} ลิตร
+                                </div>
+                              </div>
+
+                              {/* ยอดสั่งจริง */}
+                              <div className="md:col-span-2">
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ยอดสั่งจริง</div>
+                                {isEditing ? (
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="number"
+                                      defaultValue={order.quantityOrdered}
+                                      className="w-24 px-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
+                                      onBlur={(e) => {
+                                        handleEditQuantity(orderIndex, parseInt(e.target.value) || 0);
+                                        setEditingOrder(null);
+                                      }}
+                                      autoFocus
+                                    />
+                                    <button
+                                      onClick={() => setEditingOrder(null)}
+                                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                    >
+                                      <X className="w-3.5 h-3.5 text-gray-400" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                      {numberFormatter.format(order.quantityOrdered)} ลิตร
+                                    </span>
+                                    {difference !== 0 && (
+                                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+                                        difference > 0 
+                                          ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30' 
+                                          : 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30'
+                                      }`}>
+                                        {difference > 0 ? '+' : ''}{numberFormatter.format(difference)}
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={() => setEditingOrder(orderIndex)}
+                                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors" 
+                                      title="แก้ไขยอด"
+                                    >
+                                      <Edit className="w-3.5 h-3.5 text-gray-400 hover:text-blue-500" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* นิติบุคคล */}
+                              <div className="md:col-span-1">
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">นิติบุคคล</div>
+                                <select
+                                  defaultValue={order.legalEntityId}
+                                  className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white w-full"
+                                >
+                                  {legalEntities.map((entity) => (
+                                    <option key={entity.id} value={entity.id}>
+                                      {entity.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Summary Footer */}
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-3 rounded-lg">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ยอดรวมที่ขอ</div>
+                          <div className="text-lg font-bold text-gray-800 dark:text-white">
+                            {numberFormatter.format(group.totalEstimated)} ลิตร
+                          </div>
+                        </div>
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 p-3 rounded-lg">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ยอดรวมที่วิเคราะห์</div>
+                          <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                            {numberFormatter.format(group.totalRecommended)} ลิตร
+                          </div>
+                        </div>
+                        <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 p-3 rounded-lg">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ยอดรวมที่สั่ง</div>
+                          <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                            {numberFormatter.format(group.totalOrdered)} ลิตร
+                          </div>
+                        </div>
+                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 p-3 rounded-lg">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">จำนวนรายการ</div>
+                          <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                            {group.orders.length} รายการ
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
+
+          {groupedOrdersArray.length === 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-12 text-center">
+              <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">ไม่พบข้อมูลคำสั่งซื้อ</p>
+            </div>
+          )}
         </motion.div>
       )}
 
@@ -776,7 +927,7 @@ export default function Orders() {
                         <div className="flex items-center gap-2">
                           <Receipt className="w-4 h-4 text-purple-500" />
                           <NavLink
-                            to="/app/gas-station/purchase-bills"
+                            to="/app/gas-station/purchase-book"
                             className="text-sm font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline transition-colors"
                           >
                             {order.billNo}
@@ -818,7 +969,7 @@ export default function Orders() {
                         </button>
                         {order.billNo && (
                           <NavLink
-                            to="/app/gas-station/purchase-bills"
+                            to="/app/gas-station/purchase-book"
                             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
                             title="ดูบิล"
                           >
@@ -1570,8 +1721,118 @@ export default function Orders() {
                 </button>
                 <button
                   onClick={() => {
-                    // In real app, this would approve and send orders
-                    console.log("Approving orders:", editingOrders);
+                    // สร้างข้อมูลบิลจาก orders ที่อนุมัติ
+                    const orderDate = new Date().toISOString().split('T')[0];
+                    const deliveryDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // วันถัดไป
+                    
+                    // สร้าง orderNo และ supplierOrderNo
+                    const orderNo = `SO-${orderDate.replace(/-/g, '')}-${String(mockApprovedOrders.length + 1).padStart(3, '0')}`;
+                    const supplierOrderNo = `PTT-${orderDate.replace(/-/g, '')}-${String(mockApprovedOrders.length + 1).padStart(3, '0')}`;
+                    const billNo = `BILL-${orderDate.replace(/-/g, '')}-${String(mockApprovedOrders.length + 1).padStart(3, '0')}`;
+                    
+                    // คำนวณราคาต่อลิตร (mock - ในระบบจริงจะดึงจาก API)
+                    const priceMap: Record<string, number> = {
+                      "Premium Diesel": 32.50,
+                      "Gasohol 95": 35.00,
+                      "Diesel": 30.00,
+                      "E85": 28.00,
+                      "E20": 33.00,
+                      "Gasohol 91": 36.00,
+                    };
+                    
+                    // สร้าง items และ branches จาก editingOrders
+                    const items: Array<{ oilType: string; quantity: number; pricePerLiter: number; totalAmount: number }> = [];
+                    const branchesData: Array<{
+                      branchId: number;
+                      branchName: string;
+                      legalEntityName: string;
+                      address: string;
+                      items: Array<{ oilType: string; quantity: number; pricePerLiter: number; totalAmount: number }>;
+                      totalAmount: number;
+                    }> = [];
+                    
+                    // จัดกลุ่มตามสาขา
+                    const branchGroups = new Map<number, typeof editingOrders>();
+                    editingOrders.forEach(order => {
+                      if (!branchGroups.has(order.branchId)) {
+                        branchGroups.set(order.branchId, []);
+                      }
+                      branchGroups.get(order.branchId)!.push(order);
+                    });
+                    
+                    // สร้างข้อมูลแต่ละสาขา
+                    branchGroups.forEach((orders, branchId) => {
+                      const branchInfo = branches.find(b => b.id === branchId);
+                      const branchItems: typeof items = [];
+                      let branchTotal = 0;
+                      
+                      orders.forEach(order => {
+                        const price = priceMap[order.oilType] || 32.50;
+                        const totalAmount = order.quantityOrdered * price;
+                        branchItems.push({
+                          oilType: order.oilType,
+                          quantity: order.quantityOrdered,
+                          pricePerLiter: price,
+                          totalAmount: totalAmount,
+                        });
+                        branchTotal += totalAmount;
+                        
+                        // เพิ่มใน items รวม
+                        const existingItem = items.find(i => i.oilType === order.oilType);
+                        if (existingItem) {
+                          existingItem.quantity += order.quantityOrdered;
+                          existingItem.totalAmount += totalAmount;
+                        } else {
+                          items.push({
+                            oilType: order.oilType,
+                            quantity: order.quantityOrdered,
+                            pricePerLiter: price,
+                            totalAmount: totalAmount,
+                          });
+                        }
+                      });
+                      
+                      branchesData.push({
+                        branchId: branchId,
+                        branchName: orders[0].branchName,
+                        legalEntityName: orders[0].legalEntityName,
+                        address: branchInfo?.address || "",
+                        items: branchItems,
+                        totalAmount: branchTotal,
+                      });
+                    });
+                    
+                    const totalAmount = items.reduce((sum, item) => sum + item.totalAmount, 0);
+                    
+                    // สร้างข้อมูลบิล
+                    const billData = {
+                      orderNo,
+                      supplierOrderNo,
+                      billNo,
+                      orderDate,
+                      deliveryDate,
+                      items,
+                      totalAmount,
+                      branches: branchesData,
+                      status: "ส่งแล้ว",
+                      approvedBy: "คุณนิด",
+                      approvedAt: new Date().toLocaleString('th-TH', { 
+                        year: 'numeric', 
+                        month: '2-digit', 
+                        day: '2-digit', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      }),
+                    };
+                    
+                    // Navigate ไปยังหน้า PurchaseBook พร้อมข้อมูลบิล
+                    navigate('/app/gas-station/purchase-book', {
+                      state: {
+                        newBill: billData,
+                        fromOrders: true,
+                      }
+                    });
+                    
                     setShowConsolidateModal(false);
                   }}
                       className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
@@ -1845,7 +2106,7 @@ export default function Orders() {
                   </button>
                   {selectedApprovedOrder.billNo && (
                     <NavLink
-                      to="/app/gas-station/purchase-bills"
+                      to="/app/gas-station/purchase-book"
                       className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 flex items-center gap-2"
                     >
                       <Receipt className="w-4 h-4" />

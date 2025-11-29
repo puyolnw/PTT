@@ -17,7 +17,9 @@ import {
   BarChart3,
   ChevronDown,
   ChevronUp,
-  Receipt,
+  TrendingDown,
+  FilePlus,
+  RotateCcw,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -52,8 +54,8 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
       label: "การสั่งซื้อและรับน้ำมัน",
       icon: ShoppingCart,
       items: [
+        { to: "/app/gas-station/station-order", icon: FilePlus, label: "สั่งน้ำมันของปั้ม" },
         { to: "/app/gas-station/orders", icon: ShoppingCart, label: "การสั่งซื้อน้ำมัน" },
-        { to: "/app/gas-station/purchase-bills", icon: Receipt, label: "บิลสั่งซื้อน้ำมัน" },
         { to: "/app/gas-station/receiving", icon: Package, label: "การรับน้ำมัน" },
         { to: "/app/gas-station/payments", icon: CreditCard, label: "การชำระเงินซื้อน้ำมัน" },
       ],
@@ -87,6 +89,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
   // Other items (not in groups)
   const otherItems = [
     { to: "/app/gas-station/stock", icon: Package, label: "สต็อกน้ำมัน" },
+    { to: "/app/gas-station/update-stock", icon: RotateCcw, label: "อัพเดตสต็อก" },
     { to: "/app/gas-station/quality-test", icon: TestTube, label: "การทดสอบน้ำมัน" },
     { to: "/app/gas-station/deposit-slips", icon: FileCheck, label: "การจัดการใบฝากน้ำมัน" },
     { to: "/app/gas-station/lubricants", icon: Wrench, label: "น้ำมันหล่อลื่น" },
@@ -97,6 +100,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
   // Reports and Settings
   const reportItems = [
     { to: "/app/gas-station/reports", icon: BarChart3, label: "รายงานและแดชบอร์ด" },
+    { to: "/app/gas-station/oil-deficit-report", icon: TrendingDown, label: "รายงานยอดขาดน้ำมัน" },
     { to: "/app/gas-station/settings", icon: SettingsIcon, label: "ตั้งค่า" },
   ];
 

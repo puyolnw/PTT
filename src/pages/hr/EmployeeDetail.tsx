@@ -201,7 +201,7 @@ export default function EmployeeDetail() {
   // Leave statistics
   const totalLeaveDays = allLeaves.reduce((sum, leave) => sum + leave.days, 0);
   const approvedLeaves = allLeaves.filter(l => l.status === "อนุมัติแล้ว");
-  const pendingLeaves = allLeaves.filter(l => l.status === "รออนุมัติ");
+  const pendingLeaves = allLeaves.filter(l => l.status === "รอผู้จัดการ" || l.status === "รอ HR" || l.status === "รอหัวหน้าสถานี");
   const rejectedLeaves = allLeaves.filter(l => l.status === "ไม่อนุมัติ");
   
   // Group leaves by type
@@ -212,7 +212,7 @@ export default function EmployeeDetail() {
     acc[leave.type].count++;
     acc[leave.type].days += leave.days;
     if (leave.status === "อนุมัติแล้ว") acc[leave.type].approved++;
-    else if (leave.status === "รออนุมัติ") acc[leave.type].pending++;
+    else if (leave.status === "รอผู้จัดการ" || leave.status === "รอ HR" || leave.status === "รอหัวหน้าสถานี") acc[leave.type].pending++;
     else if (leave.status === "ไม่อนุมัติ") acc[leave.type].rejected++;
     return acc;
   }, {} as Record<string, { count: number; days: number; approved: number; pending: number; rejected: number }>);

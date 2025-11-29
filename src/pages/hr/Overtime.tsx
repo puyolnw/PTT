@@ -1,24 +1,14 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { 
-  Timer, 
-  AlertCircle, 
-  Play, 
-  Pause, 
-  Calendar, 
-  ChevronLeft, 
-  ChevronRight, 
   Plus, 
   Clock,
   CheckCircle,
   XCircle,
   Send,
   FileText,
-  Users,
-  DollarSign,
-  TrendingUp
 } from "lucide-react";
-import { employees, shifts, attendanceLogs as initialAttendanceLogs, type AttendanceLog } from "@/data/mockData";
+import { employees } from "@/data/mockData";
 
 // ========== OT Request Types ==========
 type OTRequestStatus = "pending_manager" | "pending_hr" | "pending_admin" | "approved" | "rejected" | "completed";
@@ -180,9 +170,7 @@ export default function Overtime() {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
-  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<OTRequest | null>(null);
   
   // Form states
   const [requestForm, setRequestForm] = useState({
@@ -229,7 +217,7 @@ export default function Overtime() {
   }, [otRequests, searchQuery, selectedCategory, selectedMonth]);
 
   // Group requests by status
-  const pendingManagerRequests = filteredRequests.filter(r => r.status === "pending_manager");
+  // const pendingManagerRequests = filteredRequests.filter(r => r.status === "pending_manager"); // Reserved for future use
   const pendingHRRequests = filteredRequests.filter(r => r.status === "pending_hr");
   const pendingAdminRequests = filteredRequests.filter(r => r.status === "pending_admin");
   const approvedRequests = filteredRequests.filter(r => r.status === "approved");
@@ -799,7 +787,6 @@ export default function Overtime() {
                 <select
                   value={requestForm.empCode}
                   onChange={(e) => {
-                    const emp = employees.find(emp => emp.code === e.target.value);
                     setRequestForm({ ...requestForm, empCode: e.target.value });
                   }}
                   className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -813,7 +800,6 @@ export default function Overtime() {
                 </select>
               </div>
               {requestForm.empCode && (() => {
-                const emp = employees.find(e => e.code === requestForm.empCode);
                 const baseSalary = getEmployeeBaseSalary(requestForm.empCode);
                 return (
                   <div className="p-3 bg-soft/50 rounded-lg border border-app">

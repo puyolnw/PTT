@@ -71,7 +71,7 @@ export default function Dashboard() {
   const totalOtHours = attendanceToday.reduce((sum, log) => sum + (log.otHours ?? 0), 0);
   const totalOtAmount = attendanceToday.reduce((sum, log) => sum + (log.otAmount ?? 0), 0);
 
-  const pendingLeaves = leaves.filter((leave) => leave.status === "รออนุมัติ");
+  const pendingLeaves = leaves.filter((leave) => leave.status === "รอผู้จัดการ" || leave.status === "รอ HR" || leave.status === "รอหัวหน้าสถานี");
   const upcomingLeaves = leaves
     .filter((leave) => new Date(leave.fromDate) >= referenceDate)
     .sort((a, b) => (a.fromDate > b.fromDate ? 1 : -1));

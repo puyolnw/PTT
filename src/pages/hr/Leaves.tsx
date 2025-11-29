@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { UserPlus, Calendar, CheckCircle, Clock, X, View } from "lucide-react";
+import { UserPlus, Calendar, CheckCircle, Clock, X, View, FileText, Download, Upload, UserCheck, AlertCircle, Printer } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import { leaves as initialLeaves, attendanceLogs as initialAttendanceLogs, employees, shifts, type Leave, type AttendanceLog } from "@/data/mockData";
@@ -19,6 +19,9 @@ export default function Leaves() {
   // Modal states
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedLeave, setSelectedLeave] = useState<Leave | null>(null);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   // Form states for record leave
   const [recordForm, setRecordForm] = useState({
@@ -27,7 +30,14 @@ export default function Leaves() {
     type: "" as Leave["type"] | "",
     fromDate: "",
     toDate: "",
-    reason: ""
+    reason: "",
+    isPartialLeave: false,
+    fromTime: "",
+    toTime: "",
+    replacementEmpCode: "",
+    replacementEmpName: "",
+    attachments: [] as Array<{ id: string; fileName: string; fileUrl: string; fileSize: number; uploadedAt: string }>,
+    createdBy: "manager" as "employee" | "manager" | "hr"
   });
 
   // Form states for edit leave
@@ -104,12 +114,26 @@ export default function Leaves() {
   }, [leaves, searchQuery, typeFilter, statusFilter, categoryFilter, deptFilter, shiftFilter]);
 
   const types = Array.from(new Set(leaves.map((l) => l.type)));
-  // Include all statuses including "รออนุมัติ"
+  // Include all statuses
   const statuses = Array.from(new Set(leaves.map((l) => l.status)));
+
+  // Get employees in same department for replacement
+  const getEmployeesInSameDept = (empCode: string) => {
+    const employee = employees.find(e => e.code === empCode);
+    if (!employee) return [];
+    return employees.filter(e => 
+      e.code !== empCode && 
+      e.dept === employee.dept && 
+      e.status === "Active"
+    );
+  };
 
   // Calculate statistics
   const totalLeaves = leaves.length;
   const approvedLeaves = leaves.filter(l => l.status === "อนุมัติแล้ว");
+  const pendingManager = leaves.filter(l => l.status === "รอผู้จัดการ");
+  const pendingHR = leaves.filter(l => l.status === "รอ HR");
+  const pendingAdmin = leaves.filter(l => l.status === "รอหัวหน้าสถานี");
   const totalLeaveDays = leaves.reduce((sum, l) => sum + l.days, 0);
   const approvedDays = approvedLeaves.reduce((sum, l) => sum + l.days, 0);
 
@@ -156,14 +180,48 @@ export default function Leaves() {
     return dates;
   };
 
-  // Handle record leave for employee (HR records directly)
+  // Handle file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      const fileId = `file-${Date.now()}-${Math.random()}`;
+      const newAttachment = {
+        id: fileId,
+        fileName: file.name,
+        fileUrl: URL.createObjectURL(file), // Mock URL
+        fileSize: file.size,
+        uploadedAt: new Date().toISOString()
+      };
+      setRecordForm({
+        ...recordForm,
+        attachments: [...recordForm.attachments, newAttachment]
+      });
+    });
+  };
+
+  // Handle remove attachment
+  const handleRemoveAttachment = (fileId: string) => {
+    setRecordForm({
+      ...recordForm,
+      attachments: recordForm.attachments.filter(a => a.id !== fileId)
+    });
+  };
+
+  // Handle record leave for employee (Manager/HR records)
   const handleRecordLeave = () => {
     if (!recordForm.empCode || !recordForm.type || !recordForm.fromDate || !recordForm.toDate) {
       alert("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
 
-    const days = calculateDays(recordForm.fromDate, recordForm.toDate);
+    if (recordForm.isPartialLeave && (!recordForm.fromTime || !recordForm.toTime)) {
+      alert("กรุณากรอกเวลาเริ่มและเวลาสิ้นสุดสำหรับการลาระหว่างวัน");
+      return;
+    }
+
+    const days = recordForm.isPartialLeave ? 0.5 : calculateDays(recordForm.fromDate, recordForm.toDate);
     
     const newLeave: Leave = {
       id: Math.max(...leaves.map(l => l.id), 0) + 1,
@@ -173,8 +231,16 @@ export default function Leaves() {
       fromDate: recordForm.fromDate,
       toDate: recordForm.toDate,
       days: days,
-      status: "อนุมัติแล้ว", // Auto-approved when HR records
-      reason: recordForm.reason || ""
+      status: recordForm.createdBy === "hr" ? "รอหัวหน้าสถานี" : "รอผู้จัดการ",
+      reason: recordForm.reason || "",
+      isPartialLeave: recordForm.isPartialLeave,
+      fromTime: recordForm.fromTime || undefined,
+      toTime: recordForm.toTime || undefined,
+      replacementEmpCode: recordForm.replacementEmpCode || undefined,
+      replacementEmpName: recordForm.replacementEmpName || undefined,
+      attachments: recordForm.attachments.length > 0 ? recordForm.attachments : undefined,
+      submittedDate: new Date().toISOString().split('T')[0],
+      createdBy: recordForm.createdBy
     };
 
     setLeaves([...leaves, newLeave]);
@@ -212,15 +278,22 @@ export default function Leaves() {
     setRecordForm({
       empCode: "",
       empName: "",
-      type: "",
+      type: "" as Leave["type"] | "",
       fromDate: "",
       toDate: "",
-      reason: ""
+      reason: "",
+      isPartialLeave: false,
+      fromTime: "",
+      toTime: "",
+      replacementEmpCode: "",
+      replacementEmpName: "",
+      attachments: [],
+      createdBy: "manager"
     });
     setIsRecordModalOpen(false);
     
     // Show success message
-    alert(`บันทึกการลาสำเร็จ! บันทึกการลา ${days} วันสำหรับ ${recordForm.empName}`);
+    alert(`บันทึกการลาสำเร็จ! บันทึกการลา ${days} ${recordForm.isPartialLeave ? 'ชั่วโมง' : 'วัน'} สำหรับ ${recordForm.empName}`);
   };
 
   // Handle employee selection for record leave
@@ -235,19 +308,6 @@ export default function Leaves() {
     }
   };
 
-  // Handle edit leave (for early return)
-  const handleEditLeave = (leave: Leave) => {
-    setEditForm({
-      id: leave.id,
-      empCode: leave.empCode,
-      empName: leave.empName,
-      type: leave.type,
-      fromDate: leave.fromDate,
-      toDate: leave.toDate,
-      reason: leave.reason || ""
-    });
-    setIsEditModalOpen(true);
-  };
 
   // Handle update leave
   const handleUpdateLeave = () => {
@@ -312,17 +372,56 @@ export default function Leaves() {
     alert(`แก้ไขการลาสำเร็จ! วันที่สิ้นสุดเปลี่ยนเป็น ${editForm.toDate} (${newDays} วัน)`);
   };
 
-  // Handle approve leave
-  const handleApproveLeave = (leave: Leave) => {
-    if (!confirm(`คุณต้องการอนุมัติการลาของ ${leave.empName} (${leave.days} วัน) หรือไม่?`)) {
-      return;
-    }
-
+  // Handle approve leave by manager
+  const handleManagerApprove = (leave: Leave) => {
+    const comment = prompt("ความคิดเห็น (ถ้ามี):");
     const updatedLeaves = leaves.map(l => {
       if (l.id === leave.id) {
         return {
           ...l,
-          status: "อนุมัติแล้ว" as Leave["status"]
+          status: "รอ HR" as Leave["status"],
+          managerApprovedDate: new Date().toISOString().split('T')[0],
+          managerComment: comment || undefined
+        };
+      }
+      return l;
+    });
+    setLeaves(updatedLeaves);
+    alert(`อนุมัติการลาแล้ว ส่งต่อให้ HR`);
+  };
+
+  // Handle approve leave by HR
+  const handleHRApprove = (leave: Leave) => {
+    const comment = prompt("ความคิดเห็น (ถ้ามี):");
+    const updatedLeaves = leaves.map(l => {
+      if (l.id === leave.id) {
+        return {
+          ...l,
+          status: "รอหัวหน้าสถานี" as Leave["status"],
+          hrApprovedDate: new Date().toISOString().split('T')[0],
+          hrComment: comment || undefined
+        };
+      }
+      return l;
+    });
+    setLeaves(updatedLeaves);
+    alert(`อนุมัติการลาแล้ว ส่งต่อให้หัวหน้าสถานี`);
+  };
+
+  // Handle approve leave by admin
+  const handleAdminApprove = (leave: Leave) => {
+    if (!confirm(`คุณต้องการอนุมัติการลาของ ${leave.empName} (${leave.days} ${leave.isPartialLeave ? 'ชั่วโมง' : 'วัน'}) หรือไม่?`)) {
+      return;
+    }
+
+    const comment = prompt("ความคิดเห็น (ถ้ามี):");
+    const updatedLeaves = leaves.map(l => {
+      if (l.id === leave.id) {
+        return {
+          ...l,
+          status: "อนุมัติแล้ว" as Leave["status"],
+          adminApprovedDate: new Date().toISOString().split('T')[0],
+          adminComment: comment || undefined
         };
       }
       return l;
@@ -362,16 +461,18 @@ export default function Leaves() {
   };
 
   // Handle reject leave
-  const handleRejectLeave = (leave: Leave) => {
-    if (!confirm(`คุณต้องการปฏิเสธการลาของ ${leave.empName} (${leave.days} วัน) หรือไม่?`)) {
+  const handleRejectLeave = (leave: Leave, rejectedBy: "manager" | "hr" | "admin") => {
+    if (!confirm(`คุณต้องการปฏิเสธการลาของ ${leave.empName} (${leave.days} ${leave.isPartialLeave ? 'ชั่วโมง' : 'วัน'}) หรือไม่?`)) {
       return;
     }
 
+    const comment = prompt("ระบุเหตุผลการปฏิเสธ:");
     const updatedLeaves = leaves.map(l => {
       if (l.id === leave.id) {
         return {
           ...l,
-          status: "ไม่อนุมัติ" as Leave["status"]
+          status: "ไม่อนุมัติ" as Leave["status"],
+          [`${rejectedBy}Comment`]: comment || undefined
         };
       }
       return l;
@@ -379,6 +480,25 @@ export default function Leaves() {
 
     setLeaves(updatedLeaves);
     alert(`ปฏิเสธการลาสำเร็จ! ${leave.empName}`);
+  };
+
+  // Handle print leave form
+  const handlePrintLeave = (leave: Leave) => {
+    setSelectedLeave(leave);
+    setIsPrintModalOpen(true);
+    
+    // Update printed info
+    const updatedLeaves = leaves.map(l => {
+      if (l.id === leave.id) {
+        return {
+          ...l,
+          printedBy: "HR",
+          printedDate: new Date().toISOString().split('T')[0]
+        };
+      }
+      return l;
+    });
+    setLeaves(updatedLeaves);
   };
 
   return (
@@ -461,6 +581,28 @@ export default function Leaves() {
               </p>
               <p className="text-xs text-muted mt-1">
                 {currentLeaves.reduce((sum, l) => sum + l.days, 0)} วัน / {upcomingLeaves.reduce((sum, l) => sum + l.days, 0)} วัน
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-soft border border-app rounded-xl p-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-yellow-500/20 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-yellow-400" />
+            </div>
+            <div>
+              <p className="text-xs text-muted">รออนุมัติ</p>
+              <p className="text-lg font-bold text-yellow-400">
+                {pendingManager.length} / {pendingHR.length} / {pendingAdmin.length}
+              </p>
+              <p className="text-xs text-muted mt-1">
+                ผู้จัดการ / HR / หัวหน้าสถานี
               </p>
             </div>
           </div>
@@ -639,8 +781,11 @@ export default function Leaves() {
                 <th className="px-6 py-4 text-center text-sm font-semibold text-app">
                   สถานะ
                 </th>
-                <th className="px-6 py-4 text-center text-sm font-semibold text-app">
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-app">
                   การจัดการ
+                </th>
+                <th className="px-6 py-4 text-center text-sm font-semibold text-app">
+                  พิมพ์ใบลา
                 </th>
               </tr>
             </thead>
@@ -691,42 +836,104 @@ export default function Leaves() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      {leave.status === "รออนุมัติ" ? (
+                      {leave.status === "รอผู้จัดการ" ? (
                         <>
                           <button
-                            onClick={() => handleApproveLeave(leave)}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 
-                                     text-emerald-400 rounded-lg transition-all duration-200 text-sm font-medium
-                                     border border-emerald-500/30 hover:border-emerald-500/50"
-                            title="อนุมัติการลา"
+                            onClick={() => handleManagerApprove(leave)}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 
+                                     text-emerald-400 rounded-lg transition-all duration-200 text-xs font-medium
+                                     border border-emerald-500/30"
+                            title="อนุมัติ (ส่งต่อ HR)"
                           >
-                            <CheckCircle className="w-4 h-4" />
+                            <CheckCircle className="w-3 h-3" />
                             อนุมัติ
                           </button>
                           <button
-                            onClick={() => handleRejectLeave(leave)}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 
-                                     text-red-400 rounded-lg transition-all duration-200 text-sm font-medium
-                                     border border-red-500/30 hover:border-red-500/50"
-                            title="ปฏิเสธการลา"
+                            onClick={() => handleRejectLeave(leave, "manager")}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 
+                                     text-red-400 rounded-lg transition-all duration-200 text-xs font-medium
+                                     border border-red-500/30"
+                            title="ปฏิเสธ"
                           >
-                            <X className="w-4 h-4" />
-                            ยกเลิก
+                            <X className="w-3 h-3" />
+                          </button>
+                        </>
+                      ) : leave.status === "รอ HR" ? (
+                        <>
+                          <button
+                            onClick={() => handleHRApprove(leave)}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 
+                                     text-emerald-400 rounded-lg transition-all duration-200 text-xs font-medium
+                                     border border-emerald-500/30"
+                            title="อนุมัติ (ส่งต่อหัวหน้าสถานี)"
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                            อนุมัติ
+                          </button>
+                          <button
+                            onClick={() => handleRejectLeave(leave, "hr")}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 
+                                     text-red-400 rounded-lg transition-all duration-200 text-xs font-medium
+                                     border border-red-500/30"
+                            title="ปฏิเสธ"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </>
+                      ) : leave.status === "รอหัวหน้าสถานี" ? (
+                        <>
+                          <button
+                            onClick={() => handleAdminApprove(leave)}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 
+                                     text-emerald-400 rounded-lg transition-all duration-200 text-xs font-medium
+                                     border border-emerald-500/30"
+                            title="อนุมัติ"
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                            อนุมัติ
+                          </button>
+                          <button
+                            onClick={() => handleRejectLeave(leave, "admin")}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 
+                                     text-red-400 rounded-lg transition-all duration-200 text-xs font-medium
+                                     border border-red-500/30"
+                            title="ปฏิเสธ"
+                          >
+                            <X className="w-3 h-3" />
                           </button>
                         </>
                       ) : (
                         <button
-                          onClick={() => handleEditLeave(leave)}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-ptt-blue/20 hover:bg-ptt-blue/30 
-                                   text-ptt-cyan rounded-lg transition-all duration-200 text-sm font-medium
-                                   border border-ptt-blue/30 hover:border-ptt-blue/50"
-                          title="ตรวจสอบ"
+                          onClick={() => {
+                            setSelectedLeave(leave);
+                            setIsDetailModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-ptt-blue/20 hover:bg-ptt-blue/30 
+                                   text-ptt-cyan rounded-lg transition-all duration-200 text-xs font-medium
+                                   border border-ptt-blue/30"
+                          title="ดูรายละเอียด"
                         >
-                          <View className="w-4 h-4" />
-                          ตรวจสอบ
+                          <View className="w-3 h-3" />
+                          ดู
                         </button>
                       )}
                     </div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {leave.status === "อนุมัติแล้ว" ? (
+                      <button
+                        onClick={() => handlePrintLeave(leave)}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 
+                                 text-blue-400 rounded-lg transition-all duration-200 text-xs font-medium
+                                 border border-blue-500/30"
+                        title="พิมพ์ใบลา"
+                      >
+                        <Printer className="w-3 h-3" />
+                        พิมพ์
+                      </button>
+                    ) : (
+                      <span className="text-xs text-muted">-</span>
+                    )}
                   </td>
                 </motion.tr>
               ))}
@@ -855,7 +1062,7 @@ export default function Leaves() {
         </div>
       </ModalForm>
 
-      {/* Record Leave Modal (HR records directly) */}
+      {/* Record Leave Modal (Manager/HR records) */}
       <ModalForm
         isOpen={isRecordModalOpen}
         onClose={() => setIsRecordModalOpen(false)}
@@ -902,7 +1109,22 @@ export default function Leaves() {
               <option value="ลาป่วย">ลาป่วย</option>
               <option value="ลากิจ">ลากิจ</option>
               <option value="ลาคลอด">ลาคลอด</option>
+              <option value="ลางานศพ">ลางานศพ (3-7 วัน)</option>
             </select>
+          </div>
+
+          {/* Partial Leave Checkbox */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isPartialLeave"
+              checked={recordForm.isPartialLeave}
+              onChange={(e) => setRecordForm({ ...recordForm, isPartialLeave: e.target.checked })}
+              className="w-4 h-4 rounded border-app text-ptt-cyan focus:ring-ptt-blue"
+            />
+            <label htmlFor="isPartialLeave" className="text-sm text-app cursor-pointer">
+              ลาระหว่างวัน (ไม่ใช่ทั้งวัน)
+            </label>
           </div>
 
           <div className="grid grid-cols-2 gap-5">
@@ -928,12 +1150,117 @@ export default function Leaves() {
                 type="date"
                 value={recordForm.toDate}
                 onChange={(e) => setRecordForm({ ...recordForm, toDate: e.target.value })}
+                min={recordForm.fromDate}
                 className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
                          transition-all duration-200 hover:border-app/50 cursor-pointer"
                 required
               />
             </div>
+          </div>
+
+          {/* Partial Leave Time */}
+          {recordForm.isPartialLeave && (
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-app mb-1.5">
+                  เวลาเริ่ม <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="time"
+                  value={recordForm.fromTime}
+                  onChange={(e) => setRecordForm({ ...recordForm, fromTime: e.target.value })}
+                  className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                           text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                           transition-all duration-200 hover:border-app/50 cursor-pointer"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-app mb-1.5">
+                  เวลาสิ้นสุด <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="time"
+                  value={recordForm.toTime}
+                  onChange={(e) => setRecordForm({ ...recordForm, toTime: e.target.value })}
+                  className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                           text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                           transition-all duration-200 hover:border-app/50 cursor-pointer"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Replacement Employee */}
+          {recordForm.empCode && (
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                <UserCheck className="w-4 h-4 inline mr-1" />
+                คนมาทำงานแทน <span className="text-red-400">*</span>
+              </label>
+              <select
+                value={recordForm.replacementEmpCode}
+                onChange={(e) => {
+                  const emp = employees.find(em => em.code === e.target.value);
+                  setRecordForm({ 
+                    ...recordForm, 
+                    replacementEmpCode: e.target.value,
+                    replacementEmpName: emp?.name || ""
+                  });
+                }}
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
+                required
+              >
+                <option value="">เลือกพนักงานที่มาทำงานแทน (ในแผนกเดียวกัน)</option>
+                {getEmployeesInSameDept(recordForm.empCode).map((emp) => (
+                  <option key={emp.id} value={emp.code}>
+                    {emp.code} - {emp.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted">ต้องมีคนมาทำงานแทนในแผนกของตัวเอง</p>
+            </div>
+          )}
+
+          {/* File Upload */}
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
+              <Upload className="w-4 h-4 inline mr-1" />
+              แนบเอกสาร (ถ้ามี)
+            </label>
+            <input
+              type="file"
+              multiple
+              onChange={handleFileUpload}
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50 cursor-pointer"
+            />
+            {recordForm.attachments.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {recordForm.attachments.map((file) => (
+                  <div key={file.id} className="flex items-center justify-between p-2 bg-soft/50 border border-app rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-ptt-cyan" />
+                      <span className="text-sm text-app">{file.fileName}</span>
+                      <span className="text-xs text-muted">({(file.fileSize / 1024).toFixed(2)} KB)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAttachment(file.id)}
+                      className="text-red-400 hover:text-red-500"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted">พนักงานต้องแนบเอกสารที่ตนเองลา (เช่น ใบรับรองแพทย์, เอกสารอื่นๆ)</p>
           </div>
 
           <div className="space-y-2">
@@ -962,16 +1289,319 @@ export default function Leaves() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-app mb-1">จำนวนวันลา</p>
+                  <p className="text-sm font-semibold text-app mb-1">จำนวน{recordForm.isPartialLeave ? 'ชั่วโมง' : 'วัน'}ลา</p>
                   <p className="text-xs text-muted">
-                    รวมทั้งหมด <span className="text-ptt-cyan font-bold text-base">{calculateDays(recordForm.fromDate, recordForm.toDate)}</span> วัน
+                    รวมทั้งหมด <span className="text-ptt-cyan font-bold text-base">
+                      {recordForm.isPartialLeave ? '0.5' : calculateDays(recordForm.fromDate, recordForm.toDate)}
+                    </span> {recordForm.isPartialLeave ? 'ชั่วโมง' : 'วัน'}
                   </p>
                 </div>
               </div>
             </div>
           )}
+
+          <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <p className="text-xs text-yellow-400">
+              ⚠️ <strong>หมายเหตุ:</strong> กรณีลาเกินกำหนด มีผลต่อการประเมินเงินเดือนและการทดลองงาน
+            </p>
+          </div>
         </div>
       </ModalForm>
+
+      {/* Detail Modal */}
+      {isDetailModalOpen && selectedLeave && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-soft border border-app rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            <div className="sticky top-0 px-6 py-4 border-b border-app bg-soft flex items-center justify-between">
+              <h3 className="text-xl font-bold text-app">รายละเอียดการลา</h3>
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="text-muted hover:text-app"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              {/* Employee Info */}
+              <div className="bg-soft/50 border border-app rounded-xl p-4">
+                <h4 className="font-semibold text-app mb-3">ข้อมูลพนักงาน</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-muted mb-1">รหัสพนักงาน</p>
+                    <p className="text-sm font-medium text-app">{selectedLeave.empCode}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-1">ชื่อ-สกุล</p>
+                    <p className="text-sm font-medium text-app">{selectedLeave.empName}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Leave Info */}
+              <div className="bg-soft/50 border border-app rounded-xl p-4">
+                <h4 className="font-semibold text-app mb-3">ข้อมูลการลา</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-muted mb-1">ประเภทการลา</p>
+                    <p className="text-sm font-medium text-app">{selectedLeave.type}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-1">จำนวน{selectedLeave.isPartialLeave ? 'ชั่วโมง' : 'วัน'}</p>
+                    <p className="text-sm font-medium text-app">
+                      {selectedLeave.days} {selectedLeave.isPartialLeave ? 'ชั่วโมง' : 'วัน'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-1">วันที่เริ่ม</p>
+                    <p className="text-sm font-medium text-app">{selectedLeave.fromDate}</p>
+                    {selectedLeave.fromTime && (
+                      <p className="text-xs text-muted">เวลา: {selectedLeave.fromTime}</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-1">วันที่สิ้นสุด</p>
+                    <p className="text-sm font-medium text-app">{selectedLeave.toDate}</p>
+                    {selectedLeave.toTime && (
+                      <p className="text-xs text-muted">เวลา: {selectedLeave.toTime}</p>
+                    )}
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-muted mb-1">เหตุผล</p>
+                    <p className="text-sm text-app">{selectedLeave.reason || "-"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Replacement Employee */}
+              {selectedLeave.replacementEmpCode && (
+                <div className="bg-soft/50 border border-app rounded-xl p-4">
+                  <h4 className="font-semibold text-app mb-3 flex items-center gap-2">
+                    <UserCheck className="w-4 h-4" />
+                    คนมาทำงานแทน
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted mb-1">รหัสพนักงาน</p>
+                      <p className="text-sm font-medium text-app">{selectedLeave.replacementEmpCode}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted mb-1">ชื่อ-สกุล</p>
+                      <p className="text-sm font-medium text-app">{selectedLeave.replacementEmpName}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Attachments */}
+              {selectedLeave.attachments && selectedLeave.attachments.length > 0 && (
+                <div className="bg-soft/50 border border-app rounded-xl p-4">
+                  <h4 className="font-semibold text-app mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    เอกสารแนบ
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedLeave.attachments.map((file) => (
+                      <div key={file.id} className="flex items-center justify-between p-2 bg-soft border border-app rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-ptt-cyan" />
+                          <span className="text-sm text-app">{file.fileName}</span>
+                          <span className="text-xs text-muted">({(file.fileSize / 1024).toFixed(2)} KB)</span>
+                        </div>
+                        <button
+                          onClick={() => window.open(file.fileUrl, '_blank')}
+                          className="text-ptt-cyan hover:text-ptt-blue"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Workflow Status */}
+              <div className="bg-soft/50 border border-app rounded-xl p-4">
+                <h4 className="font-semibold text-app mb-3">สถานะการอนุมัติ</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-app">ผู้จัดการแผนก</span>
+                    {selectedLeave.managerApprovedDate ? (
+                      <span className="text-xs text-green-400">✓ อนุมัติแล้ว ({selectedLeave.managerApprovedDate})</span>
+                    ) : selectedLeave.status === "รอผู้จัดการ" ? (
+                      <span className="text-xs text-yellow-400">⏳ รออนุมัติ</span>
+                    ) : (
+                      <span className="text-xs text-muted">-</span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-app">HR</span>
+                    {selectedLeave.hrApprovedDate ? (
+                      <span className="text-xs text-green-400">✓ อนุมัติแล้ว ({selectedLeave.hrApprovedDate})</span>
+                    ) : selectedLeave.status === "รอ HR" ? (
+                      <span className="text-xs text-yellow-400">⏳ รออนุมัติ</span>
+                    ) : (
+                      <span className="text-xs text-muted">-</span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-app">หัวหน้าสถานี</span>
+                    {selectedLeave.adminApprovedDate ? (
+                      <span className="text-xs text-green-400">✓ อนุมัติแล้ว ({selectedLeave.adminApprovedDate})</span>
+                    ) : selectedLeave.status === "รอหัวหน้าสถานี" ? (
+                      <span className="text-xs text-yellow-400">⏳ รออนุมัติ</span>
+                    ) : (
+                      <span className="text-xs text-muted">-</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Comments */}
+              {(selectedLeave.managerComment || selectedLeave.hrComment || selectedLeave.adminComment) && (
+                <div className="bg-soft/50 border border-app rounded-xl p-4">
+                  <h4 className="font-semibold text-app mb-3">ความคิดเห็น</h4>
+                  <div className="space-y-2">
+                    {selectedLeave.managerComment && (
+                      <div>
+                        <p className="text-xs text-muted mb-1">ผู้จัดการ:</p>
+                        <p className="text-sm text-app">{selectedLeave.managerComment}</p>
+                      </div>
+                    )}
+                    {selectedLeave.hrComment && (
+                      <div>
+                        <p className="text-xs text-muted mb-1">HR:</p>
+                        <p className="text-sm text-app">{selectedLeave.hrComment}</p>
+                      </div>
+                    )}
+                    {selectedLeave.adminComment && (
+                      <div>
+                        <p className="text-xs text-muted mb-1">หัวหน้าสถานี:</p>
+                        <p className="text-sm text-app">{selectedLeave.adminComment}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="sticky bottom-0 px-6 py-4 border-t border-app bg-soft flex justify-end gap-2">
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-4 py-2 bg-soft border border-app hover:bg-soft/80 text-app rounded-lg"
+              >
+                ปิด
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Print Leave Form Modal */}
+      {isPrintModalOpen && selectedLeave && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-soft border border-app rounded-2xl shadow-2xl max-w-2xl w-full"
+          >
+            <div className="sticky top-0 px-6 py-4 border-b border-app bg-soft flex items-center justify-between">
+              <h3 className="text-xl font-bold text-app flex items-center gap-2">
+                <Printer className="w-5 h-5" />
+                พิมพ์ใบลา
+              </h3>
+              <button
+                onClick={() => setIsPrintModalOpen(false)}
+                className="text-muted hover:text-app"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="bg-white border-2 border-gray-300 rounded-lg p-8 space-y-6" id="leave-form-print">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold mb-4">ใบลา</h2>
+                </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-semibold">รหัสพนักงาน:</p>
+                      <p className="text-sm">{selectedLeave.empCode}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">ชื่อ-สกุล:</p>
+                      <p className="text-sm">{selectedLeave.empName}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">ประเภทการลา:</p>
+                    <p className="text-sm">{selectedLeave.type}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-semibold">วันที่เริ่ม:</p>
+                      <p className="text-sm">{selectedLeave.fromDate} {selectedLeave.fromTime && `เวลา ${selectedLeave.fromTime}`}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">วันที่สิ้นสุด:</p>
+                      <p className="text-sm">{selectedLeave.toDate} {selectedLeave.toTime && `เวลา ${selectedLeave.toTime}`}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">จำนวน{selectedLeave.isPartialLeave ? 'ชั่วโมง' : 'วัน'}:</p>
+                    <p className="text-sm">{selectedLeave.days} {selectedLeave.isPartialLeave ? 'ชั่วโมง' : 'วัน'}</p>
+                  </div>
+                  {selectedLeave.replacementEmpName && (
+                    <div>
+                      <p className="text-sm font-semibold">คนมาทำงานแทน:</p>
+                      <p className="text-sm">{selectedLeave.replacementEmpName} ({selectedLeave.replacementEmpCode})</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold">เหตุผล:</p>
+                    <p className="text-sm">{selectedLeave.reason || "-"}</p>
+                  </div>
+                  <div className="mt-8 pt-4 border-t border-gray-300">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <p className="text-sm font-semibold mb-8">ผู้ยื่นลา</p>
+                        <p className="text-sm">({selectedLeave.empName})</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold mb-8">ผู้จัดการแผนก</p>
+                        <p className="text-sm">(ลงนาม)</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold mb-8">หัวหน้าสถานี</p>
+                        <p className="text-sm">(ลงนาม)</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={() => setIsPrintModalOpen(false)}
+                  className="px-4 py-2 bg-soft border border-app hover:bg-soft/80 text-app rounded-lg"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={() => {
+                    window.print();
+                  }}
+                  className="px-6 py-2 bg-ptt-cyan hover:bg-ptt-cyan/80 text-app rounded-lg font-semibold"
+                >
+                  <Printer className="w-4 h-4 inline mr-2" />
+                  พิมพ์
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
     </div>
   );

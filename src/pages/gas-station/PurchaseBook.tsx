@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   FileText,
   BookOpen,
@@ -181,12 +182,58 @@ const mockPurchaseData: PurchaseItem[] = [
 ];
 
 export default function PurchaseBook() {
+  const location = useLocation();
+  const [purchaseData, setPurchaseData] = useState<PurchaseItem[]>(mockPurchaseData);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<"ทั้งหมด" | PurchaseStatus>("ทั้งหมด");
   const [selectedOilType, setSelectedOilType] = useState("ทั้งหมด");
   const [selectedItem, setSelectedItem] = useState<PurchaseItem | null>(null);
 
-  const filteredPurchases = mockPurchaseData.filter((item) => {
+  // รับข้อมูลบิลใหม่จาก Orders page
+  useEffect(() => {
+    if (location.state?.newBill && location.state?.fromOrders) {
+      const newBill = location.state.newBill;
+      
+      // แปลงข้อมูลบิลเป็น PurchaseItem format
+      const newPurchaseItems: PurchaseItem[] = newBill.branches.flatMap((branch: any) => 
+        branch.items.map((item: any, idx: number) => {
+          const receiveDate = newBill.deliveryDate; // วันที่รับ = วันที่ส่ง
+          const vatAmount = item.totalAmount * 0.07;
+          const totalWithVat = item.totalAmount + vatAmount;
+          
+          return {
+            id: `PB-${receiveDate.replace(/-/g, '')}-${String(purchaseData.length + idx + 1).padStart(3, '0')}`,
+            receiveDate: receiveDate,
+            deliveryNoteNo: `DN-${receiveDate.replace(/-/g, '')}-${String(purchaseData.length + idx + 1).padStart(3, '0')}`,
+            orderNo: newBill.orderNo,
+            supplierOrderNo: newBill.supplierOrderNo,
+            branch: branch.branchName,
+            legalEntity: branch.legalEntityName,
+            oilType: item.oilType,
+            quantityReceived: item.quantity,
+            pricePerLiter: item.pricePerLiter,
+            totalAmount: item.totalAmount,
+            vatAmount: vatAmount,
+            totalWithVat: totalWithVat,
+            status: "รอใบกำกับ" as PurchaseStatus,
+            daysSinceReceive: 0,
+          };
+        })
+      );
+      
+      // เพิ่มข้อมูลใหม่เข้าไปในรายการ
+      setPurchaseData(prev => [...newPurchaseItems, ...prev]);
+      
+      // แสดง notification หรือ highlight รายการใหม่
+      alert(`เพิ่มบิลใหม่ ${newPurchaseItems.length} รายการจากใบสั่งซื้อ ${newBill.orderNo}`);
+      
+      // Clear state เพื่อไม่ให้เพิ่มซ้ำ
+      window.history.replaceState({}, document.title);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.newBill?.orderNo]);
+
+  const filteredPurchases = purchaseData.filter((item) => {
     const matchesSearch =
       item.deliveryNoteNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.orderNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -201,14 +248,14 @@ export default function PurchaseBook() {
   });
 
   const summary = {
-    totalItems: mockPurchaseData.length,
-    totalQuantity: mockPurchaseData.reduce((sum, item) => sum + item.quantityReceived, 0),
-    totalAmount: mockPurchaseData.reduce((sum, item) => sum + item.totalAmount, 0),
-    totalVat: mockPurchaseData.reduce((sum, item) => sum + item.vatAmount, 0),
-    totalWithVat: mockPurchaseData.reduce((sum, item) => sum + item.totalWithVat, 0),
-    waitingInvoice: mockPurchaseData.filter((item) => item.status === "รอใบกำกับ").length,
-    waitingPayment: mockPurchaseData.filter((item) => item.status === "มีใบกำกับแล้ว").length,
-    paid: mockPurchaseData.filter((item) => item.status === "ชำระแล้ว").length,
+    totalItems: purchaseData.length,
+    totalQuantity: purchaseData.reduce((sum, item) => sum + item.quantityReceived, 0),
+    totalAmount: purchaseData.reduce((sum, item) => sum + item.totalAmount, 0),
+    totalVat: purchaseData.reduce((sum, item) => sum + item.vatAmount, 0),
+    totalWithVat: purchaseData.reduce((sum, item) => sum + item.totalWithVat, 0),
+    waitingInvoice: purchaseData.filter((item) => item.status === "รอใบกำกับ").length,
+    waitingPayment: purchaseData.filter((item) => item.status === "มีใบกำกับแล้ว").length,
+    paid: purchaseData.filter((item) => item.status === "ชำระแล้ว").length,
   };
 
   const getStatusBadgeClasses = (status: PurchaseStatus) => {
