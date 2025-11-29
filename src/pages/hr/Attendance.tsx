@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Clock, CheckCircle, AlertCircle, Users, Plus, FileText, ChevronLeft, ChevronRight, ArrowRightLeft, BarChart3 } from "lucide-react";
+import { Calendar, Clock, CheckCircle, AlertCircle, Users, Plus, FileText, ChevronLeft, ChevronRight, ArrowRightLeft, BarChart3, XCircle, Trash2 } from "lucide-react";
 import { attendanceLogs as initialAttendanceLogs, employees, shifts, shiftAssignments, type AttendanceLog } from "@/data/mockData";
 
 export default function Attendance() {
@@ -10,9 +10,14 @@ export default function Attendance() {
   const [statusFilter] = useState("");
   const [shiftFilter] = useState<number | "">("");
   const [categoryFilter] = useState("");
-  const [_isEditModalOpen, _setIsEditModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [_isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-  const [_selectedLog, _setSelectedLog] = useState<AttendanceLog | null>(null);
+  const [selectedLog, setSelectedLog] = useState<AttendanceLog | null>(null);
+  const [selectedCellData, setSelectedCellData] = useState<{
+    employee: typeof employees[0];
+    date: Date;
+    log: AttendanceLog | null;
+  } | null>(null);
   
   // Calendar view states
   const [viewMode, setViewMode] = useState<"list" | "calendar">("calendar");
@@ -27,11 +32,11 @@ export default function Attendance() {
   });
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedShift, setSelectedShift] = useState<number | "">("");
-  const [_editForm, _setEditForm] = useState({
+  const [editForm, setEditForm] = useState({
     checkIn: "",
     checkOut: "",
     reason: "",
-    status: "" as AttendanceLog["status"] | ""
+    status: "ตรงเวลา" as AttendanceLog["status"]
   });
   const [_recordForm, _setRecordForm] = useState({
     empCode: "",
@@ -49,6 +54,41 @@ export default function Attendance() {
   const [assignEmployeeForm, setAssignEmployeeForm] = useState({
     empCode: ""
   });
+  
+  // Holiday management states
+  const [isHolidayModalOpen, setIsHolidayModalOpen] = useState(false);
+  const [holidays, setHolidays] = useState<Array<{ id: number; date: string; name: string; type: "holiday" | "special" }>>(() => {
+    // วันหยุดเริ่มต้น (วันสำคัญของไทย)
+    const currentYear = new Date().getFullYear();
+    return [
+      { id: 1, date: `${currentYear}-01-01`, name: "วันขึ้นปีใหม่", type: "holiday" },
+      { id: 2, date: `${currentYear}-04-13`, name: "วันสงกรานต์", type: "holiday" },
+      { id: 3, date: `${currentYear}-04-14`, name: "วันสงกรานต์", type: "holiday" },
+      { id: 4, date: `${currentYear}-04-15`, name: "วันสงกรานต์", type: "holiday" },
+      { id: 5, date: `${currentYear}-05-01`, name: "วันแรงงานแห่งชาติ", type: "holiday" },
+      { id: 6, date: `${currentYear}-12-05`, name: "วันพ่อแห่งชาติ", type: "holiday" },
+      { id: 7, date: `${currentYear}-12-10`, name: "วันรัฐธรรมนูญ", type: "holiday" },
+      { id: 8, date: `${currentYear}-12-31`, name: "วันสิ้นปี", type: "holiday" },
+    ];
+  });
+  const [newHoliday, setNewHoliday] = useState({
+    date: "",
+    name: "",
+    type: "holiday" as "holiday" | "special"
+  });
+  
+  // Employee-specific holiday states
+  const [selectedHolidayDate, setSelectedHolidayDate] = useState<string>("");
+  const [selectedHolidayCategory, setSelectedHolidayCategory] = useState<string>("");
+  const [selectedHolidayEmployees, setSelectedHolidayEmployees] = useState<string[]>([]);
+  const [employeeHolidays, setEmployeeHolidays] = useState<Array<{
+    id: number;
+    date: string;
+    empCode: string;
+    empName: string;
+    category: string;
+    reason?: string;
+  }>>([]);
   
   const shiftPlanRef = useRef<HTMLDivElement | null>(null);
   const shiftColorPalette = ["bg-green-500/20", "bg-blue-500/20", "bg-purple-500/20", "bg-orange-500/20", "bg-ptt-cyan/20"];
@@ -408,6 +448,214 @@ export default function Attendance() {
     window.open("/app/hr/attendance-absence", "_blank");
   };
 
+  // Holiday management functions
+  const handleAddHoliday = () => {
+    if (!newHoliday.date || !newHoliday.name.trim()) {
+      alert("กรุณากรอกวันที่และชื่อวันหยุด");
+      return;
+    }
+
+    // ตรวจสอบว่ามีวันหยุดซ้ำหรือไม่
+    const isDuplicate = holidays.some(h => h.date === newHoliday.date);
+    if (isDuplicate) {
+      alert("วันหยุดนี้มีอยู่แล้วในระบบ");
+      return;
+    }
+
+    const newId = Math.max(...holidays.map(h => h.id), 0) + 1;
+    setHolidays([...holidays, { ...newHoliday, id: newId }]);
+    setNewHoliday({ date: "", name: "", type: "holiday" });
+    alert("เพิ่มวันหยุดสำเร็จ");
+  };
+
+  const handleDeleteHoliday = (id: number) => {
+    if (confirm("คุณต้องการลบวันหยุดนี้หรือไม่?")) {
+      setHolidays(holidays.filter(h => h.id !== id));
+      alert("ลบวันหยุดสำเร็จ");
+    }
+  };
+
+  // ตรวจสอบว่าวันที่นั้นเป็นวันหยุดหรือไม่ (สำหรับทุกคน)
+  const isHoliday = (date: Date): boolean => {
+    const dateStr = date.toISOString().split('T')[0];
+    const dayOfWeek = date.getDay();
+    
+    // ตรวจสอบวันหยุดสุดสัปดาห์
+    if (dayOfWeek === 0 || dayOfWeek === 6) return true;
+    
+    // ตรวจสอบวันหยุดพิเศษ
+    return holidays.some(h => h.date === dateStr);
+  };
+
+  // ตรวจสอบว่าพนักงานคนนี้หยุดวันนี้หรือไม่
+  const isEmployeeHoliday = (date: Date, empCode: string): boolean => {
+    const dateStr = date.toISOString().split('T')[0];
+    return employeeHolidays.some(eh => eh.date === dateStr && eh.empCode === empCode);
+  };
+
+  const getHolidayName = (date: Date): string | null => {
+    const dateStr = date.toISOString().split('T')[0];
+    const holiday = holidays.find(h => h.date === dateStr);
+    return holiday ? holiday.name : null;
+  };
+
+  // Get employees by category
+  const getEmployeesByCategory = (category: string) => {
+    return employees.filter(emp => emp.category === category && emp.status === "Active");
+  };
+
+  // Handle adding employee holiday
+  const handleAddEmployeeHoliday = () => {
+    if (!selectedHolidayDate || !selectedHolidayCategory || selectedHolidayEmployees.length === 0) {
+      alert("กรุณาเลือกวันที่ แผนก และพนักงาน");
+      return;
+    }
+
+    const newEmployeeHolidays = selectedHolidayEmployees.map(empCode => {
+      const emp = employees.find(e => e.code === empCode);
+      if (!emp) return null;
+      
+      // ตรวจสอบว่ามีข้อมูลซ้ำหรือไม่
+      const existing = employeeHolidays.find(
+        eh => eh.date === selectedHolidayDate && eh.empCode === empCode
+      );
+      if (existing) return null;
+
+      const newId = Math.max(...employeeHolidays.map(eh => eh.id), 0) + 1;
+      return {
+        id: newId,
+        date: selectedHolidayDate,
+        empCode: emp.code,
+        empName: emp.name,
+        category: emp.category || "",
+        reason: ""
+      };
+    }).filter(Boolean) as typeof employeeHolidays;
+
+    if (newEmployeeHolidays.length > 0) {
+      setEmployeeHolidays([...employeeHolidays, ...newEmployeeHolidays]);
+      setSelectedHolidayEmployees([]);
+      alert(`เพิ่มวันหยุดให้พนักงาน ${newEmployeeHolidays.length} คนสำเร็จ`);
+    } else {
+      alert("พนักงานที่เลือกมีวันหยุดในวันนี้อยู่แล้ว");
+    }
+  };
+
+  // Handle removing employee holiday
+  const handleRemoveEmployeeHoliday = (id: number) => {
+    if (confirm("คุณต้องการลบวันหยุดนี้หรือไม่?")) {
+      setEmployeeHolidays(employeeHolidays.filter(eh => eh.id !== id));
+      alert("ลบวันหยุดสำเร็จ");
+    }
+  };
+
+  // Handle cell click to edit
+  const handleCellClick = (employee: typeof employees[0], date: Date, log: AttendanceLog | null) => {
+    // Skip if it's a holiday
+    if (isHoliday(date) || isEmployeeHoliday(date, employee.code)) {
+      return;
+    }
+
+    setSelectedCellData({ employee, date, log });
+    
+    if (log) {
+      setEditForm({
+        checkIn: log.checkIn !== "-" ? log.checkIn : "",
+        checkOut: log.checkOut !== "-" ? log.checkOut : "",
+        reason: "",
+        status: log.status
+      });
+      setSelectedLog(log);
+    } else {
+      // New record
+      const empShift = employee.shiftId ? shifts.find(s => s.id === employee.shiftId) : null;
+      setEditForm({
+        checkIn: empShift ? empShift.startTime : "",
+        checkOut: empShift ? empShift.endTime : "",
+        reason: "",
+        status: "ตรงเวลา"
+      });
+      setSelectedLog(null);
+    }
+    
+    setIsEditModalOpen(true);
+  };
+
+  // Handle save edit
+  const handleSaveEdit = () => {
+    if (!selectedCellData) return;
+
+    const { employee, date, log } = selectedCellData;
+    const dateStr = date.toISOString().split('T')[0];
+
+    // Validate times
+    if (editForm.checkIn && !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(editForm.checkIn)) {
+      alert("รูปแบบเวลาเข้าไม่ถูกต้อง (ใช้รูปแบบ HH:MM)");
+      return;
+    }
+    if (editForm.checkOut && !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(editForm.checkOut)) {
+      alert("รูปแบบเวลาออกไม่ถูกต้อง (ใช้รูปแบบ HH:MM)");
+      return;
+    }
+
+    // Calculate status based on check-in time
+    let status: AttendanceLog["status"] = "ตรงเวลา";
+    if (editForm.status === "ลา" || editForm.status === "ขาดงาน") {
+      status = editForm.status;
+    } else if (editForm.checkIn) {
+      const empShift = employee.shiftId ? shifts.find(s => s.id === employee.shiftId) : null;
+      if (empShift) {
+        const [shiftHour, shiftMin] = empShift.startTime.split(':').map(Number);
+        const [checkHour, checkMin] = editForm.checkIn.split(':').map(Number);
+        const shiftMinutes = shiftHour * 60 + shiftMin;
+        const checkMinutes = checkHour * 60 + checkMin;
+        const lateMinutes = checkMinutes - shiftMinutes;
+        
+        if (lateMinutes > 0) {
+          if (lateMinutes <= 1) status = "สาย 1 นาที";
+          else if (lateMinutes <= 5) status = "สาย 5 นาที";
+          else status = "สาย 15 นาที";
+        }
+      }
+    }
+
+    // Create or update log
+    const updatedLog: AttendanceLog = {
+      id: log?.id || Date.now(),
+      empCode: employee.code,
+      empName: employee.name,
+      date: dateStr,
+      checkIn: editForm.checkIn || "-",
+      checkOut: editForm.checkOut || "-",
+      status,
+      lateMinutes: status.includes("สาย") ? (() => {
+        const empShift = employee.shiftId ? shifts.find(s => s.id === employee.shiftId) : null;
+        if (empShift && editForm.checkIn) {
+          const [shiftHour, shiftMin] = empShift.startTime.split(':').map(Number);
+          const [checkHour, checkMin] = editForm.checkIn.split(':').map(Number);
+          return (checkHour * 60 + checkMin) - (shiftHour * 60 + shiftMin);
+        }
+        return 0;
+      })() : undefined,
+      otHours: 0,
+      otAmount: 0
+    };
+
+    // In a real app, this would update the database
+    // For now, we'll just show a confirmation
+    alert(
+      `บันทึกข้อมูลสำเร็จ!\n\n` +
+      `พนักงาน: ${employee.name} (${employee.code})\n` +
+      `วันที่: ${date.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n` +
+      `เวลาเข้า: ${editForm.checkIn || "-"}\n` +
+      `เวลาออก: ${editForm.checkOut || "-"}\n` +
+      `สถานะ: ${status}`
+    );
+
+    setIsEditModalOpen(false);
+    setSelectedCellData(null);
+    setSelectedLog(null);
+  };
 
   const { days, calendarData } = getCalendarData();
 
@@ -443,6 +691,14 @@ export default function Attendance() {
           >
             <BarChart3 className="w-4 h-4 text-red-400" />
             แสดงพนักงานขาด/ลา
+          </button>
+          <button
+            onClick={() => setIsHolidayModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-soft hover:bg-soft/80 
+                     text-app border border-app rounded-xl transition-all duration-200 font-medium"
+          >
+            <XCircle className="w-4 h-4 text-orange-400" />
+            จัดการวันหยุด
           </button>
           <button
             onClick={() => {
@@ -701,7 +957,14 @@ export default function Attendance() {
                       )}
                     </td>
                     {data.attendance.map((att, dayIndex) => {
+                      // ตรวจสอบวันหยุด (วันเสาร์-อาทิตย์ และวันหยุดพิเศษ)
+                      const day = days[dayIndex];
+                      const isHolidayDay = isHoliday(day);
+                      const isEmpHoliday = isEmployeeHoliday(day, data.employee.code);
+                      const holidayName = getHolidayName(day);
+                      
                       const getCellColor = () => {
+                        if (isHolidayDay || isEmpHoliday) return "bg-gray-200/30";
                         if (!att.log) return "";
                         if (att.status === "ลา") return "bg-yellow-200/30";
                         if (att.status === "ขาดงาน") return "bg-red-200/30";
@@ -710,31 +973,105 @@ export default function Attendance() {
                       };
                       
                       const getCellContent = () => {
-                        if (!att.log) return "";
-                        if (att.status === "ลา") return "ลา";
-                        if (att.status === "ขาดงาน") return "ขาด";
-                        if (att.status?.includes("สาย")) {
-                          return att.checkIn ? att.checkIn.replace(':', '.') : "สาย";
+                        // ถ้าเป็นวันหยุดแสดง "off" (ทั้งวันหยุดทั่วไปและวันหยุดเฉพาะพนักงาน)
+                        if (isHolidayDay || isEmpHoliday) {
+                          return (
+                            <div className="flex flex-col gap-0.5">
+                              <div className="text-[10px] font-semibold text-gray-600 dark:text-gray-400">
+                                off
+                              </div>
+                              {holidayName && (
+                                <div className="text-[8px] text-gray-500 dark:text-gray-500 truncate" title={holidayName}>
+                                  {holidayName.length > 6 ? holidayName.substring(0, 6) + "..." : holidayName}
+                                </div>
+                              )}
+                            </div>
+                          );
                         }
-                        if (att.checkIn) {
-                          return att.checkIn.replace(':', '.');
+                        
+                        if (!att.log) {
+                          return (
+                            <div className="text-[9px] text-muted">-</div>
+                          );
                         }
-                        return "";
+                        
+                        if (att.status === "ลา") {
+                          return (
+                            <div className="text-[9px] font-semibold text-yellow-700 dark:text-yellow-400">
+                              ลา
+                            </div>
+                          );
+                        }
+                        
+                        if (att.status === "ขาดงาน") {
+                          return (
+                            <div className="text-[9px] font-semibold text-red-700 dark:text-red-400">
+                              ขาด
+                            </div>
+                          );
+                        }
+                        
+                        // แสดงเวลาเข้าและเวลาออก
+                        if (att.checkIn && att.checkOut && att.checkIn !== "-" && att.checkOut !== "-") {
+                          return (
+                            <div className="flex flex-col gap-0.5">
+                              <div className={`text-[9px] font-medium ${
+                                att.status?.includes("สาย") 
+                                  ? "text-orange-700 dark:text-orange-400" 
+                                  : "text-green-700 dark:text-green-400"
+                              }`}>
+                                {att.checkIn.replace(':', '.')}
+                              </div>
+                              <div className="text-[9px] text-blue-700 dark:text-blue-400">
+                                {att.checkOut.replace(':', '.')}
+                              </div>
+                            </div>
+                          );
+                        }
+                        
+                        // ถ้ามีแค่เวลาเข้า
+                        if (att.checkIn && att.checkIn !== "-") {
+                          return (
+                            <div className={`text-[9px] font-medium ${
+                              att.status?.includes("สาย") 
+                                ? "text-orange-700 dark:text-orange-400" 
+                                : "text-green-700 dark:text-green-400"
+                            }`}>
+                              {att.checkIn.replace(':', '.')}
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <div className="text-[9px] text-muted">-</div>
+                        );
                       };
                       
                       const getTooltip = () => {
-                        if (!att.log) return "";
+                        if (isHolidayDay || isEmpHoliday) {
+                          if (isEmpHoliday && !isHolidayDay) {
+                            return `วันหยุดเฉพาะพนักงาน\n${day.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+                          }
+                          if (holidayName) {
+                            return `วันหยุด - ${holidayName}\n${day.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+                          }
+                          return `วันหยุด - ${day.toLocaleDateString('th-TH', { weekday: 'long' })}`;
+                        }
+                        if (!att.log) return `วันที่ ${day.getDate()} - ไม่มีข้อมูล`;
                         let tooltip = `${att.log.date}: ${att.log.status}`;
-                        if (att.checkIn) tooltip += ` เข้า ${att.checkIn}`;
-                        if (att.checkOut) tooltip += ` ออก ${att.checkOut}`;
+                        if (att.checkIn && att.checkIn !== "-") tooltip += `\nเข้า: ${att.checkIn}`;
+                        if (att.checkOut && att.checkOut !== "-") tooltip += `\nออก: ${att.checkOut}`;
                         return tooltip;
                       };
                       
                       return (
                         <td
                           key={dayIndex}
-                          className={`px-2 py-2 text-center text-xs border-r border-app ${getCellColor()}`}
-                          title={getTooltip()}
+                          onClick={() => handleCellClick(data.employee, day, att.log || null)}
+                          className={`px-2 py-2 text-center border-r border-app ${getCellColor()} ${
+                            !isHolidayDay && !isEmpHoliday ? "cursor-pointer hover:bg-soft/70 transition-colors" : ""
+                          }`}
+                          title={getTooltip() + (!isHolidayDay && !isEmpHoliday ? "\n(คลิกเพื่อแก้ไข)" : "")}
                         >
                           {getCellContent()}
                         </td>
@@ -1171,6 +1508,469 @@ export default function Attendance() {
               >
                 <CheckCircle className="w-5 h-5" />
                 บันทึกการลงทะเบียน
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Holiday Management Modal */}
+      {isHolidayModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-soft border border-app rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 px-6 py-4 border-b border-app bg-soft flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-app font-display flex items-center gap-2">
+                  <XCircle className="w-6 h-6 text-orange-400" />
+                  จัดการวันหยุด
+                </h3>
+                <p className="text-sm text-muted mt-1">
+                  เพิ่ม แก้ไข หรือลบวันหยุดประจำปี
+                </p>
+              </div>
+              <button
+                onClick={() => setIsHolidayModalOpen(false)}
+                className="text-muted hover:text-app transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Add Holiday Form */}
+              <div className="bg-soft/50 border border-app rounded-xl p-4">
+                <h4 className="font-semibold text-app mb-4 flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-ptt-cyan" />
+                  เพิ่มวันหยุดใหม่
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs text-muted mb-2">วันที่</label>
+                    <input
+                      type="date"
+                      value={newHoliday.date}
+                      onChange={(e) => setNewHoliday({ ...newHoliday, date: e.target.value })}
+                      className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted mb-2">ชื่อวันหยุด</label>
+                    <input
+                      type="text"
+                      value={newHoliday.name}
+                      onChange={(e) => setNewHoliday({ ...newHoliday, name: e.target.value })}
+                      placeholder="เช่น วันสงกรานต์"
+                      className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted mb-2">ประเภท</label>
+                    <select
+                      value={newHoliday.type}
+                      onChange={(e) => setNewHoliday({ ...newHoliday, type: e.target.value as "holiday" | "special" })}
+                      className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm"
+                    >
+                      <option value="holiday">วันหยุดประจำ</option>
+                      <option value="special">วันหยุดพิเศษ</option>
+                    </select>
+                  </div>
+                </div>
+                <button
+                  onClick={handleAddHoliday}
+                  className="mt-4 w-full px-4 py-2 bg-ptt-cyan hover:bg-ptt-cyan/80 
+                           text-app font-semibold rounded-lg transition-all duration-200 
+                           shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  เพิ่มวันหยุด
+                </button>
+              </div>
+
+              {/* Add Employee Holiday Section */}
+              <div className="bg-soft/50 border border-app rounded-xl p-4">
+                <h4 className="font-semibold text-app mb-4 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-ptt-cyan" />
+                  เพิ่มวันหยุดให้พนักงาน
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="block text-xs text-muted mb-2">วันที่</label>
+                    <input
+                      type="date"
+                      value={selectedHolidayDate}
+                      onChange={(e) => {
+                        setSelectedHolidayDate(e.target.value);
+                        setSelectedHolidayCategory("");
+                        setSelectedHolidayEmployees([]);
+                      }}
+                      className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted mb-2">แผนก</label>
+                    <select
+                      value={selectedHolidayCategory}
+                      onChange={(e) => {
+                        setSelectedHolidayCategory(e.target.value);
+                        setSelectedHolidayEmployees([]);
+                      }}
+                      disabled={!selectedHolidayDate}
+                      className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">เลือกแผนก</option>
+                      {categories.map((cat) => (
+                        <option key={cat} value={cat || ""}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted mb-2">พนักงาน</label>
+                    <select
+                      multiple
+                      value={selectedHolidayEmployees}
+                      onChange={(e) => {
+                        const selected = Array.from(e.target.selectedOptions, option => option.value);
+                        setSelectedHolidayEmployees(selected);
+                      }}
+                      disabled={!selectedHolidayCategory}
+                      size={5}
+                      className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {selectedHolidayCategory && getEmployeesByCategory(selectedHolidayCategory).map((emp) => {
+                        const isAlreadyHoliday = employeeHolidays.some(
+                          eh => eh.date === selectedHolidayDate && eh.empCode === emp.code
+                        );
+                        return (
+                          <option 
+                            key={emp.id} 
+                            value={emp.code}
+                            disabled={isAlreadyHoliday}
+                            className={isAlreadyHoliday ? "opacity-50" : ""}
+                          >
+                            {emp.name} ({emp.code}) {isAlreadyHoliday ? " - มีวันหยุดแล้ว" : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <p className="text-xs text-muted mt-1">
+                      กด Ctrl/Cmd + คลิกเพื่อเลือกหลายคน
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleAddEmployeeHoliday}
+                  disabled={!selectedHolidayDate || !selectedHolidayCategory || selectedHolidayEmployees.length === 0}
+                  className="w-full px-4 py-2 bg-ptt-cyan hover:bg-ptt-cyan/80 disabled:bg-muted disabled:cursor-not-allowed 
+                           text-app font-semibold rounded-lg transition-all duration-200 
+                           shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  เพิ่มวันหยุดให้พนักงาน ({selectedHolidayEmployees.length} คน)
+                </button>
+              </div>
+
+              {/* Employee Holidays List */}
+              <div>
+                <h4 className="font-semibold text-app mb-4 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-ptt-cyan" />
+                  รายการวันหยุดของพนักงาน ({employeeHolidays.length} รายการ)
+                </h4>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {employeeHolidays.length === 0 ? (
+                    <div className="text-center py-8 text-muted">
+                      <p>ยังไม่มีวันหยุดของพนักงาน</p>
+                    </div>
+                  ) : (
+                    employeeHolidays
+                      .sort((a, b) => {
+                        const dateCompare = a.date.localeCompare(b.date);
+                        if (dateCompare !== 0) return dateCompare;
+                        return a.empName.localeCompare(b.empName);
+                      })
+                      .map((empHoliday) => {
+                        const holidayDate = new Date(empHoliday.date);
+                        return (
+                          <div
+                            key={empHoliday.id}
+                            className="flex items-center justify-between bg-soft/50 border border-app rounded-lg p-4 hover:bg-soft transition-colors"
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                                  <Users className="w-6 h-6 text-orange-500" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-app">{empHoliday.empName}</p>
+                                  <p className="text-sm text-muted">{empHoliday.empCode} • {empHoliday.category}</p>
+                                  <p className="text-xs text-muted mt-1">
+                                    {holidayDate.toLocaleDateString('th-TH', {
+                                      weekday: 'long',
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric'
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveEmployeeHoliday(empHoliday.id)}
+                              className="p-2 text-red-500 hover:bg-red-500/20 rounded-lg transition-colors"
+                              title="ลบวันหยุด"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+              </div>
+
+              {/* Holidays List */}
+              <div>
+                <h4 className="font-semibold text-app mb-4 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-ptt-cyan" />
+                  รายการวันหยุด ({holidays.length} วัน)
+                </h4>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {holidays.length === 0 ? (
+                    <div className="text-center py-8 text-muted">
+                      <p>ยังไม่มีวันหยุดในระบบ</p>
+                    </div>
+                  ) : (
+                    holidays
+                      .sort((a, b) => a.date.localeCompare(b.date))
+                      .map((holiday) => {
+                        const holidayDate = new Date(holiday.date);
+                        return (
+                          <div
+                            key={holiday.id}
+                            className="flex items-center justify-between bg-soft/50 border border-app rounded-lg p-4 hover:bg-soft transition-colors"
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-ptt-cyan/20 rounded-lg flex items-center justify-center">
+                                  <Calendar className="w-6 h-6 text-ptt-cyan" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-app">{holiday.name}</p>
+                                  <p className="text-sm text-muted">
+                                    {holidayDate.toLocaleDateString('th-TH', {
+                                      weekday: 'long',
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric'
+                                    })}
+                                  </p>
+                                  <span className={`text-xs px-2 py-0.5 rounded mt-1 inline-block ${
+                                    holiday.type === "holiday"
+                                      ? "bg-blue-500/20 text-blue-600"
+                                      : "bg-purple-500/20 text-purple-600"
+                                  }`}>
+                                    {holiday.type === "holiday" ? "วันหยุดประจำ" : "วันหยุดพิเศษ"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteHoliday(holiday.id)}
+                              className="p-2 text-red-500 hover:bg-red-500/20 rounded-lg transition-colors"
+                              title="ลบวันหยุด"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 px-6 py-4 border-t border-app bg-soft flex justify-end gap-2">
+              <button
+                onClick={() => setIsHolidayModalOpen(false)}
+                className="px-6 py-2 bg-soft border border-app hover:bg-soft/80 text-app 
+                         font-medium rounded-lg transition-all duration-200"
+              >
+                ปิด
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Edit Attendance Modal */}
+      {isEditModalOpen && selectedCellData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-soft border border-app rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 px-6 py-4 border-b border-app bg-soft flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-app font-display flex items-center gap-2">
+                  <Clock className="w-6 h-6 text-ptt-cyan" />
+                  {selectedLog ? "แก้ไขข้อมูลการลงเวลา" : "เพิ่มข้อมูลการลงเวลา"}
+                </h3>
+                <p className="text-sm text-muted mt-1">
+                  {selectedCellData.employee.name} ({selectedCellData.employee.code})
+                </p>
+                <p className="text-sm text-ptt-cyan mt-1 font-medium">
+                  {selectedCellData.date.toLocaleDateString('th-TH', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setSelectedCellData(null);
+                  setSelectedLog(null);
+                }}
+                className="text-muted hover:text-app transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Employee Info */}
+              <div className="bg-soft/50 border border-app rounded-xl p-4">
+                <h4 className="font-semibold text-app mb-3">ข้อมูลพนักงาน</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-muted mb-1">ชื่อ-สกุล</p>
+                    <p className="text-sm font-medium text-app">{selectedCellData.employee.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-1">รหัสพนักงาน</p>
+                    <p className="text-sm font-medium text-app">{selectedCellData.employee.code}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-1">แผนก</p>
+                    <p className="text-sm font-medium text-app">{selectedCellData.employee.category || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-1">กะ</p>
+                    <p className="text-sm font-medium text-app">
+                      {selectedCellData.employee.shiftId ? (() => {
+                        const shift = shifts.find(s => s.id === selectedCellData.employee.shiftId);
+                        return shift ? `${shift.name} (${shift.startTime}-${shift.endTime})` : "-";
+                      })() : "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Edit Form */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs text-muted mb-2">เวลาเข้า</label>
+                  <input
+                    type="time"
+                    value={editForm.checkIn}
+                    onChange={(e) => setEditForm({ ...editForm, checkIn: e.target.value })}
+                    className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm"
+                    placeholder="HH:MM"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-muted mb-2">เวลาออก</label>
+                  <input
+                    type="time"
+                    value={editForm.checkOut}
+                    onChange={(e) => setEditForm({ ...editForm, checkOut: e.target.value })}
+                    className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm"
+                    placeholder="HH:MM"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-muted mb-2">สถานะ</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value as AttendanceLog["status"] })}
+                    className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm"
+                  >
+                    <option value="ตรงเวลา">ตรงเวลา</option>
+                    <option value="สาย 1 นาที">สาย 1 นาที</option>
+                    <option value="สาย 5 นาที">สาย 5 นาที</option>
+                    <option value="สาย 15 นาที">สาย 15 นาที</option>
+                    <option value="ลา">ลา</option>
+                    <option value="ขาดงาน">ขาดงาน</option>
+                  </select>
+                </div>
+
+                {(editForm.status === "ลา" || editForm.status === "ขาดงาน") && (
+                  <div>
+                    <label className="block text-xs text-muted mb-2">หมายเหตุ</label>
+                    <textarea
+                      value={editForm.reason}
+                      onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
+                      className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm"
+                      rows={3}
+                      placeholder="ระบุเหตุผล..."
+                    />
+                  </div>
+                )}
+
+                {selectedLog && (
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                      <strong>ข้อมูลเดิม:</strong> {selectedLog.status} | 
+                      เข้า: {selectedLog.checkIn} | 
+                      ออก: {selectedLog.checkOut}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 px-6 py-4 border-t border-app bg-soft flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setSelectedCellData(null);
+                  setSelectedLog(null);
+                }}
+                className="px-4 py-2 bg-soft border border-app hover:bg-soft/80 text-app 
+                         font-medium rounded-lg transition-all duration-200"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="inline-flex items-center gap-2 px-6 py-2 bg-ptt-cyan hover:bg-ptt-cyan/80 
+                         text-app font-semibold rounded-lg transition-all duration-200 
+                         shadow-md hover:shadow-lg"
+              >
+                <CheckCircle className="w-5 h-5" />
+                บันทึก
               </button>
             </div>
           </motion.div>

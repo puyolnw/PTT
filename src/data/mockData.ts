@@ -153,27 +153,32 @@ const generateAttendanceLogs = (empCode: string, empName: string, shiftId: numbe
 
   while (current <= end) {
     const dateStr = current.toISOString().split('T')[0];
+    const dayOfWeek = current.getDay(); // 0 = Sunday, 6 = Saturday
 
-    // Include all days (can add weekend filtering if needed)
+    // Skip weekends (Saturday and Sunday) - ไม่สร้าง log สำหรับวันหยุด
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      current.setDate(current.getDate() + 1);
+      continue;
+    }
 
-    // Random attendance status (80% on time, 10% late, 5% absent, 5% leave)
+    // Random attendance status (75% on time, 10% late, 5% absent, 10% leave)
     const rand = Math.random();
     let status: AttendanceLog["status"] = "ตรงเวลา";
     let checkIn = shift.startTime;
     let checkOut = shift.endTime;
     let lateMinutes: number | undefined = undefined;
 
-    if (rand < 0.05) {
+    if (rand < 0.10) {
       // Leave
       status = "ลา";
       checkIn = "-";
       checkOut = "-";
-    } else if (rand < 0.10) {
+    } else if (rand < 0.15) {
       // Absent
       status = "ขาดงาน";
       checkIn = "-";
       checkOut = "-";
-    } else if (rand < 0.20) {
+    } else if (rand < 0.25) {
       // Late
       const [hour, min] = shift.startTime.split(':').map(Number);
       const lateMins = Math.floor(Math.random() * 30) + 1; // 1-30 minutes late
@@ -184,11 +189,37 @@ const generateAttendanceLogs = (empCode: string, empName: string, shiftId: numbe
       else if (lateMins <= 5) status = "สาย 5 นาที";
       else status = "สาย 15 นาที";
       lateMinutes = lateMins;
+      
+      // เพิ่มเวลา checkout เล็กน้อยถ้ามาสาย
+      if (checkOut !== "-") {
+        const [outHour, outMin] = checkOut.split(':').map(Number);
+        const addMins = Math.floor(Math.random() * 15); // เพิ่ม 0-15 นาที
+        const newOutMin = outMin + addMins;
+        const newOutHour = outHour + Math.floor(newOutMin / 60);
+        checkOut = `${String(newOutHour % 24).padStart(2, '0')}:${String(newOutMin % 60).padStart(2, '0')}`;
+      }
+    } else {
+      // On time - เพิ่มความหลากหลายของเวลาเข้า-ออก
+      const [inHour, inMin] = shift.startTime.split(':').map(Number);
+      const [outHour, outMin] = shift.endTime.split(':').map(Number);
+      
+      // เพิ่มความหลากหลายของเวลาเข้า (อาจมาเร็วหรือช้าเล็กน้อย)
+      const inVariation = Math.floor(Math.random() * 10) - 5; // -5 ถึง +5 นาที
+      const newInMin = inMin + inVariation;
+      const newInHour = inHour + Math.floor(newInMin / 60);
+      checkIn = `${String((newInHour % 24 + 24) % 24).padStart(2, '0')}:${String((newInMin % 60 + 60) % 60).padStart(2, '0')}`;
+      
+      // เพิ่มความหลากหลายของเวลาออก (อาจออกเร็วหรือช้าเล็กน้อย)
+      const outVariation = Math.floor(Math.random() * 20) - 10; // -10 ถึง +10 นาที
+      const newOutMin = outMin + outVariation;
+      const newOutHour = outHour + Math.floor(newOutMin / 60);
+      checkOut = `${String((newOutHour % 24 + 24) % 24).padStart(2, '0')}:${String((newOutMin % 60 + 60) % 60).padStart(2, '0')}`;
     }
 
     // Handle overnight shifts
     if (shift.endTime < shift.startTime && checkOut !== "-") {
       const [outHour, outMin] = checkOut.split(':').map(Number);
+      // สำหรับกะดึก ให้แสดงเวลาออกเป็นของวันถัดไป
       checkOut = `${String((outHour + 24) % 24).padStart(2, '0')}:${String(outMin).padStart(2, '0')}`;
     }
 
@@ -201,7 +232,7 @@ const generateAttendanceLogs = (empCode: string, empName: string, shiftId: numbe
       checkOut,
       status,
       lateMinutes,
-      otHours: 0,
+      otHours: checkIn !== "-" && checkOut !== "-" ? Math.max(0, Math.floor(Math.random() * 2)) : 0, // 0-2 hours OT
       otAmount: 0
     });
 
