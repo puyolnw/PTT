@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import {
   Download,
   Filter,
+  Building2,
+  Droplet,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -17,255 +19,254 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 2,
 });
 
-// ประเภทการแสดงผล
-type ViewMode = "day" | "month" | "half-year" | "year";
+// ประเภทสาขา
+type BranchType = "HISO" | "Dindam" | "NongChik" | "Taksila" | "Bypass";
 
-// ข้อมูลรายงาน
-interface ReportData {
-  date: string; // YYYY-MM-DD หรือ YYYY-MM หรือ YYYY
-  salesHISO: number; // ขาย ไฮโซ (เงิน)
-  salesDindam: number; // น้ำมัน ดินดำ (เงิน)
-  nongChik: number; // หนองจิก (เงิน)
-  taksila: number; // ตักสิลา (เงิน)
-  bypass: number; // บายพาส (เงิน)
-  surplusHISO: number; // ยอด ไฮโซ (ลิตร)
-  surplusDindam: number; // ยอด น้ำมัน ดินดำ (ลิตร)
-  deficitNongChik: number; // ขาด หนองจิก (ลิตร)
-  deficitTaksila: number; // ขาด ตักสิลา (ลิตร)
-  deficitBypass: number; // ขาด บายพาส (ลิตร)
+// ชนิดน้ำมัน
+type OilType =
+  | "Premium Diesel"
+  | "Premium Gasohol 95"
+  | "Diesel"
+  | "E85"
+  | "E20"
+  | "Gasohol 91"
+  | "Gasohol 95";
+
+// ข้อมูลจำนวนลิตรที่ขายแยกตามชนิดน้ำมัน
+interface OilQuantity {
+  oilType: OilType;
+  quantity: number; // จำนวนลิตร
+  sales: number; // ยอดขาย (เงิน)
 }
 
-// Mock data - ข้อมูลรายเดือนปี 2567
-const generateMonthlyData2567 = (): ReportData[] => {
-  const months = [
-    { month: 1, salesHISO: 424516.95, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 831.15, surplusDindam: 0, deficitNongChik: 1659.10, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 2, salesHISO: 445230.50, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 892.30, surplusDindam: 0, deficitNongChik: 1784.60, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 3, salesHISO: 432150.25, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 764.45, surplusDindam: 0, deficitNongChik: 1528.90, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 4, salesHISO: 456780.80, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 913.56, surplusDindam: 0, deficitNongChik: 1827.12, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 5, salesHISO: 438920.40, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 877.84, surplusDindam: 0, deficitNongChik: 1755.68, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 6, salesHISO: 438693.35, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 877.39, surplusDindam: 0, deficitNongChik: 1754.78, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 7, salesHISO: 442150.20, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 884.30, surplusDindam: 0, deficitNongChik: 1768.60, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 8, salesHISO: 448920.60, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 897.84, surplusDindam: 0, deficitNongChik: 1795.68, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 9, salesHISO: 435680.30, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 871.36, surplusDindam: 0, deficitNongChik: 1742.72, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 10, salesHISO: 452340.75, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 904.68, surplusDindam: 0, deficitNongChik: 1809.36, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 11, salesHISO: 446780.50, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 893.56, surplusDindam: 0, deficitNongChik: 1787.12, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 12, salesHISO: 460230.25, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 920.46, surplusDindam: 0, deficitNongChik: 1840.92, deficitTaksila: 0, deficitBypass: 0 },
-  ];
-
-  return months.map(m => ({
-    date: `2567-${String(m.month).padStart(2, '0')}`,
-    salesHISO: m.salesHISO,
-    salesDindam: m.salesDindam,
-    nongChik: m.nongChik,
-    taksila: m.taksila,
-    bypass: m.bypass,
-    surplusHISO: m.surplusHISO,
-    surplusDindam: m.surplusDindam,
-    deficitNongChik: m.deficitNongChik,
-    deficitTaksila: m.deficitTaksila,
-    deficitBypass: m.deficitBypass,
-  }));
-};
-
-// Mock data - ข้อมูลรายเดือนปี 2566
-const generateMonthlyData2566 = (): ReportData[] => {
-  const months = [
-    { month: 1, salesHISO: 554964.01, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 0, surplusDindam: 0, deficitNongChik: 0, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 2, salesHISO: 512340.50, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 0, surplusDindam: 0, deficitNongChik: 0, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 3, salesHISO: 528150.25, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 0, surplusDindam: 0, deficitNongChik: 0, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 4, salesHISO: 545680.80, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 0, surplusDindam: 0, deficitNongChik: 0, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 5, salesHISO: 538920.40, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 0, surplusDindam: 0, deficitNongChik: 0, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 6, salesHISO: 499616.83, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 0, surplusDindam: 0, deficitNongChik: 0, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 7, salesHISO: 512340.50, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 0, surplusDindam: 0, deficitNongChik: 0, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 8, salesHISO: 528150.25, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 0, surplusDindam: 0, deficitNongChik: 0, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 9, salesHISO: 515680.80, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 0, surplusDindam: 0, deficitNongChik: 0, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 10, salesHISO: 538920.40, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 0, surplusDindam: 0, deficitNongChik: 0, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 11, salesHISO: 512340.50, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 0, surplusDindam: 0, deficitNongChik: 0, deficitTaksila: 0, deficitBypass: 0 },
-    { month: 12, salesHISO: 528150.25, salesDindam: 0, nongChik: 0, taksila: 0, bypass: 0, surplusHISO: 0, surplusDindam: 0, deficitNongChik: 0, deficitTaksila: 0, deficitBypass: 0 },
-  ];
-
-  return months.map(m => ({
-    date: `2566-${String(m.month).padStart(2, '0')}`,
-    salesHISO: m.salesHISO,
-    salesDindam: m.salesDindam,
-    nongChik: m.nongChik,
-    taksila: m.taksila,
-    bypass: m.bypass,
-    surplusHISO: m.surplusHISO,
-    surplusDindam: m.surplusDindam,
-    deficitNongChik: m.deficitNongChik,
-    deficitTaksila: m.deficitTaksila,
-    deficitBypass: m.deficitBypass,
-  }));
-};
+// ข้อมูลรายงานรายเดือนของแต่ละสาขา
+interface BranchMonthlyData {
+  id: string;
+  branch: BranchType;
+  year: number;
+  month: number;
+  sales: number; // ยอดขายรวม (เงิน)
+  quantitySold: number; // จำนวนลิตรรวมที่ขายไป
+  oilQuantities: OilQuantity[]; // จำนวนลิตรแยกตามชนิดน้ำมัน
+}
 
 const thaiMonths = [
   "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
 ];
 
-// แปลงปี ค.ศ. เป็น พ.ศ.
-const getBuddhistYear = (christianYear: number): number => {
-  return christianYear + 543;
+// ราคาต่อลิตรของแต่ละชนิดน้ำมัน (บาท)
+const oilPrices: Record<OilType, number> = {
+  "Premium Diesel": 33.49,
+  "Premium Gasohol 95": 41.49,
+  "Diesel": 32.49,
+  "E85": 28.99,
+  "E20": 35.99,
+  "Gasohol 91": 38.99,
+  "Gasohol 95": 40.99,
+};
+
+// ชื่อภาษาไทยของแต่ละชนิดน้ำมัน
+const getOilTypeLabel = (oilType: OilType): string => {
+  const labels: Record<OilType, string> = {
+    "Premium Diesel": "ดีเซลพรีเมียม",
+    "Premium Gasohol 95": "แก๊สโซฮอล์ 95 พรีเมียม",
+    "Diesel": "ดีเซล",
+    "E85": "E85",
+    "E20": "E20",
+    "Gasohol 91": "แก๊สโซฮอล์ 91",
+    "Gasohol 95": "แก๊สโซฮอล์ 95",
+  };
+  return labels[oilType];
+};
+
+// Mock data - สร้างข้อมูลรายเดือนของแต่ละสาขา
+const generateBranchData = (): BranchMonthlyData[] => {
+  const branches: BranchType[] = ["HISO", "Dindam", "NongChik", "Taksila", "Bypass"];
+  const oilTypes: OilType[] = [
+    "Premium Diesel",
+    "Premium Gasohol 95",
+    "Diesel",
+    "E85",
+    "E20",
+    "Gasohol 91",
+    "Gasohol 95",
+  ];
+  const data: BranchMonthlyData[] = [];
+
+  // สัดส่วนการขายของแต่ละชนิดน้ำมัน (เปอร์เซ็นต์)
+  const oilDistribution: Record<OilType, number> = {
+    "Premium Diesel": 25,
+    "Premium Gasohol 95": 20,
+    "Diesel": 30,
+    "E85": 5,
+    "E20": 8,
+    "Gasohol 91": 7,
+    "Gasohol 95": 5,
+  };
+
+  // ข้อมูลปี 2567
+  branches.forEach((branch, branchIdx) => {
+    for (let month = 1; month <= 12; month++) {
+      const baseSales = 400000 + (branchIdx * 50000) + (month * 2000);
+      const oilQuantities: OilQuantity[] = [];
+      let totalQuantity = 0;
+
+      // สร้างข้อมูลแยกตามชนิดน้ำมัน
+      oilTypes.forEach((oilType) => {
+        const percentage = oilDistribution[oilType];
+        const oilSales = Math.round((baseSales * percentage) / 100);
+        const price = oilPrices[oilType];
+        const quantity = Math.round(oilSales / price);
+
+        oilQuantities.push({
+          oilType,
+          quantity,
+          sales: oilSales,
+        });
+
+        totalQuantity += quantity;
+      });
+
+      data.push({
+        id: `${branch}-2567-${String(month).padStart(2, '0')}`,
+        branch,
+        year: 2567,
+        month,
+        sales: baseSales,
+        quantitySold: totalQuantity,
+        oilQuantities,
+      });
+    }
+  });
+
+  // ข้อมูลปี 2566
+  branches.forEach((branch, branchIdx) => {
+    for (let month = 1; month <= 12; month++) {
+      const baseSales = 500000 + (branchIdx * 60000) + (month * 2500);
+      const oilQuantities: OilQuantity[] = [];
+      let totalQuantity = 0;
+
+      // สร้างข้อมูลแยกตามชนิดน้ำมัน
+      oilTypes.forEach((oilType) => {
+        const percentage = oilDistribution[oilType];
+        const oilSales = Math.round((baseSales * percentage) / 100);
+        const price = oilPrices[oilType];
+        const quantity = Math.round(oilSales / price);
+
+        oilQuantities.push({
+          oilType,
+          quantity,
+          sales: oilSales,
+        });
+
+        totalQuantity += quantity;
+      });
+
+      data.push({
+        id: `${branch}-2566-${String(month).padStart(2, '0')}`,
+        branch,
+        year: 2566,
+        month,
+        sales: baseSales,
+        quantitySold: totalQuantity,
+        oilQuantities,
+      });
+    }
+  });
+
+  return data;
+};
+
+const getBranchLabel = (branch: BranchType): string => {
+  const labels: Record<BranchType, string> = {
+    HISO: "ไฮโซ",
+    Dindam: "ดินดำ",
+    NongChik: "หนองจิก",
+    Taksila: "ตักสิลา",
+    Bypass: "บายพาส",
+  };
+  return labels[branch];
+};
+
+const getBranchColorClasses = (branch: BranchType): { border: string; bg: string; icon: string } => {
+  const colors: Record<BranchType, { border: string; bg: string; icon: string }> = {
+    HISO: { border: "border-blue-500", bg: "bg-gradient-to-r from-blue-500 to-blue-600", icon: "text-blue-500" },
+    Dindam: { border: "border-purple-500", bg: "bg-gradient-to-r from-purple-500 to-purple-600", icon: "text-purple-500" },
+    NongChik: { border: "border-orange-500", bg: "bg-gradient-to-r from-orange-500 to-orange-600", icon: "text-orange-500" },
+    Taksila: { border: "border-emerald-500", bg: "bg-gradient-to-r from-emerald-500 to-emerald-600", icon: "text-emerald-500" },
+    Bypass: { border: "border-red-500", bg: "bg-gradient-to-r from-red-500 to-red-600", icon: "text-red-500" },
+  };
+  return colors[branch];
 };
 
 export default function OilDeficitReport() {
-  const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [selectedYear, setSelectedYear] = useState<number>(2567);
-  const [selectedMonth] = useState<number>(() => {
-    const now = new Date();
-    return now.getMonth() + 1;
-  });
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
-    const now = new Date();
-    return now.toISOString().split('T')[0];
-  });
-  const [selectedHalfYear, setSelectedHalfYear] = useState<"1" | "2">("1");
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [selectedBranch, setSelectedBranch] = useState<BranchType | "all">("all");
+  const branchData = useMemo(() => generateBranchData(), []);
 
-  // Mock data
-  const monthlyData2566 = generateMonthlyData2566();
-  const monthlyData2567 = generateMonthlyData2567();
+  // กรองข้อมูล
+  const filteredData = useMemo(() => {
+    let filtered = branchData;
 
-  // คำนวณข้อมูลตาม viewMode
-  const processedData = useMemo(() => {
-    if (viewMode === "day") {
-      // ข้อมูลรายวัน - สร้าง mock data สำหรับวันที่เลือก
-      const date = new Date(selectedDate);
-      const month = date.getMonth() + 1;
-      const year = getBuddhistYear(date.getFullYear());
-      const monthlyData = year === 2567 ? monthlyData2567 : monthlyData2566;
-      const monthData = monthlyData.find(d => d.date === `${year}-${String(month).padStart(2, '0')}`);
-      
-      if (!monthData) return [];
-      
-      // สร้างข้อมูลรายวัน (30 วัน)
-      const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-      return Array.from({ length: daysInMonth }, (_, i) => {
-        const day = i + 1;
-        const factor = 1 / daysInMonth; // แบ่งข้อมูลรายเดือนเป็นรายวัน
-        return {
-          date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-          salesHISO: monthData.salesHISO * factor,
-          salesDindam: monthData.salesDindam * factor,
-          nongChik: monthData.nongChik * factor,
-          taksila: monthData.taksila * factor,
-          bypass: monthData.bypass * factor,
-          surplusHISO: monthData.surplusHISO * factor,
-          surplusDindam: monthData.surplusDindam * factor,
-          deficitNongChik: monthData.deficitNongChik * factor,
-          deficitTaksila: monthData.deficitTaksila * factor,
-          deficitBypass: monthData.deficitBypass * factor,
-        };
-      });
-    } else if (viewMode === "month") {
-      // ข้อมูลรายเดือน
-      if (selectedYear === 2567) {
-        return monthlyData2567;
-      } else if (selectedYear === 2566) {
-        return monthlyData2566;
-      }
-      return [];
-    } else if (viewMode === "half-year") {
-      // ข้อมูลครึ่งปี
-      const monthlyData = selectedYear === 2567 ? monthlyData2567 : monthlyData2566;
-      const months = selectedHalfYear === "1" 
-        ? monthlyData.slice(0, 6) 
-        : monthlyData.slice(6, 12);
-      
-      // รวมข้อมูลครึ่งปี
-      return [{
-        date: `${selectedYear}-H${selectedHalfYear}`,
-        salesHISO: months.reduce((sum, m) => sum + m.salesHISO, 0),
-        salesDindam: months.reduce((sum, m) => sum + m.salesDindam, 0),
-        nongChik: months.reduce((sum, m) => sum + m.nongChik, 0),
-        taksila: months.reduce((sum, m) => sum + m.taksila, 0),
-        bypass: months.reduce((sum, m) => sum + m.bypass, 0),
-        surplusHISO: months.reduce((sum, m) => sum + m.surplusHISO, 0),
-        surplusDindam: months.reduce((sum, m) => sum + m.surplusDindam, 0),
-        deficitNongChik: months.reduce((sum, m) => sum + m.deficitNongChik, 0),
-        deficitTaksila: months.reduce((sum, m) => sum + m.deficitTaksila, 0),
-        deficitBypass: months.reduce((sum, m) => sum + m.deficitBypass, 0),
-      }];
-    } else {
-      // ข้อมูลรายปี
-      const monthlyData = selectedYear === 2567 ? monthlyData2567 : monthlyData2566;
-      return [{
-        date: `${selectedYear}`,
-        salesHISO: monthlyData.reduce((sum, m) => sum + m.salesHISO, 0),
-        salesDindam: monthlyData.reduce((sum, m) => sum + m.salesDindam, 0),
-        nongChik: monthlyData.reduce((sum, m) => sum + m.nongChik, 0),
-        taksila: monthlyData.reduce((sum, m) => sum + m.taksila, 0),
-        bypass: monthlyData.reduce((sum, m) => sum + m.bypass, 0),
-        surplusHISO: monthlyData.reduce((sum, m) => sum + m.surplusHISO, 0),
-        surplusDindam: monthlyData.reduce((sum, m) => sum + m.surplusDindam, 0),
-        deficitNongChik: monthlyData.reduce((sum, m) => sum + m.deficitNongChik, 0),
-        deficitTaksila: monthlyData.reduce((sum, m) => sum + m.deficitTaksila, 0),
-        deficitBypass: monthlyData.reduce((sum, m) => sum + m.deficitBypass, 0),
-      }];
+    // กรองตามปี
+    filtered = filtered.filter(d => d.year === selectedYear);
+
+    // กรองตามเดือน
+    if (selectedMonth !== "all") {
+      filtered = filtered.filter(d => d.month === parseInt(selectedMonth));
     }
-  }, [viewMode, selectedYear, selectedMonth, selectedDate, selectedHalfYear, monthlyData2566, monthlyData2567]);
 
-  // คำนวณยอดรวม (reserved for future use)
-  // const totals = useMemo(() => {
-  //   return processedData.reduce((acc, data) => ({
-  //     salesHISO: acc.salesHISO + data.salesHISO,
-  //     salesDindam: acc.salesDindam + data.salesDindam,
-  //     nongChik: acc.nongChik + data.nongChik,
-  //     taksila: acc.taksila + data.taksila,
-  //     bypass: acc.bypass + data.bypass,
-  //     surplusHISO: acc.surplusHISO + data.surplusHISO,
-  //     surplusDindam: acc.surplusDindam + data.surplusDindam,
-  //     deficitNongChik: acc.deficitNongChik + data.deficitNongChik,
-  //     deficitTaksila: acc.deficitTaksila + data.deficitTaksila,
-  //     deficitBypass: acc.deficitBypass + data.deficitBypass,
-  //   }), {
-  //     salesHISO: 0,
-  //     salesDindam: 0,
-  //     nongChik: 0,
-  //     taksila: 0,
-  //     bypass: 0,
-  //     surplusHISO: 0,
-  //     surplusDindam: 0,
-  //     deficitNongChik: 0,
-  //     deficitTaksila: 0,
-  //     deficitBypass: 0,
-  //   });
-  // }, [processedData]);
-
-  // สร้างคอลัมน์สำหรับแสดงผล
-  const getColumns = () => {
-    if (viewMode === "day") {
-      const daysInMonth = processedData.length;
-      return Array.from({ length: daysInMonth }, (_, i) => i + 1);
-    } else if (viewMode === "month") {
-      return thaiMonths;
-    } else if (viewMode === "half-year") {
-      return ["รวมครึ่งปี"];
-    } else {
-      return ["รวมทั้งปี"];
+    // กรองตามสาขา
+    if (selectedBranch !== "all") {
+      filtered = filtered.filter(d => d.branch === selectedBranch);
     }
-  };
 
-  // แสดงข้อมูลในแต่ละคอลัมน์ (reserved for future use)
-  // const getCellValue = (data: ReportData, columnIndex: number, field: keyof ReportData): number => {
-  //   if (viewMode === "day") {
-  //     return data[field] as number;
-  //   } else if (viewMode === "month") {
-  //     const monthIndex = parseInt(data.date.split('-')[1]) - 1;
-  //     if (monthIndex === columnIndex) {
-  //       return data[field] as number;
-  //     }
-  //     return 0;
-  //   } else {
-  //     return data[field] as number;
-  //   }
-  // };
+    return filtered;
+  }, [branchData, selectedYear, selectedMonth, selectedBranch]);
 
-  // Export to Excel
-  const handleExport = () => {
-    // Mock export function
-    alert("ส่งออกข้อมูลเป็น Excel (ฟังก์ชันนี้จะเชื่อมต่อกับระบบจริง)");
-  };
+  // จัดกลุ่มข้อมูลตามสาขา
+  const groupedByBranch = useMemo(() => {
+    const grouped: Record<BranchType, BranchMonthlyData[]> = {
+      HISO: [],
+      Dindam: [],
+      NongChik: [],
+      Taksila: [],
+      Bypass: [],
+    };
+
+    filteredData.forEach(data => {
+      grouped[data.branch].push(data);
+    });
+
+    // เรียงตามเดือน
+    Object.keys(grouped).forEach(branch => {
+      grouped[branch as BranchType].sort((a, b) => a.month - b.month);
+    });
+
+    return grouped;
+  }, [filteredData]);
+
+
+  // คำนวณสรุปข้อมูล
+  const summary = useMemo(() => {
+    const summaryData: Record<BranchType, { totalSales: number; totalQuantitySold: number; count: number }> = {
+      HISO: { totalSales: 0, totalQuantitySold: 0, count: 0 },
+      Dindam: { totalSales: 0, totalQuantitySold: 0, count: 0 },
+      NongChik: { totalSales: 0, totalQuantitySold: 0, count: 0 },
+      Taksila: { totalSales: 0, totalQuantitySold: 0, count: 0 },
+      Bypass: { totalSales: 0, totalQuantitySold: 0, count: 0 },
+    };
+
+    filteredData.forEach(data => {
+      summaryData[data.branch].totalSales += data.sales;
+      summaryData[data.branch].totalQuantitySold += data.quantitySold;
+      summaryData[data.branch].count += 1;
+    });
+
+    return summaryData;
+  }, [filteredData]);
 
   return (
     <div className="space-y-6 p-6">
@@ -275,13 +276,54 @@ export default function OilDeficitReport() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 font-display">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
+          <Droplet className="w-8 h-8 text-blue-500" />
           รายงานยอดขาดน้ำมัน
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          รายงานน้ำมันประจำปี - แสดงข้อมูลการขายและยอดขาด/เกิน
+          รายงานน้ำมันประจำปี - แสดงข้อมูลการขายและยอดขาด/เกิน แยกตามสาขา
         </p>
       </motion.div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        {(["HISO", "Dindam", "NongChik", "Taksila", "Bypass"] as BranchType[]).map((branch) => {
+          const branchColors = getBranchColorClasses(branch);
+          const data = summary[branch];
+          return (
+            <motion.div
+              key={branch}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className={`bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border-l-4 ${branchColors.border}`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-gray-800 dark:text-white">{getBranchLabel(branch)}</h3>
+                <Building2 className={`w-5 h-5 ${branchColors.icon}`} />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">ยอดขาย</span>
+                  <span className="text-sm font-semibold text-gray-800 dark:text-white">
+                    {currencyFormatter.format(data.totalSales)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">จำนวนลิตรที่ขาย</span>
+                  <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                    {numberFormatter.format(data.totalQuantitySold)} ลิตร
+                  </span>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">จำนวนรายการ</span>
+                  <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{data.count} เดือน</span>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
 
       {/* Filters */}
       <motion.div
@@ -291,91 +333,59 @@ export default function OilDeficitReport() {
       >
         <div className="flex items-center gap-2">
           <Filter className="w-5 h-5 text-gray-400" />
-          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">รูปแบบการแสดง:</label>
+          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">กรองข้อมูล:</label>
         </div>
-        <select
-          value={viewMode}
-          onChange={(e) => setViewMode(e.target.value as ViewMode)}
-          className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
-        >
-          <option value="day">รายวัน</option>
-          <option value="month">รายเดือน</option>
-          <option value="half-year">ครึ่งปี</option>
-          <option value="year">รายปี</option>
-        </select>
 
-        {viewMode === "day" && (
-          <div>
-            <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">เลือกวันที่</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
-            />
-          </div>
-        )}
-
-        {viewMode === "month" && (
-          <>
             <div>
               <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">เลือกปี</label>
               <select
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
+            onChange={(e) => {
+              setSelectedYear(Number(e.target.value));
+              setSelectedMonth("all");
+            }}
                 className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
               >
                 <option value={2567}>2567</option>
                 <option value={2566}>2566</option>
               </select>
             </div>
-          </>
-        )}
 
-        {viewMode === "half-year" && (
-          <>
             <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">เลือกปี</label>
+          <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">เลือกเดือน</label>
               <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
                 className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
               >
-                <option value={2567}>2567</option>
-                <option value={2566}>2566</option>
+            <option value="all">ทุกเดือน</option>
+            {thaiMonths.map((month, index) => (
+              <option key={index} value={String(index + 1)}>
+                {month}
+              </option>
+            ))}
               </select>
             </div>
-            <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">ครึ่งปี</label>
-              <select
-                value={selectedHalfYear}
-                onChange={(e) => setSelectedHalfYear(e.target.value as "1" | "2")}
-                className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
-              >
-                <option value="1">ครึ่งปีแรก (ม.ค. - มิ.ย.)</option>
-                <option value="2">ครึ่งปีหลัง (ก.ค. - ธ.ค.)</option>
-              </select>
-            </div>
-          </>
-        )}
 
-        {viewMode === "year" && (
           <div>
-            <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">เลือกปี</label>
+          <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">กรองตามสาขา</label>
             <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
+            value={selectedBranch}
+            onChange={(e) => setSelectedBranch(e.target.value as BranchType | "all")}
               className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
             >
-              <option value={2567}>2567</option>
-              <option value={2566}>2566</option>
+            <option value="all">ทุกสาขา</option>
+            <option value="HISO">ไฮโซ</option>
+            <option value="Dindam">ดินดำ</option>
+            <option value="NongChik">หนองจิก</option>
+            <option value="Taksila">ตักสิลา</option>
+            <option value="Bypass">บายพาส</option>
             </select>
           </div>
-        )}
 
         <div className="flex-1"></div>
         <button
-          onClick={handleExport}
+          onClick={() => alert("ส่งออกข้อมูลเป็น Excel (ฟังก์ชันนี้จะเชื่อมต่อกับระบบจริง)")}
           className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2"
         >
           <Download className="w-4 h-4" />
@@ -383,716 +393,155 @@ export default function OilDeficitReport() {
         </button>
       </motion.div>
 
-      {/* Report Table */}
+      {/* Branch Reports */}
+      <div className="space-y-6">
+        {(["HISO", "Dindam", "NongChik", "Taksila", "Bypass"] as BranchType[])
+          .filter(branch => selectedBranch === "all" || selectedBranch === branch)
+          .map((branch, branchIndex) => {
+            const branchData = groupedByBranch[branch];
+            const branchColors = getBranchColorClasses(branch);
+            const branchLabel = getBranchLabel(branch);
+
+            if (branchData.length === 0) return null;
+
+            return (
       <motion.div
+                key={branch}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
+                transition={{ delay: branchIndex * 0.1 }}
         className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
       >
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-            {viewMode === "month" ? "รายงานน้ำมันประจำปี 2567" : `รายงานน้ำมันประจำปี ${selectedYear}`}
-          </h2>
-        </div>
+                {/* Branch Header */}
+                <div className={`${branchColors.bg} p-6 text-white`}>
+                  <div className="flex items-center gap-3">
+                    <Building2 className="w-8 h-8" />
+                    <div>
+                      <h2 className="text-2xl font-bold">{branchLabel}</h2>
+                      <p className="text-sm opacity-90">
+                        รายงานประจำปี {selectedYear}
+                        {selectedMonth !== "all" && ` - ${thaiMonths[parseInt(selectedMonth) - 1]}`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
+                {/* Branch Table */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1200px]">
+                  <table className="w-full">
             <thead>
-              <tr className="border-b-2 border-gray-300 dark:border-gray-600">
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 sticky left-0 z-10">
-                  รายการ
+                      <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          เดือน
                 </th>
-                {getColumns().map((col, idx) => (
-                  <th
-                    key={idx}
-                    className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 min-w-[120px]"
-                  >
-                    {typeof col === "number" ? `วันที่ ${col}` : col}
-                  </th>
-                ))}
-                {viewMode === "month" && (
-                  <>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/30 min-w-[120px]">
-                      รวมครึ่งปี
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/30 min-w-[120px]">
-                      รวมครึ่งปี
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300 bg-green-50 dark:bg-green-900/30 min-w-[120px]">
-                      รวมทั้งปี
-                    </th>
-                  </>
-                )}
+                        <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          ยอดขาย (บาท)
+                        </th>
+                        <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          จำนวนลิตรรวม
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          รายละเอียดตามชนิดน้ำมัน
+                        </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {/* Section: ปี 2566 - ข้อมูลการขาย */}
-              <tr className="bg-gray-100 dark:bg-gray-900/50">
-                <td colSpan={getColumns().length + (viewMode === "month" ? 3 : 0) + 1} className="px-4 py-2 text-sm font-bold text-gray-800 dark:text-white">
-                  ปี 2566
+                      {branchData.map((data, index) => (
+                        <motion.tr
+                          key={data.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: branchIndex * 0.1 + index * 0.05 }}
+                          className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        >
+                          <td className="px-6 py-4 text-sm font-semibold text-gray-800 dark:text-white">
+                            {thaiMonths[data.month - 1]}
                 </td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  ขาย ไฮโซ
-                </td>
-                {getColumns().map((_col, idx) => {
-                  const monthData = monthlyData2566[idx];
-                  return (
-                    <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                      {monthData ? currencyFormatter.format(monthData.salesHISO) : "-"}
-                    </td>
-                  );
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2566.slice(0, 6).reduce((sum, m) => sum + m.salesHISO, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2566.slice(6, 12).reduce((sum, m) => sum + m.salesHISO, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {currencyFormatter.format(monthlyData2566.reduce((sum, m) => sum + m.salesHISO, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  น้ำมัน ดินดำ
-                </td>
-                {getColumns().map((_col, idx) => {
-                  const monthData = monthlyData2566[idx];
-                  return (
-                    <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                      {monthData ? currencyFormatter.format(monthData.salesDindam) : "-"}
-                    </td>
-                  );
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2566.slice(0, 6).reduce((sum, m) => sum + m.salesDindam, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2566.slice(6, 12).reduce((sum, m) => sum + m.salesDindam, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {currencyFormatter.format(monthlyData2566.reduce((sum, m) => sum + m.salesDindam, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  หนองจิก
-                </td>
-                {getColumns().map((_col, idx) => {
-                  const monthData = monthlyData2566[idx];
-                  return (
-                    <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                      {monthData ? currencyFormatter.format(monthData.nongChik) : "-"}
-                    </td>
-                  );
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2566.slice(0, 6).reduce((sum, m) => sum + m.nongChik, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2566.slice(6, 12).reduce((sum, m) => sum + m.nongChik, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {currencyFormatter.format(monthlyData2566.reduce((sum, m) => sum + m.nongChik, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  ตักสิลา
-                </td>
-                {getColumns().map((_col, idx) => {
-                  const monthData = monthlyData2566[idx];
-                  return (
-                    <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                      {monthData ? currencyFormatter.format(monthData.taksila) : "-"}
-                    </td>
-                  );
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2566.slice(0, 6).reduce((sum, m) => sum + m.taksila, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2566.slice(6, 12).reduce((sum, m) => sum + m.taksila, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {currencyFormatter.format(monthlyData2566.reduce((sum, m) => sum + m.taksila, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  บายพาส
-                </td>
-                {getColumns().map((_col, idx) => {
-                  const monthData = monthlyData2566[idx];
-                  return (
-                    <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                      {monthData ? currencyFormatter.format(monthData.bypass) : "-"}
-                    </td>
-                  );
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2566.slice(0, 6).reduce((sum, m) => sum + m.bypass, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2566.slice(6, 12).reduce((sum, m) => sum + m.bypass, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {currencyFormatter.format(monthlyData2566.reduce((sum, m) => sum + m.bypass, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr className="bg-gray-50 dark:bg-gray-900/30">
-                <td className="px-4 py-3 text-sm font-bold text-gray-800 dark:text-white sticky left-0 bg-gray-50 dark:bg-gray-900/30 z-10">
-                  รวม (ปี 2566)
-                </td>
-                {getColumns().map((_col, idx) => {
-                  const monthData = monthlyData2566[idx];
-                  const total = monthData ? monthData.salesHISO + monthData.salesDindam + monthData.nongChik + monthData.taksila + monthData.bypass : 0;
-                  return (
-                    <td key={idx} className="px-4 py-3 text-sm text-right font-bold text-gray-800 dark:text-white">
-                      {total > 0 ? currencyFormatter.format(total) : "-"}
-                    </td>
-                  );
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(
-                        monthlyData2566.slice(0, 6).reduce((sum, m) => sum + m.salesHISO + m.salesDindam + m.nongChik + m.taksila + m.bypass, 0)
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(
-                        monthlyData2566.slice(6, 12).reduce((sum, m) => sum + m.salesHISO + m.salesDindam + m.nongChik + m.taksila + m.bypass, 0)
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {currencyFormatter.format(
-                        monthlyData2566.reduce((sum, m) => sum + m.salesHISO + m.salesDindam + m.nongChik + m.taksila + m.bypass, 0)
-                      )}
-                    </td>
-                  </>
-                )}
-              </tr>
+                          <td className="px-6 py-4 text-sm text-right font-semibold text-gray-800 dark:text-white">
+                            {currencyFormatter.format(data.sales)}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-right">
+                            <span className="font-semibold text-blue-600 dark:text-blue-400">
+                              {numberFormatter.format(data.quantitySold)} ลิตร
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-2">
+                              {data.oilQuantities.map((oil, oilIdx) => (
+                                <div
+                                  key={oilIdx}
+                                  className="flex items-center justify-between text-xs bg-gray-50 dark:bg-gray-900/50 px-3 py-1.5 rounded-lg"
+                                >
+                                  <span className="text-gray-700 dark:text-gray-300">
+                                    {getOilTypeLabel(oil.oilType)}
+                                  </span>
+                                  <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                    {numberFormatter.format(oil.quantity)} ลิตร
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))}
+                      {/* Summary Row */}
+                      <tr className="bg-gray-50 dark:bg-gray-900/50 border-t-2 border-gray-300 dark:border-gray-600">
+                        <td className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-white">
+                          รวม
+                        </td>
+                        <td className="px-6 py-4 text-sm text-right font-bold text-gray-800 dark:text-white">
+                          {currencyFormatter.format(summary[branch].totalSales)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-right">
+                          <span className="font-bold text-blue-600 dark:text-blue-400">
+                            {numberFormatter.format(summary[branch].totalQuantitySold)} ลิตร
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-2">
+                            {(() => {
+                              // คำนวณรวมตามชนิดน้ำมัน
+                              const oilTotals: Record<OilType, { quantity: number; sales: number }> = {
+                                "Premium Diesel": { quantity: 0, sales: 0 },
+                                "Premium Gasohol 95": { quantity: 0, sales: 0 },
+                                "Diesel": { quantity: 0, sales: 0 },
+                                "E85": { quantity: 0, sales: 0 },
+                                "E20": { quantity: 0, sales: 0 },
+                                "Gasohol 91": { quantity: 0, sales: 0 },
+                                "Gasohol 95": { quantity: 0, sales: 0 },
+                              };
 
-              {/* Section: ปี 2567 - ข้อมูลการขาย */}
-              <tr className="bg-gray-100 dark:bg-gray-900/50">
-                <td colSpan={getColumns().length + (viewMode === "month" ? 3 : 0) + 1} className="px-4 py-2 text-sm font-bold text-gray-800 dark:text-white">
-                  ปี 2567
-                </td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  ขาย ไฮโซ
-                </td>
-                {getColumns().map((_col, idx) => {
-                  if (viewMode === "day") {
-                    const dayData = processedData[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {dayData ? currencyFormatter.format(dayData.salesHISO) : "-"}
-                      </td>
-                    );
-                  } else if (viewMode === "month") {
-                    const monthData = monthlyData2567[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {monthData ? currencyFormatter.format(monthData.salesHISO) : "-"}
-                      </td>
-                    );
-                  } else {
-                    const data = processedData[0];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {data ? currencyFormatter.format(data.salesHISO) : "-"}
-                      </td>
-                    );
-                  }
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2567.slice(0, 6).reduce((sum, m) => sum + m.salesHISO, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2567.slice(6, 12).reduce((sum, m) => sum + m.salesHISO, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {currencyFormatter.format(monthlyData2567.reduce((sum, m) => sum + m.salesHISO, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  น้ำมัน ดินดำ
-                </td>
-                {getColumns().map((_col, idx) => {
-                  if (viewMode === "day") {
-                    const dayData = processedData[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {dayData ? currencyFormatter.format(dayData.salesDindam) : "-"}
-                      </td>
-                    );
-                  } else if (viewMode === "month") {
-                    const monthData = monthlyData2567[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {monthData ? currencyFormatter.format(monthData.salesDindam) : "-"}
-                      </td>
-                    );
-                  } else {
-                    const data = processedData[0];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {data ? currencyFormatter.format(data.salesDindam) : "-"}
-                      </td>
-                    );
-                  }
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2567.slice(0, 6).reduce((sum, m) => sum + m.salesDindam, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2567.slice(6, 12).reduce((sum, m) => sum + m.salesDindam, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {currencyFormatter.format(monthlyData2567.reduce((sum, m) => sum + m.salesDindam, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  หนองจิก
-                </td>
-                {getColumns().map((_col, idx) => {
-                  if (viewMode === "day") {
-                    const dayData = processedData[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {dayData ? currencyFormatter.format(dayData.nongChik) : "-"}
-                      </td>
-                    );
-                  } else if (viewMode === "month") {
-                    const monthData = monthlyData2567[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {monthData ? currencyFormatter.format(monthData.nongChik) : "-"}
-                      </td>
-                    );
-                  } else {
-                    const data = processedData[0];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {data ? currencyFormatter.format(data.nongChik) : "-"}
-                      </td>
-                    );
-                  }
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2567.slice(0, 6).reduce((sum, m) => sum + m.nongChik, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2567.slice(6, 12).reduce((sum, m) => sum + m.nongChik, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {currencyFormatter.format(monthlyData2567.reduce((sum, m) => sum + m.nongChik, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  ตักสิลา
-                </td>
-                {getColumns().map((_col, idx) => {
-                  if (viewMode === "day") {
-                    const dayData = processedData[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {dayData ? currencyFormatter.format(dayData.taksila) : "-"}
-                      </td>
-                    );
-                  } else if (viewMode === "month") {
-                    const monthData = monthlyData2567[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {monthData ? currencyFormatter.format(monthData.taksila) : "-"}
-                      </td>
-                    );
-                  } else {
-                    const data = processedData[0];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {data ? currencyFormatter.format(data.taksila) : "-"}
-                      </td>
-                    );
-                  }
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2567.slice(0, 6).reduce((sum, m) => sum + m.taksila, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2567.slice(6, 12).reduce((sum, m) => sum + m.taksila, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {currencyFormatter.format(monthlyData2567.reduce((sum, m) => sum + m.taksila, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  บายพาส
-                </td>
-                {getColumns().map((_col, idx) => {
-                  if (viewMode === "day") {
-                    const dayData = processedData[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {dayData ? currencyFormatter.format(dayData.bypass) : "-"}
-                      </td>
-                    );
-                  } else if (viewMode === "month") {
-                    const monthData = monthlyData2567[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {monthData ? currencyFormatter.format(monthData.bypass) : "-"}
-                      </td>
-                    );
-                  } else {
-                    const data = processedData[0];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-                        {data ? currencyFormatter.format(data.bypass) : "-"}
-                      </td>
-                    );
-                  }
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2567.slice(0, 6).reduce((sum, m) => sum + m.bypass, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(monthlyData2567.slice(6, 12).reduce((sum, m) => sum + m.bypass, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {currencyFormatter.format(monthlyData2567.reduce((sum, m) => sum + m.bypass, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr className="bg-gray-50 dark:bg-gray-900/30">
-                <td className="px-4 py-3 text-sm font-bold text-gray-800 dark:text-white sticky left-0 bg-gray-50 dark:bg-gray-900/30 z-10">
-                  รวม (ปี 2567)
-                </td>
-                {getColumns().map((_col, idx) => {
-                  if (viewMode === "day") {
-                    const dayData = processedData[idx];
-                    const total = dayData ? dayData.salesHISO + dayData.salesDindam + dayData.nongChik + dayData.taksila + dayData.bypass : 0;
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right font-bold text-gray-800 dark:text-white">
-                        {total > 0 ? currencyFormatter.format(total) : "-"}
-                      </td>
-                    );
-                  } else if (viewMode === "month") {
-                    const monthData = monthlyData2567[idx];
-                    const total = monthData ? monthData.salesHISO + monthData.salesDindam + monthData.nongChik + monthData.taksila + monthData.bypass : 0;
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right font-bold text-gray-800 dark:text-white">
-                        {total > 0 ? currencyFormatter.format(total) : "-"}
-                      </td>
-                    );
-                  } else {
-                    const data = processedData[0];
-                    const total = data ? data.salesHISO + data.salesDindam + data.nongChik + data.taksila + data.bypass : 0;
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right font-bold text-gray-800 dark:text-white">
-                        {total > 0 ? currencyFormatter.format(total) : "-"}
-                      </td>
-                    );
-                  }
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(
-                        monthlyData2567.slice(0, 6).reduce((sum, m) => sum + m.salesHISO + m.salesDindam + m.nongChik + m.taksila + m.bypass, 0)
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {currencyFormatter.format(
-                        monthlyData2567.slice(6, 12).reduce((sum, m) => sum + m.salesHISO + m.salesDindam + m.nongChik + m.taksila + m.bypass, 0)
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {currencyFormatter.format(
-                        monthlyData2567.reduce((sum, m) => sum + m.salesHISO + m.salesDindam + m.nongChik + m.taksila + m.bypass, 0)
-                      )}
-                    </td>
-                  </>
-                )}
-              </tr>
+                              branchData.forEach((data) => {
+                                data.oilQuantities.forEach((oil) => {
+                                  oilTotals[oil.oilType].quantity += oil.quantity;
+                                  oilTotals[oil.oilType].sales += oil.sales;
+                                });
+                              });
 
-              {/* Section: ยอดขาด/เกิน (ลิตร) - ปี 2567 */}
-              <tr className="bg-yellow-50 dark:bg-yellow-900/20">
-                <td colSpan={getColumns().length + (viewMode === "month" ? 3 : 0) + 1} className="px-4 py-2 text-sm font-bold text-gray-800 dark:text-white">
-                  ยอด (ลิตร)
-                </td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  ยอด ไฮโซ
-                </td>
-                {getColumns().map((_col, idx) => {
-                  if (viewMode === "day") {
-                    const dayData = processedData[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400">
-                        {dayData ? numberFormatter.format(dayData.surplusHISO) : "-"}
-                      </td>
-                    );
-                  } else if (viewMode === "month") {
-                    const monthData = monthlyData2567[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400">
-                        {monthData ? numberFormatter.format(monthData.surplusHISO) : "-"}
-                      </td>
-                    );
-                  } else {
-                    const data = processedData[0];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400">
-                        {data ? numberFormatter.format(data.surplusHISO) : "-"}
-                      </td>
-                    );
-                  }
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {numberFormatter.format(monthlyData2567.slice(0, 6).reduce((sum, m) => sum + m.surplusHISO, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {numberFormatter.format(monthlyData2567.slice(6, 12).reduce((sum, m) => sum + m.surplusHISO, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {numberFormatter.format(monthlyData2567.reduce((sum, m) => sum + m.surplusHISO, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  ยอด น้ำมัน ดินดำ
-                </td>
-                {getColumns().map((_col, idx) => {
-                  if (viewMode === "day") {
-                    const dayData = processedData[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400">
-                        {dayData ? numberFormatter.format(dayData.surplusDindam) : "-"}
-                      </td>
-                    );
-                  } else if (viewMode === "month") {
-                    const monthData = monthlyData2567[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400">
-                        {monthData ? numberFormatter.format(monthData.surplusDindam) : "-"}
-                      </td>
-                    );
-                  } else {
-                    const data = processedData[0];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400">
-                        {data ? numberFormatter.format(data.surplusDindam) : "-"}
-                      </td>
-                    );
-                  }
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {numberFormatter.format(monthlyData2567.slice(0, 6).reduce((sum, m) => sum + m.surplusDindam, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {numberFormatter.format(monthlyData2567.slice(6, 12).reduce((sum, m) => sum + m.surplusDindam, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {numberFormatter.format(monthlyData2567.reduce((sum, m) => sum + m.surplusDindam, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-
-              {/* Section: ขาด (ลิตร) */}
-              <tr className="bg-red-50 dark:bg-red-900/20">
-                <td colSpan={getColumns().length + (viewMode === "month" ? 3 : 0) + 1} className="px-4 py-2 text-sm font-bold text-gray-800 dark:text-white">
-                  ขาด (ลิตร)
-                </td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  ขาด หนองจิก
-                </td>
-                {getColumns().map((_col, idx) => {
-                  if (viewMode === "day") {
-                    const dayData = processedData[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400">
-                        {dayData ? numberFormatter.format(dayData.deficitNongChik) : "-"}
-                      </td>
-                    );
-                  } else if (viewMode === "month") {
-                    const monthData = monthlyData2567[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400">
-                        {monthData ? numberFormatter.format(monthData.deficitNongChik) : "-"}
-                      </td>
-                    );
-                  } else {
-                    const data = processedData[0];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400">
-                        {data ? numberFormatter.format(data.deficitNongChik) : "-"}
-                      </td>
-                    );
-                  }
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {numberFormatter.format(monthlyData2567.slice(0, 6).reduce((sum, m) => sum + m.deficitNongChik, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {numberFormatter.format(monthlyData2567.slice(6, 12).reduce((sum, m) => sum + m.deficitNongChik, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {numberFormatter.format(monthlyData2567.reduce((sum, m) => sum + m.deficitNongChik, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  ขาด ตักสิลา
-                </td>
-                {getColumns().map((_col, idx) => {
-                  if (viewMode === "day") {
-                    const dayData = processedData[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400">
-                        {dayData ? numberFormatter.format(dayData.deficitTaksila) : "-"}
-                      </td>
-                    );
-                  } else if (viewMode === "month") {
-                    const monthData = monthlyData2567[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400">
-                        {monthData ? numberFormatter.format(monthData.deficitTaksila) : "-"}
-                      </td>
-                    );
-                  } else {
-                    const data = processedData[0];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400">
-                        {data ? numberFormatter.format(data.deficitTaksila) : "-"}
-                      </td>
-                    );
-                  }
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {numberFormatter.format(monthlyData2567.slice(0, 6).reduce((sum, m) => sum + m.deficitTaksila, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {numberFormatter.format(monthlyData2567.slice(6, 12).reduce((sum, m) => sum + m.deficitTaksila, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {numberFormatter.format(monthlyData2567.reduce((sum, m) => sum + m.deficitTaksila, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10">
-                  ขาด บายพาส
-                </td>
-                {getColumns().map((_col, idx) => {
-                  if (viewMode === "day") {
-                    const dayData = processedData[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400">
-                        {dayData ? numberFormatter.format(dayData.deficitBypass) : "-"}
-                      </td>
-                    );
-                  } else if (viewMode === "month") {
-                    const monthData = monthlyData2567[idx];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400">
-                        {monthData ? numberFormatter.format(monthData.deficitBypass) : "-"}
-                      </td>
-                    );
-                  } else {
-                    const data = processedData[0];
-                    return (
-                      <td key={idx} className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400">
-                        {data ? numberFormatter.format(data.deficitBypass) : "-"}
-                      </td>
-                    );
-                  }
-                })}
-                {viewMode === "month" && (
-                  <>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {numberFormatter.format(monthlyData2567.slice(0, 6).reduce((sum, m) => sum + m.deficitBypass, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30">
-                      {numberFormatter.format(monthlyData2567.slice(6, 12).reduce((sum, m) => sum + m.deficitBypass, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
-                      {numberFormatter.format(monthlyData2567.reduce((sum, m) => sum + m.deficitBypass, 0))}
-                    </td>
-                  </>
-                )}
-              </tr>
+                              return Object.entries(oilTotals).map(([oilType, totals]) => (
+                                <div
+                                  key={oilType}
+                                  className="flex items-center justify-between text-xs bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800"
+                                >
+                                  <span className="text-gray-700 dark:text-gray-300 font-semibold">
+                                    {getOilTypeLabel(oilType as OilType)}
+                                  </span>
+                                  <span className="font-bold text-blue-600 dark:text-blue-400">
+                                    {numberFormatter.format(totals.quantity)} ลิตร
+                                  </span>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </td>
+                      </tr>
             </tbody>
           </table>
         </div>
       </motion.div>
+            );
+          })}
+      </div>
     </div>
   );
 }
-

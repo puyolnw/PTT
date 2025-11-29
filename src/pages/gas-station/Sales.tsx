@@ -7,9 +7,6 @@ import {
   Droplet,
   BarChart3,
   Calendar,
-  CreditCard,
-  QrCode,
-  Wallet,
   Upload,
   X,
   FileText,
@@ -30,129 +27,145 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
-// Mock data - เฉพาะปั๊มไฮโซ
-const mockSales = [
-  {
-    id: "SALE-20241215-001",
-    date: "2024-12-15",
-    time: "08:30",
-    oilType: "Premium Diesel",
-    quantity: 45.5,
-    amount: 1250,
-    paymentMethod: "เงินสด",
-    nozzle: "P18",
-  },
-  {
-    id: "SALE-20241215-002",
-    date: "2024-12-15",
-    time: "08:45",
-    oilType: "Gasohol 95",
-    quantity: 30.0,
-    amount: 900,
-    paymentMethod: "QR| PROMPTPAY",
-    nozzle: "P26",
-  },
-  {
-    id: "SALE-20241215-003",
-    date: "2024-12-15",
-    time: "09:15",
-    oilType: "Diesel",
-    quantity: 50.0,
-    amount: 1400,
-    paymentMethod: "VISA",
-    nozzle: "P34",
-  },
-  {
-    id: "SALE-20241215-004",
-    date: "2024-12-15",
-    time: "09:30",
-    oilType: "Premium Diesel",
-    quantity: 60.0,
-    amount: 1650,
-    paymentMethod: "Master",
-    nozzle: "P18",
-  },
-  {
-    id: "SALE-20241215-005",
-    date: "2024-12-15",
-    time: "10:00",
-    oilType: "Gasohol 95",
-    quantity: 25.5,
-    amount: 850,
-    paymentMethod: "QR| KPLUS",
-    nozzle: "P26",
-  },
-  {
-    id: "SALE-20241215-006",
-    date: "2024-12-15",
-    time: "10:15",
-    oilType: "E20",
-    quantity: 40.0,
-    amount: 1200,
-    paymentMethod: "Energy Card",
-    nozzle: "P42",
-  },
-  {
-    id: "SALE-20241215-007",
-    date: "2024-12-15",
-    time: "10:30",
-    oilType: "Premium Diesel",
-    quantity: 55.0,
-    amount: 1500,
-    paymentMethod: "Fleet Card",
-    nozzle: "P18",
-  },
-  {
-    id: "SALE-20241215-008",
-    date: "2024-12-15",
-    time: "11:00",
-    oilType: "Gasohol 91",
-    quantity: 35.0,
-    amount: 1100,
-    paymentMethod: "เงินสด",
-    nozzle: "P59",
-  },
-  {
-    id: "SALE-20241215-009",
-    date: "2024-12-15",
-    time: "11:15",
-    oilType: "Diesel",
-    quantity: 70.0,
-    amount: 1950,
-    paymentMethod: "ลูกค้าเงินเชื่อ",
-    nozzle: "P34",
-  },
-  {
-    id: "SALE-20241215-010",
-    date: "2024-12-15",
-    time: "11:30",
-    oilType: "Gasohol 95",
-    quantity: 28.0,
-    amount: 950,
-    paymentMethod: "PTT Privilege",
-    nozzle: "P26",
-  },
-];
+// Mock data - สร้างข้อมูลการขายน้ำมันจำนวนมากสำหรับปั๊ม PTT
+const generateMockSales = () => {
+  const sales = [];
+  const oilTypes = [
+    "Premium Diesel",
+    "Premium Gasohol 95",
+    "Diesel",
+    "E85",
+    "E20",
+    "Gasohol 91",
+    "Gasohol 95",
+  ];
+  const nozzles = ["P18", "P26", "P34", "P42", "P59", "P67", "P75", "P83", "P91", "P99"];
+  const paymentMethods = [
+    "เงินสด",
+    "QR| PROMPTPAY",
+    "QR| KPLUS",
+    "VISA",
+    "Master",
+    "PTT Privilege",
+    "Energy Card",
+    "Fleet Card",
+  ];
 
-const mockSalesSummary = {
-  today: {
-    totalAmount: 1250000,
-    totalLiters: 45000,
-    transactions: 1250,
-    byPaymentMethod: {
-      cash: 600000,
-      card: 400000,
-      qr: 200000,
-      fleet: 50000,
-    },
-    byOilType: {
-      "Premium Diesel": 500000,
-      "Gasohol 95": 400000,
-      "Diesel": 250000,
-      "E20": 100000,
-    },
-  },
+  // ราคาต่อลิตรของแต่ละชนิดน้ำมัน
+  const prices: Record<string, number> = {
+    "Premium Diesel": 33.49,
+    "Premium Gasohol 95": 41.49,
+    "Diesel": 32.49,
+    "E85": 28.99,
+    "E20": 35.99,
+    "Gasohol 91": 38.99,
+    "Gasohol 95": 40.99,
+  };
+
+  // สัดส่วนการขายของแต่ละชนิดน้ำมัน (เปอร์เซ็นต์)
+  const distribution: Record<string, number> = {
+    "Premium Diesel": 25,
+    "Premium Gasohol 95": 20,
+    "Diesel": 30,
+    "E85": 5,
+    "E20": 8,
+    "Gasohol 91": 7,
+    "Gasohol 95": 5,
+  };
+
+  // สร้างข้อมูลประมาณ 450 รายการต่อวัน (ประมาณ 18-19 รายการต่อชั่วโมง)
+  const totalTransactions = 450;
+  let transactionId = 1;
+
+  for (let hour = 6; hour < 24; hour++) {
+    const transactionsPerHour = Math.floor(Math.random() * 25) + 15; // 15-40 รายการต่อชั่วโมง
+    
+    for (let i = 0; i < transactionsPerHour && transactionId <= totalTransactions; i++) {
+      // เลือกประเภทน้ำมันตามสัดส่วน
+      const rand = Math.random() * 100;
+      let cumulative = 0;
+      let selectedOilType = oilTypes[0];
+      
+      for (const [oilType, percentage] of Object.entries(distribution)) {
+        cumulative += percentage;
+        if (rand <= cumulative) {
+          selectedOilType = oilType;
+          break;
+        }
+      }
+
+      // สุ่มจำนวนลิตร (20-80 ลิตร สำหรับรถยนต์, 100-300 ลิตร สำหรับรถบรรทุก)
+      const isTruck = Math.random() < 0.15; // 15% เป็นรถบรรทุก
+      const quantity = isTruck
+        ? Math.round((Math.random() * 200 + 100) * 10) / 10 // 100-300 ลิตร
+        : Math.round((Math.random() * 60 + 20) * 10) / 10; // 20-80 ลิตร
+
+      const price = prices[selectedOilType];
+      const amount = Math.round(quantity * price);
+
+      // สุ่มเวลาในชั่วโมงนั้น
+      const minute = Math.floor(Math.random() * 60);
+      const time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+
+      sales.push({
+        id: `SALE-20241215-${String(transactionId).padStart(3, '0')}`,
+        date: "2024-12-15",
+        time: time,
+        oilType: selectedOilType,
+        quantity: quantity,
+        amount: amount,
+        paymentMethod: paymentMethods[Math.floor(Math.random() * paymentMethods.length)],
+        nozzle: nozzles[Math.floor(Math.random() * nozzles.length)],
+      });
+
+      transactionId++;
+    }
+  }
+
+  return sales;
 };
+
+const mockSales = generateMockSales();
+
+// คำนวณสรุปข้อมูลจาก mockSales
+const calculateSalesSummary = () => {
+  const totalAmount = mockSales.reduce((sum, sale) => sum + sale.amount, 0);
+  const totalLiters = mockSales.reduce((sum, sale) => sum + sale.quantity, 0);
+  const transactions = mockSales.length;
+
+  // คำนวณตามวิธีชำระเงิน
+  const byPaymentMethod = mockSales.reduce((acc, sale) => {
+    const method = sale.paymentMethod;
+    if (!acc[method]) acc[method] = 0;
+    acc[method] += sale.amount;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // คำนวณตามประเภทน้ำมัน
+  const byOilType = mockSales.reduce((acc, sale) => {
+    const type = sale.oilType;
+    if (!acc[type]) acc[type] = 0;
+    acc[type] += sale.amount;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return {
+    today: {
+      totalAmount,
+      totalLiters: Math.round(totalLiters),
+      transactions,
+      byPaymentMethod: {
+        cash: byPaymentMethod["เงินสด"] || 0,
+        card: (byPaymentMethod["VISA"] || 0) + (byPaymentMethod["Master"] || 0),
+        qr: (byPaymentMethod["QR| PROMPTPAY"] || 0) + (byPaymentMethod["QR| KPLUS"] || 0),
+        fleet: byPaymentMethod["Fleet Card"] || 0,
+      },
+      byOilType,
+    },
+  };
+};
+
+const mockSalesSummary = calculateSalesSummary();
 
 export default function Sales() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -168,18 +181,32 @@ export default function Sales() {
     oilType: "",
     quantity: "",
     amount: "",
-    paymentMethod: "",
     nozzle: "",
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filteredSales = mockSales.filter((sale) => {
+  // จัดกลุ่มข้อมูลตามประเภทน้ำมันและรวมยอดขาย
+  const groupedByOilType = mockSales.reduce((acc, sale) => {
+    const key = sale.oilType;
+    if (!acc[key]) {
+      acc[key] = {
+        oilType: sale.oilType,
+        totalQuantity: 0,
+        totalAmount: 0,
+        transactionCount: 0,
+      };
+    }
+    acc[key].totalQuantity += sale.quantity;
+    acc[key].totalAmount += sale.amount;
+    acc[key].transactionCount += 1;
+    return acc;
+  }, {} as Record<string, { oilType: string; totalQuantity: number; totalAmount: number; transactionCount: number }>);
+
+  // แปลงเป็น array และกรองตาม search term
+  const filteredSales = Object.values(groupedByOilType).filter((sale) => {
     const matchesSearch = 
-      sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.oilType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.paymentMethod.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.nozzle.toLowerCase().includes(searchTerm.toLowerCase());
+      sale.oilType.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesSearch;
   });
@@ -291,7 +318,7 @@ export default function Sales() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
-            placeholder="ค้นหาเลขที่รายการ, ประเภทน้ำมัน, วิธีชำระ, หัวจ่าย..."
+            placeholder="ค้นหาประเภทน้ำมัน..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
@@ -319,93 +346,39 @@ export default function Sales() {
           <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
             รายการขายน้ำมันปั๊มไฮโซ
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">รายการขายน้ำมันจากหัวจ่ายทั้งหมด</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">ยอดขายแยกตามประเภทน้ำมัน</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">เลขที่รายการ</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">วันที่/เวลา</th>
                 <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">ประเภทน้ำมัน</th>
                 <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">จำนวน (ลิตร)</th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">ยอดเงิน</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">วิธีชำระ</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">หัวจ่าย</th>
+                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">ยอดขาย (บาท)</th>
               </tr>
             </thead>
             <tbody>
               {filteredSales.map((sale, index) => (
                 <motion.tr
-                  key={sale.id}
+                  key={sale.oilType}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 >
                   <td className="py-4 px-6">
-                    <span className="text-sm font-semibold text-gray-800 dark:text-white">{sale.id}</span>
+                    <span className="text-sm font-semibold text-gray-800 dark:text-white">{sale.oilType}</span>
                   </td>
-                  <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">
-                    {sale.date} {sale.time}
+                  <td className="py-4 px-6 text-sm text-right font-semibold text-gray-800 dark:text-white">
+                    {numberFormatter.format(sale.totalQuantity)} ลิตร
                   </td>
-                  <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">{sale.oilType}</td>
-                  <td className="py-4 px-6 text-sm text-right font-semibold text-gray-800 dark:text-white">{sale.quantity.toFixed(2)}</td>
-                  <td className="py-4 px-6 text-sm text-right font-semibold text-gray-800 dark:text-white">{currencyFormatter.format(sale.amount)}</td>
-                  <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">{sale.paymentMethod}</td>
-                  <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">{sale.nozzle}</td>
+                  <td className="py-4 px-6 text-sm text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                    {currencyFormatter.format(sale.totalAmount)}
+                  </td>
                 </motion.tr>
               ))}
             </tbody>
           </table>
-        </div>
-      </motion.div>
-
-      {/* Payment Method Breakdown */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.7 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6"
-      >
-        <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">ยอดขายแยกตามวิธีชำระเงิน</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
-            <div className="flex items-center gap-2 mb-2">
-              <Wallet className="w-5 h-5 text-emerald-500" />
-              <p className="text-sm font-semibold text-gray-600 dark:text-gray-400">เงินสด</p>
-            </div>
-            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-              {currencyFormatter.format(mockSalesSummary.today.byPaymentMethod.cash)}
-            </p>
-          </div>
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center gap-2 mb-2">
-              <CreditCard className="w-5 h-5 text-blue-500" />
-              <p className="text-sm font-semibold text-gray-600 dark:text-gray-400">บัตรเครดิต</p>
-            </div>
-            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-              {currencyFormatter.format(mockSalesSummary.today.byPaymentMethod.card)}
-            </p>
-          </div>
-          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
-            <div className="flex items-center gap-2 mb-2">
-              <QrCode className="w-5 h-5 text-purple-500" />
-              <p className="text-sm font-semibold text-gray-600 dark:text-gray-400">QR PromptPay</p>
-            </div>
-            <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
-              {currencyFormatter.format(mockSalesSummary.today.byPaymentMethod.qr)}
-            </p>
-          </div>
-          <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800">
-            <div className="flex items-center gap-2 mb-2">
-              <CreditCard className="w-5 h-5 text-orange-500" />
-              <p className="text-sm font-semibold text-gray-600 dark:text-gray-400">Fleet Card</p>
-            </div>
-            <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
-              {currencyFormatter.format(mockSalesSummary.today.byPaymentMethod.fleet)}
-            </p>
-          </div>
         </div>
       </motion.div>
 
@@ -540,7 +513,7 @@ export default function Sales() {
                       รูปแบบไฟล์ที่รองรับ:
                     </h3>
                     <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
-                      <li>คอลัมน์: วันที่, เวลา, ประเภทน้ำมัน, จำนวน (ลิตร), ยอดเงิน, วิธีชำระ, หัวจ่าย</li>
+                      <li>คอลัมน์: วันที่, เวลา, ประเภทน้ำมัน, จำนวน (ลิตร), ยอดเงิน, หัวจ่าย</li>
                       <li>ไฟล์ Excel (.xlsx, .xls) หรือ CSV (.csv)</li>
                       <li>ข้อมูลจะถูกนำเข้าและอัปเดตในระบบอัตโนมัติ</li>
                     </ul>
@@ -663,7 +636,6 @@ export default function Sales() {
                   oilType: "",
                   quantity: "",
                   amount: "",
-                  paymentMethod: "",
                   nozzle: "",
                 });
                 setFormErrors({});
@@ -701,7 +673,6 @@ export default function Sales() {
                         oilType: "",
                         quantity: "",
                         amount: "",
-                        paymentMethod: "",
                         nozzle: "",
                       });
                       setFormErrors({});
@@ -879,43 +850,6 @@ export default function Sales() {
                       )}
                     </div>
 
-                    {/* Payment Method */}
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        วิธีชำระเงิน <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={formData.paymentMethod}
-                        onChange={(e) => {
-                          setFormData({ ...formData, paymentMethod: e.target.value });
-                          if (formErrors.paymentMethod) setFormErrors({ ...formErrors, paymentMethod: "" });
-                        }}
-                        className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${
-                          formErrors.paymentMethod ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
-                        }`}
-                      >
-                        <option value="">เลือกวิธีชำระเงิน</option>
-                        <option value="เงินสด">เงินสด</option>
-                        <option value="Master">Master</option>
-                        <option value="VISA">VISA</option>
-                        <option value="KBANK-CARD">KBANK-CARD</option>
-                        <option value="PTT Privilege">PTT Privilege</option>
-                        <option value="Energy Card">Energy Card</option>
-                        <option value="Synergy Card">Synergy Card</option>
-                        <option value="Fleet Card">Fleet Card</option>
-                        <option value="ลูกค้าเงินเชื่อ">ลูกค้าเงินเชื่อ</option>
-                        <option value="Top up Card ttb">Top up Card ttb</option>
-                        <option value="Fill&Go+">Fill&Go+</option>
-                        <option value="BBL Fleet Card">BBL Fleet Card</option>
-                        <option value="Visa Local Card">Visa Local Card</option>
-                        <option value="QR| KPLUS">QR| KPLUS</option>
-                        <option value="QR| PROMPTPAY">QR| PROMPTPAY</option>
-                        <option value="คูปองของสถานี">คูปองของสถานี</option>
-                      </select>
-                      {formErrors.paymentMethod && (
-                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">{formErrors.paymentMethod}</p>
-                      )}
-                    </div>
                   </div>
 
                   {/* Action Buttons */}
@@ -929,7 +863,6 @@ export default function Sales() {
                           oilType: "",
                           quantity: "",
                           amount: "",
-                          paymentMethod: "",
                           nozzle: "",
                         });
                         setFormErrors({});
@@ -954,7 +887,6 @@ export default function Sales() {
                         if (!formData.amount || parseFloat(formData.amount) <= 0) {
                           errors.amount = "กรุณากรอกยอดเงินที่ถูกต้อง";
                         }
-                        if (!formData.paymentMethod) errors.paymentMethod = "กรุณาเลือกวิธีชำระเงิน";
 
                         if (Object.keys(errors).length > 0) {
                           setFormErrors(errors);
@@ -975,7 +907,6 @@ export default function Sales() {
                             oilType: "",
                             quantity: "",
                             amount: "",
-                            paymentMethod: "",
                             nozzle: "",
                           });
                           setFormErrors({});

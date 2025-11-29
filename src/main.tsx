@@ -196,12 +196,14 @@ import QualityTest from "@/pages/gas-station/QualityTest";
 import DepositSlips from "@/pages/gas-station/DepositSlips";
 import Lubricants from "@/pages/gas-station/Lubricants";
 import Gas from "@/pages/gas-station/Gas";
+import StationProducts from "@/pages/gas-station/StationProducts";
 import PriceAdjustment from "@/pages/gas-station/PriceAdjustment";
 import Reports from "@/pages/gas-station/Reports";
 import GasStationSettings from "@/pages/gas-station/Settings";
 import Stock from "@/pages/gas-station/Stock";
 import UpdateStock from "@/pages/gas-station/UpdateStock";
 import StockUpdateHistory from "@/pages/gas-station/StockUpdateHistory";
+import ProductSalesHistory from "@/pages/gas-station/ProductSalesHistory";
 import SalesInstrumentReport from "@/pages/gas-station/SalesInstrumentReport";
 import OilDeficitReport from "@/pages/gas-station/OilDeficitReport";
 
@@ -971,6 +973,10 @@ const router = createBrowserRouter([
             element: <Gas />,
           },
           {
+            path: "station-products",
+            element: <StationProducts />,
+          },
+          {
             path: "price-adjustment",
             element: <PriceAdjustment />,
           },
@@ -985,6 +991,10 @@ const router = createBrowserRouter([
           {
             path: "stock-update-history",
             element: <StockUpdateHistory />,
+          },
+          {
+            path: "product-sales-history",
+            element: <ProductSalesHistory />,
           },
           {
             path: "reports",
