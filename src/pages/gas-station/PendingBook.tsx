@@ -51,7 +51,6 @@ export default function PendingBook() {
       item.branch.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-
   const totalPending = mockPendingBook.reduce((sum, item) => sum + item.quantityPending, 0);
   const orderCount = mockPendingBook.length;
   const overdueCount = mockPendingBook.filter((item) => item.daysPending > 3).length;

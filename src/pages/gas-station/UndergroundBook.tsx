@@ -58,7 +58,6 @@ const parseDate = (dateStr: string) => {
   return { day, month, year: year + 2500 }; // Convert Buddhist year to AD
 };
 
-
 // Mock data - รายละเอียดสมุดใต้ดิน (หลายเดือน/ปี)
 const generateMockData = () => {
   const allData: Array<{
@@ -362,7 +361,7 @@ export default function UndergroundBook() {
         className="mb-6"
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
+          <div>
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">สมุดใต้ดิน</h1>
             <p className="text-gray-600 dark:text-gray-400">
               {isBranchUser 
@@ -370,7 +369,7 @@ export default function UndergroundBook() {
                 : "บันทึกยอดน้ำมันใต้ดินทั้ง 5 สาขา (16:00-17:30 น.)"
               }
             </p>
-        </div>
+          </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowImportModal(true)}
@@ -381,8 +380,8 @@ export default function UndergroundBook() {
             </button>
             <button className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2">
               <Plus className="w-4 h-4" />
-          กรอกยอดใต้ดิน
-        </button>
+              กรอกยอดใต้ดิน
+            </button>
           </div>
         </div>
       </motion.div>
@@ -467,10 +466,10 @@ export default function UndergroundBook() {
             badgeColor: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800",
           },
         ].map((stat, index) => (
-      <motion.div
+          <motion.div
             key={stat.title}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
             className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
           >
@@ -493,7 +492,7 @@ export default function UndergroundBook() {
                 </div>
               )}
             </div>
-      </motion.div>
+          </motion.div>
         ))}
       </div>
 
@@ -598,10 +597,10 @@ export default function UndergroundBook() {
                         <React.Fragment key={nozzleKey}>
                           <td className={`text-right py-2 px-1 text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700`}>
                             {row.nozzles[nozzleKey]?.meter !== null ? numberFormatter.format(row.nozzles[nozzleKey].meter) : "-"}
-                  </td>
+                          </td>
                           <td className={`text-right py-2 px-1 text-gray-600 dark:text-gray-400 ${isLast ? "" : "border-r border-gray-200 dark:border-gray-700"}`}>
                             {row.nozzles[nozzleKey]?.liters !== null ? numberFormatter.format(row.nozzles[nozzleKey].liters) : "-"}
-                  </td>
+                          </td>
                         </React.Fragment>
                       );
                     })

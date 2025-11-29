@@ -84,6 +84,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
 
   // Other items (not in groups)
   const otherItems = [
+    { to: "/app/gas-station/stock", icon: Package, label: "สต็อกน้ำมัน" },
     { to: "/app/gas-station/quality-test", icon: TestTube, label: "การทดสอบน้ำมัน" },
     { to: "/app/gas-station/deposit-slips", icon: FileCheck, label: "การจัดการใบฝากน้ำมัน" },
     { to: "/app/gas-station/lubricants", icon: Wrench, label: "น้ำมันหล่อลื่น" },

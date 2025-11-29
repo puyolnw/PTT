@@ -180,7 +180,6 @@ import AccountingSettings from "@/pages/accounting/Settings";
 // ========== Gas Station Pages ==========
 import GasStationDashboard from "@/pages/gas-station/Dashboard";
 import Orders from "@/pages/gas-station/Orders";
-import PurchaseBills from "@/pages/gas-station/PurchaseBills";
 import Receiving from "@/pages/gas-station/Receiving";
 import Payments from "@/pages/gas-station/Payments";
 import Sales from "@/pages/gas-station/Sales";
@@ -198,6 +197,7 @@ import Gas from "@/pages/gas-station/Gas";
 import PriceAdjustment from "@/pages/gas-station/PriceAdjustment";
 import Reports from "@/pages/gas-station/Reports";
 import GasStationSettings from "@/pages/gas-station/Settings";
+import Stock from "@/pages/gas-station/Stock";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -901,10 +901,6 @@ const router = createBrowserRouter([
             element: <Orders />,
           },
           {
-            path: "purchase-bills",
-            element: <PurchaseBills />,
-          },
-          {
             path: "receiving",
             element: <Receiving />,
           },
@@ -963,6 +959,10 @@ const router = createBrowserRouter([
           {
             path: "price-adjustment",
             element: <PriceAdjustment />,
+          },
+          {
+            path: "stock",
+            element: <Stock />,
           },
           {
             path: "reports",

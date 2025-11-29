@@ -1,73 +1,137 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
 import {
-  AlertTriangle,
-  Eye,
+  BookOpen,
+  TrendingUp,
+  TrendingDown,
   Droplet,
-  CheckCircle,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 
-// Mock data
-const mockBalancePetrol = [
+type PumpCode =
+  | "P18"
+  | "P26"
+  | "P34"
+  | "P42"
+  | "P59"
+  | "P67"
+  | "P75"
+  | "P83"
+  | "P91"
+  | "P99";
+
+type ProductCode = "D87" | "B" | "GSH95";
+
+type BalanceRow = {
+  date: string;
+  receive: number;
+  pay: number;
+  balance: number;
+  pumps: Record<PumpCode, number>;
+  products: Record<ProductCode, number>;
+};
+
+const pumpCodes: PumpCode[] = [
+  "P18",
+  "P26",
+  "P34",
+  "P42",
+  "P59",
+  "P67",
+  "P75",
+  "P83",
+  "P91",
+  "P99",
+];
+
+const productPrices: Record<ProductCode, number> = {
+  D87: 32.49,
+  B: 54.0,
+  GSH95: 41.49,
+};
+
+// Mock data เลียนแบบสมุดจริง (ตัวเลขสมมติ)
+const mockBalanceRows: BalanceRow[] = [
   {
-    branch: "ปั๊มไฮโซ",
-    oilType: "Premium Diesel",
-    balance: 90000,
-    measuredStock: 90000,
-    difference: 0,
-    differencePercent: 0,
-    status: "ปกติ",
+    date: "20/5/68",
+    receive: 297430,
+    pay: 442762.19,
+    balance: 2393153.86,
+    pumps: {
+      P18: 17005.3,
+      P26: 5377,
+      P34: 3562.6,
+      P42: 4662.2,
+      P59: 0,
+      P67: 0,
+      P75: 4407.5,
+      P83: 3623.8,
+      P91: 4529.8,
+      P99: 3323.9,
+    },
+    products: {
+      D87: 29873.5,
+      B: 12540.2,
+      GSH95: 8740.0,
+    },
   },
   {
-    branch: "สาขา 2",
-    oilType: "Gasohol 95",
-    balance: 68000,
-    measuredStock: 68000,
-    difference: 0,
-    differencePercent: 0,
-    status: "ปกติ",
+    date: "21",
+    receive: 263560,
+    pay: 448747.43,
+    balance: 2199821.67,
+    pumps: {
+      P18: 8663.3,
+      P26: 15289.5,
+      P34: 5315.5,
+      P42: 3383.3,
+      P59: 3927,
+      P67: 5251.0,
+      P75: 0,
+      P83: 0,
+      P91: 0,
+      P99: 0,
+    },
+    products: {
+      D87: 21540.0,
+      B: 9520.7,
+      GSH95: 6840.3,
+    },
   },
   {
-    branch: "สาขา 3",
-    oilType: "Diesel",
-    balance: 53000,
-    measuredStock: 52000,
-    difference: -1000,
-    differencePercent: -1.89,
-    status: "ผิดปกติ",
+    date: "22",
+    receive: 585540,
+    pay: 412313.63,
+    balance: 2157304.84,
+    pumps: {
+      P18: 15872.1,
+      P26: 14328.3,
+      P34: 5289.8,
+      P42: 6202.2,
+      P59: 3394.0,
+      P67: 0,
+      P75: 4984.3,
+      P83: 4209.9,
+      P91: 4685.0,
+      P99: 2891.1,
+    },
+    products: {
+      D87: 32580.4,
+      B: 14290.8,
+      GSH95: 9785.6,
+    },
   },
 ];
 
 export default function BalancePetrol() {
-  const [selectedBranch, setSelectedBranch] = useState("ทั้งหมด");
-
-  const filteredData = mockBalancePetrol.filter(
-    (item) => selectedBranch === "ทั้งหมด" || item.branch === selectedBranch
-  );
-
-  const getStatusColor = (status: string, diffPercent: number) => {
-    if (status === "ปกติ" || Math.abs(diffPercent) <= 0.3) {
-      return "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800";
-    }
-    if (Math.abs(diffPercent) <= 1.0) {
-      return "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800";
-    }
-    return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800";
-  };
-
-  const getDifferenceColor = (_diff: number, percent: number) => {
-    if (Math.abs(percent) <= 0.3) return "text-emerald-600 dark:text-emerald-400";
-    if (Math.abs(percent) <= 1.0) return "text-orange-600 dark:text-orange-400";
-    return "text-red-600 dark:text-red-400";
-  };
-
-  const totalBalance = mockBalancePetrol.reduce((sum, item) => sum + item.balance, 0);
-  const normalCount = mockBalancePetrol.filter((item) => item.status === "ปกติ").length;
-  const abnormalCount = mockBalancePetrol.filter((item) => item.status === "ผิดปกติ").length;
+  const totalReceive = mockBalanceRows.reduce((sum, r) => sum + r.receive, 0);
+  const totalPay = mockBalanceRows.reduce((sum, r) => sum + r.pay, 0);
+  const lastBalance =
+    mockBalanceRows.length > 0
+      ? mockBalanceRows[mockBalanceRows.length - 1].balance
+      : 0;
 
   return (
     <div className="space-y-6 p-6">
@@ -76,158 +140,216 @@ export default function BalancePetrol() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-6"
+        className="mb-4"
       >
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">สมุด Balance Petrol</h1>
-        <p className="text-gray-600 dark:text-gray-400">เปรียบเทียบ Balance Petrol กับยอดวัดใต้ดิน</p>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
+          <BookOpen className="w-8 h-8 text-blue-500" />
+          สมุด Balance Petrol (หน้าลาน)
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 text-sm">
+          รูปแบบตารางเลียนแบบสมุดบัญชีควบคุมหน้าลาน ใช้บันทึก รับ-จ่าย-คงเหลือ เงินสด
+          และยอดขายแยกตามหัวจ่าย (P18, P26, …) และประเภทน้ำมัน (D87, B, GSH95)
+        </p>
       </motion.div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {[
-          {
-            title: "Balance Petrol รวม",
-            value: numberFormatter.format(totalBalance),
-            subtitle: "ลิตร",
-            icon: Droplet,
-            iconColor: "bg-gradient-to-br from-blue-500 to-blue-600",
-          },
-          {
-            title: "สถานะปกติ",
-            value: normalCount,
-            subtitle: "รายการ",
-            icon: CheckCircle,
-            iconColor: "bg-gradient-to-br from-emerald-500 to-emerald-600",
-            badge: "ปกติ",
-            badgeColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800",
-          },
-          {
-            title: "ผิดปกติ",
-            value: abnormalCount,
-            subtitle: "รายการ",
-            icon: AlertTriangle,
-            iconColor: "bg-gradient-to-br from-red-500 to-red-600",
-            badge: "ผิดปกติ",
-            badgeColor: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800",
-          },
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
-          >
-            <div className="p-4">
-              <div className="flex items-center">
-                <div className={`w-16 h-16 ${stat.iconColor} rounded-lg flex items-center justify-center shadow-lg mr-4`}>
-                  <stat.icon className="w-8 h-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h6 className="text-gray-600 dark:text-gray-400 text-sm font-semibold mb-1">{stat.title}</h6>
-                  <h6 className="text-gray-800 dark:text-white text-2xl font-extrabold mb-0">{stat.value}</h6>
-                  <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">{stat.subtitle}</p>
-                </div>
-              </div>
-              {stat.badge && (
-                <div className="mt-3 flex items-center justify-end">
-                  <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${stat.badgeColor}`}>
-                    {stat.badge}
-                  </span>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex items-center gap-3"
+        >
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+            <TrendingUp className="w-6 h-6 text-emerald-500" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">รับสะสม (ช่วงที่แสดง)</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
+              {numberFormatter.format(totalReceive)} บาท
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex items-center gap-3"
+        >
+          <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+            <TrendingDown className="w-6 h-6 text-red-500" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">จ่ายสะสม (ช่วงที่แสดง)</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
+              {numberFormatter.format(totalPay)} บาท
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex items-center gap-3"
+        >
+          <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+            <Droplet className="w-6 h-6 text-blue-500" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">คงเหลือสะสมล่าสุด</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
+              {numberFormatter.format(lastBalance)} บาท
+            </p>
+          </div>
+        </motion.div>
       </div>
 
-      {/* Filter */}
+      {/* Balance Petrol Ledger Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 mb-6"
-      >
-        <select
-          value={selectedBranch}
-          onChange={(e) => setSelectedBranch(e.target.value)}
-          className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
-        >
-          <option>ทั้งหมด</option>
-          <option>ปั๊มไฮโซ</option>
-          <option>สาขา 2</option>
-          <option>สาขา 3</option>
-          <option>สาขา 4</option>
-          <option>สาขา 5</option>
-        </select>
-      </motion.div>
-
-      {/* Balance Petrol Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
+        transition={{ duration: 0.5, delay: 0.25 }}
         className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
       >
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-            รายการ Balance Petrol
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">เปรียบเทียบ Balance Petrol กับยอดวัดใต้ดิน</p>
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-800 dark:text-white">
+              สมุด Balance Petrol รายวัน (รูปแบบสมุด 302–305)
+            </h2>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              ซ้าย: รับ–จ่าย–คงเหลือ | กลาง: ยอดขายตามจุดจ่าย (P18…P99) | ขวา: รวมตามประเภทผลิตภัณฑ์ (D87, B, GSH95)
+            </p>
+          </div>
         </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">สาขา</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">ประเภทน้ำมัน</th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">Balance Petrol</th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">ยอดวัดใต้ดิน</th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">ส่วนต่าง</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">สถานะ</th>
-                <th className="text-center py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">จัดการ</th>
+              {/* แถวหัวข้อใหญ่ */}
+              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60">
+                <th
+                  rowSpan={2}
+                  className="py-3 px-3 text-left font-semibold text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700"
+                >
+                  ด/ป/ว
+                </th>
+                <th
+                  rowSpan={2}
+                  className="py-3 px-3 text-right font-semibold text-gray-600 dark:text-gray-300"
+                >
+                  รับ
+                </th>
+                <th
+                  rowSpan={2}
+                  className="py-3 px-3 text-right font-semibold text-gray-600 dark:text-gray-300"
+                >
+                  จ่าย
+                </th>
+                <th
+                  rowSpan={2}
+                  className="py-3 px-3 text-right font-semibold text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700"
+                >
+                  คงเหลือ
+                </th>
+                <th
+                  colSpan={pumpCodes.length}
+                  className="py-2 px-3 text-center font-semibold text-gray-700 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700"
+                >
+                  ยอดขายตามจุดจ่าย (P18–P99)
+                </th>
+                <th
+                  colSpan={4}
+                  className="py-2 px-3 text-center font-semibold text-gray-700 dark:text-gray-200"
+                >
+                  ประเภทผลิตภัณฑ์ / ราคาน้ำมันต่อลิตร / คงเหลือ
+                </th>
+              </tr>
+              {/* แถวหัวข้อย่อย */}
+              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60">
+                {pumpCodes.map((code, index) => (
+                  <th
+                    key={code}
+                    className={`py-2 px-2 text-center font-semibold text-gray-600 dark:text-gray-300 ${
+                      index === 6
+                        ? "border-l border-gray-300 dark:border-gray-600"
+                        : ""
+                    }`}
+                  >
+                    {code}
+                  </th>
+                ))}
+                {(["D87", "B", "GSH95"] as ProductCode[]).map((code) => (
+                  <th
+                    key={code}
+                    className="py-2 px-3 text-center font-semibold text-gray-600 dark:text-gray-300"
+                  >
+                    {code}
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                      {productPrices[code].toFixed(2)} บาท/ลิตร
+                    </div>
+                  </th>
+                ))}
+                <th className="py-2 px-3 text-center font-semibold text-gray-600 dark:text-gray-300">
+                  คงเหลือ
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400">บาท</div>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {filteredData.map((item, index) => (
+              {mockBalanceRows.map((row, rowIndex) => (
                 <motion.tr
-                  key={`${item.branch}-${item.oilType}`}
-                  initial={{ opacity: 0, x: -20 }}
+                  key={row.date}
+                  initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  transition={{ duration: 0.3, delay: rowIndex * 0.05 }}
+                  className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/40"
                 >
-                  <td className="py-4 px-6">
-                    <span className="text-sm font-semibold text-gray-800 dark:text-white">{item.branch}</span>
+                  {/* ด/ป/ว */}
+                  <td className="py-2 px-3 text-left font-semibold text-gray-800 dark:text-gray-100 border-r border-gray-200 dark:border-gray-700">
+                    {row.date}
                   </td>
-                  <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">{item.oilType}</td>
-                  <td className="py-4 px-6 text-sm text-right font-semibold text-gray-800 dark:text-white">
-                    {numberFormatter.format(item.balance)}
+                  {/* รับ */}
+                  <td className="py-2 px-3 text-right text-gray-800 dark:text-gray-100">
+                    {numberFormatter.format(row.receive)}
                   </td>
-                  <td className="py-4 px-6 text-sm text-right text-gray-600 dark:text-gray-400">
-                    {numberFormatter.format(item.measuredStock)}
+                  {/* จ่าย */}
+                  <td className="py-2 px-3 text-right text-gray-800 dark:text-gray-100">
+                    {numberFormatter.format(row.pay)}
                   </td>
-                  <td className="py-4 px-6 text-sm text-right">
-                    <span className={`font-semibold ${getDifferenceColor(item.difference, item.differencePercent)}`}>
-                      {item.difference > 0 ? '+' : ''}{numberFormatter.format(item.difference)}
-                      <span className="text-xs ml-1">
-                        ({item.differencePercent > 0 ? '+' : ''}{item.differencePercent.toFixed(2)}%)
-                      </span>
-                    </span>
+                  {/* คงเหลือ */}
+                  <td className="py-2 px-3 text-right text-gray-800 dark:text-gray-100 border-r border-gray-200 dark:border-gray-700">
+                    {numberFormatter.format(row.balance)}
                   </td>
-                  <td className="py-4 px-6">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${getStatusColor(item.status, item.differencePercent)}`}>
-                      {item.status === "ปกติ" && <CheckCircle className="w-3.5 h-3.5" />}
-                      {item.status === "ผิดปกติ" && <AlertTriangle className="w-3.5 h-3.5" />}
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center justify-center gap-2">
-                      <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors" title="ดูรายละเอียด">
-                        <Eye className="w-4 h-4 text-gray-400 hover:text-blue-500" />
-                      </button>
-                    </div>
+                  {/* ยอดหัวจ่าย P… */}
+                  {pumpCodes.map((code, index) => {
+                    const value = row.pumps[code];
+                    return (
+                      <td
+                        key={code}
+                        className={`py-2 px-2 text-right text-gray-700 dark:text-gray-200 ${
+                          index === 6
+                            ? "border-l border-gray-300 dark:border-gray-600"
+                            : ""
+                        }`}
+                      >
+                        {value ? numberFormatter.format(value) : ""}
+                      </td>
+                    );
+                  })}
+                  {/* รวมตามประเภทผลิตภัณฑ์ */}
+                  {(["D87", "B", "GSH95"] as ProductCode[]).map((code) => (
+                    <td
+                      key={code}
+                      className="py-2 px-3 text-right text-gray-800 dark:text-gray-100"
+                    >
+                      {numberFormatter.format(row.products[code])}
+                    </td>
+                  ))}
+                  {/* คงเหลือรวม (แสดงซ้ำเหมือนคอลัมน์คงเหลือด้านซ้าย เพื่อให้เหมือนคอลัมน์สุดท้ายในสมุดจริง) */}
+                  <td className="py-2 px-3 text-right text-gray-800 dark:text-gray-100">
+                    {numberFormatter.format(row.balance)}
                   </td>
                 </motion.tr>
               ))}
