@@ -187,6 +187,7 @@ import UndergroundBook from "@/pages/gas-station/UndergroundBook";
 import UndergroundMeasurement from "@/pages/gas-station/UndergroundMeasurement";
 import PendingBook from "@/pages/gas-station/PendingBook";
 import BalancePetrol from "@/pages/gas-station/BalancePetrol";
+import BalancePetrolMonthly from "@/pages/gas-station/BalancePetrolMonthly";
 import PurchaseBook from "@/pages/gas-station/PurchaseBook";
 import WholesaleBook from "@/pages/gas-station/WholesaleBook";
 import TankEntryBook from "@/pages/gas-station/TankEntryBook";
@@ -198,6 +199,7 @@ import PriceAdjustment from "@/pages/gas-station/PriceAdjustment";
 import Reports from "@/pages/gas-station/Reports";
 import GasStationSettings from "@/pages/gas-station/Settings";
 import Stock from "@/pages/gas-station/Stock";
+import SalesInstrumentReport from "@/pages/gas-station/SalesInstrumentReport";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -929,6 +931,10 @@ const router = createBrowserRouter([
             element: <BalancePetrol />,
           },
           {
+            path: "balance-petrol-monthly",
+            element: <BalancePetrolMonthly />,
+          },
+          {
             path: "purchase-book",
             element: <PurchaseBook />,
           },
@@ -967,6 +973,10 @@ const router = createBrowserRouter([
           {
             path: "reports",
             element: <Reports />,
+          },
+          {
+            path: "sales-instrument-report",
+            element: <SalesInstrumentReport />,
           },
           {
             path: "settings",

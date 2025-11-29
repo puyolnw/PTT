@@ -65,6 +65,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
       items: [
         { to: "/app/gas-station/sales", icon: Fuel, label: "การขายน้ำมัน" },
         { to: "/app/gas-station/wholesale-book", icon: FileCheck, label: "สมุดขายส่ง" },
+        { to: "/app/gas-station/sales-instrument-report", icon: FileText, label: "รายงานตราสารยอดขาย" },
       ],
     },
     {
@@ -76,6 +77,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
         { to: "/app/gas-station/underground-measurement", icon: Droplet, label: "สมุดวัดน้ำมันใต้ดิน" },
         { to: "/app/gas-station/pending-book", icon: FileText, label: "สมุดตั้งพัก" },
         { to: "/app/gas-station/balance-petrol", icon: BookOpen, label: "สมุด Balance Petrol" },
+        { to: "/app/gas-station/balance-petrol-monthly", icon: BookOpen, label: "สมุด Balance Petrol รายเดือน" },
         { to: "/app/gas-station/purchase-book", icon: FileText, label: "สมุดซื้อน้ำมัน" },
         { to: "/app/gas-station/tank-entry-book", icon: Droplet, label: "สมุดน้ำมันลงหลุม" },
       ],
