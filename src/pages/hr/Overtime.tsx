@@ -1,478 +1,406 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Timer, AlertCircle, Play, Pause, Calendar, ChevronLeft, ChevronRight, Plus, Clock } from "lucide-react";
-import ModalForm from "@/components/ModalForm";
-import { attendanceLogs as initialAttendanceLogs, employees, shifts, type AttendanceLog } from "@/data/mockData";
+import { 
+  Timer, 
+  AlertCircle, 
+  Play, 
+  Pause, 
+  Calendar, 
+  ChevronLeft, 
+  ChevronRight, 
+  Plus, 
+  Clock,
+  CheckCircle,
+  XCircle,
+  Send,
+  FileText,
+  Users,
+  DollarSign,
+  TrendingUp
+} from "lucide-react";
+import { employees, shifts, attendanceLogs as initialAttendanceLogs, type AttendanceLog } from "@/data/mockData";
+
+// ========== OT Request Types ==========
+type OTRequestStatus = "pending_manager" | "pending_hr" | "pending_admin" | "approved" | "rejected" | "completed";
+type OTRateType = "normal" | "special" | "seven_eleven_double"; // 1 เท่า, 1.5 เท่า, 7-Eleven ควงกะ
+
+interface OTRequest {
+  id: number;
+  empCode: string;
+  empName: string;
+  category: string;
+  date: string;
+  requestedHours: number; // ชั่วโมงที่ขอทำ OT
+  actualHours?: number; // ชั่วโมงที่ทำจริง (จากหน้างาน)
+  rateType: OTRateType;
+  baseSalary: number; // ฐานเงินเดือน
+  otRate: number; // อัตรา OT ต่อชั่วโมง (คำนวณจากฐานเงินเดือน)
+  otAmount: number; // เงิน OT
+  reason: string; // เหตุผลการทำ OT
+  requestedBy: string; // ผู้ยื่นเรื่อง (ผู้จัดการแผนก)
+  requestedDate: string; // วันที่ยื่นเรื่อง
+  status: OTRequestStatus;
+  hrSentDate?: string; // วันที่ HR ส่งเรื่อง
+  approvedBy?: string; // ผู้อนุมัติ (หัวหน้าสถานี)
+  approvedDate?: string; // วันที่อนุมัติ
+  rejectedReason?: string; // เหตุผลการปฏิเสธ
+  fingerprintIn?: string; // เวลาสแกนนิ้วมือเข้า OT
+  fingerprintOut?: string; // เวลาสแกนนิ้วมือออก OT
+  managerConfirmedHours?: number; // ชั่วโมงที่ผู้จัดการยืนยันจากหน้างานจริง
+}
+
+// Mock data for OT Requests
+const mockOTRequests: OTRequest[] = [
+  {
+    id: 1,
+    empCode: "EMP-0004",
+    empName: "กิตติคุณ ใฝ่รู้",
+    category: "เซเว่น",
+    date: "2025-11-15",
+    requestedHours: 2,
+    rateType: "seven_eleven_double",
+    baseSalary: 18000,
+    otRate: 35,
+    otAmount: 70,
+    reason: "คนขาดงาน ต้องทำ OT เพื่อให้งานเสร็จ",
+    requestedBy: "หัวหน้าเซเว่น",
+    requestedDate: "2025-11-14",
+    status: "approved",
+    hrSentDate: "2025-11-14",
+    approvedBy: "หัวหน้าสถานี",
+    approvedDate: "2025-11-14",
+    fingerprintIn: "17:00",
+    fingerprintOut: "19:30",
+    managerConfirmedHours: 2.5
+  },
+  {
+    id: 2,
+    empCode: "EMP-0001",
+    empName: "สมชาย ใจดี",
+    category: "ปั๊ม",
+    date: "2025-11-16",
+    requestedHours: 1,
+    rateType: "normal",
+    baseSalary: 30000,
+    otRate: 35,
+    otAmount: 35,
+    reason: "งานล้นมือ ต้องทำ OT",
+    requestedBy: "หัวหน้าปั๊ม",
+    requestedDate: "2025-11-15",
+    status: "pending_hr",
+    hrSentDate: "2025-11-15"
+  },
+  {
+    id: 3,
+    empCode: "EMP-0005",
+    empName: "พิมพ์ชนก สมใจ",
+    category: "ปึงหงี่เชียง",
+    date: "2025-11-17",
+    requestedHours: 3,
+    rateType: "special",
+    baseSalary: 25000,
+    otRate: 52.5, // 35 * 1.5
+    otAmount: 157.5,
+    reason: "งานสำคัญ ต้องทำทั้งวัน",
+    requestedBy: "หัวหน้าร้าน",
+    requestedDate: "2025-11-16",
+    status: "pending_admin"
+  }
+];
+
+// Helper function to calculate OT rate from base salary
+const calculateOTRate = (baseSalary: number, rateType: OTRateType): number => {
+  // คำนวณจากฐานเงินเดือน: ฐานเงินเดือน / 30 วัน / 8 ชั่วโมง = ต่อชั่วโมง
+  const hourlyRate = baseSalary / 30 / 8;
+  
+  switch (rateType) {
+    case "normal":
+      return Math.round(hourlyRate * 10) / 10; // 1 เท่า
+    case "special":
+      return Math.round(hourlyRate * 1.5 * 10) / 10; // 1.5 เท่า
+    case "seven_eleven_double":
+      // 7-Eleven ควงกะ (ทำงานทั้งวัน) = 1.5 เท่า
+      return Math.round(hourlyRate * 1.5 * 10) / 10;
+    default:
+      return Math.round(hourlyRate * 10) / 10;
+  }
+};
+
+// Helper function to get base salary from employee
+const getEmployeeBaseSalary = (empCode: string): number => {
+  // ในระบบจริงจะดึงจากฐานข้อมูล
+  // ตอนนี้ใช้ค่า mock
+  const employee = employees.find(e => e.code === empCode);
+  if (!employee) return 0;
+  
+  // Mock base salary (ฐานเงินเดือน)
+  const mockBaseSalaries: Record<string, number> = {
+    "EMP-0001": 30000,
+    "EMP-0002": 25000,
+    "EMP-0003": 22000,
+    "EMP-0004": 18000,
+    "EMP-0005": 25000,
+    "EMP-0006": 19000,
+    "EMP-0007": 20000,
+    "EMP-0008": 25000,
+    "EMP-0009": 18000,
+    "EMP-0012": 17000,
+    "EMP-0013": 23000,
+    "EMP-0014": 24000,
+    "EMP-0015": 19000,
+    "EMP-0016": 20000,
+    "EMP-0017": 20000,
+    "EMP-0018": 19500,
+    "EMP-0019": 24000,
+    "EMP-0020": 22000,
+    "EMP-0021": 21000,
+    "EMP-0022": 21500,
+    "EMP-0023": 28000,
+    "EMP-0024": 27000,
+    "EMP-0025": 17500,
+    "EMP-0026": 25000,
+    "EMP-0027": 26000,
+    "EMP-0028": 24000,
+    "EMP-0029": 20000,
+    "EMP-0030": 21000,
+    "EMP-0031": 18000,
+    "EMP-0032": 22000,
+  };
+  
+  return mockBaseSalaries[empCode] || 20000;
+};
 
 export default function Overtime() {
-  const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>(initialAttendanceLogs);
+  const [otRequests, setOtRequests] = useState<OTRequest[]>(mockOTRequests);
+  const [viewMode, setViewMode] = useState<"requests" | "approval" | "records">("requests");
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedShift, setSelectedShift] = useState<number | "">("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [deptFilter, setDeptFilter] = useState("");
-  const [isAddOTModalOpen, setIsAddOTModalOpen] = useState(false);
-  const [selectedOTDetail, setSelectedOTDetail] = useState<{
-    log: AttendanceLog;
-    otInfo: ReturnType<typeof getOTInfo>;
-    employee: typeof employees[number];
-    shift: typeof shifts[number] | null;
-  } | null>(null);
-  const [otForm, setOtForm] = useState({
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<OTRequest | null>(null);
+  
+  // Form states
+  const [requestForm, setRequestForm] = useState({
     empCode: "",
-    empName: "",
     date: "",
-    otHours: "",
-    otRate: "",
-    otAmount: "",
-    note: ""
+    requestedHours: "",
+    rateType: "normal" as OTRateType,
+    reason: ""
+  });
+  
+  const [recordForm, setRecordForm] = useState({
+    requestId: "",
+    fingerprintIn: "",
+    fingerprintOut: "",
+    managerConfirmedHours: ""
   });
 
-  // Get all unique categories and departments
+  // Get all unique categories
   const categories = Array.from(new Set(employees.map(e => e.category).filter(Boolean)));
-  const departments = Array.from(new Set(employees.map(e => e.dept)));
 
-  // Get employee's shift
-  const getEmployeeShift = (empCode: string) => {
-    const employee = employees.find(e => e.code === empCode);
-    if (employee && employee.shiftId) {
-      return shifts.find(s => s.id === employee.shiftId);
+  // Filter OT requests
+  const filteredRequests = useMemo(() => {
+    let filtered = otRequests;
+    
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(req => 
+        req.empName.toLowerCase().includes(query) ||
+        req.empCode.toLowerCase().includes(query)
+      );
     }
-    return shifts[0];
-  };
-
-
-  // Convert hours to hours and minutes format
-  const formatHoursMinutes = (hours: number): string => {
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
-    if (m === 0) {
-      return `${h} ชม.`;
-    } else if (h === 0) {
-      return `${m} นาที`;
+    
+    if (selectedCategory) {
+      filtered = filtered.filter(req => req.category === selectedCategory);
     }
-    return `${h} ชม. ${m} นาที`;
-  };
+    
+    const [year, month] = selectedMonth.split('-').map(Number);
+    filtered = filtered.filter(req => {
+      const reqDate = new Date(req.date);
+      return reqDate.getFullYear() === year && reqDate.getMonth() + 1 === month;
+    });
+    
+    return filtered;
+  }, [otRequests, searchQuery, selectedCategory, selectedMonth]);
 
-  // Handle employee selection
-  const handleEmployeeSelect = (empCode: string) => {
-    const employee = employees.find(e => e.code === empCode);
-    if (employee) {
-      const otRate = employee.otRate || 0;
-      setOtForm({
-        ...otForm,
-        empCode: employee.code,
-        empName: employee.name,
-        otRate: otRate.toString()
-      });
-    }
-  };
+  // Group requests by status
+  const pendingManagerRequests = filteredRequests.filter(r => r.status === "pending_manager");
+  const pendingHRRequests = filteredRequests.filter(r => r.status === "pending_hr");
+  const pendingAdminRequests = filteredRequests.filter(r => r.status === "pending_admin");
+  const approvedRequests = filteredRequests.filter(r => r.status === "approved");
+  const completedRequests = filteredRequests.filter(r => r.status === "completed");
 
-  // Handle OT form change
-  const handleOTFormChange = (field: string, value: string) => {
-    if (field === "otHours" || field === "otRate") {
-      const otHours = field === "otHours" ? parseFloat(value) || 0 : parseFloat(otForm.otHours) || 0;
-      const otRate = field === "otRate" ? parseFloat(value) || 0 : parseFloat(otForm.otRate) || 0;
-      const otAmount = otHours * otRate;
-      setOtForm({
-        ...otForm,
-        [field]: value,
-        otAmount: otAmount.toFixed(2)
-      });
-    } else {
-      setOtForm({
-        ...otForm,
-        [field]: value
-      });
-    }
-  };
-
-  // Handle add OT
-  const handleAddOT = () => {
-    if (!otForm.empCode || !otForm.date || !otForm.otHours || !otForm.otRate) {
-      alert("กรุณากรอกข้อมูลให้ครบถ้วน (พนักงาน, วันที่, OT ชั่วโมง, OT Rate)");
+  // Handle create OT request (ผู้จัดการแผนกยื่นเรื่อง)
+  const handleCreateRequest = () => {
+    if (!requestForm.empCode || !requestForm.date || !requestForm.requestedHours || !requestForm.reason) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
 
-    const employee = employees.find(e => e.code === otForm.empCode);
+    const employee = employees.find(e => e.code === requestForm.empCode);
     if (!employee) {
       alert("ไม่พบข้อมูลพนักงาน");
       return;
     }
 
-    const shift = getEmployeeShift(otForm.empCode);
-    const otHours = parseFloat(otForm.otHours);
-    const otRate = parseFloat(otForm.otRate);
-    const otAmount = otHours * otRate;
+    const baseSalary = getEmployeeBaseSalary(requestForm.empCode);
+    const otRate = calculateOTRate(baseSalary, requestForm.rateType);
+    const requestedHours = parseFloat(requestForm.requestedHours);
+    const otAmount = requestedHours * otRate;
 
-    // Check if attendance log already exists for this date
-    const existingLog = attendanceLogs.find(
-      l => l.empCode === otForm.empCode && l.date === otForm.date
-    );
+    const newRequest: OTRequest = {
+      id: Math.max(...otRequests.map(r => r.id), 0) + 1,
+      empCode: employee.code,
+      empName: employee.name,
+      category: employee.category || "",
+      date: requestForm.date,
+      requestedHours,
+      rateType: requestForm.rateType,
+      baseSalary,
+      otRate,
+      otAmount,
+      reason: requestForm.reason,
+      requestedBy: "ผู้จัดการแผนก", // ในระบบจริงจะดึงจาก session
+      requestedDate: new Date().toISOString().split('T')[0],
+      status: "pending_manager"
+    };
 
-    if (existingLog) {
-      // Update existing log with OT
-      const updatedLogs = attendanceLogs.map(log =>
-        log.id === existingLog.id
-          ? {
-              ...log,
-              otHours: (log.otHours || 0) + otHours,
-              otAmount: (log.otAmount || 0) + otAmount
-            }
-          : log
-      );
-      setAttendanceLogs(updatedLogs);
-    } else {
-      // Create new attendance log with OT
-      const newLog: AttendanceLog = {
-        id: Math.max(...attendanceLogs.map(l => l.id), 0) + 1,
-        empCode: otForm.empCode,
-        empName: otForm.empName,
-        date: otForm.date,
-        checkIn: shift?.startTime || "08:00",
-        checkOut: shift?.endTime || "17:00",
-        status: "ตรงเวลา",
-        lateMinutes: 0,
-        otHours: otHours,
-        otAmount: otAmount
-      };
-      setAttendanceLogs([...attendanceLogs, newLog]);
-    }
-
-    // Reset form
-    setOtForm({
+    setOtRequests([...otRequests, newRequest]);
+    setIsRequestModalOpen(false);
+    setRequestForm({
       empCode: "",
-      empName: "",
       date: "",
-      otHours: "",
-      otRate: "",
-      otAmount: "",
-      note: ""
+      requestedHours: "",
+      rateType: "normal",
+      reason: ""
     });
-    setIsAddOTModalOpen(false);
-
-    alert(`บันทึก OT สำเร็จ! ${otForm.empName}: ${otHours.toFixed(2)} ชม. (${otAmount.toFixed(2)} บาท)`);
+    
+    alert("ยื่นเรื่อง OT สำเร็จ! รอการพิจารณาจากผู้จัดการแผนก");
   };
 
-  // Generate days in month
-  const getDaysInMonth = (year: number, month: number) => {
-    const days: Date[] = [];
-    const lastDay = new Date(year, month + 1, 0).getDate();
-    for (let day = 1; day <= lastDay; day++) {
-      days.push(new Date(year, month, day));
-    }
-    return days;
+  // Handle HR send request (HR ส่งเรื่อง)
+  const handleHRSend = (requestId: number) => {
+    const updated = otRequests.map(req => 
+      req.id === requestId 
+        ? { ...req, status: "pending_hr" as OTRequestStatus, hrSentDate: new Date().toISOString().split('T')[0] }
+        : req
+    );
+    setOtRequests(updated);
+    alert("ส่งเรื่องให้หัวหน้าสถานีแล้ว");
   };
 
-  // Calculate OT status and info
-  const getOTInfo = (log: AttendanceLog) => {
-    const employee = employees.find(e => e.code === log.empCode);
-    const shift = getEmployeeShift(log.empCode);
-    if (!shift || !log.otHours || log.otHours <= 0) return null;
+  // Handle admin approve/reject (หัวหน้าสถานีอนุมัติ/ปฏิเสธ)
+  const handleAdminApprove = (requestId: number) => {
+    const updated = otRequests.map(req => 
+      req.id === requestId 
+        ? { 
+            ...req, 
+            status: "approved" as OTRequestStatus, 
+            approvedBy: "หัวหน้าสถานี",
+            approvedDate: new Date().toISOString().split('T')[0]
+          }
+        : req
+    );
+    setOtRequests(updated);
+    alert("อนุมัติ OT สำเร็จ");
+  };
 
-    const shiftEndTime = shift.endTime;
-    const [shiftEndHour, shiftEndMin] = shiftEndTime.split(":").map(Number);
-    const [checkOutHour, checkOutMin] = log.checkOut.split(":").map(Number);
+  const handleAdminReject = (requestId: number, reason: string) => {
+    if (!reason.trim()) {
+      alert("กรุณาระบุเหตุผลการปฏิเสธ");
+      return;
+    }
     
-    const shiftEndMinutes = shiftEndHour * 60 + shiftEndMin;
-    const checkOutMinutes = checkOutHour * 60 + checkOutMin;
-    
-    let actualShiftEnd = shiftEndMinutes;
-    let actualCheckOut = checkOutMinutes;
-    const [shiftStartHour, shiftStartMin] = shift.startTime.split(":").map(Number);
-    const shiftStartMinutes = shiftStartHour * 60 + shiftStartMin;
-    
-    if (shiftEndMinutes < shiftStartMinutes) {
-      if (checkOutMinutes < shiftEndMinutes) {
-        actualCheckOut = checkOutMinutes + (24 * 60);
-      }
-      actualShiftEnd = shiftEndMinutes + (24 * 60);
+    const updated = otRequests.map(req => 
+      req.id === requestId 
+        ? { 
+            ...req, 
+            status: "rejected" as OTRequestStatus,
+            rejectedReason: reason,
+            approvedBy: "หัวหน้าสถานี",
+            approvedDate: new Date().toISOString().split('T')[0]
+          }
+        : req
+    );
+    setOtRequests(updated);
+    alert("ปฏิเสธ OT แล้ว");
+  };
+
+  // Handle record OT (บันทึก OT จากหน้างานจริง)
+  const handleRecordOT = () => {
+    if (!recordForm.requestId || !recordForm.managerConfirmedHours) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
     }
 
-    const otStartTime = shiftEndTime;
-    const hasStarted = actualCheckOut > actualShiftEnd;
-    
-    let otHoursDone = 0;
-    if (hasStarted && log.checkOut !== "-") {
-      const diffMinutes = actualCheckOut - actualShiftEnd;
-      otHoursDone = diffMinutes / 60;
+    const requestId = parseInt(recordForm.requestId);
+    const request = otRequests.find(r => r.id === requestId);
+    if (!request) {
+      alert("ไม่พบข้อมูล OT Request");
+      return;
     }
 
-    const otHoursRemaining = log.otHours - otHoursDone;
+    const confirmedHours = parseFloat(recordForm.managerConfirmedHours);
+    const actualAmount = confirmedHours * request.otRate;
 
-    return {
-      otStartTime,
-      hasStarted,
-      otHoursDone: Math.max(0, Math.min(otHoursDone, log.otHours)),
-      otHoursRemaining: Math.max(0, otHoursRemaining),
-      otHoursPlanned: log.otHours,
-      otAmount: log.otAmount || 0,
-      otRate: employee?.otRate || 0
+    const updated = otRequests.map(req => 
+      req.id === requestId 
+        ? { 
+            ...req, 
+            actualHours: confirmedHours,
+            managerConfirmedHours: confirmedHours,
+            fingerprintIn: recordForm.fingerprintIn || undefined,
+            fingerprintOut: recordForm.fingerprintOut || undefined,
+            status: "completed" as OTRequestStatus,
+            otAmount: actualAmount
+          }
+        : req
+    );
+    setOtRequests(updated);
+    setIsRecordModalOpen(false);
+    setRecordForm({
+      requestId: "",
+      fingerprintIn: "",
+      fingerprintOut: "",
+      managerConfirmedHours: ""
+    });
+    
+    alert(`บันทึก OT สำเร็จ! ${confirmedHours} ชั่วโมง = ${actualAmount.toFixed(2)} บาท`);
+  };
+
+  // Get status badge
+  const getStatusBadge = (status: OTRequestStatus) => {
+    const badges = {
+      pending_manager: { text: "รอผู้จัดการพิจารณา", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+      pending_hr: { text: "รอ HR ส่งเรื่อง", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+      pending_admin: { text: "รอหัวหน้าสถานีอนุมัติ", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+      approved: { text: "อนุมัติแล้ว", color: "bg-green-500/20 text-green-400 border-green-500/30" },
+      rejected: { text: "ปฏิเสธ", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+      completed: { text: "ทำ OT เสร็จแล้ว", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" }
     };
+    
+    const badge = badges[status];
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${badge.color}`}>
+        {badge.text}
+      </span>
+    );
   };
 
-  // Build mock OT calendar data
-  const buildMockOTCalendarData = (days: Date[]) => {
-    const mockEmployees = [
-      { code: "EMP-0001", name: "สมชาย ใจดี", category: "ปั๊ม", shiftId: 1, otRate: 250 },
-      { code: "EMP-0002", name: "สมหญิง รักงาน", category: "ปั๊ม", shiftId: 2, otRate: 200 },
-      { code: "EMP-0003", name: "วรพล ตั้งใจ", category: "ปั๊ม", shiftId: 3, otRate: 220 },
-      { code: "EMP-0004", name: "กิตติคุณ ใฝ่รู้", category: "เซเว่น", shiftId: 27, otRate: 180 },
-      { code: "EMP-0005", name: "พิมพ์ชนก สมใจ", category: "ปึงหงี่เชียง", shiftId: 16, otRate: 300 },
-      { code: "EMP-0008", name: "อัญชลี มีชัย", category: "ร้านเชสเตอร์", shiftId: 19, otRate: 250 },
-      { code: "EMP-0013", name: "ประยุทธ์ กลางคืน", category: "ปั๊ม", shiftId: 4, otRate: 230 },
-      { code: "EMP-0015", name: "นันทนา เซเว่น", category: "เซเว่น", shiftId: 28, otRate: 190 },
-      { code: "EMP-0020", name: "อภิชัย อเมซอน", category: "Amazon", shiftId: 21, otRate: 220 },
-      { code: "EMP-0023", name: "ประเสริฐ ช่าง", category: "ช่าง", shiftId: 7, otRate: 280 },
-      { code: "EMP-0026", name: "นิดา ออฟฟิศ", category: "Office", shiftId: 13, otRate: 250 },
-      { code: "EMP-0029", name: "ประยุทธ์ รปภ", category: "รักษาความปลอดภัย", shiftId: 11, otRate: 200 },
-    ];
-
-    // Filter mock employees based on selected filters
-    let filteredMockEmployees = mockEmployees;
-    
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filteredMockEmployees = filteredMockEmployees.filter(emp => 
-        emp.name.toLowerCase().includes(query) || 
-        emp.code.toLowerCase().includes(query)
-      );
-    }
-    
-    // Department filter
-    if (deptFilter) {
-      filteredMockEmployees = filteredMockEmployees.filter(emp => {
-        const employee = employees.find(e => e.code === emp.code);
-        return employee?.dept === deptFilter;
-      });
-    }
-    
-    if (selectedCategory) {
-      filteredMockEmployees = filteredMockEmployees.filter(emp => emp.category === selectedCategory);
-    }
-    if (selectedShift !== "") {
-      filteredMockEmployees = filteredMockEmployees.filter(emp => emp.shiftId === selectedShift);
-    }
-
-    const seededRandom = (seed: number) => {
-      const x = Math.sin(seed) * 10000;
-      return x - Math.floor(x);
+  // Get rate type label
+  const getRateTypeLabel = (rateType: OTRateType) => {
+    const labels = {
+      normal: "1 เท่า (งานทั่วไป)",
+      special: "1.5 เท่า (งานสำคัญ)",
+      seven_eleven_double: "1.5 เท่า (7-Eleven ควงกะ)"
     };
-
-    return filteredMockEmployees.map((mockEmp, empIndex) => {
-      const existingEmployee = employees.find(e => e.code === mockEmp.code);
-      const employee = existingEmployee || {
-        id: 9000 + empIndex,
-        code: mockEmp.code,
-        name: mockEmp.name,
-        dept: mockEmp.category,
-        position: "พนักงาน",
-        status: "Active" as const,
-        startDate: new Date().toISOString().split("T")[0],
-        category: mockEmp.category,
-        shiftId: mockEmp.shiftId,
-        otRate: mockEmp.otRate
-      } as typeof employees[number];
-      
-      const shift = employee.shiftId ? shifts.find(s => s.id === employee.shiftId) : null;
-      
-      const otData = days.map((day) => {
-        const dayNum = day.getDate();
-        const dateStr = day.toISOString().split('T')[0];
-        const seed = empIndex * 1000 + dayNum;
-        
-        const hasOT = seededRandom(seed) < 0.3;
-        
-        if (!hasOT) {
-          return {
-            date: dateStr,
-            day: dayNum,
-            log: null,
-            otHours: null,
-            otAmount: null,
-            otInfo: null
-          };
-        }
-        
-        const otHours = Math.round((seededRandom(seed + 1) * 4 + 1) * 10) / 10;
-        const otRate = employee.otRate || mockEmp.otRate;
-        const otAmount = Math.round(otHours * otRate * 100) / 100;
-        
-        const statusRand = seededRandom(seed + 2);
-        let status: "pending" | "active" | "done";
-        let progressHours = 0;
-        
-        if (statusRand < 0.3) {
-          status = "pending";
-          progressHours = 0;
-        } else if (statusRand < 0.7) {
-          status = "active";
-          progressHours = Math.round((otHours * (0.3 + seededRandom(seed + 3) * 0.6)) * 10) / 10;
-        } else {
-          status = "done";
-          progressHours = otHours;
-        }
-        
-        const log: AttendanceLog = {
-          id: Number(`${employee.id}${dayNum}`),
-          empCode: employee.code,
-          empName: employee.name,
-          date: dateStr,
-          checkIn: shift?.startTime || "08:00",
-          checkOut: shift?.endTime || "17:00",
-          status: "ตรงเวลา",
-          lateMinutes: 0,
-          otHours,
-          otAmount
-        };
-        
-        const otInfo = {
-          otStartTime: shift?.endTime || "17:00",
-          hasStarted: status !== "pending",
-          otHoursDone: progressHours,
-          otHoursRemaining: Math.max(otHours - progressHours, 0),
-          otHoursPlanned: otHours,
-          otAmount,
-          otRate
-        } as ReturnType<typeof getOTInfo>;
-        
-        return {
-          date: dateStr,
-          day: dayNum,
-          log,
-          otHours,
-          otAmount,
-          otInfo
-        };
-      });
-      
-      return {
-        employee,
-        shift,
-        otData
-      };
-    });
+    return labels[rateType];
   };
-
-  // Get OT data for calendar view
-  const getOTCalendarData = () => {
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const days = getDaysInMonth(year, month - 1);
-    
-    let filteredEmployees = employees.filter(emp => emp.status === "Active");
-    
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filteredEmployees = filteredEmployees.filter(emp => 
-        emp.name.toLowerCase().includes(query) || 
-        emp.code.toLowerCase().includes(query)
-      );
-    }
-    
-    // Department filter
-    if (deptFilter) {
-      filteredEmployees = filteredEmployees.filter(emp => emp.dept === deptFilter);
-    }
-    
-    if (selectedCategory) {
-      filteredEmployees = filteredEmployees.filter(emp => emp.category === selectedCategory);
-    }
-    if (selectedShift !== "") {
-      filteredEmployees = filteredEmployees.filter(emp => emp.shiftId === selectedShift);
-    }
-    
-    const otCalendarData = filteredEmployees.map(emp => {
-      const empShift = emp.shiftId ? shifts.find(s => s.id === emp.shiftId) : null;
-      const empOTData = days.map(day => {
-        const dateStr = day.toISOString().split('T')[0];
-        const log = attendanceLogs.find(
-          l => l.empCode === emp.code && l.date === dateStr && l.otHours && l.otHours > 0
-        );
-        
-        if (!log) {
-          return {
-            date: dateStr,
-            day: day.getDate(),
-            log: null,
-            otHours: null,
-            otAmount: null,
-            otInfo: null
-          };
-        }
-        
-        const otInfo = getOTInfo(log);
-        
-        return {
-          date: dateStr,
-          day: day.getDate(),
-          log: log,
-          otHours: log.otHours || 0,
-          otAmount: log.otAmount || 0,
-          otInfo: otInfo
-        };
-      });
-      
-      return {
-        employee: emp,
-        shift: empShift,
-        otData: empOTData
-      };
-    }).filter(data => data.otData.some(ot => ot.log !== null));
-    
-    if (otCalendarData.length === 0) {
-      return { days, otCalendarData: buildMockOTCalendarData(days), isMock: true };
-    }
-    
-    return { days, otCalendarData, isMock: false };
-  };
-
-  // Filter OT logs based on selected filters
-  const getFilteredOTLogs = () => {
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
-    const monthEnd = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
-    
-    const filteredLogs = attendanceLogs.filter(log => {
-      // Filter by month
-      if (log.date < monthStart || log.date > monthEnd) return false;
-      // Filter by OT hours
-      if (!log.otHours || log.otHours <= 0) return false;
-      
-      // Filter by category
-      if (selectedCategory) {
-        const employee = employees.find(e => e.code === log.empCode);
-        if (!employee || employee.category !== selectedCategory) return false;
-      }
-      
-      // Filter by shift
-      if (selectedShift !== "") {
-        const employee = employees.find(e => e.code === log.empCode);
-        if (!employee || employee.shiftId !== selectedShift) return false;
-      }
-      
-      return true;
-    });
-    
-    return filteredLogs;
-  };
-
-  // Separate OT logs into pending and active
-  const filteredOTLogs = getFilteredOTLogs();
-  const pendingOT = filteredOTLogs.filter(log => {
-    const info = getOTInfo(log);
-    return info && !info.hasStarted;
-  });
-  const activeOT = filteredOTLogs.filter(log => {
-    const info = getOTInfo(log);
-    return info && info.hasStarted && info.otHoursRemaining > 0;
-  });
-
-  const { days, otCalendarData, isMock } = getOTCalendarData();
 
   return (
     <div className="space-y-6">
@@ -483,809 +411,608 @@ export default function Overtime() {
             การทำ OT (Overtime)
           </h1>
           <p className="text-muted font-light">
-            จัดการและติดตามการทำ OT ของพนักงาน • พนักงานลงทะเบียน OT ไว้ที่เอกสารแล้ว HR/Admin จะเป็นคนเพิ่มในระบบ
+            จัดการการทำ OT: ผู้จัดการยื่นเรื่อง → HR ส่งเรื่อง → หัวหน้าสถานีอนุมัติ → บันทึกผลจากหน้างาน
           </p>
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setIsAddOTModalOpen(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-ptt-cyan hover:bg-ptt-cyan/80 
-                     text-app rounded-xl transition-all duration-200 font-semibold 
-                     shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+            onClick={() => setViewMode("requests")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 font-medium ${
+              viewMode === "requests"
+                ? "bg-ptt-cyan text-app"
+                : "bg-soft hover:bg-soft/80 text-app border border-app"
+            }`}
           >
-            <Plus className="w-5 h-5" />
-            เพิ่ม OT
+            <FileText className="w-4 h-4" />
+            ยื่นเรื่อง OT
+          </button>
+          <button
+            onClick={() => setViewMode("approval")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 font-medium ${
+              viewMode === "approval"
+                ? "bg-ptt-cyan text-app"
+                : "bg-soft hover:bg-soft/80 text-app border border-app"
+            }`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            อนุมัติ OT
+          </button>
+          <button
+            onClick={() => setViewMode("records")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 font-medium ${
+              viewMode === "records"
+                ? "bg-ptt-cyan text-app"
+                : "bg-soft hover:bg-soft/80 text-app border border-app"
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            บันทึก OT
           </button>
         </div>
       </div>
 
-      {/* OT Calendar View */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
-      >
-
-        <div className="px-6 py-4 border-b border-app bg-soft">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
-                <Timer className="w-5 h-5 text-yellow-400" />
-                ตาราง OT (ปฏิทินรายบุคคล)
-              </h3>
-              <p className="text-xs text-muted mt-1">
-                แสดงการทำ OT รายเดือน แยกตามแผนก {isMock && <span className="text-yellow-400">• ข้อมูลตัวอย่าง</span>}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    const [year, month] = selectedMonth.split('-').map(Number);
-                    const prevMonth = month === 1 ? 12 : month - 1;
-                    const prevYear = month === 1 ? year - 1 : year;
-                    setSelectedMonth(`${prevYear}-${String(prevMonth).padStart(2, '0')}`);
-                  }}
-                  className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4 text-app" />
-                </button>
-                <input
-                  type="month"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-                />
-                <button
-                  onClick={() => {
-                    const [year, month] = selectedMonth.split('-').map(Number);
-                    const nextMonth = month === 12 ? 1 : month + 1;
-                    const nextYear = month === 12 ? year + 1 : year;
-                    setSelectedMonth(`${nextYear}-${String(nextMonth).padStart(2, '0')}`);
-                  }}
-                  className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4 text-app" />
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          {/* Filter Bar - Inline with table */}
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search Input */}
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app placeholder:text-muted
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all font-light"
-              />
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-
-            {/* Filter Dropdowns */}
-            <div className="flex flex-wrap gap-3">
-              <select
-                value={deptFilter}
-                onChange={(e) => setDeptFilter(e.target.value)}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกแผนก</option>
-                {departments.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกหมวดหมู่</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat || ""}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={selectedShift === "" ? "" : String(selectedShift)}
-                onChange={(e) => setSelectedShift(e.target.value === "" ? "" : Number(e.target.value))}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกกะ</option>
-                {(() => {
-                  let availableShifts = shifts;
-                  if (selectedCategory) {
-                    availableShifts = shifts.filter(s => s.category === selectedCategory);
-                  }
-                  return availableShifts.map((shift) => (
-                    <option key={shift.id} value={String(shift.id)}>
-                      {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
-                    </option>
-                  ));
-                })()}
-              </select>
-            </div>
-          </div>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4">
+        <div className="flex-1 min-w-[200px]">
+          <input
+            type="text"
+            placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 bg-soft border border-app rounded-xl text-app placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+          />
         </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead className="bg-soft border-b-2 border-app sticky top-0 z-10">
-              <tr>
-                <th className="px-2 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-0 bg-soft z-20 min-w-[30px] w-[30px]">
-                  NO
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-app border-r border-app sticky left-[30px] bg-soft z-20 min-w-[200px]">
-                  ชื่อ-สกุล
-                </th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[230px] bg-soft z-20 min-w-[100px]">
-                  แผนก
-                </th>
-                <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[330px] bg-soft z-20 min-w-[120px]">
-                  กะ
-                </th>
-                {days.map((day, idx) => (
-                  <th
-                    key={idx}
-                    className="px-2 py-3 text-center text-xs font-semibold text-app border-r border-app min-w-[50px]"
-                  >
-                    {day.getDate()}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-app">
-              {otCalendarData.map((data, empIndex) => (
-                <motion.tr
-                  key={data.employee.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: empIndex * 0.02 }}
-                  className="hover:bg-soft/50 transition-colors"
-                >
-                  <td className="px-2 py-3 text-xs text-app font-semibold border-r border-app sticky left-0 bg-soft z-10 text-center min-w-[30px] w-[30px]">
-                    {empIndex + 1}
-                  </td>
-                  <td className="px-3 py-3 text-sm text-app font-medium border-r border-app sticky left-[30px] bg-soft z-10">
-                    {data.employee.name}
-                  </td>
-                  <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[230px] bg-soft z-10">
-                    <span className="text-xs text-ptt-cyan">{data.employee.category || "-"}</span>
-                  </td>
-                  <td className="px-3 py-3 text-sm text-center text-app border-r border-app sticky left-[330px] bg-soft z-10">
-                    {data.shift ? (
-                      <div className="text-xs">
-                        <div className="text-ptt-cyan font-medium">
-                          {data.shift.shiftType ? `กะ${data.shift.shiftType}` : ""} {data.shift.name}
-                        </div>
-                        <div className="text-muted text-[10px]">{data.shift.startTime}-{data.shift.endTime}</div>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted">-</span>
-                    )}
-                  </td>
-                  {data.otData.map((ot, dayIndex) => {
-                    const getCellColor = () => {
-                      if (!ot.log || !ot.otInfo) return "";
-                      if (ot.otInfo.hasStarted && ot.otInfo.otHoursRemaining > 0) {
-                        return "bg-green-200/30";
-                      } else if (!ot.otInfo.hasStarted) {
-                        return "bg-yellow-200/30";
-                      }
-                      return "bg-blue-200/30";
-                    };
-                    
-                    const getCellContent = () => {
-                      if (!ot.log) return "";
-                      if (!ot.otInfo) {
-                        return ot.otHours ? formatHoursMinutes(ot.otHours) : "";
-                      }
-                      if (ot.otInfo.hasStarted && ot.otInfo.otHoursRemaining > 0) {
-                        return `${formatHoursMinutes(ot.otInfo.otHoursDone)}/${formatHoursMinutes(ot.otHours)}`;
-                      } else if (!ot.otInfo.hasStarted) {
-                        return `รอ ${formatHoursMinutes(ot.otHours)}`;
-                      }
-                      return formatHoursMinutes(ot.otHours);
-                    };
-                    
-                    const handleCellClick = () => {
-                      if (!ot.log || !ot.otInfo) return;
-                      const employee = employees.find(e => e.code === ot.log!.empCode);
-                      const shift = getEmployeeShift(ot.log.empCode) || null;
-                      if (employee) {
-                        setSelectedOTDetail({
-                          log: ot.log,
-                          otInfo: ot.otInfo,
-                          employee,
-                          shift
-                        });
-                      }
-                    };
-                    
-                    return (
-                      <td
-                        key={dayIndex}
-                        className={`px-2 py-2 text-center text-xs border-r border-app ${getCellColor()} ${
-                          ot.log && ot.otInfo ? "cursor-pointer hover:opacity-80 transition-opacity" : ""
-                        }`}
-                        onClick={handleCellClick}
-                        title={ot.log && ot.otInfo ? "คลิกเพื่อดูรายละเอียด" : ""}
-                      >
-                        {getCellContent()}
-                      </td>
-                    );
-                  })}
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Legend */}
-        <div className="px-6 py-4 border-t border-app bg-soft">
-          <div className="flex flex-wrap gap-4 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-yellow-200/30 border border-app rounded"></div>
-              <span className="text-app">รอเริ่ม OT</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-200/30 border border-app rounded"></div>
-              <span className="text-app">กำลังทำ OT (แสดง ชม.ทำแล้ว/ชม.ทั้งหมด)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-200/30 border border-app rounded"></div>
-              <span className="text-app">ทำ OT เสร็จแล้ว</span>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+        >
+          <option value="">ทุกแผนก</option>
+          {categories.map(cat => (
+            <option key={cat} value={cat || ""}>{cat}</option>
+          ))}
+        </select>
+        <input
+          type="month"
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+        />
+      </div>
 
-      {/* OT Tables */}
-      {(pendingOT.length > 0 || activeOT.length > 0) && (
+      {/* View: Requests (ผู้จัดการยื่นเรื่อง) */}
+      {viewMode === "requests" && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
         >
-          <div className="px-6 py-4 border-b border-app bg-soft">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
-                  <Timer className="w-5 h-5 text-ptt-cyan" />
-                  ตาราง OT (Overtime)
-                </h3>
-                <p className="text-xs text-muted mt-1">
-                  {pendingOT.length} รายการรอเริ่ม • {activeOT.length} รายการกำลังทำ OT
-                </p>
-              </div>
+          <div className="px-6 py-4 border-b border-app bg-soft flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
+                <FileText className="w-5 h-5 text-ptt-cyan" />
+                รายการยื่นเรื่อง OT
+              </h3>
+              <p className="text-xs text-muted mt-1">
+                ผู้จัดการแผนกยื่นเรื่องเปิด OT ให้พนักงาน
+              </p>
             </div>
+            <button
+              onClick={() => setIsRequestModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-ptt-cyan hover:bg-ptt-cyan/80 text-app rounded-xl transition-all duration-200 font-semibold"
+            >
+              <Plus className="w-4 h-4" />
+              ยื่นเรื่อง OT
+            </button>
           </div>
 
-          {/* Pending OT */}
-          {pendingOT.length > 0 && (
-            <div className="border-b border-app">
-              <div className="px-6 py-3 bg-yellow-500/10 border-b border-yellow-500/20">
-                <h4 className="text-sm font-semibold text-yellow-400 flex items-center gap-2">
-                  <Pause className="w-4 h-4" />
-                  รอเริ่ม OT ({pendingOT.length} รายการ)
-                </h4>
-                <p className="text-xs text-muted mt-1">ลง OT ไว้แล้ว แต่ยังไม่เริ่มทำ (รอให้ออกจากกะปกติก่อน)</p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-soft border-b border-app">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">วันที่</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">รหัส</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">ชื่อ-นามสกุล</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">กะ</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">เวลาออกจากกะ</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">เวลาเริ่ม OT</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">OT ที่ลงไว้</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">เงิน OT</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-app">
-                    {pendingOT.map((log, index) => {
-                      const info = getOTInfo(log);
-                      const shift = getEmployeeShift(log.empCode);
-                      if (!info) return null;
-                      
-                      return (
-                        <motion.tr
-                          key={log.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          className="hover:bg-soft transition-colors"
-                        >
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-muted" />
-                              <span className="text-sm text-app font-light">{log.date}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-ptt-cyan font-medium">{log.empCode}</td>
-                          <td className="px-6 py-4 text-sm text-app font-medium">{log.empName}</td>
-                          <td className="px-6 py-4 text-center text-sm text-app">
-                            {shift && <span className="text-ptt-cyan">กะ{shift.name}</span>}
-                          </td>
-                          <td className="px-6 py-4 text-center text-sm text-app font-mono">
-                            {shift?.endTime || "-"}
-                          </td>
-                          <td className="px-6 py-4 text-center text-sm font-semibold text-yellow-400 font-mono">
-                            {info.otStartTime}
-                          </td>
-                          <td className="px-6 py-4 text-center text-sm font-semibold text-ptt-cyan">
-                            {info.otHoursPlanned.toFixed(2)} ชม.
-                          </td>
-                          <td className="px-6 py-4 text-center text-sm font-semibold text-green-400 font-mono">
-                            {info.otAmount.toFixed(2)} บาท
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-                              <Pause className="w-3 h-3" />
-                              รอเริ่ม
-                            </span>
-                          </td>
-                        </motion.tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Active OT */}
-          {activeOT.length > 0 && (
-            <div>
-              <div className="px-6 py-3 bg-green-500/10 border-b border-green-500/20">
-                <h4 className="text-sm font-semibold text-green-400 flex items-center gap-2">
-                  <Play className="w-4 h-4" />
-                  กำลังทำ OT ({activeOT.length} รายการ)
-                </h4>
-                <p className="text-xs text-muted mt-1">เริ่มทำ OT แล้ว (กำลังทำงาน OT อยู่)</p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-soft border-b border-app">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">วันที่</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">รหัส</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">ชื่อ-นามสกุล</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">กะ</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">เวลาเริ่ม OT</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">เวลาออกปัจจุบัน</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">OT ทำไปแล้ว</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">OT เหลือ</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">เงิน OT</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-app">
-                    {activeOT.map((log, index) => {
-                      const info = getOTInfo(log);
-                      const shift = getEmployeeShift(log.empCode);
-                      if (!info) return null;
-                      
-                      return (
-                        <motion.tr
-                          key={log.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          className="hover:bg-soft transition-colors"
-                        >
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-muted" />
-                              <span className="text-sm text-app font-light">{log.date}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-ptt-cyan font-medium">{log.empCode}</td>
-                          <td className="px-6 py-4 text-sm text-app font-medium">{log.empName}</td>
-                          <td className="px-6 py-4 text-center text-sm text-app">
-                            {shift && <span className="text-ptt-cyan">กะ{shift.name}</span>}
-                          </td>
-                          <td className="px-6 py-4 text-center text-sm font-semibold text-green-400 font-mono">
-                            {info.otStartTime}
-                          </td>
-                          <td className="px-6 py-4 text-center text-sm font-semibold text-app font-mono">
-                            {log.checkOut}
-                          </td>
-                          <td className="px-6 py-4 text-center text-sm font-semibold text-green-400">
-                            {info.otHoursDone.toFixed(2)} ชม.
-                          </td>
-                          <td className="px-6 py-4 text-center text-sm font-semibold text-yellow-400">
-                            {info.otHoursRemaining.toFixed(2)} ชม.
-                          </td>
-                          <td className="px-6 py-4 text-center text-sm font-semibold text-green-400 font-mono">
-                            {(info.otHoursDone * info.otRate).toFixed(2)} บาท
-                            <span className="block text-xs text-muted mt-1">
-                              (รวม {info.otAmount.toFixed(2)} บาท)
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-500/20 text-green-400 border border-green-500/30">
-                              <Play className="w-3 h-3" />
-                              กำลังทำ
-                            </span>
-                          </td>
-                        </motion.tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-soft border-b-2 border-app">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-app">วันที่</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-app">รหัส</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-app">ชื่อ-สกุล</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-app">แผนก</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-app">ชั่วโมง OT</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-app">ประเภท</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-app">อัตรา OT</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-app">เงิน OT</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-app">เหตุผล</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-app">
+                {filteredRequests.map((req) => (
+                  <motion.tr
+                    key={req.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="hover:bg-soft/50 transition-colors"
+                  >
+                    <td className="px-6 py-4 text-sm text-app">{req.date}</td>
+                    <td className="px-6 py-4 text-sm text-ptt-cyan font-medium">{req.empCode}</td>
+                    <td className="px-6 py-4 text-sm text-app font-medium">{req.empName}</td>
+                    <td className="px-6 py-4 text-sm text-app">{req.category}</td>
+                    <td className="px-6 py-4 text-center text-sm font-semibold text-app">{req.requestedHours} ชม.</td>
+                    <td className="px-6 py-4 text-center text-xs text-app">{getRateTypeLabel(req.rateType)}</td>
+                    <td className="px-6 py-4 text-center text-sm font-semibold text-green-400">{req.otRate.toFixed(2)} บาท/ชม.</td>
+                    <td className="px-6 py-4 text-center text-sm font-semibold text-green-400">{req.otAmount.toFixed(2)} บาท</td>
+                    <td className="px-6 py-4 text-sm text-muted max-w-xs truncate">{req.reason}</td>
+                    <td className="px-6 py-4 text-center">{getStatusBadge(req.status)}</td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </motion.div>
       )}
 
-      {/* Add OT Modal */}
-      <ModalForm
-        isOpen={isAddOTModalOpen}
-        onClose={() => {
-          setIsAddOTModalOpen(false);
-          setOtForm({
-            empCode: "",
-            empName: "",
-            date: "",
-            otHours: "",
-            otRate: "",
-            otAmount: "",
-            note: ""
-          });
-        }}
-        title="เพิ่ม OT (Overtime)"
-        onSubmit={handleAddOT}
-        submitLabel="บันทึก OT"
-      >
+      {/* View: Approval (HR ส่งเรื่อง, หัวหน้าสถานีอนุมัติ) */}
+      {viewMode === "approval" && (
         <div className="space-y-6">
-          <div className="p-4 bg-gradient-to-r from-yellow-500/10 via-yellow-500/5 to-yellow-500/10 
-                        border border-yellow-500/30 rounded-xl shadow-sm">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-yellow-500/20 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-yellow-400" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-app mb-1">ข้อมูลสำคัญ</p>
-                <p className="text-xs text-muted leading-relaxed">
-                  พนักงานจะลงทะเบียน OT ไว้ที่เอกสารแล้ว HR/Admin จะเป็นคนมาเพิ่มข้อมูล OT ในระบบ
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
-              เลือกพนักงาน <span className="text-red-400">*</span>
-            </label>
-            <select
-              value={otForm.empCode}
-              onChange={(e) => handleEmployeeSelect(e.target.value)}
-              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
-                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
-                       transition-all duration-200 hover:border-app/50 cursor-pointer"
-              required
+          {/* Pending HR (รอ HR ส่งเรื่อง) */}
+          {pendingHRRequests.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
             >
-              <option value="">เลือกพนักงาน</option>
-              {employees.filter(emp => emp.status === "Active").map((emp) => {
-                const shift = emp.shiftId ? shifts.find(s => s.id === emp.shiftId) : null;
-                return (
-                  <option key={emp.id} value={emp.code}>
-                    {emp.code} - {emp.name} {shift ? `(กะ${shift.name} ${shift.startTime}-${shift.endTime})` : ""}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          {otForm.empCode && (() => {
-            const employee = employees.find(e => e.code === otForm.empCode);
-            const shift = employee?.shiftId ? shifts.find(s => s.id === employee.shiftId) : null;
-            return (
-              <div className="p-3 bg-soft rounded-lg border border-app">
-                <p className="text-sm text-muted mb-1">ข้อมูลพนักงาน</p>
-                <p className="text-app font-semibold">{otForm.empName}</p>
-                {shift && (
-                  <p className="text-xs text-ptt-cyan mt-1">
-                    กะ{shift.name}: {shift.startTime} - {shift.endTime}
-                  </p>
-                )}
-                {employee?.otRate && (
-                  <p className="text-xs text-yellow-400 mt-1">
-                    OT Rate: {employee.otRate} บาท/ชั่วโมง
-                  </p>
-                )}
+              <div className="px-6 py-4 border-b border-app bg-blue-500/10">
+                <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
+                  <Send className="w-5 h-5 text-blue-400" />
+                  รอ HR ส่งเรื่อง ({pendingHRRequests.length} รายการ)
+                </h3>
+                <p className="text-xs text-muted mt-1">ผู้จัดการยื่นเรื่องแล้ว รอ HR ส่งเรื่องให้หัวหน้าสถานี</p>
               </div>
-            );
-          })()}
-
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
-              วันที่ทำ OT <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="date"
-              value={otForm.date}
-              onChange={(e) => handleOTFormChange("date", e.target.value)}
-              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
-                       text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
-                       transition-all duration-200 hover:border-app/50 cursor-pointer"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-5">
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
-                OT ชั่วโมง <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                value={otForm.otHours}
-                onChange={(e) => handleOTFormChange("otHours", e.target.value)}
-                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
-                         text-app placeholder:text-muted
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
-                         transition-all duration-200 hover:border-app/50"
-                placeholder="0.0"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
-                OT Rate (บาท/ชั่วโมง) <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={otForm.otRate}
-                onChange={(e) => handleOTFormChange("otRate", e.target.value)}
-                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
-                         text-app placeholder:text-muted
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
-                         transition-all duration-200 hover:border-app/50"
-                placeholder="0.00"
-                required
-              />
-            </div>
-          </div>
-
-          {parseFloat(otForm.otHours || "0") > 0 && parseFloat(otForm.otRate || "0") > 0 && (
-            <div className="p-4 bg-gradient-to-r from-ptt-blue/10 via-ptt-cyan/10 to-ptt-blue/10 
-                          border border-ptt-blue/30 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-ptt-blue/20 rounded-lg">
-                    <svg className="w-5 h-5 text-ptt-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-app mb-1">เงิน OT</p>
-                    <p className="text-xs text-muted">
-                      {parseFloat(otForm.otHours || "0").toFixed(2)} ชม. × {parseFloat(otForm.otRate || "0").toFixed(2)} บาท/ชม.
-                    </p>
-                  </div>
-                </div>
-                <span className="text-xl font-bold text-green-400 font-mono">
-                  {parseFloat(otForm.otAmount || "0").toFixed(2)} บาท
-                </span>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-soft border-b border-app">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">วันที่</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">พนักงาน</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">ชั่วโมง OT</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">เงิน OT</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">เหตุผล</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">การดำเนินการ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-app">
+                    {pendingHRRequests.map((req) => (
+                      <tr key={req.id} className="hover:bg-soft/50">
+                        <td className="px-6 py-4 text-sm text-app">{req.date}</td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-app">{req.empName}</div>
+                          <div className="text-xs text-ptt-cyan">{req.empCode}</div>
+                        </td>
+                        <td className="px-6 py-4 text-center text-sm font-semibold text-app">{req.requestedHours} ชม.</td>
+                        <td className="px-6 py-4 text-center text-sm font-semibold text-green-400">{req.otAmount.toFixed(2)} บาท</td>
+                        <td className="px-6 py-4 text-sm text-muted">{req.reason}</td>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => handleHRSend(req.id)}
+                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
+                          >
+                            ส่งเรื่อง
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+            </motion.div>
           )}
 
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
-              หมายเหตุ
-            </label>
-            <textarea
-              rows={3}
-              value={otForm.note}
-              onChange={(e) => handleOTFormChange("note", e.target.value)}
-              placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)..."
-              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
-                       text-app placeholder:text-muted
-                       focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
-                       transition-all duration-200 hover:border-app/50 resize-none"
-            />
-          </div>
+          {/* Pending Admin (รอหัวหน้าสถานีอนุมัติ) */}
+          {pendingAdminRequests.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
+            >
+              <div className="px-6 py-4 border-b border-app bg-purple-500/10">
+                <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-purple-400" />
+                  รอหัวหน้าสถานีอนุมัติ ({pendingAdminRequests.length} รายการ)
+                </h3>
+                <p className="text-xs text-muted mt-1">HR ส่งเรื่องแล้ว รอหัวหน้าสถานีอนุมัติ</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-soft border-b border-app">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">วันที่</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">พนักงาน</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">ชั่วโมง OT</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">เงิน OT</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">เหตุผล</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">การดำเนินการ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-app">
+                    {pendingAdminRequests.map((req) => (
+                      <tr key={req.id} className="hover:bg-soft/50">
+                        <td className="px-6 py-4 text-sm text-app">{req.date}</td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-app">{req.empName}</div>
+                          <div className="text-xs text-ptt-cyan">{req.empCode}</div>
+                        </td>
+                        <td className="px-6 py-4 text-center text-sm font-semibold text-app">{req.requestedHours} ชม.</td>
+                        <td className="px-6 py-4 text-center text-sm font-semibold text-green-400">{req.otAmount.toFixed(2)} บาท</td>
+                        <td className="px-6 py-4 text-sm text-muted">{req.reason}</td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex gap-2 justify-center">
+                            <button
+                              onClick={() => handleAdminApprove(req.id)}
+                              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors"
+                            >
+                              อนุมัติ
+                            </button>
+                            <button
+                              onClick={() => {
+                                const reason = prompt("ระบุเหตุผลการปฏิเสธ:");
+                                if (reason) handleAdminReject(req.id, reason);
+                              }}
+                              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
+                            >
+                              ปฏิเสธ
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Approved (อนุมัติแล้ว) */}
+          {approvedRequests.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
+            >
+              <div className="px-6 py-4 border-b border-app bg-green-500/10">
+                <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  อนุมัติแล้ว ({approvedRequests.length} รายการ)
+                </h3>
+                <p className="text-xs text-muted mt-1">รอการบันทึกผลจากหน้างาน</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-soft border-b border-app">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">วันที่</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-app">พนักงาน</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">ชั่วโมง OT</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">เงิน OT</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-app">
+                    {approvedRequests.map((req) => (
+                      <tr key={req.id} className="hover:bg-soft/50">
+                        <td className="px-6 py-4 text-sm text-app">{req.date}</td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-app">{req.empName}</div>
+                          <div className="text-xs text-ptt-cyan">{req.empCode}</div>
+                        </td>
+                        <td className="px-6 py-4 text-center text-sm font-semibold text-app">{req.requestedHours} ชม.</td>
+                        <td className="px-6 py-4 text-center text-sm font-semibold text-green-400">{req.otAmount.toFixed(2)} บาท</td>
+                        <td className="px-6 py-4 text-center">{getStatusBadge(req.status)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
         </div>
-      </ModalForm>
+      )}
 
-      {/* OT Detail Modal */}
-      <ModalForm
-        isOpen={selectedOTDetail !== null}
-        onClose={() => setSelectedOTDetail(null)}
-        title="รายละเอียด OT (Overtime)"
-        size="lg"
-      >
-        {selectedOTDetail && selectedOTDetail.otInfo && (
-          <div className="space-y-6">
-            {/* Employee Info */}
-            <div className="p-4 bg-soft rounded-xl border border-app">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-muted mb-1">ชื่อพนักงาน</p>
-                  <p className="text-sm font-semibold text-app">{selectedOTDetail.employee.name}</p>
-                  <p className="text-xs text-muted mt-1">รหัส: {selectedOTDetail.employee.code}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted mb-1">แผนก</p>
-                  <p className="text-sm font-semibold text-app">{selectedOTDetail.employee.category || "-"}</p>
-                  {selectedOTDetail.shift && (
-                    <p className="text-xs text-ptt-cyan mt-1">
-                      กะ{selectedOTDetail.shift.name}: {selectedOTDetail.shift.startTime} - {selectedOTDetail.shift.endTime}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Date */}
-            <div className="p-4 bg-soft rounded-xl border border-app">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="w-4 h-4 text-ptt-cyan" />
-                <p className="text-xs text-muted">วันที่ทำ OT</p>
-              </div>
-              <p className="text-lg font-semibold text-app">
-                {new Date(selectedOTDetail.log.date).toLocaleDateString("th-TH", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  weekday: "long"
-                })}
+      {/* View: Records (บันทึก OT จากหน้างานจริง) */}
+      {viewMode === "records" && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
+        >
+          <div className="px-6 py-4 border-b border-app bg-soft flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
+                <Clock className="w-5 h-5 text-ptt-cyan" />
+                บันทึก OT จากหน้างานจริง
+              </h3>
+              <p className="text-xs text-muted mt-1">
+                บันทึกผลการทำ OT จากสแกนนิ้วมือและยืนยันจากผู้จัดการแผนก
               </p>
             </div>
+            <button
+              onClick={() => setIsRecordModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-ptt-cyan hover:bg-ptt-cyan/80 text-app rounded-xl transition-all duration-200 font-semibold"
+            >
+              <Plus className="w-4 h-4" />
+              บันทึก OT
+            </button>
+          </div>
 
-            {/* OT Time Information */}
-            <div className="space-y-3">
-              <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-                <div className="flex items-center gap-2 mb-3">
-                  <Timer className="w-5 h-5 text-yellow-400" />
-                  <p className="text-sm font-semibold text-yellow-400">เวลาที่ลงทะเบียนไว้</p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-app">OT ที่ลงทะเบียน:</span>
-                    <span className="text-lg font-bold text-yellow-400 font-mono">
-                      {formatHoursMinutes(selectedOTDetail.otInfo.otHoursPlanned)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-app">เวลาเริ่ม OT:</span>
-                    <span className="text-base font-semibold text-app font-mono">
-                      {selectedOTDetail.otInfo.otStartTime}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-app">OT Rate:</span>
-                    <span className="text-base font-semibold text-green-400 font-mono">
-                      {selectedOTDetail.otInfo.otRate} บาท/ชั่วโมง
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-yellow-500/20">
-                    <span className="text-sm text-app">เงิน OT ทั้งหมด:</span>
-                    <span className="text-xl font-bold text-green-400 font-mono">
-                      {selectedOTDetail.otInfo.otAmount.toFixed(2)} บาท
-                    </span>
-                  </div>
-                </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-soft border-b-2 border-app">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-app">วันที่</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-app">พนักงาน</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-app">สแกนเข้า</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-app">สแกนออก</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-app">ชั่วโมงที่ยืนยัน</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-app">อัตรา OT</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-app">เงิน OT</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-app">สถานะ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-app">
+                {completedRequests.map((req) => (
+                  <tr key={req.id} className="hover:bg-soft/50">
+                    <td className="px-6 py-4 text-sm text-app">{req.date}</td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-app">{req.empName}</div>
+                      <div className="text-xs text-ptt-cyan">{req.empCode}</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm font-mono text-app">{req.fingerprintIn || "-"}</td>
+                    <td className="px-6 py-4 text-center text-sm font-mono text-app">{req.fingerprintOut || "-"}</td>
+                    <td className="px-6 py-4 text-center text-sm font-semibold text-app">{req.managerConfirmedHours || req.actualHours || 0} ชม.</td>
+                    <td className="px-6 py-4 text-center text-sm font-semibold text-green-400">{req.otRate.toFixed(2)} บาท/ชม.</td>
+                    <td className="px-6 py-4 text-center text-sm font-semibold text-green-400">{req.otAmount.toFixed(2)} บาท</td>
+                    <td className="px-6 py-4 text-center">{getStatusBadge(req.status)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Request Modal */}
+      {isRequestModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-soft border border-app rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            <div className="sticky top-0 px-6 py-4 border-b border-app bg-soft flex items-center justify-between">
+              <h3 className="text-xl font-bold text-app font-display">ยื่นเรื่อง OT</h3>
+              <button
+                onClick={() => setIsRequestModalOpen(false)}
+                className="text-muted hover:text-app"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">เลือกพนักงาน *</label>
+                <select
+                  value={requestForm.empCode}
+                  onChange={(e) => {
+                    const emp = employees.find(emp => emp.code === e.target.value);
+                    setRequestForm({ ...requestForm, empCode: e.target.value });
+                  }}
+                  className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                >
+                  <option value="">เลือกพนักงาน</option>
+                  {employees.filter(e => e.status === "Active").map(emp => (
+                    <option key={emp.id} value={emp.code}>
+                      {emp.code} - {emp.name} ({emp.category})
+                    </option>
+                  ))}
+                </select>
               </div>
-
-              {/* Actual OT Time */}
-              {selectedOTDetail.otInfo.hasStarted ? (
-                <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Play className="w-5 h-5 text-green-400" />
-                    <p className="text-sm font-semibold text-green-400">เวลาที่ทำ OT จริง</p>
+              {requestForm.empCode && (() => {
+                const emp = employees.find(e => e.code === requestForm.empCode);
+                const baseSalary = getEmployeeBaseSalary(requestForm.empCode);
+                return (
+                  <div className="p-3 bg-soft/50 rounded-lg border border-app">
+                    <p className="text-xs text-muted">ฐานเงินเดือน: {baseSalary.toLocaleString()} บาท</p>
+                    <p className="text-xs text-muted">อัตรา OT 1 เท่า: {calculateOTRate(baseSalary, "normal").toFixed(2)} บาท/ชม.</p>
+                    <p className="text-xs text-muted">อัตรา OT 1.5 เท่า: {calculateOTRate(baseSalary, "special").toFixed(2)} บาท/ชม.</p>
                   </div>
-                  <div className="space-y-2">
+                );
+              })()}
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">วันที่ทำ OT *</label>
+                <input
+                  type="date"
+                  value={requestForm.date}
+                  onChange={(e) => setRequestForm({ ...requestForm, date: e.target.value })}
+                  className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">ชั่วโมง OT *</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="1"
+                  value={requestForm.requestedHours}
+                  onChange={(e) => setRequestForm({ ...requestForm, requestedHours: e.target.value })}
+                  className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                  placeholder="1.0"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">ประเภท OT *</label>
+                <select
+                  value={requestForm.rateType}
+                  onChange={(e) => setRequestForm({ ...requestForm, rateType: e.target.value as OTRateType })}
+                  className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                >
+                  <option value="normal">1 เท่า (งานทั่วไป)</option>
+                  <option value="special">1.5 เท่า (งานสำคัญ)</option>
+                  <option value="seven_eleven_double">1.5 เท่า (7-Eleven ควงกะ)</option>
+                </select>
+              </div>
+              {requestForm.empCode && requestForm.requestedHours && (() => {
+                const baseSalary = getEmployeeBaseSalary(requestForm.empCode);
+                const otRate = calculateOTRate(baseSalary, requestForm.rateType);
+                const hours = parseFloat(requestForm.requestedHours) || 0;
+                const amount = hours * otRate;
+                return (
+                  <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-app">เวลาเริ่มทำ OT:</span>
-                      <span className="text-base font-semibold text-green-400 font-mono">
-                        {selectedOTDetail.otInfo.otStartTime}
-                      </span>
+                      <span className="text-sm text-app">เงิน OT:</span>
+                      <span className="text-xl font-bold text-green-400">{amount.toFixed(2)} บาท</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-app">เวลาสิ้นสุด OT (ออกงาน):</span>
-                      <span className="text-base font-semibold text-app font-mono">
-                        {selectedOTDetail.log.checkOut}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-app">OT ทำไปแล้ว:</span>
-                      <span className="text-lg font-bold text-green-400 font-mono">
-                        {formatHoursMinutes(selectedOTDetail.otInfo.otHoursDone)}
-                      </span>
-                    </div>
-                    {selectedOTDetail.otInfo.otHoursRemaining > 0 && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-app">OT เหลือ:</span>
-                        <span className="text-base font-semibold text-yellow-400 font-mono">
-                          {formatHoursMinutes(selectedOTDetail.otInfo.otHoursRemaining)}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center pt-2 border-t border-green-500/20">
-                      <span className="text-sm text-app">เงิน OT ที่ทำไปแล้ว:</span>
-                      <span className="text-lg font-bold text-green-400 font-mono">
-                        {(selectedOTDetail.otInfo.otHoursDone * selectedOTDetail.otInfo.otRate).toFixed(2)} บาท
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Pause className="w-5 h-5 text-yellow-400" />
-                    <p className="text-sm font-semibold text-yellow-400">สถานะ: รอเริ่มทำ OT</p>
-                  </div>
-                  <p className="text-sm text-app">
-                    ยังไม่เริ่มทำ OT • จะเริ่มทำ OT หลังจากออกจากกะปกติ ({selectedOTDetail.otInfo.otStartTime})
-                  </p>
-                </div>
-              )}
-
-              {/* Work Time */}
-              <div className="p-4 bg-soft rounded-xl border border-app">
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-5 h-5 text-ptt-cyan" />
-                  <p className="text-sm font-semibold text-app">เวลาทำงานปกติ</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-muted mb-1">เวลาเข้า</p>
-                    <p className="text-sm font-semibold text-app font-mono">
-                      {selectedOTDetail.log.checkIn}
+                    <p className="text-xs text-muted mt-1">
+                      {hours} ชม. × {otRate.toFixed(2)} บาท/ชม. ({getRateTypeLabel(requestForm.rateType)})
                     </p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted mb-1">เวลาออก</p>
-                    <p className="text-sm font-semibold text-app font-mono">
-                      {selectedOTDetail.log.checkOut}
-                    </p>
-                  </div>
-                </div>
+                );
+              })()}
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">เหตุผล *</label>
+                <textarea
+                  value={requestForm.reason}
+                  onChange={(e) => setRequestForm({ ...requestForm, reason: e.target.value })}
+                  className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                  rows={3}
+                  placeholder="ระบุเหตุผลการทำ OT..."
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-4">
+                <button
+                  onClick={() => setIsRequestModalOpen(false)}
+                  className="px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={handleCreateRequest}
+                  className="px-6 py-2 bg-ptt-cyan hover:bg-ptt-cyan/80 text-app rounded-lg font-semibold"
+                >
+                  ยื่นเรื่อง
+                </button>
               </div>
             </div>
-          </div>
-        )}
-      </ModalForm>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Record Modal */}
+      {isRecordModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-soft border border-app rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            <div className="sticky top-0 px-6 py-4 border-b border-app bg-soft flex items-center justify-between">
+              <h3 className="text-xl font-bold text-app font-display">บันทึก OT จากหน้างานจริง</h3>
+              <button
+                onClick={() => setIsRecordModalOpen(false)}
+                className="text-muted hover:text-app"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">เลือก OT Request *</label>
+                <select
+                  value={recordForm.requestId}
+                  onChange={(e) => setRecordForm({ ...recordForm, requestId: e.target.value })}
+                  className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                >
+                  <option value="">เลือก OT Request</option>
+                  {approvedRequests.map(req => (
+                    <option key={req.id} value={req.id.toString()}>
+                      {req.date} - {req.empName} ({req.requestedHours} ชม.)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {recordForm.requestId && (() => {
+                const req = approvedRequests.find(r => r.id.toString() === recordForm.requestId);
+                if (!req) return null;
+                return (
+                  <div className="p-3 bg-soft/50 rounded-lg border border-app">
+                    <p className="text-sm font-medium text-app">{req.empName} ({req.empCode})</p>
+                    <p className="text-xs text-muted">วันที่: {req.date}</p>
+                    <p className="text-xs text-muted">OT ที่อนุมัติ: {req.requestedHours} ชม.</p>
+                    <p className="text-xs text-muted">อัตรา OT: {req.otRate.toFixed(2)} บาท/ชม.</p>
+                  </div>
+                );
+              })()}
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">เวลาสแกนนิ้วมือเข้า OT</label>
+                <input
+                  type="time"
+                  value={recordForm.fingerprintIn}
+                  onChange={(e) => setRecordForm({ ...recordForm, fingerprintIn: e.target.value })}
+                  className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">เวลาสแกนนิ้วมือออก OT</label>
+                <input
+                  type="time"
+                  value={recordForm.fingerprintOut}
+                  onChange={(e) => setRecordForm({ ...recordForm, fingerprintOut: e.target.value })}
+                  className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-app mb-2">ชั่วโมงที่ยืนยันจากผู้จัดการ *</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="1"
+                  value={recordForm.managerConfirmedHours}
+                  onChange={(e) => setRecordForm({ ...recordForm, managerConfirmedHours: e.target.value })}
+                  className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                  placeholder="1.0"
+                />
+                <p className="text-xs text-muted mt-1">ผู้จัดการแผนกยืนยันชั่วโมง OT จากหน้างานจริง (1 ชั่วโมงขึ้นไป)</p>
+              </div>
+              {recordForm.requestId && recordForm.managerConfirmedHours && (() => {
+                const req = approvedRequests.find(r => r.id.toString() === recordForm.requestId);
+                if (!req) return null;
+                const hours = parseFloat(recordForm.managerConfirmedHours) || 0;
+                const amount = hours * req.otRate;
+                return (
+                  <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-app">เงิน OT ที่จะได้รับ:</span>
+                      <span className="text-xl font-bold text-green-400">{amount.toFixed(2)} บาท</span>
+                    </div>
+                    <p className="text-xs text-muted mt-1">
+                      {hours} ชม. × {req.otRate.toFixed(2)} บาท/ชม.
+                    </p>
+                  </div>
+                );
+              })()}
+              <div className="flex gap-2 justify-end pt-4">
+                <button
+                  onClick={() => setIsRecordModalOpen(false)}
+                  className="px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={handleRecordOT}
+                  className="px-6 py-2 bg-ptt-cyan hover:bg-ptt-cyan/80 text-app rounded-lg font-semibold"
+                >
+                  บันทึก
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
-
