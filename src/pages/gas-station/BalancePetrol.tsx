@@ -271,11 +271,10 @@ export default function BalancePetrol() {
                 {pumpCodes.map((code, index) => (
                   <th
                     key={code}
-                    className={`py-2 px-2 text-center font-semibold text-gray-600 dark:text-gray-300 ${
-                      index === 6
+                    className={`py-2 px-2 text-center font-semibold text-gray-600 dark:text-gray-300 ${index === 6
                         ? "border-l border-gray-300 dark:border-gray-600"
                         : ""
-                    }`}
+                      }`}
                   >
                     {code}
                   </th>
@@ -328,11 +327,10 @@ export default function BalancePetrol() {
                     return (
                       <td
                         key={code}
-                        className={`py-2 px-2 text-right text-gray-700 dark:text-gray-200 ${
-                          index === 6
+                        className={`py-2 px-2 text-right text-gray-700 dark:text-gray-200 ${index === 6
                             ? "border-l border-gray-300 dark:border-gray-600"
                             : ""
-                        }`}
+                          }`}
                       >
                         {value ? numberFormatter.format(value) : ""}
                       </td>

@@ -1,6 +1,6 @@
-import { 
-  Home, 
-  Settings as SettingsIcon, 
+import {
+  Home,
+  Settings as SettingsIcon,
   X,
   ShoppingCart,
   Package,
@@ -17,6 +17,8 @@ import {
   TrendingDown,
   FilePlus,
   RotateCcw,
+  CreditCard,
+  FileSpreadsheet,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -54,7 +56,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
         { to: "/app/gas-station/station-order", icon: FilePlus, label: "สั่งน้ำมันของปั้ม" },
         { to: "/app/gas-station/orders", icon: ShoppingCart, label: "การสั่งซื้อน้ำมัน" },
         { to: "/app/gas-station/receiving", icon: Package, label: "การรับน้ำมัน" },
-        // { to: "/app/gas-station/payments", icon: CreditCard, label: "การชำระเงินซื้อน้ำมัน" },
+        { to: "/app/gas-station/payments", icon: CreditCard, label: "การชำระเงินซื้อน้ำมัน" },
       ],
     },
     {
@@ -63,7 +65,8 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
       icon: Fuel,
       items: [
         { to: "/app/gas-station/sales", icon: Fuel, label: "การขายน้ำมัน" },
-        // { to: "/app/gas-station/wholesale-book", icon: FileCheck, label: "สมุดขายส่ง" },
+        { to: "/app/gas-station/wholesale-book", icon: FileCheck, label: "สมุดขายส่งขายปลีก" },
+        { to: "/app/gas-station/control-sheet", icon: FileSpreadsheet, label: "Control Sheet" },
         { to: "/app/gas-station/sales-instrument-report", icon: FileText, label: "รายงานตราสารยอดขาย" },
       ],
     },
@@ -136,7 +139,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
   };
 
   return (
-    <aside 
+    <aside
       className={`
         ${sidebarWidth} 
         bg-[var(--bg)]
@@ -164,7 +167,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
             </div>
           )}
         </div>
-        
+
         {/* Close button - Mobile only */}
         {isMobile && onClose && (
           <button
@@ -185,8 +188,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
           end
           onClick={isMobile ? onClose : undefined}
           className={({ isActive }) =>
-            `p-3 rounded-xl hover:panel relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${
-              isActive ? "panel shadow-md" : ""
+            `p-3 rounded-xl hover:panel relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-orange-500/30 ${isActive ? "panel shadow-md" : ""
             } ${showText ? 'flex items-center gap-3 w-full' : 'justify-center'}`
           }
           style={{
@@ -199,15 +201,13 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-orange-500 rounded-r-full shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
               )}
               <Home
-                className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${
-                  isActive ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
-                }`}
+                className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${isActive ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
+                  }`}
                 strokeWidth={1.5}
               />
               {showText && (
-                <span className={`text-sm font-medium whitespace-nowrap overflow-hidden ${
-                  isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
-                }`}>
+                <span className={`text-sm font-medium whitespace-nowrap overflow-hidden ${isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
+                  }`}>
                   Dashboard
                 </span>
               )}
@@ -226,23 +226,20 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
               {/* Group Header */}
               <button
                 onClick={() => toggleGroup(group.id)}
-                className={`w-full p-3 rounded-xl hover:panel relative group transition-all ${
-                  isActive ? "panel shadow-md" : ""
-                } flex items-center justify-between`}
+                className={`w-full p-3 rounded-xl hover:panel relative group transition-all ${isActive ? "panel shadow-md" : ""
+                  } flex items-center justify-between`}
               >
                 <div className="flex items-center gap-3 flex-1">
                   {isActive && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-orange-500 rounded-r-full shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
                   )}
                   <GroupIcon
-                    className={`w-5 h-5 flex-shrink-0 ${
-                      isActive ? "text-[var(--accent)]" : "text-muted"
-                    }`}
+                    className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-[var(--accent)]" : "text-muted"
+                      }`}
                     strokeWidth={1.5}
                   />
-                  <span className={`text-sm font-medium whitespace-nowrap ${
-                    isActive ? "text-[var(--accent)]" : "text-app"
-                  }`}>
+                  <span className={`text-sm font-medium whitespace-nowrap ${isActive ? "text-[var(--accent)]" : "text-app"
+                    }`}>
                     {group.label}
                   </span>
                 </div>
@@ -264,22 +261,19 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
                         key={item.to}
                         to={item.to}
                         onClick={isMobile ? onClose : undefined}
-                        className={`p-2.5 rounded-lg hover:bg-app/50 relative group transition-all ${
-                          active ? "bg-orange-500/10" : ""
-                        } flex items-center gap-3`}
+                        className={`p-2.5 rounded-lg hover:bg-app/50 relative group transition-all ${active ? "bg-orange-500/10" : ""
+                          } flex items-center gap-3`}
                       >
                         {active && (
                           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-orange-500 rounded-r-full" />
                         )}
                         <ItemIcon
-                          className={`w-4 h-4 flex-shrink-0 ${
-                            active ? "text-orange-500" : "text-muted"
-                          }`}
+                          className={`w-4 h-4 flex-shrink-0 ${active ? "text-orange-500" : "text-muted"
+                            }`}
                           strokeWidth={1.5}
                         />
-                        <span className={`text-sm whitespace-nowrap ${
-                          active ? "text-orange-500 font-medium" : "text-muted"
-                        }`}>
+                        <span className={`text-sm whitespace-nowrap ${active ? "text-orange-500 font-medium" : "text-muted"
+                          }`}>
                           {item.label}
                         </span>
                       </NavLink>
@@ -307,22 +301,19 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
               key={item.to}
               to={item.to}
               onClick={isMobile ? onClose : undefined}
-              className={`p-3 rounded-xl hover:panel relative group transition-all ${
-                active ? "panel shadow-md" : ""
-              } flex items-center gap-3`}
+              className={`p-3 rounded-xl hover:panel relative group transition-all ${active ? "panel shadow-md" : ""
+                } flex items-center gap-3`}
             >
               {active && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-orange-500 rounded-r-full shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
               )}
               <ItemIcon
-                className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${
-                  active ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
-                }`}
+                className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${active ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
+                  }`}
                 strokeWidth={1.5}
               />
-              <span className={`text-sm font-medium whitespace-nowrap ${
-                active ? "text-[var(--accent)]" : "text-app group-hover:text-app"
-              }`}>
+              <span className={`text-sm font-medium whitespace-nowrap ${active ? "text-[var(--accent)]" : "text-app group-hover:text-app"
+                }`}>
                 {item.label}
               </span>
             </NavLink>
@@ -338,22 +329,19 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
               key={item.to}
               to={item.to}
               onClick={isMobile ? onClose : undefined}
-              className={`p-3 rounded-xl hover:panel relative group transition-all ${
-                active ? "panel shadow-md" : ""
-              } flex items-center gap-3`}
+              className={`p-3 rounded-xl hover:panel relative group transition-all ${active ? "panel shadow-md" : ""
+                } flex items-center gap-3`}
             >
               {active && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-orange-500 rounded-r-full shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
               )}
               <ItemIcon
-                className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${
-                  active ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
-                }`}
+                className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${active ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
+                  }`}
                 strokeWidth={1.5}
               />
-              <span className={`text-sm font-medium whitespace-nowrap ${
-                active ? "text-[var(--accent)]" : "text-app group-hover:text-app"
-              }`}>
+              <span className={`text-sm font-medium whitespace-nowrap ${active ? "text-[var(--accent)]" : "text-app group-hover:text-app"
+                }`}>
                 {item.label}
               </span>
             </NavLink>
@@ -370,15 +358,13 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
                 <button
                   key={group.id}
                   onClick={() => toggleGroup(group.id)}
-                  className={`p-3 rounded-xl hover:panel relative ${
-                    isActive ? "panel" : ""
-                  } flex justify-center`}
+                  className={`p-3 rounded-xl hover:panel relative ${isActive ? "panel" : ""
+                    } flex justify-center`}
                   title={group.label}
                 >
                   <GroupIcon
-                    className={`w-5 h-5 ${
-                      isActive ? "text-[var(--accent)]" : "text-muted"
-                    }`}
+                    className={`w-5 h-5 ${isActive ? "text-[var(--accent)]" : "text-muted"
+                      }`}
                     strokeWidth={1.5}
                   />
                 </button>
@@ -392,15 +378,13 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
                   key={item.to}
                   to={item.to}
                   onClick={isMobile ? onClose : undefined}
-                  className={`p-3 rounded-xl hover:panel relative flex justify-center ${
-                    active ? "panel" : ""
-                  }`}
+                  className={`p-3 rounded-xl hover:panel relative flex justify-center ${active ? "panel" : ""
+                    }`}
                   title={item.label}
                 >
                   <ItemIcon
-                    className={`w-5 h-5 ${
-                      active ? "text-[var(--accent)]" : "text-muted"
-                    }`}
+                    className={`w-5 h-5 ${active ? "text-[var(--accent)]" : "text-muted"
+                      }`}
                     strokeWidth={1.5}
                   />
                 </NavLink>
@@ -414,15 +398,13 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
                   key={item.to}
                   to={item.to}
                   onClick={isMobile ? onClose : undefined}
-                  className={`p-3 rounded-xl hover:panel relative flex justify-center ${
-                    active ? "panel" : ""
-                  }`}
+                  className={`p-3 rounded-xl hover:panel relative flex justify-center ${active ? "panel" : ""
+                    }`}
                   title={item.label}
                 >
                   <ItemIcon
-                    className={`w-5 h-5 ${
-                      active ? "text-[var(--accent)]" : "text-muted"
-                    }`}
+                    className={`w-5 h-5 ${active ? "text-[var(--accent)]" : "text-muted"
+                      }`}
                     strokeWidth={1.5}
                   />
                 </NavLink>

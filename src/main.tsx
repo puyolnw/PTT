@@ -191,6 +191,7 @@ import BalancePetrol from "@/pages/gas-station/BalancePetrol";
 import BalancePetrolMonthly from "@/pages/gas-station/BalancePetrolMonthly";
 import PurchaseBook from "@/pages/gas-station/PurchaseBook";
 import WholesaleBook from "@/pages/gas-station/WholesaleBook";
+import ControlSheet from "@/pages/gas-station/ControlSheet";
 import TankEntryBook from "@/pages/gas-station/TankEntryBook";
 import QualityTest from "@/pages/gas-station/QualityTest";
 import DepositSlips from "@/pages/gas-station/DepositSlips";
@@ -951,6 +952,10 @@ const router = createBrowserRouter([
           {
             path: "wholesale-book",
             element: <WholesaleBook />,
+          },
+          {
+            path: "control-sheet",
+            element: <ControlSheet />,
           },
           {
             path: "tank-entry-book",
