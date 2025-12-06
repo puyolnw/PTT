@@ -20,19 +20,19 @@ export interface Employee {
 
 export const employees: Employee[] = [
   // หน้าลาน (น้ำมัน) - กลางวัน
-  { id: 1, code: "EMP-0001", name: "สมชาย ใจดี", dept: "ปั๊มน้ำมัน", position: "หัวหน้าปั๊ม", status: "Active", startDate: "2023-06-01", email: "somchai@ptt.co.th", phone: "081-234-5678", avatar: "https://ui-avatars.com/api/?name=สมชาย+ใจดี&background=2867e0&color=fff", shiftId: 1, otRate: 250, category: "ปั๊ม" },
-  { id: 2, code: "EMP-0002", name: "สมหญิง รักงาน", dept: "ปั๊มน้ำมัน", position: "แคชเชียร์", status: "Active", startDate: "2022-11-15", email: "somying@ptt.co.th", phone: "082-345-6789", avatar: "https://ui-avatars.com/api/?name=สมหญิง+รักงาน&background=19b7ff&color=fff", shiftId: 2, otRate: 200, category: "ปั๊ม" },
-  { id: 3, code: "EMP-0003", name: "วรพล ตั้งใจ", dept: "ปั๊มน้ำมัน", position: "พนักงานปั๊ม", status: "Active", startDate: "2024-01-10", email: "worapol@ptt.co.th", phone: "083-456-7890", avatar: "https://ui-avatars.com/api/?name=วรพล+ตั้งใจ&background=e41f2b&color=fff", shiftId: 3, otRate: 220, category: "ปั๊ม" },
+  { id: 1, code: "EMP-0001", name: "สมชาย ใจดี", dept: "หน้าลาน (เติมน้ำมัน)", position: "หัวหน้าปั๊ม", status: "Active", startDate: "2023-06-01", email: "somchai@ptt.co.th", phone: "081-234-5678", avatar: "https://ui-avatars.com/api/?name=สมชาย+ใจดี&background=2867e0&color=fff", shiftId: 1, otRate: 250, category: "หน้าลาน (เติมน้ำมัน)" },
+  { id: 2, code: "EMP-0002", name: "สมหญิง รักงาน", dept: "หน้าลาน (เติมน้ำมัน)", position: "แคชเชียร์", status: "Active", startDate: "2022-11-15", email: "somying@ptt.co.th", phone: "082-345-6789", avatar: "https://ui-avatars.com/api/?name=สมหญิง+รักงาน&background=19b7ff&color=fff", shiftId: 38, otRate: 200, category: "หน้าลาน (เติมน้ำมัน)" },
+  { id: 3, code: "EMP-0003", name: "วรพล ตั้งใจ", dept: "หน้าลาน (เติมน้ำมัน)", position: "พนักงานปั๊ม", status: "Active", startDate: "2024-01-10", email: "worapol@ptt.co.th", phone: "083-456-7890", avatar: "https://ui-avatars.com/api/?name=วรพล+ตั้งใจ&background=e41f2b&color=fff", shiftId: 39, otRate: 220, category: "หน้าลาน (เติมน้ำมัน)" },
   // หน้าลาน (น้ำมัน) - กลางคืน
-  { id: 13, code: "EMP-0013", name: "ประยุทธ์ กลางคืน", dept: "ปั๊มน้ำมัน", position: "พนักงานปั๊ม", status: "Active", startDate: "2023-05-01", email: "prayut@ptt.co.th", phone: "093-456-7890", avatar: "https://ui-avatars.com/api/?name=ประยุทธ์+กลางคืน&background=2867e0&color=fff", shiftId: 4, otRate: 230, category: "ปั๊ม" },
-  { id: 14, code: "EMP-0014", name: "สุรชัย ดึก", dept: "ปั๊มน้ำมัน", position: "พนักงานปั๊ม", status: "Active", startDate: "2023-08-15", email: "surachai@ptt.co.th", phone: "094-567-8901", avatar: "https://ui-avatars.com/api/?name=สุรชัย+ดึก&background=19b7ff&color=fff", shiftId: 5, otRate: 240, category: "ปั๊ม" },
+  { id: 13, code: "EMP-0013", name: "ประยุทธ์ กลางคืน", dept: "หน้าลาน (เติมน้ำมัน)", position: "พนักงานปั๊ม", status: "Active", startDate: "2023-05-01", email: "prayut@ptt.co.th", phone: "093-456-7890", avatar: "https://ui-avatars.com/api/?name=ประยุทธ์+กลางคืน&background=2867e0&color=fff", shiftId: 43, otRate: 230, category: "หน้าลาน (เติมน้ำมัน)" },
+  { id: 14, code: "EMP-0014", name: "สุรชัย ดึก", dept: "หน้าลาน (เติมน้ำมัน)", position: "พนักงานปั๊ม", status: "Active", startDate: "2023-08-15", email: "surachai@ptt.co.th", phone: "094-567-8901", avatar: "https://ui-avatars.com/api/?name=สุรชัย+ดึก&background=19b7ff&color=fff", shiftId: 44, otRate: 240, category: "หน้าลาน (เติมน้ำมัน)" },
   // 7-Eleven
   { id: 4, code: "EMP-0004", name: "กิตติคุณ ใฝ่รู้", dept: "เซเว่น", position: "พนักงานร้าน", status: "Active", startDate: "2024-03-20", email: "kittikun@ptt.co.th", phone: "084-567-8901", avatar: "https://ui-avatars.com/api/?name=กิตติคุณ+ใฝ่รู้&background=2867e0&color=fff", shiftId: 27, otRate: 180, category: "เซเว่น" },
   { id: 15, code: "EMP-0015", name: "นันทนา เซเว่น", dept: "เซเว่น", position: "พนักงานร้าน", status: "Active", startDate: "2024-04-10", email: "nantana@ptt.co.th", phone: "095-678-9012", avatar: "https://ui-avatars.com/api/?name=นันทนา+เซเว่น&background=19b7ff&color=fff", shiftId: 28, otRate: 190, category: "เซเว่น" },
   { id: 16, code: "EMP-0016", name: "วิชัย ดึก", dept: "เซเว่น", position: "พนักงานร้าน", status: "Active", startDate: "2023-12-01", email: "wichai@ptt.co.th", phone: "096-789-0123", avatar: "https://ui-avatars.com/api/?name=วิชัย+ดึก&background=e41f2b&color=fff", shiftId: 29, otRate: 200, category: "เซเว่น" },
-  // ร้านของฝาก
-  { id: 5, code: "EMP-0005", name: "พิมพ์ชนก สมใจ", dept: "ปึงหงี่เชียง", position: "หัวหน้าร้าน", status: "Active", startDate: "2021-08-05", email: "pimchanok@ptt.co.th", phone: "085-678-9012", avatar: "https://ui-avatars.com/api/?name=พิมพ์ชนก+สมใจ&background=19b7ff&color=fff", shiftId: 16, otRate: 300, category: "ปึงหงี่เชียง" },
-  { id: 17, code: "EMP-0017", name: "รัตนา ปึงหงี่", dept: "ปึงหงี่เชียง", position: "พนักงานร้าน", status: "Active", startDate: "2024-02-20", email: "rattana@ptt.co.th", phone: "097-890-1234", avatar: "https://ui-avatars.com/api/?name=รัตนา+ปึงหงี่&background=19b7ff&color=fff", shiftId: 17, otRate: 200, category: "ปึงหงี่เชียง" },
+  // ร้านของฝาก (ปึงหงี่เซียง)
+  { id: 5, code: "EMP-0005", name: "พิมพ์ชนก สมใจ", dept: "ปึงหงี่เซียง", position: "หัวหน้าร้าน", status: "Active", startDate: "2021-08-05", email: "pimchanok@ptt.co.th", phone: "085-678-9012", avatar: "https://ui-avatars.com/api/?name=พิมพ์ชนก+สมใจ&background=19b7ff&color=fff", shiftId: 16, otRate: 300, category: "ปึงหงี่เซียง" },
+  { id: 17, code: "EMP-0017", name: "รัตนา ปึงหงี่", dept: "ปึงหงี่เซียง", position: "พนักงานร้าน", status: "Active", startDate: "2024-02-20", email: "rattana@ptt.co.th", phone: "097-890-1234", avatar: "https://ui-avatars.com/api/?name=รัตนา+ปึงหงี่&background=19b7ff&color=fff", shiftId: 18, otRate: 200, category: "ปึงหงี่เซียง" },
   { id: 6, code: "EMP-0006", name: "ธีรภัทร แข็งแรง", dept: "เจ้าสัว", position: "พนักงานร้าน", status: "Active", startDate: "2023-02-14", email: "teerabhat@ptt.co.th", phone: "086-789-0123", avatar: "https://ui-avatars.com/api/?name=ธีรภัทร+แข็งแรง&background=2867e0&color=fff", shiftId: 33, otRate: 190, category: "เจ้าสัว" },
   { id: 7, code: "EMP-0007", name: "ประเสริฐ ดีงาม", dept: "ร้านเจียง", position: "พนักงานร้าน", status: "Active", startDate: "2024-05-01", email: "prasert@ptt.co.th", phone: "087-890-1234", avatar: "https://ui-avatars.com/api/?name=ประเสริฐ+ดีงาม&background=e41f2b&color=fff", shiftId: 30, otRate: 200, category: "ร้านเจียง" },
   { id: 18, code: "EMP-0018", name: "สมศักดิ์ เจียง", dept: "ร้านเจียง", position: "พนักงานร้าน", status: "Active", startDate: "2024-03-15", email: "somsak@ptt.co.th", phone: "098-901-2345", avatar: "https://ui-avatars.com/api/?name=สมศักดิ์+เจียง&background=2867e0&color=fff", shiftId: 31, otRate: 195, category: "ร้านเจียง" },
@@ -50,13 +50,13 @@ export const employees: Employee[] = [
   { id: 9, code: "EMP-0009", name: "วิภา รักษ์สุข", dept: "แม่บ้าน", position: "หัวหน้าแม่บ้าน", status: "Active", startDate: "2022-03-01", email: "wipa@ptt.co.th", phone: "089-012-3456", avatar: "https://ui-avatars.com/api/?name=วิภา+รักษ์สุข&background=19b7ff&color=fff", shiftId: 8, otRate: 180, category: "แม่บ้าน" },
   { id: 12, code: "EMP-0012", name: "กมลชนก ใสสะอาด", dept: "แม่บ้าน", position: "แม่บ้าน", status: "Active", startDate: "2023-08-10", email: "kamolchanok@ptt.co.th", phone: "092-345-6789", avatar: "https://ui-avatars.com/api/?name=กมลชนก+ใสสะอาด&background=19b7ff&color=fff", shiftId: 9, otRate: 170, category: "แม่บ้าน" },
   { id: 25, code: "EMP-0025", name: "สมศรี แม่บ้าน", dept: "แม่บ้าน", position: "แม่บ้าน", status: "Active", startDate: "2024-03-01", email: "somsri@ptt.co.th", phone: "015-678-9012", avatar: "https://ui-avatars.com/api/?name=สมศรี+แม่บ้าน&background=19b7ff&color=fff", shiftId: 10, otRate: 175, category: "แม่บ้าน" },
-  // Office
-  { id: 26, code: "EMP-0026", name: "นิดา ออฟฟิศ", dept: "Office", position: "พนักงานออฟฟิศ", status: "Active", startDate: "2022-01-10", email: "nida@ptt.co.th", phone: "016-789-0123", avatar: "https://ui-avatars.com/api/?name=นิดา+ออฟฟิศ&background=2867e0&color=fff", shiftId: 13, otRate: 250, category: "Office" },
-  { id: 27, code: "EMP-0027", name: "ทา ออฟฟิศ", dept: "Office", position: "พนักงานออฟฟิศ", status: "Active", startDate: "2021-12-15", email: "ta@ptt.co.th", phone: "017-890-1234", avatar: "https://ui-avatars.com/api/?name=ทา+ออฟฟิศ&background=19b7ff&color=fff", shiftId: 14, otRate: 260, category: "Office" },
-  { id: 28, code: "EMP-0028", name: "สมเกียรติ ออฟฟิศ", dept: "Office", position: "พนักงานออฟฟิศ", status: "Active", startDate: "2023-04-20", email: "somkiat2@ptt.co.th", phone: "018-901-2345", avatar: "https://ui-avatars.com/api/?name=สมเกียรติ+ออฟฟิศ&background=e41f2b&color=fff", shiftId: 15, otRate: 240, category: "Office" },
-  // รักษาความปลอดภัย
-  { id: 29, code: "EMP-0029", name: "ประยุทธ์ รปภ", dept: "รักษาความปลอดภัย", position: "รปภ", status: "Active", startDate: "2023-07-01", email: "prayut2@ptt.co.th", phone: "019-012-3456", avatar: "https://ui-avatars.com/api/?name=ประยุทธ์+รปภ&background=2867e0&color=fff", shiftId: 11, otRate: 200, category: "รักษาความปลอดภัย" },
-  { id: 30, code: "EMP-0030", name: "สมชาย รปภ", dept: "รักษาความปลอดภัย", position: "รปภ", status: "Active", startDate: "2024-02-10", email: "somchai3@ptt.co.th", phone: "020-123-4567", avatar: "https://ui-avatars.com/api/?name=สมชาย+รปภ&background=e41f2b&color=fff", shiftId: 12, otRate: 210, category: "รักษาความปลอดภัย" },
+  // บัญชี (Office)
+  { id: 26, code: "EMP-0026", name: "นิดา ออฟฟิศ", dept: "บัญชี", position: "พนักงานออฟฟิศ", status: "Active", startDate: "2022-01-10", email: "nida@ptt.co.th", phone: "016-789-0123", avatar: "https://ui-avatars.com/api/?name=นิดา+ออฟฟิศ&background=2867e0&color=fff", shiftId: 13, otRate: 250, category: "บัญชี" },
+  { id: 27, code: "EMP-0027", name: "ทา ออฟฟิศ", dept: "บัญชี", position: "พนักงานออฟฟิศ", status: "Active", startDate: "2021-12-15", email: "ta@ptt.co.th", phone: "017-890-1234", avatar: "https://ui-avatars.com/api/?name=ทา+ออฟฟิศ&background=19b7ff&color=fff", shiftId: 14, otRate: 260, category: "บัญชี" },
+  { id: 28, code: "EMP-0028", name: "สมเกียรติ ออฟฟิศ", dept: "บัญชี", position: "พนักงานออฟฟิศ", status: "Active", startDate: "2023-04-20", email: "somkiat2@ptt.co.th", phone: "018-901-2345", avatar: "https://ui-avatars.com/api/?name=สมเกียรติ+ออฟฟิศ&background=e41f2b&color=fff", shiftId: 15, otRate: 240, category: "บัญชี" },
+  // รปภ.
+  { id: 29, code: "EMP-0029", name: "ประยุทธ์ รปภ", dept: "รปภ.", position: "รปภ", status: "Active", startDate: "2023-07-01", email: "prayut2@ptt.co.th", phone: "019-012-3456", avatar: "https://ui-avatars.com/api/?name=ประยุทธ์+รปภ&background=2867e0&color=fff", shiftId: 11, otRate: 200, category: "รปภ." },
+  { id: 30, code: "EMP-0030", name: "สมชาย รปภ", dept: "รปภ.", position: "รปภ", status: "Active", startDate: "2024-02-10", email: "somchai3@ptt.co.th", phone: "020-123-4567", avatar: "https://ui-avatars.com/api/?name=สมชาย+รปภ&background=e41f2b&color=fff", shiftId: 12, otRate: 210, category: "รปภ." },
   // คนสวน
   { id: 31, code: "EMP-0031", name: "ประเสริฐ คนสวน", dept: "คนสวน", position: "คนสวน", status: "Active", startDate: "2023-09-15", email: "prasert3@ptt.co.th", phone: "021-234-5678", avatar: "https://ui-avatars.com/api/?name=ประเสริฐ+คนสวน&background=2867e0&color=fff", shiftId: 36, otRate: 180, category: "คนสวน" },
   // ขับรถ
@@ -86,59 +86,75 @@ export interface Shift {
   description?: string;
   shiftType?: "เช้า" | "บ่าย" | "ดึก" | "กลางวัน" | "กลางคืน"; // ประเภทกะ
   category?: string; // แผนกที่ใช้กะนี้
+  shortCode?: string; // ตัวย่อกะ (เช่น ช, ว, บ, ด, T07)
 }
 
 export const shifts: Shift[] = [
-  // หน้าลาน (น้ำมัน) - กลางวัน
-  { id: 1, name: "06:30-16:30", startTime: "06:30", endTime: "16:30", description: "หน้าลาน - กลางวัน", shiftType: "เช้า", category: "ปั๊ม" },
-  { id: 2, name: "07:00-17:00", startTime: "07:00", endTime: "17:00", description: "หน้าลาน - กลางวัน", shiftType: "เช้า", category: "ปั๊ม" },
+  // ========== แผนกบัญชี (Office) ==========
+  { id: 13, name: "07:00-16:00", startTime: "07:00", endTime: "16:00", description: "บัญชี", shiftType: "เช้า", category: "บัญชี", shortCode: "ช" },
+  { id: 14, name: "08:00-17:00", startTime: "08:00", endTime: "17:00", description: "บัญชี", shiftType: "เช้า", category: "บัญชี", shortCode: "ว" },
+  { id: 15, name: "09:00-18:00", startTime: "09:00", endTime: "18:00", description: "บัญชี", shiftType: "เช้า", category: "บัญชี", shortCode: "บ" },
+  // ========== แผนกแม่บ้าน ==========
+  { id: 8, name: "04:00-14:00", startTime: "04:00", endTime: "14:00", description: "แม่บ้าน", shiftType: "เช้า", category: "แม่บ้าน", shortCode: "ด" },
+  { id: 9, name: "07:00-17:00", startTime: "07:00", endTime: "17:00", description: "แม่บ้าน", shiftType: "เช้า", category: "แม่บ้าน", shortCode: "ช" },
+  { id: 10, name: "10:00-20:00", startTime: "10:00", endTime: "20:00", description: "แม่บ้าน", shiftType: "บ่าย", category: "แม่บ้าน", shortCode: "บ" },
+  // ========== แผนกรปภ. ==========
+  { id: 11, name: "17:00-07:00", startTime: "17:00", endTime: "07:00", description: "รปภ.", shiftType: "ดึก", category: "รปภ.", shortCode: "ว" },
+  { id: 12, name: "18:00-07:00", startTime: "18:00", endTime: "07:00", description: "รปภ.", shiftType: "ดึก", category: "รปภ.", shortCode: "ว" },
+  // ========== แผนกช่าง ==========
+  { id: 7, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "ช่าง", shiftType: "เช้า", category: "ช่าง", shortCode: "ว" },
+  // ========== แผนกหน้าลาน (เติมน้ำมัน) ==========
+  { id: 1, name: "06:30-16:30", startTime: "06:30", endTime: "16:30", description: "หน้าลาน - แคชเชียร์กะเช้า", shiftType: "เช้า", category: "หน้าลาน (เติมน้ำมัน)", shortCode: "ช" },
+  { id: 38, name: "07:00-17:00", startTime: "07:00", endTime: "17:00", description: "หน้าลาน - พนง.เติมน้ำมัน", shiftType: "เช้า", category: "หน้าลาน (เติมน้ำมัน)", shortCode: "T07" },
+  { id: 2, name: "07:00-17:00", startTime: "07:00", endTime: "17:00", description: "หน้าลาน - พนง.เติมน้ำมัน", shiftType: "เช้า", category: "หน้าลาน (เติมน้ำมัน)", shortCode: "ช" },
+  { id: 39, name: "08:00-19:00", startTime: "08:00", endTime: "19:00", description: "หน้าลาน - พนง.เติมน้ำมัน", shiftType: "เช้า", category: "หน้าลาน (เติมน้ำมัน)", shortCode: "ช" },
+  { id: 40, name: "10:00-20:00", startTime: "10:00", endTime: "20:00", description: "หน้าลาน - พนง.เติมน้ำมัน", shiftType: "บ่าย", category: "หน้าลาน (เติมน้ำมัน)", shortCode: "บ" },
+  { id: 41, name: "11:00-21:00", startTime: "11:00", endTime: "21:00", description: "หน้าลาน - พนง.เติมน้ำมัน", shiftType: "บ่าย", category: "หน้าลาน (เติมน้ำมัน)", shortCode: "บ" },
+  { id: 42, name: "12:00-22:00", startTime: "12:00", endTime: "22:00", description: "หน้าลาน - พนง.เติมน้ำมัน", shiftType: "บ่าย", category: "หน้าลาน (เติมน้ำมัน)", shortCode: "บ" },
+  { id: 43, name: "15:00-07:00", startTime: "15:00", endTime: "07:00", description: "หน้าลาน - แคชเชียร์กะดึก", shiftType: "ดึก", category: "หน้าลาน (เติมน้ำมัน)", shortCode: "ด" },
+  { id: 44, name: "17:00-08:00", startTime: "17:00", endTime: "08:00", description: "หน้าลาน - พนง.เติมน้ำมัน", shiftType: "ดึก", category: "หน้าลาน (เติมน้ำมัน)", shortCode: "ด" },
+  // ========== แผนกปึงหงี่เซียง ==========
+  { id: 16, name: "07:00-17:00", startTime: "07:00", endTime: "17:00", description: "ปึงหงี่เซียง", shiftType: "เช้า", category: "ปึงหงี่เซียง", shortCode: "ช" },
+  { id: 18, name: "10:00-20:00", startTime: "10:00", endTime: "20:00", description: "ปึงหงี่เซียง", shiftType: "บ่าย", category: "ปึงหงี่เซียง", shortCode: "บ" },
+  // ========== แผนกโอทอป ==========
+  { id: 45, name: "07:00-17:00", startTime: "07:00", endTime: "17:00", description: "โอทอป", shiftType: "เช้า", category: "โอทอป", shortCode: "ช" },
+  { id: 46, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "โอทอป", shiftType: "เช้า", category: "โอทอป", shortCode: "ว" },
+  { id: 47, name: "10:00-20:00", startTime: "10:00", endTime: "20:00", description: "โอทอป", shiftType: "บ่าย", category: "โอทอป", shortCode: "บ" },
+  // ========== แผนกเซเว่น ==========
+  { id: 27, name: "06:30-16:30", startTime: "06:30", endTime: "16:30", description: "เซเว่น", shiftType: "เช้า", category: "เซเว่น", shortCode: "ช" },
+  { id: 48, name: "07:30-17:30", startTime: "07:30", endTime: "17:30", description: "เซเว่น - แม่บ้าน", shiftType: "เช้า", category: "เซเว่น", shortCode: "ช" },
+  { id: 49, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "เซเว่น - ผู้จัดการ", shiftType: "เช้า", category: "เซเว่น", shortCode: "ช" },
+  { id: 28, name: "12:00-22:00", startTime: "12:00", endTime: "22:00", description: "เซเว่น", shiftType: "บ่าย", category: "เซเว่น", shortCode: "บ" },
+  { id: 29, name: "21:30-07:30", startTime: "21:30", endTime: "07:30", description: "เซเว่น", shiftType: "ดึก", category: "เซเว่น", shortCode: "ด" },
+  // ========== แผนกอเมซอน ==========
+  { id: 50, name: "05:30-15:30", startTime: "05:30", endTime: "15:30", description: "อเมซอน", shiftType: "เช้า", category: "อเมซอน", shortCode: "ด" },
+  { id: 51, name: "06:30-16:30", startTime: "06:30", endTime: "16:30", description: "อเมซอน", shiftType: "เช้า", category: "อเมซอน", shortCode: "ช" },
+  { id: 23, name: "07:00-17:00", startTime: "07:00", endTime: "17:00", description: "อเมซอน", shiftType: "เช้า", category: "อเมซอน", shortCode: "ช" },
+  { id: 52, name: "07:30-17:30", startTime: "07:30", endTime: "17:30", description: "อเมซอน", shiftType: "เช้า", category: "อเมซอน", shortCode: "ช" },
+  { id: 24, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "อเมซอน", shiftType: "เช้า", category: "อเมซอน", shortCode: "ช" },
+  { id: 53, name: "08:30-18:30", startTime: "08:30", endTime: "18:30", description: "อเมซอน", shiftType: "เช้า", category: "อเมซอน", shortCode: "ช" },
+  { id: 54, name: "09:30-19:30", startTime: "09:30", endTime: "19:30", description: "อเมซอน", shiftType: "บ่าย", category: "อเมซอน", shortCode: "บ" },
+  { id: 25, name: "10:00-20:00", startTime: "10:00", endTime: "20:00", description: "อเมซอน", shiftType: "บ่าย", category: "อเมซอน", shortCode: "บ" },
+  { id: 55, name: "11:00-21:00", startTime: "11:00", endTime: "21:00", description: "อเมซอน", shiftType: "บ่าย", category: "อเมซอน", shortCode: "บ" },
+  // ========== กะอื่นๆ (สำหรับแผนกอื่นๆ ที่ยังใช้อยู่) ==========
   { id: 3, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "หน้าลาน - กลางวัน", shiftType: "เช้า", category: "ปั๊ม" },
-  // หน้าลาน (น้ำมัน) - กลางคืน
   { id: 4, name: "16:00-07:00", startTime: "16:00", endTime: "07:00", description: "หน้าลาน - กลางคืน", shiftType: "ดึก", category: "ปั๊ม" },
   { id: 5, name: "16:30-07:30", startTime: "16:30", endTime: "07:30", description: "หน้าลาน - กลางคืน", shiftType: "ดึก", category: "ปั๊ม" },
   { id: 6, name: "17:00-08:00", startTime: "17:00", endTime: "08:00", description: "หน้าลาน - กลางคืน", shiftType: "ดึก", category: "ปั๊ม" },
-  // คนสวน/ช่าง/ขับรถ/FIT AUTO
-  { id: 7, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "คนสวน/ช่าง/ขับรถ/FIT AUTO", shiftType: "เช้า", category: "ช่าง" },
-  // แม่บ้าน
-  { id: 8, name: "04:00-14:00", startTime: "04:00", endTime: "14:00", description: "แม่บ้าน", shiftType: "เช้า", category: "แม่บ้าน" },
-  { id: 9, name: "07:00-17:00", startTime: "07:00", endTime: "17:00", description: "แม่บ้าน", shiftType: "เช้า", category: "แม่บ้าน" },
-  { id: 10, name: "10:00-20:00", startTime: "10:00", endTime: "20:00", description: "แม่บ้าน", shiftType: "บ่าย", category: "แม่บ้าน" },
-  // รักษาความปลอดภัย
-  { id: 11, name: "17:00-06:00", startTime: "17:00", endTime: "06:00", description: "รักษาความปลอดภัย", shiftType: "ดึก", category: "รักษาความปลอดภัย" },
-  { id: 12, name: "18:00-07:00", startTime: "18:00", endTime: "07:00", description: "รักษาความปลอดภัย", shiftType: "ดึก", category: "รักษาความปลอดภัย" },
-  // Office
-  { id: 13, name: "07:00-16:00", startTime: "07:00", endTime: "16:00", description: "Office", shiftType: "เช้า", category: "Office" },
-  { id: 14, name: "08:00-17:00", startTime: "08:00", endTime: "17:00", description: "Office", shiftType: "เช้า", category: "Office" },
-  { id: 15, name: "09:00-18:00", startTime: "09:00", endTime: "18:00", description: "Office", shiftType: "เช้า", category: "Office" },
-  // ร้านของฝาก (ปึงหงี่เชียง/เจียง/เจ้าสัว/Daiso/QUICK SERVICE)
-  { id: 16, name: "07:00-17:00", startTime: "07:00", endTime: "17:00", description: "ร้านของฝาก", shiftType: "เช้า", category: "ปึงหงี่เชียง" },
   { id: 17, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "ร้านของฝาก", shiftType: "เช้า", category: "ปึงหงี่เชียง" },
-  { id: 18, name: "10:00-20:00", startTime: "10:00", endTime: "20:00", description: "ร้านของฝาก", shiftType: "บ่าย", category: "ปึงหงี่เชียง" },
-  // ร้านเจียง (ใช้กะเดียวกับร้านของฝาก)
   { id: 30, name: "07:00-17:00", startTime: "07:00", endTime: "17:00", description: "ร้านเจียง", shiftType: "เช้า", category: "ร้านเจียง" },
   { id: 31, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "ร้านเจียง", shiftType: "เช้า", category: "ร้านเจียง" },
   { id: 32, name: "10:00-20:00", startTime: "10:00", endTime: "20:00", description: "ร้านเจียง", shiftType: "บ่าย", category: "ร้านเจียง" },
-  // เจ้าสัว (ใช้กะเดียวกับร้านของฝาก)
   { id: 33, name: "07:00-17:00", startTime: "07:00", endTime: "17:00", description: "เจ้าสัว", shiftType: "เช้า", category: "เจ้าสัว" },
   { id: 34, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "เจ้าสัว", shiftType: "เช้า", category: "เจ้าสัว" },
   { id: 35, name: "10:00-20:00", startTime: "10:00", endTime: "20:00", description: "เจ้าสัว", shiftType: "บ่าย", category: "เจ้าสัว" },
-  // คนสวน/ขับรถ (ใช้กะเดียวกับช่าง)
   { id: 36, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "คนสวน/ขับรถ", shiftType: "เช้า", category: "คนสวน" },
   { id: 37, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "คนสวน/ขับรถ", shiftType: "เช้า", category: "ขับรถ" },
-  // Chester's
   { id: 19, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "Chester's", shiftType: "เช้า", category: "ร้านเชสเตอร์" },
   { id: 20, name: "10:30-20:30", startTime: "10:30", endTime: "20:30", description: "Chester's", shiftType: "บ่าย", category: "ร้านเชสเตอร์" },
-  // Amazon
   { id: 21, name: "05:30-15:30", startTime: "05:30", endTime: "15:30", description: "Amazon", shiftType: "เช้า", category: "Amazon" },
   { id: 22, name: "06:00-16:00", startTime: "06:00", endTime: "16:00", description: "Amazon", shiftType: "เช้า", category: "Amazon" },
-  { id: 23, name: "07:00-17:00", startTime: "07:00", endTime: "17:00", description: "Amazon", shiftType: "เช้า", category: "Amazon" },
-  { id: 24, name: "08:00-18:00", startTime: "08:00", endTime: "18:00", description: "Amazon", shiftType: "เช้า", category: "Amazon" },
-  { id: 25, name: "10:00-20:00", startTime: "10:00", endTime: "20:00", description: "Amazon", shiftType: "บ่าย", category: "Amazon" },
-  { id: 26, name: "10:30-20:30", startTime: "10:30", endTime: "20:30", description: "Amazon", shiftType: "บ่าย", category: "Amazon" },
-  // 7-Eleven
-  { id: 27, name: "06:30-16:30", startTime: "06:30", endTime: "16:30", description: "7-Eleven", shiftType: "เช้า", category: "เซเว่น" },
-  { id: 28, name: "12:00-22:00", startTime: "12:00", endTime: "22:00", description: "7-Eleven", shiftType: "บ่าย", category: "เซเว่น" },
-  { id: 29, name: "21:30-07:30", startTime: "21:30", endTime: "07:30", description: "7-Eleven", shiftType: "ดึก", category: "เซเว่น" }
+  { id: 26, name: "10:30-20:30", startTime: "10:30", endTime: "20:30", description: "Amazon", shiftType: "บ่าย", category: "Amazon" }
 ];
 
 // Helper function to generate attendance logs for a date range
@@ -3749,7 +3765,13 @@ export const welfareRecords: WelfareRecord[] = [
   { id: 32, type: "scholarship", empCode: "EMP-0005", empName: "พิมพ์ชนก สมใจ", category: "ปึงหงี่เชียง", amount: 20000, date: "2025-01-05", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับมัธยมศึกษา" },
   { id: 33, type: "scholarship", empCode: "EMP-0009", empName: "วิภา รักษ์สุข", category: "แม่บ้าน", amount: 25000, date: "2025-01-05", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับอุดมศึกษา" },
   { id: 34, type: "scholarship", empCode: "EMP-0026", empName: "นิดา ออฟฟิศ", category: "Office", amount: 18000, date: "2025-01-05", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับมัธยมศึกษา" },
-  { id: 35, type: "scholarship", empCode: "EMP-0023", empName: "ประเสริฐ ช่าง", category: "ช่าง", amount: 22000, date: "2025-07-01", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับอุดมศึกษา" }
+  { id: 35, type: "scholarship", empCode: "EMP-0023", empName: "ประเสริฐ ช่าง", category: "ช่าง", amount: 22000, date: "2025-07-01", status: "อนุมัติ", notes: "ทุนการศึกษาบุตร - ระดับอุดมศึกษา" },
+
+  // ประกันชีวิตหัวหน้างาน (insurance)
+  { id: 36, type: "insurance", empCode: "EMP-0001", empName: "สมชาย ใจดี", category: "ปั๊ม", amount: 100000, date: "2025-01-01", status: "อนุมัติ", notes: "ประกันชีวิตระดับหัวหน้างาน - ทุนประกันภัย 100,000 บาท" },
+  { id: 37, type: "insurance", empCode: "EMP-0005", empName: "พิมพ์ชนก สมใจ", category: "ปึงหงี่เชียง", amount: 100000, date: "2025-01-01", status: "อนุมัติ", notes: "ประกันชีวิตระดับหัวหน้างาน - ทุนประกันภัย 100,000 บาท" },
+  { id: 38, type: "insurance", empCode: "EMP-0026", empName: "นิดา ออฟฟิศ", category: "บัญชี", amount: 100000, date: "2025-01-01", status: "อนุมัติ", notes: "ประกันชีวิตระดับหัวหน้างาน - ทุนประกันภัย 100,000 บาท" },
+  { id: 39, type: "insurance", empCode: "EMP-0023", empName: "ประเสริฐ ช่าง", category: "ช่าง", amount: 100000, date: "2025-01-01", status: "อนุมัติ", notes: "ประกันชีวิตระดับหัวหน้างาน - ทุนประกันภัย 100,000 บาท" }
 ];
 
 // ========== WARNINGS (ทันบน - การเตือนจากนายจ้าง) ==========

@@ -418,8 +418,53 @@ const mockTankEntries: TankEntry[] = [
 ];
 
 export default function TankEntryBook() {
-  const totalQuantity = mockTankEntries.reduce((sum, e) => sum + e.quantity, 0);
-  const totalAmount = mockTankEntries.reduce((sum, e) => sum + e.totalAmount, 0);
+  // State สำหรับการกรอง
+  const [selectedDay, setSelectedDay] = useState<number | "all">("all");
+  const [selectedMonth, setSelectedMonth] = useState<number | "all">("all");
+  const [selectedYear, setSelectedYear] = useState<number | "all">("all");
+
+  // กรองข้อมูลตามวัน เดือน ปี
+  const filteredTankEntries = mockTankEntries.filter((entry) => {
+    const entryDate = entry.fullDate;
+    const entryDay = entryDate.getDate();
+    const entryMonth = entryDate.getMonth() + 1; // 1-12
+    const entryYear = entryDate.getFullYear();
+
+    const dayMatch = selectedDay === "all" || entryDay === selectedDay;
+    const monthMatch = selectedMonth === "all" || entryMonth === selectedMonth;
+    const yearMatch = selectedYear === "all" || entryYear === selectedYear;
+
+    return dayMatch && monthMatch && yearMatch;
+  });
+
+  // คำนวณยอดรวมจากข้อมูลที่กรองแล้ว
+  const totalQuantity = filteredTankEntries.reduce((sum, e) => sum + e.quantity, 0);
+  const totalAmount = filteredTankEntries.reduce((sum, e) => sum + e.totalAmount, 0);
+
+  // สร้างรายการวันที่ เดือน ปี ที่มีในข้อมูล
+  const availableDays = Array.from(
+    new Set(mockTankEntries.map((e) => e.fullDate.getDate()))
+  ).sort((a, b) => a - b);
+
+  const availableMonths = Array.from(
+    new Set(mockTankEntries.map((e) => e.fullDate.getMonth() + 1))
+  ).sort((a, b) => a - b);
+
+  const availableYears = Array.from(
+    new Set(mockTankEntries.map((e) => e.fullDate.getFullYear()))
+  ).sort((a, b) => b - a);
+
+  const monthNames = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+  ];
+
+  // ฟังก์ชันล้างตัวกรอง
+  const clearFilters = () => {
+    setSelectedDay("all");
+    setSelectedMonth("all");
+    setSelectedYear("all");
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -476,6 +521,85 @@ export default function TankEntryBook() {
         </motion.div>
       </div>
 
+      {/* Date Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4"
+      >
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-gray-500" />
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">กรองข้อมูล:</span>
+          </div>
+
+          {/* Day Filter */}
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-400" />
+            <select
+              value={selectedDay}
+              onChange={(e) => setSelectedDay(e.target.value === "all" ? "all" : Number(e.target.value))}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            >
+              <option value="all">ทุกวัน</option>
+              {availableDays.map((day) => (
+                <option key={day} value={day}>
+                  วันที่ {day}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Month Filter */}
+          <div>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value === "all" ? "all" : Number(e.target.value))}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            >
+              <option value="all">ทุกเดือน</option>
+              {availableMonths.map((month) => (
+                <option key={month} value={month}>
+                  {monthNames[month - 1]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Year Filter */}
+          <div>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value === "all" ? "all" : Number(e.target.value))}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            >
+              <option value="all">ทุกปี</option>
+              {availableYears.map((year) => (
+                <option key={year} value={year}>
+                  {year + 543}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          {(selectedDay !== "all" || selectedMonth !== "all" || selectedYear !== "all") && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors"
+            >
+              ล้างตัวกรอง
+            </button>
+          )}
+
+          {/* Results Count */}
+          <div className="ml-auto text-sm text-gray-600 dark:text-gray-400">
+            แสดง <span className="font-semibold text-teal-600 dark:text-teal-400">{filteredTankEntries.length}</span> รายการ
+          </div>
+        </div>
+      </motion.div>
+
       {/* Tank Entry Book Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -519,9 +643,9 @@ export default function TankEntryBook() {
               </tr>
             </thead>
             <tbody>
-              {mockTankEntries.map((entry, index) => {
+              {filteredTankEntries.map((entry, index) => {
                 // ตรวจสอบว่าเป็นวันใหม่หรือไม่ (date เปลี่ยนจากแถวก่อนหน้า)
-                const isNewDay = index === 0 || mockTankEntries[index - 1].date !== entry.date;
+                const isNewDay = index === 0 || filteredTankEntries[index - 1].date !== entry.date;
 
                 return (
                   <motion.tr

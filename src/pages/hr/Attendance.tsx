@@ -885,7 +885,7 @@ export default function Attendance() {
                     }
                     return availableShifts.map((shift) => (
                       <option key={shift.id} value={String(shift.id)}>
-                        {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
+                        {shift.shortCode ? `[${shift.shortCode}] ` : ""}{shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
                       </option>
                     ));
                   })()}
@@ -950,6 +950,11 @@ export default function Attendance() {
                       {data.shift ? (
                         <div className="text-xs">
                           <div className="text-ptt-cyan font-medium">
+                            {data.shift.shortCode && (
+                              <span className="bg-ptt-cyan/20 px-1.5 py-0.5 rounded text-[10px] font-bold mr-1">
+                                {data.shift.shortCode}
+                              </span>
+                            )}
                             {data.shift.shiftType ? `กะ${data.shift.shiftType}` : ""} {data.shift.name}
                           </div>
                           <div className="text-muted text-[10px]">{data.shift.startTime}-{data.shift.endTime}</div>
@@ -1290,6 +1295,11 @@ export default function Attendance() {
                             >
                               {/* Shift info */}
                               <div className="font-semibold text-app truncate mb-1">
+                                {shift.shortCode && (
+                                  <span className="bg-app/20 px-1 rounded text-[9px] font-bold mr-1">
+                                    {shift.shortCode}
+                                  </span>
+                                )}
                                 {shift.shiftType ? `กะ${shift.shiftType}` : shift.name}
                               </div>
                               <div className="text-[10px] text-muted mb-1">{shift.startTime}-{shift.endTime}</div>
@@ -1363,7 +1373,12 @@ export default function Attendance() {
             {/* Modal Header */}
             <div className="sticky top-0 px-6 py-4 border-b border-app bg-soft flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-app font-display">
+                <h3 className="text-xl font-bold text-app font-display flex items-center gap-2">
+                  {selectedShiftDate.shift.shortCode && (
+                    <span className="bg-ptt-cyan/20 px-2 py-1 rounded text-sm font-bold">
+                      {selectedShiftDate.shift.shortCode}
+                    </span>
+                  )}
                   {selectedShiftDate.shift.name}
                 </h3>
                 <p className="text-sm text-muted mt-1">
@@ -1398,6 +1413,12 @@ export default function Attendance() {
                   <div>
                     <p className="text-xs text-muted mb-1">ชื่อกะ</p>
                     <p className="text-sm font-medium text-app">{selectedShiftDate.shift.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted mb-1">ตัวย่อ</p>
+                    <p className="text-sm font-medium text-app">
+                      {selectedShiftDate.shift.shortCode || "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted mb-1">ประเภท</p>
