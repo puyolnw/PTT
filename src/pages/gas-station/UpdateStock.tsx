@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Package,
@@ -11,6 +11,7 @@ import {
   Droplet,
   TrendingDown,
   History,
+  Building2,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -28,6 +29,7 @@ type OilType =
 
 type StockUpdateItem = {
   id: string;
+  branch: string;
   oilType: OilType;
   currentStock: number; // สต็อกปัจจุบัน (ลิตร)
   usageAmount: number; // จำนวนที่ใช้ไป (ลิตร) - สำหรับกรอก
@@ -36,76 +38,67 @@ type StockUpdateItem = {
   status: "pending" | "updated";
 };
 
-// Mock data - ดึงข้อมูลสต็อกปัจจุบัน
-const initialStockData: StockUpdateItem[] = [
-  {
-    id: "STK-001",
-    oilType: "Premium Diesel",
-    currentStock: 45000,
-    usageAmount: 0,
-    updatedStock: 45000,
-    lastUpdated: "2024-12-15 18:30",
-    status: "pending",
-  },
-  {
-    id: "STK-002",
-    oilType: "Premium Gasohol 95",
-    currentStock: 38000,
-    usageAmount: 0,
-    updatedStock: 38000,
-    lastUpdated: "2024-12-15 18:30",
-    status: "pending",
-  },
-  {
-    id: "STK-003",
-    oilType: "Diesel",
-    currentStock: 52000,
-    usageAmount: 0,
-    updatedStock: 52000,
-    lastUpdated: "2024-12-15 18:30",
-    status: "pending",
-  },
-  {
-    id: "STK-004",
-    oilType: "E85",
-    currentStock: 15000,
-    usageAmount: 0,
-    updatedStock: 15000,
-    lastUpdated: "2024-12-15 18:30",
-    status: "pending",
-  },
-  {
-    id: "STK-005",
-    oilType: "E20",
-    currentStock: 28000,
-    usageAmount: 0,
-    updatedStock: 28000,
-    lastUpdated: "2024-12-15 18:30",
-    status: "pending",
-  },
-  {
-    id: "STK-006",
-    oilType: "Gasohol 91",
-    currentStock: 22000,
-    usageAmount: 0,
-    updatedStock: 22000,
-    lastUpdated: "2024-12-15 18:30",
-    status: "pending",
-  },
-  {
-    id: "STK-007",
-    oilType: "Gasohol 95",
-    currentStock: 35000,
-    usageAmount: 0,
-    updatedStock: 35000,
-    lastUpdated: "2024-12-15 18:30",
-    status: "pending",
-  },
+// สาขาทั้งหมด
+const branches = [
+  { id: 1, name: "ปั๊มไฮโซ", code: "HQ" },
+  { id: 2, name: "สาขา 2", code: "B2" },
+  { id: 3, name: "สาขา 3", code: "B3" },
+  { id: 4, name: "สาขา 4", code: "B4" },
+  { id: 5, name: "สาขา 5", code: "B5" },
 ];
+
+// Mock data - ดึงข้อมูลสต็อกปัจจุบันสำหรับทุกสาขา
+const generateInitialStockData = (): StockUpdateItem[] => {
+  const oilTypes: OilType[] = [
+    "Premium Diesel",
+    "Premium Gasohol 95",
+    "Diesel",
+    "E85",
+    "E20",
+    "Gasohol 91",
+    "Gasohol 95",
+  ];
+  
+  const baseStocks: Record<OilType, number> = {
+    "Premium Diesel": 45000,
+    "Premium Gasohol 95": 38000,
+    "Diesel": 52000,
+    "E85": 15000,
+    "E20": 28000,
+    "Gasohol 91": 22000,
+    "Gasohol 95": 35000,
+  };
+
+  const data: StockUpdateItem[] = [];
+  branches.forEach((branch, branchIndex) => {
+    oilTypes.forEach((oilType, oilIndex) => {
+      // เพิ่มความหลากหลายให้แต่ละสาขามีสต็อกต่างกันเล็กน้อย
+      const variation = (branchIndex * 1000) + (oilIndex * 500);
+      const baseStock = baseStocks[oilType];
+      const currentStock = baseStock + variation;
+      
+      data.push({
+        id: `STK-${branch.code}-${oilIndex + 1}`,
+        branch: branch.name,
+        oilType,
+        currentStock,
+        usageAmount: 0,
+        updatedStock: currentStock,
+        lastUpdated: "2024-12-15 18:30",
+        status: "pending",
+      });
+    });
+  });
+  
+  return data;
+};
+
+const initialStockData = generateInitialStockData();
 
 export default function UpdateStock() {
   const navigate = useNavigate();
   const [stockItems, setStockItems] = useState<StockUpdateItem[]>(initialStockData);
+  const [selectedBranch, setSelectedBranch] = useState<string>("all"); // "all" หรือชื่อสาขา
   const [updateDate, setUpdateDate] = useState(new Date().toISOString().split("T")[0]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -127,6 +120,30 @@ export default function UpdateStock() {
     );
   };
 
+  // กรองข้อมูลตามสาขาที่เลือก
+  const filteredStockItems = useMemo(() => {
+    if (selectedBranch === "all") {
+      return stockItems;
+    }
+    return stockItems.filter(item => item.branch === selectedBranch);
+  }, [stockItems, selectedBranch]);
+
+  // สรุปข้อมูลตามสาขา
+  const branchSummary = useMemo(() => {
+    const summary: Record<string, { totalUsage: number; updatedCount: number; totalItems: number }> = {};
+    
+    branches.forEach(branch => {
+      const branchItems = stockItems.filter(item => item.branch === branch.name);
+      summary[branch.name] = {
+        totalUsage: branchItems.reduce((sum, item) => sum + item.usageAmount, 0),
+        updatedCount: branchItems.filter(item => item.usageAmount > 0).length,
+        totalItems: branchItems.length,
+      };
+    });
+    
+    return summary;
+  }, [stockItems]);
+
   const handleReset = () => {
     setStockItems(initialStockData);
     setUpdateDate(new Date().toISOString().split("T")[0]);
@@ -137,8 +154,9 @@ export default function UpdateStock() {
     setIsSaving(true);
     setSaveSuccess(false);
 
-    // ตรวจสอบว่ามีการกรอกข้อมูลหรือไม่
-    const hasUpdates = stockItems.some((item) => item.usageAmount > 0);
+    // ตรวจสอบว่ามีการกรอกข้อมูลหรือไม่ (เฉพาะสาขาที่เลือก)
+    const itemsToCheck = selectedBranch === "all" ? stockItems : filteredStockItems;
+    const hasUpdates = itemsToCheck.some((item) => item.usageAmount > 0);
     if (!hasUpdates) {
       alert("กรุณากรอกจำนวนการใช้น้ำมันอย่างน้อย 1 รายการ");
       setIsSaving(false);
@@ -176,8 +194,8 @@ export default function UpdateStock() {
     }
   };
 
-  const totalUsage = stockItems.reduce((sum, item) => sum + item.usageAmount, 0);
-  const updatedCount = stockItems.filter((item) => item.usageAmount > 0).length;
+  const totalUsage = filteredStockItems.reduce((sum, item) => sum + item.usageAmount, 0);
+  const updatedCount = filteredStockItems.filter((item) => item.usageAmount > 0).length;
 
   return (
     <div className="space-y-6 p-6">
@@ -215,16 +233,34 @@ export default function UpdateStock() {
           </div>
         </div>
 
-        {/* Date Picker */}
-        <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
-          <Calendar className="w-5 h-5 text-gray-500" />
-          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">วันที่อัพเดต:</label>
-          <input
-            type="date"
-            value={updateDate}
-            onChange={(e) => setUpdateDate(e.target.value)}
-            className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
-          />
+        {/* Branch Selector and Date Picker */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
+            <Building2 className="w-5 h-5 text-gray-500" />
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">เลือกสาขา:</label>
+            <select
+              value={selectedBranch}
+              onChange={(e) => setSelectedBranch(e.target.value)}
+              className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
+            >
+              <option value="all">ทุกสาขา</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.name}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
+            <Calendar className="w-5 h-5 text-gray-500" />
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">วันที่อัพเดต:</label>
+            <input
+              type="date"
+              value={updateDate}
+              onChange={(e) => setUpdateDate(e.target.value)}
+              className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
+            />
+          </div>
         </div>
       </motion.div>
 
@@ -262,7 +298,7 @@ export default function UpdateStock() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">รายการที่อัพเดตแล้ว</p>
               <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                {updatedCount} / {stockItems.length}
+                {updatedCount} / {filteredStockItems.length}
               </p>
             </div>
           </div>
@@ -281,7 +317,7 @@ export default function UpdateStock() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">รายการที่ยังไม่อัพเดต</p>
               <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                {stockItems.length - updatedCount} / {stockItems.length}
+                {filteredStockItems.length - updatedCount} / {filteredStockItems.length}
               </p>
             </div>
           </div>
@@ -311,18 +347,53 @@ export default function UpdateStock() {
         className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
       >
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-            อัพเดตการใช้น้ำมันรายวัน
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            กรุณากรอกจำนวนน้ำมันที่ใช้ไปในระหว่างวันสำหรับแต่ละชนิดน้ำมัน
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
+                อัพเดตการใช้น้ำมันรายวัน
+                {selectedBranch !== "all" && (
+                  <span className="ml-2 text-base font-normal text-blue-600 dark:text-blue-400">
+                    ({selectedBranch})
+                  </span>
+                )}
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {selectedBranch === "all" 
+                  ? "กรุณากรอกจำนวนน้ำมันที่ใช้ไปในระหว่างวันสำหรับแต่ละชนิดน้ำมันทุกสาขา"
+                  : `กรุณากรอกจำนวนน้ำมันที่ใช้ไปในระหว่างวันสำหรับแต่ละชนิดน้ำมัน - ${selectedBranch}`
+                }
+              </p>
+            </div>
+            {selectedBranch === "all" && (
+              <div className="text-right">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">สรุปทุกสาขา</p>
+                <div className="flex flex-wrap gap-2 justify-end">
+                  {branches.map((branch) => {
+                    const summary = branchSummary[branch.name];
+                    return (
+                      <div
+                        key={branch.id}
+                        className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-700 dark:text-blue-300"
+                      >
+                        {branch.name}: {summary.updatedCount}/{summary.totalItems}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                {selectedBranch === "all" && (
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
+                    สาขา
+                  </th>
+                )}
                 <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
                   ประเภทน้ำมัน
                 </th>
@@ -341,7 +412,7 @@ export default function UpdateStock() {
               </tr>
             </thead>
             <tbody>
-              {stockItems.map((item, index) => (
+              {filteredStockItems.map((item, index) => (
                 <motion.tr
                   key={item.id}
                   initial={{ opacity: 0, x: -20 }}
@@ -351,6 +422,11 @@ export default function UpdateStock() {
                     item.usageAmount > 0 ? "bg-blue-50/30 dark:bg-blue-900/10" : ""
                   }`}
                 >
+                  {selectedBranch === "all" && (
+                    <td className="py-4 px-6 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {item.branch}
+                    </td>
+                  )}
                   <td className="py-4 px-6 text-sm font-semibold text-gray-800 dark:text-white">
                     {item.oilType}
                   </td>

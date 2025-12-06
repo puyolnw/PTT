@@ -20,6 +20,10 @@ import {
   CreditCard,
   FileSpreadsheet,
   Truck,
+  Wrench,
+  Flame,
+  History,
+  Monitor,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -86,6 +90,19 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
         { to: "/app/gas-station/oil-transfer", icon: Truck, label: "ย้ายน้ำมัน" },
       ],
     },
+    {
+      id: "station-products",
+      label: "สินค้าภายในปั้ม",
+      icon: Package,
+      items: [
+        { to: "/app/gas-station/station-products", icon: Package, label: "สินค้าภายในปั้ม" },
+        { to: "/app/gas-station/pos", icon: Monitor, label: "ระบบ POS - ขายสินค้า" },
+        { to: "/app/gas-station/lubricants", icon: Wrench, label: "น้ำมันหล่อลื่น" },
+        { to: "/app/gas-station/gas", icon: Flame, label: "การจัดการแก๊ส" },
+        { to: "/app/gas-station/engine-oil", icon: Droplet, label: "น้ำมันเครื่อง" },
+        { to: "/app/gas-station/product-sales-history", icon: History, label: "ประวัติการขายสินค้า" },
+      ],
+    },
   ];
 
   // Other items (not in groups)
@@ -94,9 +111,9 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
     { to: "/app/gas-station/update-stock", icon: RotateCcw, label: "อัพเดตสต็อก" },
     { to: "/app/gas-station/quality-test", icon: TestTube, label: "การทดสอบน้ำมัน" },
     { to: "/app/gas-station/deposit-slips", icon: FileCheck, label: "การจัดการใบฝากน้ำมัน" },
-    { to: "/app/gas-station/station-products", icon: Package, label: "สินค้าภายในปั้ม" },
     { to: "/app/gas-station/price-adjustment", icon: DollarSign, label: "การปรับราคาน้ำมัน" },
   ];
+
 
   // Reports and Settings
   const reportItems = [
@@ -120,6 +137,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
     if (newExpanded.size > 0) {
       setExpandedGroups(newExpanded);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
   const toggleGroup = (groupId: string) => {

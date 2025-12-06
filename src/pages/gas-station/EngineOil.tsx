@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Wrench,
+  Droplet,
   Search,
   Plus,
   Edit,
@@ -39,55 +39,44 @@ type Product = {
   lastUpdated: string;
 };
 
-// Mock data - น้ำมันหล่อลื่น
+// Mock data - น้ำมันเครื่อง
 const mockProducts: Product[] = [
   {
-    id: "LUB-001",
-    name: "น้ำมันเครื่อง 10W-40",
+    id: "ENG-001",
+    name: "น้ำมันเครื่อง 15W-40",
     brand: "PTT",
     unit: "ลิตร",
-    currentStock: 45,
-    minThreshold: 20,
-    pricePerUnit: 250,
+    currentStock: 60,
+    minThreshold: 30,
+    pricePerUnit: 220,
     status: "in-stock",
-    lastUpdated: "2024-12-15 10:30",
+    lastUpdated: "2024-12-15 11:00",
   },
   {
-    id: "LUB-002",
-    name: "น้ำมันเครื่อง 5W-30",
+    id: "ENG-002",
+    name: "น้ำมันเครื่อง 20W-50",
     brand: "PTT",
     unit: "ลิตร",
-    currentStock: 32,
-    minThreshold: 20,
-    pricePerUnit: 280,
+    currentStock: 48,
+    minThreshold: 30,
+    pricePerUnit: 200,
     status: "in-stock",
-    lastUpdated: "2024-12-15 10:30",
+    lastUpdated: "2024-12-15 11:00",
   },
   {
-    id: "LUB-003",
-    name: "น้ำมันเกียร์",
+    id: "ENG-003",
+    name: "น้ำมันเครื่อง 0W-20",
     brand: "PTT",
     unit: "ลิตร",
-    currentStock: 15,
-    minThreshold: 10,
-    pricePerUnit: 320,
+    currentStock: 25,
+    minThreshold: 30,
+    pricePerUnit: 300,
     status: "low-stock",
-    lastUpdated: "2024-12-14 15:20",
-  },
-  {
-    id: "LUB-004",
-    name: "น้ำมันเบรก",
-    brand: "PTT",
-    unit: "ลิตร",
-    currentStock: 8,
-    minThreshold: 10,
-    pricePerUnit: 180,
-    status: "low-stock",
-    lastUpdated: "2024-12-14 15:20",
+    lastUpdated: "2024-12-14 14:30",
   },
 ];
 
-export default function Lubricants() {
+export default function EngineOil() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [searchTerm, setSearchTerm] = useState("");
@@ -231,17 +220,17 @@ export default function Lubricants() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
-              <Wrench className="w-8 h-8 text-purple-500" />
-              น้ำมันหล่อลื่น
+              <Droplet className="w-8 h-8 text-emerald-500" />
+              น้ำมันเครื่อง
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              จัดการสต็อกและขายน้ำมันหล่อลื่น
+              จัดการสต็อกและขายน้ำมันเครื่อง
             </p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/app/gas-station/product-sales-history")}
-              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 whitespace-nowrap"
+              className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 whitespace-nowrap"
             >
               <History className="w-5 h-5" />
               ประวัติการขายสินค้า
@@ -257,8 +246,8 @@ export default function Lubricants() {
             title: "สินค้าทั้งหมด",
             value: summary.totalProducts,
             subtitle: "รายการ",
-            icon: Wrench,
-            iconColor: "bg-gradient-to-br from-purple-500 to-purple-600",
+            icon: Droplet,
+            iconColor: "bg-gradient-to-br from-emerald-500 to-emerald-600",
           },
           {
             title: "สต็อกรวม",
@@ -272,7 +261,7 @@ export default function Lubricants() {
             value: currencyFormatter.format(summary.totalValue),
             subtitle: "บาท",
             icon: ShoppingCart,
-            iconColor: "bg-gradient-to-br from-emerald-500 to-emerald-600",
+            iconColor: "bg-gradient-to-br from-purple-500 to-purple-600",
           },
           {
             title: "สต็อกต่ำ / หมด",
@@ -325,11 +314,11 @@ export default function Lubricants() {
             placeholder="ค้นหาชื่อสินค้า, ยี่ห้อ, รหัส..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/50 text-gray-800 dark:text-white transition-all duration-200"
+            className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all duration-200"
           />
         </div>
         <button
-          className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 whitespace-nowrap"
+          className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 whitespace-nowrap"
         >
           <Plus className="w-4 h-4" />
           เพิ่มสินค้า
@@ -344,9 +333,9 @@ export default function Lubricants() {
         className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
       >
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">รายการน้ำมันหล่อลื่น</h2>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">รายการน้ำมันเครื่อง</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            จัดการสต็อกน้ำมันหล่อลื่นทั้งหมด
+            จัดการสต็อกน้ำมันเครื่องทั้งหมด
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -729,3 +718,4 @@ export default function Lubricants() {
     </div>
   );
 }
+

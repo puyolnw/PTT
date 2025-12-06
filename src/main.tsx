@@ -198,7 +198,9 @@ import QualityTest from "@/pages/gas-station/QualityTest";
 import DepositSlips from "@/pages/gas-station/DepositSlips";
 import Lubricants from "@/pages/gas-station/Lubricants";
 import Gas from "@/pages/gas-station/Gas";
+import EngineOil from "@/pages/gas-station/EngineOil";
 import StationProducts from "@/pages/gas-station/StationProducts";
+import POS from "@/pages/gas-station/POS";
 import PriceAdjustment from "@/pages/gas-station/PriceAdjustment";
 import Reports from "@/pages/gas-station/Reports";
 import GasStationSettings from "@/pages/gas-station/Settings";
@@ -983,8 +985,16 @@ const router = createBrowserRouter([
             element: <Gas />,
           },
           {
+            path: "engine-oil",
+            element: <EngineOil />,
+          },
+          {
             path: "station-products",
             element: <StationProducts />,
+          },
+          {
+            path: "pos",
+            element: <POS />,
           },
           {
             path: "price-adjustment",

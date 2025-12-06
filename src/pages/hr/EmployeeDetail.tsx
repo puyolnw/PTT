@@ -865,6 +865,7 @@ export default function EmployeeDetail() {
     { id: "attendance", label: "เวลาเข้าออก" },
     { id: "leaves", label: "การลา" },
     { id: "payroll", label: "เงินเดือน" },
+    { id: "ot", label: "OT" },
     { id: "transfers", label: "การโยกย้ายตำแหน่ง" },
     { id: "rewards", label: "ประวัติทันบน/โทษ" },
     { id: "employee-rewards", label: "รางวัล" },
@@ -1862,6 +1863,238 @@ export default function EmployeeDetail() {
               ) : (
                 <p className="text-muted text-center py-8">ไม่มีประวัติเงินเดือน</p>
               )}
+            </div>
+          )}
+
+          {activeTab === "ot" && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-app mb-1 font-display">
+                  ประวัติ OT (Overtime)
+                </h3>
+                <p className="text-xs text-muted">
+                  ตั้งแต่ {employee.startDate} (ระยะเวลา {workDuration} เดือน)
+                </p>
+              </div>
+
+              {/* Summary Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                  <div className="flex items-center gap-3 mb-2">
+                    <TrendingUp className="w-5 h-5 text-green-400" />
+                    <p className="text-xs text-muted">OT สะสม (เงิน)</p>
+                  </div>
+                  <p className="text-2xl font-bold text-green-400 font-mono">{formatCurrency(totalOT)}</p>
+                  <p className="text-xs text-muted mt-1">
+                    {totalOTHours} ชั่วโมง
+                    {workDuration > 0 && (
+                      <span className="ml-1">(เฉลี่ย {Math.round(totalOTHours / workDuration)} ชม./เดือน)</span>
+                    )}
+                  </p>
+                </div>
+
+                <div className="p-4 bg-ptt-blue/10 border border-ptt-blue/30 rounded-xl">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Clock className="w-5 h-5 text-ptt-cyan" />
+                    <p className="text-xs text-muted">OT จากเวลาเข้างาน</p>
+                  </div>
+                  <p className="text-2xl font-bold text-ptt-cyan font-mono">
+                    {formatTime(totalOTHoursFromAttendance)}
+                  </p>
+                  <p className="text-xs text-muted mt-1">
+                    {overtimeHoursData.length} วันทำ OT
+                    {employeeShift && (
+                      <span className="ml-1">(กะ{employeeShift.name}: {shiftHours} ชม./วัน)</span>
+                    )}
+                  </p>
+                </div>
+
+                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Wallet className="w-5 h-5 text-blue-400" />
+                    <p className="text-xs text-muted">อัตรา OT</p>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-400 font-mono">
+                    ฿{avgOTRate.toLocaleString("th-TH")}
+                  </p>
+                  <p className="text-xs text-muted mt-1">ต่อชั่วโมง</p>
+                </div>
+
+                <div className="p-4 bg-soft rounded-xl border border-app">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Calendar className="w-5 h-5 text-ptt-cyan" />
+                    <p className="text-xs text-muted">OT เฉลี่ย/เดือน</p>
+                  </div>
+                  <p className="text-2xl font-bold text-app font-mono">
+                    {workDuration > 0 ? formatTime(totalOTHours / workDuration) : "0 ชม."}
+                  </p>
+                  <p className="text-xs text-muted mt-1">
+                    จาก {allPayroll.length} เดือน
+                  </p>
+                </div>
+              </div>
+
+              {/* OT by Month from Payroll */}
+              {allPayroll.length > 0 && (
+                <div>
+                  <h4 className="text-md font-semibold text-app mb-3 font-display flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    รายละเอียด OT แยกตามเดือน (จากเงินเดือน)
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-soft border-b border-app">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-app">เดือน</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-app">OT (ชั่วโมง)</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-app">OT (เงิน)</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-app">อัตรา/ชม.</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-app">
+                        {allPayroll
+                          .filter(pay => pay.ot > 0)
+                          .map((pay) => {
+                            const otHours = Math.round(pay.ot / avgOTRate);
+                            return (
+                              <tr key={pay.id} className="hover:bg-soft transition-colors">
+                                <td className="px-4 py-3 text-sm text-app font-medium">
+                                  {new Date(pay.month + "-01").toLocaleDateString("th-TH", { 
+                                    year: "numeric", 
+                                    month: "long" 
+                                  })}
+                                </td>
+                                <td className="px-4 py-3 text-right text-sm text-ptt-cyan font-semibold">
+                                  {otHours} ชม.
+                                </td>
+                                <td className="px-4 py-3 text-right text-sm text-green-400 font-mono font-semibold">
+                                  {formatCurrency(pay.ot)}
+                                </td>
+                                <td className="px-4 py-3 text-right text-sm text-muted font-mono">
+                                  ฿{avgOTRate.toLocaleString("th-TH")}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        {allPayroll.filter(pay => pay.ot > 0).length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="px-4 py-8 text-center text-muted">
+                              ยังไม่มีข้อมูล OT จากเงินเดือน
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* OT from Attendance Logs */}
+              {overtimeHoursData.length > 0 && (
+                <div>
+                  <h4 className="text-md font-semibold text-app mb-3 font-display flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    รายละเอียด OT จากเวลาเข้างาน
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-soft border-b border-app">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-app">วันที่</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-app">เวลาเข้า</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-app">เวลาออก</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-app">ชั่วโมงทำงาน</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-app">ชั่วโมง OT</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-app">OT (เงิน)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-app">
+                        {overtimeHoursData
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .slice(0, 50) // แสดง 50 รายการล่าสุด
+                          .map((log) => {
+                            const otAmount = log.otHours * avgOTRate;
+                            return (
+                              <tr key={log.id} className="hover:bg-soft transition-colors">
+                                <td className="px-4 py-3 text-sm text-app">
+                                  {new Date(log.date).toLocaleDateString("th-TH", { 
+                                    year: "numeric", 
+                                    month: "short", 
+                                    day: "numeric",
+                                    weekday: "short"
+                                  })}
+                                </td>
+                                <td className="px-4 py-3 text-center text-sm text-app font-mono">
+                                  {log.checkIn || "-"}
+                                </td>
+                                <td className="px-4 py-3 text-center text-sm text-app font-mono">
+                                  {log.checkOut || "-"}
+                                </td>
+                                <td className="px-4 py-3 text-center text-sm text-app font-mono">
+                                  {formatTime(log.hours)}
+                                </td>
+                                <td className="px-4 py-3 text-center text-sm text-green-400 font-semibold">
+                                  {formatTime(log.otHours)}
+                                </td>
+                                <td className="px-4 py-3 text-right text-sm text-green-400 font-mono font-semibold">
+                                  {formatCurrency(otAmount)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                    {overtimeHoursData.length > 50 && (
+                      <div className="text-center pt-4">
+                        <p className="text-xs text-muted">
+                          แสดง 50 รายการล่าสุด จากทั้งหมด {overtimeHoursData.length} รายการ
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Summary Card */}
+              <div className="p-6 bg-gradient-to-br from-green-500/10 to-ptt-blue/10 border border-green-500/30 rounded-2xl">
+                <h4 className="text-md font-semibold text-app mb-4 font-display flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-green-400" />
+                  สรุป OT ทั้งหมด
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-white/50 dark:bg-ink-900/50 rounded-xl border border-app">
+                    <p className="text-xs text-muted mb-1">OT จากเงินเดือน</p>
+                    <p className="text-2xl font-bold text-green-400 font-mono">{formatCurrency(totalOT)}</p>
+                    <p className="text-xs text-muted mt-1">{totalOTHours} ชั่วโมง</p>
+                  </div>
+                  <div className="p-4 bg-white/50 dark:bg-ink-900/50 rounded-xl border border-app">
+                    <p className="text-xs text-muted mb-1">OT จากเวลาเข้างาน</p>
+                    <p className="text-2xl font-bold text-ptt-cyan font-mono">
+                      {formatTime(totalOTHoursFromAttendance)}
+                    </p>
+                    <p className="text-xs text-muted mt-1">
+                      {overtimeHoursData.length} วันทำ OT
+                      {totalOTHoursFromAttendance > 0 && (
+                        <span className="ml-1">
+                          (ประมาณ {formatCurrency(totalOTHoursFromAttendance * avgOTRate)})
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                {employeeShift && (
+                  <div className="mt-4 p-3 bg-soft rounded-lg border border-app">
+                    <p className="text-xs text-muted mb-1">ข้อมูลกะการทำงาน</p>
+                    <p className="text-sm text-app">
+                      กะ{employeeShift.name}: {employeeShift.startTime} - {employeeShift.endTime} 
+                      <span className="text-muted ml-2">({shiftHours} ชั่วโมง/วัน)</span>
+                    </p>
+                    <p className="text-xs text-muted mt-1">
+                      OT จะคำนวณเมื่อทำงานเกิน {shiftHours} ชั่วโมง/วัน
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
