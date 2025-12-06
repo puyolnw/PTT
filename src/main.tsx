@@ -210,6 +210,9 @@ import StockUpdateHistory from "@/pages/gas-station/StockUpdateHistory";
 import ProductSalesHistory from "@/pages/gas-station/ProductSalesHistory";
 import SalesInstrumentReport from "@/pages/gas-station/SalesInstrumentReport";
 import OilDeficitReport from "@/pages/gas-station/OilDeficitReport";
+import OilDeficitMonthly from "@/pages/gas-station/OilDeficitMonthly";
+import OrderHistory from "@/pages/gas-station/OrderHistory";
+import TruckSales from "@/pages/gas-station/TruckSales";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -917,8 +920,16 @@ const router = createBrowserRouter([
             element: <Orders />,
           },
           {
+            path: "order-history",
+            element: <OrderHistory />,
+          },
+          {
             path: "receiving",
             element: <Receiving />,
+          },
+          {
+            path: "truck-sales",
+            element: <TruckSales />,
           },
           {
             path: "payments",
@@ -967,6 +978,10 @@ const router = createBrowserRouter([
           {
             path: "oil-transfer",
             element: <OilTransfer />,
+          },
+          {
+            path: "oil-deficit-monthly",
+            element: <OilDeficitMonthly />,
           },
           {
             path: "quality-test",

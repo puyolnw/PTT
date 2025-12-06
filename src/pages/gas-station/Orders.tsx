@@ -30,6 +30,7 @@ import {
   Calendar,
   FileText,
 } from "lucide-react";
+import NewOrderForm from "./NewOrderForm";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -70,8 +71,55 @@ const legalEntities = [
   { id: 5, name: "บริษัท E จำกัด" },
 ];
 
-// Mock data - สรุปคำขอจากทั้ง 5 สาขา
+// Mock data - สรุปคำขอจากทั้ง 5 สาขา (รวมปั๊มไฮโซ)
 const mockOrderSummary = [
+  // ปั๊มไฮโซ
+  {
+    branchId: 1,
+    branchName: "ปั๊มไฮโซ",
+    oilType: "Premium Diesel",
+    estimatedOrderAmount: 30000,
+    systemRecommended: 32000,
+    currentStock: 12000,
+    lowStockAlert: false,
+    quantityOrdered: 32000,
+    legalEntityId: 1,
+    legalEntityName: "บริษัท A จำกัด",
+    status: "รออนุมัติ",
+    requestedAt: "2024-12-15 09:00",
+    requestedBy: "ผู้จัดการปั๊มไฮโซ",
+  },
+  {
+    branchId: 1,
+    branchName: "ปั๊มไฮโซ",
+    oilType: "Premium Gasohol 95",
+    estimatedOrderAmount: 25000,
+    systemRecommended: 28000,
+    currentStock: 15000,
+    lowStockAlert: false,
+    quantityOrdered: 28000,
+    legalEntityId: 1,
+    legalEntityName: "บริษัท A จำกัด",
+    status: "รออนุมัติ",
+    requestedAt: "2024-12-15 09:00",
+    requestedBy: "ผู้จัดการปั๊มไฮโซ",
+  },
+  {
+    branchId: 1,
+    branchName: "ปั๊มไฮโซ",
+    oilType: "Diesel",
+    estimatedOrderAmount: 35000,
+    systemRecommended: 38000,
+    currentStock: 20000,
+    lowStockAlert: false,
+    quantityOrdered: 38000,
+    legalEntityId: 1,
+    legalEntityName: "บริษัท A จำกัด",
+    status: "รออนุมัติ",
+    requestedAt: "2024-12-15 09:00",
+    requestedBy: "ผู้จัดการปั๊มไฮโซ",
+  },
+  // สาขา 2
   {
     branchId: 2,
     branchName: "สาขา 2",
@@ -103,6 +151,22 @@ const mockOrderSummary = [
     requestedBy: "ผู้จัดการสาขา 2",
   },
   {
+    branchId: 2,
+    branchName: "สาขา 2",
+    oilType: "E85",
+    estimatedOrderAmount: 8000,
+    systemRecommended: 10000,
+    currentStock: 3000,
+    lowStockAlert: true,
+    quantityOrdered: 10000,
+    legalEntityId: 2,
+    legalEntityName: "บริษัท B จำกัด",
+    status: "รออนุมัติ",
+    requestedAt: "2024-12-15 10:30",
+    requestedBy: "ผู้จัดการสาขา 2",
+  },
+  // สาขา 3
+  {
     branchId: 3,
     branchName: "สาขา 3",
     oilType: "Diesel",
@@ -117,6 +181,22 @@ const mockOrderSummary = [
     requestedAt: "2024-12-15 11:00",
     requestedBy: "ผู้จัดการสาขา 3",
   },
+  {
+    branchId: 3,
+    branchName: "สาขา 3",
+    oilType: "Gasohol 91",
+    estimatedOrderAmount: 12000,
+    systemRecommended: 15000,
+    currentStock: 8000,
+    lowStockAlert: false,
+    quantityOrdered: 15000,
+    legalEntityId: 3,
+    legalEntityName: "บริษัท C จำกัด",
+    status: "รออนุมัติ",
+    requestedAt: "2024-12-15 11:00",
+    requestedBy: "ผู้จัดการสาขา 3",
+  },
+  // สาขา 4
   {
     branchId: 4,
     branchName: "สาขา 4",
@@ -143,6 +223,22 @@ const mockOrderSummary = [
     truckCount: 1,
   },
   {
+    branchId: 4,
+    branchName: "สาขา 4",
+    oilType: "E20",
+    estimatedOrderAmount: 15000,
+    systemRecommended: 18000,
+    currentStock: 10000,
+    lowStockAlert: false,
+    quantityOrdered: 18000,
+    legalEntityId: 4,
+    legalEntityName: "บริษัท D จำกัด",
+    status: "รออนุมัติ",
+    requestedAt: "2024-12-15 09:45",
+    requestedBy: "ผู้จัดการสาขา 4",
+  },
+  // สาขา 5
+  {
     branchId: 5,
     branchName: "สาขา 5",
     oilType: "Gasohol 95",
@@ -151,6 +247,21 @@ const mockOrderSummary = [
     currentStock: 3000,
     lowStockAlert: true,
     quantityOrdered: 15000,
+    legalEntityId: 5,
+    legalEntityName: "บริษัท E จำกัด",
+    status: "รออนุมัติ",
+    requestedAt: "2024-12-15 11:30",
+    requestedBy: "ผู้จัดการสาขา 5",
+  },
+  {
+    branchId: 5,
+    branchName: "สาขา 5",
+    oilType: "Gasohol 91",
+    estimatedOrderAmount: 10000,
+    systemRecommended: 12000,
+    currentStock: 5000,
+    lowStockAlert: true,
+    quantityOrdered: 12000,
     legalEntityId: 5,
     legalEntityName: "บริษัท E จำกัด",
     status: "รออนุมัติ",
@@ -298,6 +409,15 @@ export default function Orders() {
   const [selectedApprovedOrder, setSelectedApprovedOrder] = useState<typeof mockApprovedOrders[0] | null>(null);
   const [showConsolidateModal, setShowConsolidateModal] = useState(false);
   const [editingOrders, setEditingOrders] = useState<typeof mockOrderSummary>([]);
+  const [showNewOrderModal, setShowNewOrderModal] = useState(false);
+  const [newOrderItems, setNewOrderItems] = useState<Array<{
+    branchId: number;
+    branchName: string;
+    oilType: string;
+    quantity: number;
+    legalEntityId: number;
+    legalEntityName: string;
+  }>>([]);
 
   // Prevent body scroll when modals are open
   useEffect(() => {
@@ -320,12 +440,13 @@ export default function Orders() {
         if (selectedOrderDetail) setSelectedOrderDetail(null);
         if (selectedApprovedOrder) setSelectedApprovedOrder(null);
         if (showTruckModal) setShowTruckModal(false);
+        if (showNewOrderModal) setShowNewOrderModal(false);
       }
     };
     
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [showTruckModal, selectedOrderDetail, showConsolidateModal, selectedApprovedOrder]);
+  }, [showTruckModal, selectedOrderDetail, showConsolidateModal, selectedApprovedOrder, showNewOrderModal]);
 
   // คำนวณยอดรวมที่ต้องสั่ง
   const totalQuantity = mockOrderSummary.reduce((sum, order) => sum + (order.quantityOrdered || 0), 0);
@@ -575,7 +696,13 @@ export default function Orders() {
             <Upload className="w-4 h-4" />
             Import Excel
           </button>
-          <button className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2">
+          <button
+            onClick={() => {
+              setNewOrderItems([]);
+              setShowNewOrderModal(true);
+            }}
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
+          >
             <Plus className="w-4 h-4" />
             สร้างใบสั่งซื้อใหม่
           </button>
@@ -1449,7 +1576,7 @@ export default function Orders() {
                     รวบรวมและสั่งน้ำมัน
                   </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                    รายละเอียดคำขอจากทั้ง {editingOrders.length} สาขา - แก้ไขข้อมูลได้ทั้งหมด
+                    รายละเอียดคำขอจากทั้ง {new Set(editingOrders.map(o => o.branchId)).size} สาขา ({editingOrders.length} รายการ) - แก้ไขข้อมูลได้ทั้งหมด
                   </p>
                 </div>
               </div>
@@ -1656,7 +1783,7 @@ export default function Orders() {
                   <div className="mt-6 bg-white dark:bg-gray-800 border-y border-r border-gray-200 dark:border-gray-700 border-l-4 border-orange-500 p-6 rounded-xl shadow-sm bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-900/20 dark:to-red-900/20">
                     <h4 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                   <BarChart3 className="w-5 h-5" />
-                  สรุปยอดรวม
+                  สรุปยอดรวมทุกสาขา
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
@@ -1680,7 +1807,7 @@ export default function Orders() {
                   <div>
                         <p className="text-xs text-gray-600 dark:text-gray-400 mb-1 font-semibold">จำนวนสาขา</p>
                         <p className="text-xl font-bold text-gray-800 dark:text-white">
-                      {editingOrders.length} สาขา
+                      {new Set(editingOrders.map(o => o.branchId)).size} สาขา ({editingOrders.length} รายการ)
                     </p>
                   </div>
                 </div>
@@ -1702,7 +1829,7 @@ export default function Orders() {
             {/* Footer Actions */}
                 <div className="px-6 py-5 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    <p className="font-semibold">รวม {editingOrders.length} รายการ</p>
+                    <p className="font-semibold">รวม {new Set(editingOrders.map(o => o.branchId)).size} สาขา ({editingOrders.length} รายการ)</p>
                 <p className="text-xs">ยอดรวม {numberFormatter.format(editingOrders.reduce((sum, o) => sum + o.quantityOrdered, 0))} ลิตร</p>
               </div>
               <div className="flex items-center gap-3">
@@ -1844,6 +1971,193 @@ export default function Orders() {
             </div>
           </motion.div>
         </div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* New Order Modal - สร้างใบสั่งซื้อใหม่สำหรับทุกสาขา */}
+      <AnimatePresence>
+        {showNewOrderModal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowNewOrderModal(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+
+            {/* Modal */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <Plus className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
+                        สร้างใบสั่งซื้อใหม่ - ทุกสาขา
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        สั่งน้ำมันได้จากทุกสาขาพร้อมกัน
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowNewOrderModal(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
+                    aria-label="ปิด"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
+                  <div className="space-y-6">
+                    {/* New Order Form */}
+                    <NewOrderForm
+                      branches={branches}
+                      legalEntities={legalEntities}
+                      items={newOrderItems}
+                      onItemsChange={setNewOrderItems}
+                      onClose={() => setShowNewOrderModal(false)}
+                      onSave={(items) => {
+                        // เพิ่มรายการใหม่เข้าไปใน mockOrderSummary
+                        const now = new Date();
+                        const timeString = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+                        const dateString = `${now.toISOString().split("T")[0]} ${timeString}`;
+                        
+                        // สร้างรายการใหม่
+                        const newOrders = items.map((item) => ({
+                          branchId: item.branchId,
+                          branchName: item.branchName,
+                          oilType: item.oilType,
+                          estimatedOrderAmount: item.quantity,
+                          systemRecommended: item.quantity,
+                          currentStock: 0, // จะดึงจากระบบจริง
+                          lowStockAlert: false,
+                          quantityOrdered: item.quantity,
+                          legalEntityId: item.legalEntityId,
+                          legalEntityName: item.legalEntityName,
+                          status: "รออนุมัติ" as const,
+                          requestedAt: dateString,
+                          requestedBy: "คุณนิด",
+                        }));
+                        
+                        // ในระบบจริงจะต้องอัพเดต state หรือส่งไปยัง API
+                        console.log("New orders created:", newOrders);
+                        alert(`สร้างใบสั่งซื้อใหม่สำเร็จ!\n\nจำนวนสาขา: ${new Set(items.map(i => i.branchId)).size} สาขา\nจำนวนรายการ: ${items.length} รายการ`);
+                        
+                        setShowNewOrderModal(false);
+                        setNewOrderItems([]);
+                      }}
+                    />
+
+                    {/* Order History Section */}
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                            <History className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-bold text-gray-800 dark:text-white">
+                              ประวัติการสั่งซื้อล่าสุด
+                            </h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              ดูประวัติการสั่งซื้อที่ผ่านมา
+                            </p>
+                          </div>
+                        </div>
+                        <NavLink
+                          to="/app/gas-station/order-history"
+                          onClick={() => setShowNewOrderModal(false)}
+                          className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 text-sm"
+                        >
+                          <Receipt className="w-4 h-4" />
+                          ดูทั้งหมด
+                        </NavLink>
+                      </div>
+                      
+                      {/* Recent Orders List */}
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {mockApprovedOrders.slice(0, 5).map((order, index) => (
+                          <motion.div
+                            key={order.orderNo}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.2, delay: index * 0.05 }}
+                            className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <ShoppingCart className="w-4 h-4 text-blue-500" />
+                                <span className="text-sm font-semibold text-gray-800 dark:text-white">
+                                  {order.orderNo}
+                                </span>
+                                {order.billNo && (
+                                  <>
+                                    <span className="text-gray-400">•</span>
+                                    <Receipt className="w-4 h-4 text-purple-500" />
+                                    <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                                      {order.billNo}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                order.status === "ส่งแล้ว" ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" :
+                                order.status === "รับแล้ว" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
+                                "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                              }`}>
+                                {order.status}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+                              <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>{order.orderDate}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Building2 className="w-3 h-3" />
+                                  <span>{order.branches.length} สาขา</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Droplet className="w-3 h-3" />
+                                  <span>{numberFormatter.format(order.items.reduce((sum, item) => sum + item.quantity, 0))} ลิตร</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <DollarSign className="w-3 h-3" />
+                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                  {currencyFormatter.format(order.totalAmount)}
+                                </span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                        {mockApprovedOrders.length === 0 && (
+                          <div className="text-center py-8">
+                            <History className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                            <p className="text-sm text-gray-600 dark:text-gray-400">ยังไม่มีประวัติการสั่งซื้อ</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>

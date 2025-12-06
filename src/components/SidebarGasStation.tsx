@@ -17,13 +17,13 @@ import {
   TrendingDown,
   FilePlus,
   RotateCcw,
-  CreditCard,
   FileSpreadsheet,
   Truck,
   Wrench,
   Flame,
   History,
   Monitor,
+  Receipt,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -60,8 +60,10 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
       items: [
         { to: "/app/gas-station/station-order", icon: FilePlus, label: "สั่งน้ำมันของปั้ม" },
         { to: "/app/gas-station/orders", icon: ShoppingCart, label: "การสั่งซื้อน้ำมัน" },
+        { to: "/app/gas-station/order-history", icon: Receipt, label: "ประวัติการสั่งซื้อ / บิล" },
         { to: "/app/gas-station/receiving", icon: Package, label: "การรับน้ำมัน" },
-        { to: "/app/gas-station/payments", icon: CreditCard, label: "การชำระเงินซื้อน้ำมัน" },
+        { to: "/app/gas-station/truck-sales", icon: Truck, label: "ขายน้ำมันที่เหลือบนรถ" },
+        // { to: "/app/gas-station/payments", icon: CreditCard, label: "การชำระเงินซื้อน้ำมัน" },
       ],
     },
     {
@@ -85,6 +87,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
         { to: "/app/gas-station/pending-book", icon: FileText, label: "สมุดตั้งพัก" },
         { to: "/app/gas-station/balance-petrol", icon: BookOpen, label: "สมุด Balance Petrol" },
         // { to: "/app/gas-station/balance-petrol-monthly", icon: BookOpen, label: "สมุด Balance Petrol รายเดือน" },
+        { to: "/app/gas-station/oil-deficit-monthly", icon: BookOpen, label: "สมุดน้ำมันขาดเกินรายเดือน" },
         { to: "/app/gas-station/purchase-book", icon: FileText, label: "สมุดซื้อน้ำมัน" },
         { to: "/app/gas-station/tank-entry-book", icon: Droplet, label: "สมุดน้ำมันลงหลุม" },
         { to: "/app/gas-station/oil-transfer", icon: Truck, label: "ย้ายน้ำมัน" },
