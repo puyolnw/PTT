@@ -19,6 +19,7 @@ import {
   RotateCcw,
   CreditCard,
   FileSpreadsheet,
+  Truck,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -82,6 +83,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
         // { to: "/app/gas-station/balance-petrol-monthly", icon: BookOpen, label: "สมุด Balance Petrol รายเดือน" },
         // { to: "/app/gas-station/purchase-book", icon: FileText, label: "สมุดซื้อน้ำมัน" },
         { to: "/app/gas-station/tank-entry-book", icon: Droplet, label: "สมุดน้ำมันลงหลุม" },
+        { to: "/app/gas-station/oil-transfer", icon: Truck, label: "ย้ายน้ำมัน" },
       ],
     },
   ];

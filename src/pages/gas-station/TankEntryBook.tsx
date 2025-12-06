@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { Droplet, BookOpen } from "lucide-react";
+import { useState } from "react";
+import { Droplet, BookOpen, Calendar, Filter } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 2,
@@ -11,6 +12,7 @@ const integerFormatter = new Intl.NumberFormat("th-TH", {
 
 type TankEntry = {
   date: string;
+  fullDate: Date; // วันที่แบบเต็มสำหรับการกรอง
   tankCode: string; // เช่น "34 HSD", "83 E 20", "18 63H95"
   quantity: number; // จำนวนลิตร
   price1: number; // ราคาต่อลิตร (คอลัมน์ที่ 3)
@@ -36,11 +38,18 @@ const generateDateForDay = (daysAgo: number): string => {
   return formatDateThai(date);
 };
 
+const getFullDateForDay = (daysAgo: number): Date => {
+  const date = new Date(today);
+  date.setDate(date.getDate() - daysAgo);
+  return date;
+};
+
 // Mock data เลียนแบบสมุดจริง - 6 วัน (วันนี้ + 5 วันก่อนหน้า)
 const mockTankEntries: TankEntry[] = [
   // วันนี้ (วันที่ 0)
   {
     date: generateDateForDay(0),
+    fullDate: getFullDateForDay(0),
     tankCode: "34 HSD",
     quantity: 8500,
     price1: 33.49,
@@ -51,6 +60,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(0),
+    fullDate: getFullDateForDay(0),
     tankCode: "83 E 20",
     quantity: 7200,
     price1: 34.79,
@@ -61,6 +71,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(0),
+    fullDate: getFullDateForDay(0),
     tankCode: "18 63H95",
     quantity: 4500,
     price1: 36.90,
@@ -71,6 +82,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(0),
+    fullDate: getFullDateForDay(0),
     tankCode: "59 69H91",
     quantity: 2200,
     price1: 36.53,
@@ -81,6 +93,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(0),
+    fullDate: getFullDateForDay(0),
     tankCode: "34 HSD",
     quantity: 12000,
     price1: 33.49,
@@ -92,6 +105,7 @@ const mockTankEntries: TankEntry[] = [
   // วันที่ 1 (เมื่อวาน)
   {
     date: generateDateForDay(1),
+    fullDate: getFullDateForDay(1),
     tankCode: "34 HSD",
     quantity: 8000,
     price1: 33.49,
@@ -102,6 +116,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(1),
+    fullDate: getFullDateForDay(1),
     tankCode: "83 E 20",
     quantity: 7000,
     price1: 34.79,
@@ -112,6 +127,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(1),
+    fullDate: getFullDateForDay(1),
     tankCode: "18 63H95",
     quantity: 4000,
     price1: 36.90,
@@ -122,6 +138,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(1),
+    fullDate: getFullDateForDay(1),
     tankCode: "59 69H91",
     quantity: 2000,
     price1: 36.53,
@@ -132,6 +149,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(1),
+    fullDate: getFullDateForDay(1),
     tankCode: "34 HSD",
     quantity: 11000,
     price1: 33.49,
@@ -142,6 +160,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(1),
+    fullDate: getFullDateForDay(1),
     tankCode: "83 E 20",
     quantity: 1000,
     price1: 34.79,
@@ -153,6 +172,7 @@ const mockTankEntries: TankEntry[] = [
   // วันที่ 2
   {
     date: generateDateForDay(2),
+    fullDate: getFullDateForDay(2),
     tankCode: "34 HSD",
     quantity: 9000,
     price1: 33.49,
@@ -163,6 +183,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(2),
+    fullDate: getFullDateForDay(2),
     tankCode: "83 E 20",
     quantity: 6500,
     price1: 34.79,
@@ -173,6 +194,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(2),
+    fullDate: getFullDateForDay(2),
     tankCode: "18 63H95",
     quantity: 3800,
     price1: 36.90,
@@ -183,6 +205,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(2),
+    fullDate: getFullDateForDay(2),
     tankCode: "59 69H91",
     quantity: 2500,
     price1: 36.53,
@@ -193,6 +216,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(2),
+    fullDate: getFullDateForDay(2),
     tankCode: "34 HSD",
     quantity: 10500,
     price1: 33.49,
@@ -204,6 +228,7 @@ const mockTankEntries: TankEntry[] = [
   // วันที่ 3
   {
     date: generateDateForDay(3),
+    fullDate: getFullDateForDay(3),
     tankCode: "34 HSD",
     quantity: 7500,
     price1: 33.49,
@@ -214,6 +239,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(3),
+    fullDate: getFullDateForDay(3),
     tankCode: "83 E 20",
     quantity: 6800,
     price1: 34.79,
@@ -224,6 +250,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(3),
+    fullDate: getFullDateForDay(3),
     tankCode: "18 63H95",
     quantity: 4200,
     price1: 36.90,
@@ -234,6 +261,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(3),
+    fullDate: getFullDateForDay(3),
     tankCode: "59 69H91",
     quantity: 1800,
     price1: 36.53,
@@ -244,6 +272,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(3),
+    fullDate: getFullDateForDay(3),
     tankCode: "34 HSD",
     quantity: 11500,
     price1: 33.49,
@@ -254,6 +283,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(3),
+    fullDate: getFullDateForDay(3),
     tankCode: "83 E 20",
     quantity: 1200,
     price1: 34.79,
@@ -265,6 +295,7 @@ const mockTankEntries: TankEntry[] = [
   // วันที่ 4
   {
     date: generateDateForDay(4),
+    fullDate: getFullDateForDay(4),
     tankCode: "34 HSD",
     quantity: 8200,
     price1: 33.49,
@@ -275,6 +306,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(4),
+    fullDate: getFullDateForDay(4),
     tankCode: "83 E 20",
     quantity: 7100,
     price1: 34.79,
@@ -285,6 +317,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(4),
+    fullDate: getFullDateForDay(4),
     tankCode: "18 63H95",
     quantity: 4100,
     price1: 36.90,
@@ -295,6 +328,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(4),
+    fullDate: getFullDateForDay(4),
     tankCode: "59 69H91",
     quantity: 2100,
     price1: 36.53,
@@ -305,6 +339,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(4),
+    fullDate: getFullDateForDay(4),
     tankCode: "34 HSD",
     quantity: 10800,
     price1: 33.49,
@@ -316,6 +351,7 @@ const mockTankEntries: TankEntry[] = [
   // วันที่ 5
   {
     date: generateDateForDay(5),
+    fullDate: getFullDateForDay(5),
     tankCode: "34 HSD",
     quantity: 8800,
     price1: 33.49,
@@ -326,6 +362,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(5),
+    fullDate: getFullDateForDay(5),
     tankCode: "83 E 20",
     quantity: 6900,
     price1: 34.79,
@@ -336,6 +373,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(5),
+    fullDate: getFullDateForDay(5),
     tankCode: "18 63H95",
     quantity: 3900,
     price1: 36.90,
@@ -346,6 +384,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(5),
+    fullDate: getFullDateForDay(5),
     tankCode: "59 69H91",
     quantity: 2300,
     price1: 36.53,
@@ -356,6 +395,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(5),
+    fullDate: getFullDateForDay(5),
     tankCode: "34 HSD",
     quantity: 11200,
     price1: 33.49,
@@ -366,6 +406,7 @@ const mockTankEntries: TankEntry[] = [
   },
   {
     date: generateDateForDay(5),
+    fullDate: getFullDateForDay(5),
     tankCode: "83 E 20",
     quantity: 1100,
     price1: 34.79,
@@ -481,49 +522,48 @@ export default function TankEntryBook() {
               {mockTankEntries.map((entry, index) => {
                 // ตรวจสอบว่าเป็นวันใหม่หรือไม่ (date เปลี่ยนจากแถวก่อนหน้า)
                 const isNewDay = index === 0 || mockTankEntries[index - 1].date !== entry.date;
-                
+
                 return (
                   <motion.tr
                     key={`${entry.date}-${entry.tankCode}-${index}`}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/40 ${
-                      isNewDay ? "border-t-2 border-gray-300 dark:border-gray-600" : ""
-                    }`}
+                    className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/40 ${isNewDay ? "border-t-2 border-gray-300 dark:border-gray-600" : ""
+                      }`}
                   >
-                  {/* ด/ป/ว / รหัสหลุม */}
-                  <td className="py-2 px-3 text-left font-semibold text-gray-800 dark:text-gray-100 border-r border-gray-200 dark:border-gray-700">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">{entry.date}</span>
-                      <span>{entry.tankCode}</span>
-                    </div>
-                  </td>
-                  {/* จำนวน (ลิตร) */}
-                  <td className="py-2 px-3 text-right text-gray-800 dark:text-gray-100">
-                    {integerFormatter.format(entry.quantity)}
-                  </td>
-                  {/* ราคา 1 */}
-                  <td className="py-2 px-3 text-right text-gray-700 dark:text-gray-200">
-                    {numberFormatter.format(entry.price1)}
-                  </td>
-                  {/* ราคา 2 */}
-                  <td className="py-2 px-3 text-right text-gray-700 dark:text-gray-200">
-                    {numberFormatter.format(entry.price2)}
-                    {entry.price2 % 1 === 0.9 && <span className="text-gray-500">.90</span>}
-                  </td>
-                  {/* ยอดรวม */}
-                  <td className="py-2 px-3 text-right font-semibold text-gray-800 dark:text-gray-100">
-                    {integerFormatter.format(entry.totalAmount)}
-                  </td>
-                  {/* หัวจ่าย / คำอธิบาย */}
-                  <td className="py-2 px-3 text-left text-gray-700 dark:text-gray-200 border-l border-gray-200 dark:border-gray-700">
-                    <div className="flex flex-col">
-                      <span className="font-semibold">{entry.pumpCode}</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">{entry.description}</span>
-                    </div>
-                  </td>
-                </motion.tr>
+                    {/* ด/ป/ว / รหัสหลุม */}
+                    <td className="py-2 px-3 text-left font-semibold text-gray-800 dark:text-gray-100 border-r border-gray-200 dark:border-gray-700">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400">{entry.date}</span>
+                        <span>{entry.tankCode}</span>
+                      </div>
+                    </td>
+                    {/* จำนวน (ลิตร) */}
+                    <td className="py-2 px-3 text-right text-gray-800 dark:text-gray-100">
+                      {integerFormatter.format(entry.quantity)}
+                    </td>
+                    {/* ราคา 1 */}
+                    <td className="py-2 px-3 text-right text-gray-700 dark:text-gray-200">
+                      {numberFormatter.format(entry.price1)}
+                    </td>
+                    {/* ราคา 2 */}
+                    <td className="py-2 px-3 text-right text-gray-700 dark:text-gray-200">
+                      {numberFormatter.format(entry.price2)}
+                      {entry.price2 % 1 === 0.9 && <span className="text-gray-500">.90</span>}
+                    </td>
+                    {/* ยอดรวม */}
+                    <td className="py-2 px-3 text-right font-semibold text-gray-800 dark:text-gray-100">
+                      {integerFormatter.format(entry.totalAmount)}
+                    </td>
+                    {/* หัวจ่าย / คำอธิบาย */}
+                    <td className="py-2 px-3 text-left text-gray-700 dark:text-gray-200 border-l border-gray-200 dark:border-gray-700">
+                      <div className="flex flex-col">
+                        <span className="font-semibold">{entry.pumpCode}</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400">{entry.description}</span>
+                      </div>
+                    </td>
+                  </motion.tr>
                 );
               })}
             </tbody>

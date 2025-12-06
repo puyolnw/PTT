@@ -1,9 +1,12 @@
 import { motion } from "framer-motion";
+import { useState } from "react";
 import {
   BookOpen,
   TrendingUp,
   TrendingDown,
   Droplet,
+  Calendar,
+  Filter,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -26,6 +29,7 @@ type ProductCode = "D87" | "B" | "GSH95";
 
 type BalanceRow = {
   date: string;
+  fullDate: Date; // วันที่แบบเต็มสำหรับการกรอง
   receive: number;
   pay: number;
   balance: number;
@@ -52,10 +56,12 @@ const productPrices: Record<ProductCode, number> = {
   GSH95: 41.49,
 };
 
-// Mock data เลียนแบบสมุดจริง (ตัวเลขสมมติ)
+// Mock data เลียนแบบสมุดจริง (ตัวเลขสมมติ) - เพิ่มข้อมูลหลายเดือน
 const mockBalanceRows: BalanceRow[] = [
+  // เดือนพฤษภาคม 2568
   {
     date: "20/5/68",
+    fullDate: new Date(2025, 4, 20),
     receive: 297430,
     pay: 442762.19,
     balance: 2393153.86,
@@ -78,7 +84,8 @@ const mockBalanceRows: BalanceRow[] = [
     },
   },
   {
-    date: "21",
+    date: "21/5/68",
+    fullDate: new Date(2025, 4, 21),
     receive: 263560,
     pay: 448747.43,
     balance: 2199821.67,
@@ -101,7 +108,8 @@ const mockBalanceRows: BalanceRow[] = [
     },
   },
   {
-    date: "22",
+    date: "22/5/68",
+    fullDate: new Date(2025, 4, 22),
     receive: 585540,
     pay: 412313.63,
     balance: 2157304.84,
@@ -123,14 +131,129 @@ const mockBalanceRows: BalanceRow[] = [
       GSH95: 9785.6,
     },
   },
+  // เดือนมิถุนายน 2568
+  {
+    date: "1/6/68",
+    fullDate: new Date(2025, 5, 1),
+    receive: 320000,
+    pay: 455000,
+    balance: 2022304.84,
+    pumps: {
+      P18: 16500,
+      P26: 6200,
+      P34: 4100,
+      P42: 5300,
+      P59: 3800,
+      P67: 4500,
+      P75: 5200,
+      P83: 4800,
+      P91: 5100,
+      P99: 3900,
+    },
+    products: {
+      D87: 31200,
+      B: 13800,
+      GSH95: 9500,
+    },
+  },
+  {
+    date: "2/6/68",
+    fullDate: new Date(2025, 5, 2),
+    receive: 280000,
+    pay: 430000,
+    balance: 1872304.84,
+    pumps: {
+      P18: 15200,
+      P26: 5800,
+      P34: 3900,
+      P42: 4900,
+      P59: 3500,
+      P67: 4200,
+      P75: 4800,
+      P83: 4400,
+      P91: 4700,
+      P99: 3600,
+    },
+    products: {
+      D87: 28900,
+      B: 12700,
+      GSH95: 8800,
+    },
+  },
+  // เดือนกรกฎาคม 2568
+  {
+    date: "1/7/68",
+    fullDate: new Date(2025, 6, 1),
+    receive: 350000,
+    pay: 480000,
+    balance: 1742304.84,
+    pumps: {
+      P18: 17800,
+      P26: 6800,
+      P34: 4500,
+      P42: 5800,
+      P59: 4200,
+      P67: 5000,
+      P75: 5700,
+      P83: 5300,
+      P91: 5600,
+      P99: 4300,
+    },
+    products: {
+      D87: 34500,
+      B: 15200,
+      GSH95: 10500,
+    },
+  },
+  {
+    date: "15/7/68",
+    fullDate: new Date(2025, 6, 15),
+    receive: 310000,
+    pay: 445000,
+    balance: 1607304.84,
+    pumps: {
+      P18: 16200,
+      P26: 6200,
+      P34: 4100,
+      P42: 5300,
+      P59: 3800,
+      P67: 4600,
+      P75: 5200,
+      P83: 4900,
+      P91: 5100,
+      P99: 3900,
+    },
+    products: {
+      D87: 31400,
+      B: 13900,
+      GSH95: 9600,
+    },
+  },
 ];
 
 export default function BalancePetrol() {
-  const totalReceive = mockBalanceRows.reduce((sum, r) => sum + r.receive, 0);
-  const totalPay = mockBalanceRows.reduce((sum, r) => sum + r.pay, 0);
+  const [selectedDay, setSelectedDay] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>("");
+
+  // กรองข้อมูลตามวัน เดือน ปี
+  const filteredRows = mockBalanceRows.filter((row) => {
+    const rowDay = row.fullDate.getDate();
+    const rowMonth = row.fullDate.getMonth() + 1; // 0-indexed
+    const rowYear = row.fullDate.getFullYear();
+
+    const matchesDay = !selectedDay || rowDay === parseInt(selectedDay);
+    const matchesMonth = !selectedMonth || rowMonth === parseInt(selectedMonth);
+    const matchesYear = !selectedYear || rowYear === parseInt(selectedYear);
+
+    return matchesDay && matchesMonth && matchesYear;
+  });
+
+  const totalReceive = filteredRows.reduce((sum, r) => sum + r.receive, 0);
+  const totalPay = filteredRows.reduce((sum, r) => sum + r.pay, 0);
   const lastBalance =
-    mockBalanceRows.length > 0
-      ? mockBalanceRows[mockBalanceRows.length - 1].balance
+    filteredRows.length > 0
+      ? filteredRows[filteredRows.length - 1].balance
       : 0;
 
   return (
@@ -150,6 +273,96 @@ export default function BalancePetrol() {
           รูปแบบตารางเลียนแบบสมุดบัญชีควบคุมหน้าลาน ใช้บันทึก รับ-จ่าย-คงเหลือ เงินสด
           และยอดขายแยกตามหัวจ่าย (P18, P26, …) และประเภทน้ำมัน (D87, B, GSH95)
         </p>
+      </motion.div>
+
+      {/* Date Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 mb-4"
+      >
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-blue-500" />
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              กรองตามวันที่:
+            </h3>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 flex-1">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-400" />
+              <label className="text-sm text-gray-600 dark:text-gray-400">วัน:</label>
+              <select
+                value={selectedDay}
+                onChange={(e) => setSelectedDay(e.target.value)}
+                className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm transition-all duration-200"
+              >
+                <option value="">ทั้งหมด</option>
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                  <option key={day} value={day}>
+                    {day}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 dark:text-gray-400">เดือน:</label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm transition-all duration-200"
+              >
+                <option value="">ทั้งหมด</option>
+                <option value="1">มกราคม</option>
+                <option value="2">กุมภาพันธ์</option>
+                <option value="3">มีนาคม</option>
+                <option value="4">เมษายน</option>
+                <option value="5">พฤษภาคม</option>
+                <option value="6">มิถุนายน</option>
+                <option value="7">กรกฎาคม</option>
+                <option value="8">สิงหาคม</option>
+                <option value="9">กันยายน</option>
+                <option value="10">ตุลาคม</option>
+                <option value="11">พฤศจิกายน</option>
+                <option value="12">ธันวาคม</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 dark:text-gray-400">ปี:</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm transition-all duration-200"
+              >
+                <option value="">ทั้งหมด</option>
+                <option value="2024">2567</option>
+                <option value="2025">2568</option>
+                <option value="2026">2569</option>
+              </select>
+            </div>
+
+            {(selectedDay || selectedMonth || selectedYear) && (
+              <button
+                onClick={() => {
+                  setSelectedDay("");
+                  setSelectedMonth("");
+                  setSelectedYear("");
+                }}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors duration-200"
+              >
+                ล้างตัวกรอง
+              </button>
+            )}
+          </div>
+
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            แสดง: <span className="font-semibold text-blue-600 dark:text-blue-400">{filteredRows.length}</span> รายการ
+          </div>
+        </div>
       </motion.div>
 
       {/* Summary Cards */}
@@ -272,8 +485,8 @@ export default function BalancePetrol() {
                   <th
                     key={code}
                     className={`py-2 px-2 text-center font-semibold text-gray-600 dark:text-gray-300 ${index === 6
-                        ? "border-l border-gray-300 dark:border-gray-600"
-                        : ""
+                      ? "border-l border-gray-300 dark:border-gray-600"
+                      : ""
                       }`}
                   >
                     {code}
@@ -297,7 +510,7 @@ export default function BalancePetrol() {
               </tr>
             </thead>
             <tbody>
-              {mockBalanceRows.map((row, rowIndex) => (
+              {filteredRows.map((row, rowIndex) => (
                 <motion.tr
                   key={row.date}
                   initial={{ opacity: 0, x: -10 }}
@@ -328,8 +541,8 @@ export default function BalancePetrol() {
                       <td
                         key={code}
                         className={`py-2 px-2 text-right text-gray-700 dark:text-gray-200 ${index === 6
-                            ? "border-l border-gray-300 dark:border-gray-600"
-                            : ""
+                          ? "border-l border-gray-300 dark:border-gray-600"
+                          : ""
                           }`}
                       >
                         {value ? numberFormatter.format(value) : ""}

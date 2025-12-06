@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { FileSpreadsheet, Calendar, DollarSign, TrendingUp } from "lucide-react";
+import { FileSpreadsheet, Calendar, DollarSign, TrendingUp, Filter, ChevronDown, Edit2 } from "lucide-react";
 import { useState } from "react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -102,10 +102,97 @@ const mockControlSheetData: ControlSheetSection[] = [
 ];
 
 export default function ControlSheet() {
-    const [selectedDate] = useState("1 ต.ค. 68");
+    type FilterType = "day" | "month" | "year";
+
+    const [filterType, setFilterType] = useState<FilterType>("day");
+    const [selectedDate, setSelectedDate] = useState("2024-12-05");
+    const [selectedMonth, setSelectedMonth] = useState("2024-12");
+    const [selectedYear, setSelectedYear] = useState("2024");
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+    // State for editable data
+    const [controlSheetData, setControlSheetData] = useState<ControlSheetSection[]>(
+        JSON.parse(JSON.stringify(mockControlSheetData))
+    );
+    const [editingCell, setEditingCell] = useState<{
+        sectionIndex: number;
+        entryIndex: number;
+        field: keyof ControlSheetEntry;
+    } | null>(null);
+
+    // Helper function to format date in Thai
+    const formatThaiDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+        const day = date.getDate();
+        const month = thaiMonths[date.getMonth()];
+        const year = (date.getFullYear() + 543).toString().slice(-2);
+        return `${day} ${month} ${year}`;
+    };
+
+    const formatThaiMonth = (monthStr: string) => {
+        const [year, month] = monthStr.split("-");
+        const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const thaiYear = parseInt(year) + 543;
+        return `${thaiMonths[parseInt(month) - 1]} ${thaiYear}`;
+    };
+
+    const formatThaiYear = (yearStr: string) => {
+        const thaiYear = parseInt(yearStr) + 543;
+        return `ปี ${thaiYear}`;
+    };
+
+    // Get display text based on filter type
+    const getDisplayDate = () => {
+        switch (filterType) {
+            case "day":
+                return formatThaiDate(selectedDate);
+            case "month":
+                return formatThaiMonth(selectedMonth);
+            case "year":
+                return formatThaiYear(selectedYear);
+            default:
+                return formatThaiDate(selectedDate);
+        }
+    };
+
+    // Handler for updating cell value
+    const handleCellUpdate = (
+        sectionIndex: number,
+        entryIndex: number,
+        field: keyof ControlSheetEntry,
+        value: string | number
+    ) => {
+        const newData = [...controlSheetData];
+        if (field === "amount") {
+            newData[sectionIndex].entries[entryIndex][field] = parseFloat(value as string) || 0;
+        } else {
+            newData[sectionIndex].entries[entryIndex][field] = value as any;
+        }
+        setControlSheetData(newData);
+    };
+
+    // Handler for starting edit mode
+    const startEditing = (sectionIndex: number, entryIndex: number, field: keyof ControlSheetEntry) => {
+        setEditingCell({ sectionIndex, entryIndex, field });
+    };
+
+    // Handler for finishing edit mode
+    const finishEditing = () => {
+        setEditingCell(null);
+    };
+
+    // Check if a cell is being edited
+    const isEditing = (sectionIndex: number, entryIndex: number, field: keyof ControlSheetEntry) => {
+        return (
+            editingCell?.sectionIndex === sectionIndex &&
+            editingCell?.entryIndex === entryIndex &&
+            editingCell?.field === field
+        );
+    };
 
     // คำนวณยอดรวม
-    const totalAmount = mockControlSheetData.reduce(
+    const totalAmount = controlSheetData.reduce(
         (sum, section) => sum + section.entries.reduce((s, e) => s + e.amount, 0),
         0
     );
@@ -128,6 +215,116 @@ export default function ControlSheet() {
                 </p>
             </motion.div>
 
+            {/* Filter Section */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6"
+            >
+                <div className="flex items-center gap-3 mb-4">
+                    <Filter className="w-5 h-5 text-indigo-500" />
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-white">กรองข้อมูล</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Filter Type Dropdown */}
+                    <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            ประเภทการกรอง
+                        </label>
+                        <button
+                            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-left flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                        >
+                            <span className="text-gray-800 dark:text-white font-medium">
+                                {filterType === "day" && "รายวัน"}
+                                {filterType === "month" && "รายเดือน"}
+                                {filterType === "year" && "รายปี"}
+                            </span>
+                            <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${showFilterDropdown ? "rotate-180" : ""}`} />
+                        </button>
+
+                        {showFilterDropdown && (
+                            <div className="absolute z-10 w-full mt-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden">
+                                <button
+                                    onClick={() => {
+                                        setFilterType("day");
+                                        setShowFilterDropdown(false);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-800 dark:text-white transition-colors"
+                                >
+                                    รายวัน
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setFilterType("month");
+                                        setShowFilterDropdown(false);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-800 dark:text-white transition-colors border-t border-gray-200 dark:border-gray-600"
+                                >
+                                    รายเดือน
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setFilterType("year");
+                                        setShowFilterDropdown(false);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-800 dark:text-white transition-colors border-t border-gray-200 dark:border-gray-600"
+                                >
+                                    รายปี
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Date Input based on Filter Type */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {filterType === "day" && "เลือกวันที่"}
+                            {filterType === "month" && "เลือกเดือน"}
+                            {filterType === "year" && "เลือกปี"}
+                        </label>
+
+                        {filterType === "day" && (
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            />
+                        )}
+
+                        {filterType === "month" && (
+                            <input
+                                type="month"
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(e.target.value)}
+                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            />
+                        )}
+
+                        {filterType === "year" && (
+                            <input
+                                type="number"
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(e.target.value)}
+                                min="2000"
+                                max="2100"
+                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            />
+                        )}
+                    </div>
+                </div>
+
+                {/* Display Selected Filter */}
+                <div className="mt-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                    <p className="text-sm text-indigo-800 dark:text-indigo-300">
+                        <span className="font-semibold">กำลังแสดงข้อมูล:</span> {getDisplayDate()}
+                    </p>
+                </div>
+            </motion.div>
+
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <motion.div
@@ -141,7 +338,7 @@ export default function ControlSheet() {
                     </div>
                     <div>
                         <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">วันที่</p>
-                        <p className="text-lg font-bold text-gray-800 dark:text-white">{selectedDate}</p>
+                        <p className="text-lg font-bold text-gray-800 dark:text-white">{getDisplayDate()}</p>
                     </div>
                 </motion.div>
 
@@ -182,7 +379,7 @@ export default function ControlSheet() {
 
             {/* Control Sheet Sections */}
             <div className="space-y-4">
-                {mockControlSheetData.map((section, sectionIndex) => (
+                {controlSheetData.map((section, sectionIndex) => (
                     <motion.div
                         key={section.title}
                         initial={{ opacity: 0, y: 20 }}
@@ -214,6 +411,9 @@ export default function ControlSheet() {
                                         <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400">
                                             หมายเหตุ
                                         </th>
+                                        <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400 w-24">
+                                            จัดการ
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -225,17 +425,118 @@ export default function ControlSheet() {
                                             transition={{ duration: 0.3, delay: entryIndex * 0.02 }}
                                             className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors"
                                         >
-                                            <td className="py-3 px-4 font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                                                {entry.code}
+                                            {/* Code Cell */}
+                                            <td className="py-3 px-4">
+                                                {isEditing(sectionIndex, entryIndex, "code") ? (
+                                                    <input
+                                                        type="text"
+                                                        value={entry.code}
+                                                        onChange={(e) =>
+                                                            handleCellUpdate(sectionIndex, entryIndex, "code", e.target.value)
+                                                        }
+                                                        onBlur={finishEditing}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") finishEditing();
+                                                            if (e.key === "Escape") finishEditing();
+                                                        }}
+                                                        autoFocus
+                                                        className="w-full px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        onClick={() => startEditing(sectionIndex, entryIndex, "code")}
+                                                        className="font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded"
+                                                    >
+                                                        {entry.code}
+                                                    </div>
+                                                )}
                                             </td>
-                                            <td className="py-3 px-4 text-gray-800 dark:text-gray-200">
-                                                {entry.description}
+
+                                            {/* Description Cell */}
+                                            <td className="py-3 px-4">
+                                                {isEditing(sectionIndex, entryIndex, "description") ? (
+                                                    <input
+                                                        type="text"
+                                                        value={entry.description}
+                                                        onChange={(e) =>
+                                                            handleCellUpdate(sectionIndex, entryIndex, "description", e.target.value)
+                                                        }
+                                                        onBlur={finishEditing}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") finishEditing();
+                                                            if (e.key === "Escape") finishEditing();
+                                                        }}
+                                                        autoFocus
+                                                        className="w-full px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        onClick={() => startEditing(sectionIndex, entryIndex, "description")}
+                                                        className="text-gray-800 dark:text-gray-200 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded"
+                                                    >
+                                                        {entry.description}
+                                                    </div>
+                                                )}
                                             </td>
-                                            <td className="py-3 px-4 text-right font-semibold text-gray-800 dark:text-white">
-                                                {entry.amount > 0 ? numberFormatter.format(entry.amount) : "-"}
+
+                                            {/* Amount Cell */}
+                                            <td className="py-3 px-4 text-right">
+                                                {isEditing(sectionIndex, entryIndex, "amount") ? (
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={entry.amount}
+                                                        onChange={(e) =>
+                                                            handleCellUpdate(sectionIndex, entryIndex, "amount", e.target.value)
+                                                        }
+                                                        onBlur={finishEditing}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") finishEditing();
+                                                            if (e.key === "Escape") finishEditing();
+                                                        }}
+                                                        autoFocus
+                                                        className="w-full px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded font-semibold text-gray-800 dark:text-white text-right focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        onClick={() => startEditing(sectionIndex, entryIndex, "amount")}
+                                                        className="font-semibold text-gray-800 dark:text-white cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded inline-block"
+                                                    >
+                                                        {entry.amount > 0 ? numberFormatter.format(entry.amount) : "-"}
+                                                    </div>
+                                                )}
                                             </td>
-                                            <td className="py-3 px-4 text-xs text-gray-600 dark:text-gray-400">
-                                                {entry.note || "-"}
+
+                                            {/* Note Cell */}
+                                            <td className="py-3 px-4">
+                                                {isEditing(sectionIndex, entryIndex, "note") ? (
+                                                    <input
+                                                        type="text"
+                                                        value={entry.note || ""}
+                                                        onChange={(e) =>
+                                                            handleCellUpdate(sectionIndex, entryIndex, "note", e.target.value)
+                                                        }
+                                                        onBlur={finishEditing}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") finishEditing();
+                                                            if (e.key === "Escape") finishEditing();
+                                                        }}
+                                                        autoFocus
+                                                        className="w-full px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-xs text-gray-600 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        onClick={() => startEditing(sectionIndex, entryIndex, "note")}
+                                                        className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded"
+                                                    >
+                                                        {entry.note || "-"}
+                                                    </div>
+                                                )}
+                                            </td>
+
+                                            {/* Edit Icon Cell */}
+                                            <td className="py-3 px-4 text-center">
+                                                <Edit2 className="w-4 h-4 text-gray-400 hover:text-indigo-500 cursor-pointer mx-auto transition-colors" />
                                             </td>
                                         </motion.tr>
                                     ))}
@@ -251,7 +552,7 @@ export default function ControlSheet() {
                                                 section.entries.reduce((sum, e) => sum + e.amount, 0)
                                             )}
                                         </td>
-                                        <td></td>
+                                        <td colSpan={2}></td>
                                     </tr>
                                 </tfoot>
                             </table>
