@@ -14,6 +14,9 @@ import {
   Package,
   CheckCircle,
   AlertCircle,
+  Search,
+  Filter,
+  Calendar,
 } from "lucide-react";
 import { employees, attendanceLogs, leaves } from "@/data/mockData";
 
@@ -38,6 +41,19 @@ interface RewardRecord {
   paidDate?: string;
   paidBy?: string;
   notes?: string;
+  // สำหรับรางวัล PTT
+  pttScore?: number; // 98-99 หรือ 100
+  pttAttempt?: number; // ครั้งที่ 1, 2, 3
+  hasComplaint1365?: boolean; // ไม่มีข้อร้องเรียนจาก 1365
+  // สำหรับรางวัล Amazon
+  amazonAttempt?: number; // ครั้งที่ 1, 2, 3 หรือมากกว่า
+  // สำหรับรางวัล 7-Eleven
+  salesIncreasePercent?: number; // % เพิ่มขึ้นของยอดขาย
+  sevenRewardType?: "cutting" | "sales_bonus"; // ประเภทรางวัล: ตัดจ่าย หรือ รางวัลเพิ่มจากยอดขาย
+  // สำหรับผลการประเมินอื่นๆ
+  qssiScore?: number; // QSSI = 100 คะแนน
+  serviceScore?: number; // หมวดบริการ = 100 คะแนน
+  hasComplaint?: boolean; // ไม่มีข้อร้องเรียน
 }
 
 interface DiligenceBonusHistory {
@@ -358,6 +374,18 @@ export default function OutstandingEmployees() {
   const [isAddAuditModalOpen, setIsAddAuditModalOpen] = useState(false);
   const [isAddFuelModalOpen, setIsAddFuelModalOpen] = useState(false);
   
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedDept, setSelectedDept] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<{
+    startDate: string;
+    endDate: string;
+  }>({
+    startDate: "",
+    endDate: "",
+  });
+  const [showFilters, setShowFilters] = useState(false);
+  
   const [auditForm, setAuditForm] = useState({
     empCode: "",
     month: selectedMonth,
@@ -379,7 +407,25 @@ export default function OutstandingEmployees() {
 
   // คำนวณเบี้ยขยันสำหรับเดือนที่เลือก
   const diligenceCalculations = useMemo(() => {
-    const eligibleEmployees = employees.filter(emp =>
+    // กรองพนักงานตามแผนกที่เลือก (ถ้าเลือก "all" แสดงทุกแผนก)
+    let filteredEmployees = employees;
+    if (selectedDept !== "all") {
+      filteredEmployees = employees.filter(emp => 
+        emp.dept === selectedDept || emp.category === selectedDept
+      );
+    }
+
+    // กรองตาม search query
+    if (searchQuery) {
+      filteredEmployees = filteredEmployees.filter(emp =>
+        emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.dept.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // สำหรับเบี้ยขยัน ยังคงกรองเฉพาะแผนกที่ได้รับเบี้ยขยัน
+    const eligibleEmployees = filteredEmployees.filter(emp =>
       isEligibleDept(emp.dept, emp.category || "")
     );
 
@@ -398,12 +444,13 @@ export default function OutstandingEmployees() {
       const calculation = calculateDiligenceBonus(emp.code, selectedMonth, mockHistory);
       return calculation;
     }).filter(calc => calc.amount > 0 || calc.violations.hasAbsence || calc.violations.hasLeave || calc.violations.hasLate);
-  }, [selectedMonth, rewardHistory]);
+  }, [selectedMonth, rewardHistory, searchQuery, selectedDept]);
 
   // กรองประวัติรางวัล
   const filteredHistory = useMemo(() => {
     let filtered = rewardHistory;
     
+    // กรองตาม viewMode
     if (viewMode === "diligence") {
       filtered = filtered.filter(r => r.rewardType === "เบี้ยขยัน");
     } else if (viewMode === "audit") {
@@ -412,8 +459,33 @@ export default function OutstandingEmployees() {
       filtered = filtered.filter(r => r.rewardType === "ค่าเรทน้ำมัน");
     }
     
+    // กรองตามแผนก
+    if (selectedDept !== "all") {
+      filtered = filtered.filter(r => 
+        r.dept === selectedDept || r.category === selectedDept
+      );
+    }
+    
+    // กรองตาม search query
+    if (searchQuery) {
+      filtered = filtered.filter(r =>
+        r.empName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.empCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.dept.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.details.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    // กรองตามวันที่
+    if (dateFilter.startDate) {
+      filtered = filtered.filter(r => r.month >= dateFilter.startDate);
+    }
+    if (dateFilter.endDate) {
+      filtered = filtered.filter(r => r.month <= dateFilter.endDate);
+    }
+    
     return filtered.sort((a, b) => b.month.localeCompare(a.month));
-  }, [rewardHistory, viewMode]);
+  }, [rewardHistory, viewMode, selectedDept, searchQuery, dateFilter]);
 
   // สรุปสถิติ
   const stats = useMemo(() => {
@@ -572,6 +644,13 @@ export default function OutstandingEmployees() {
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
           />
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className="px-4 py-2 bg-soft hover:bg-app/10 text-app rounded-xl transition-colors flex items-center gap-2"
+          >
+            <Filter className="w-4 h-4" />
+            กรองข้อมูล
+          </button>
           <button className="px-4 py-2 bg-soft hover:bg-app/10 text-app rounded-xl transition-colors flex items-center gap-2">
             <Download className="w-4 h-4" />
             ส่งออก (Excel)
@@ -649,6 +728,112 @@ export default function OutstandingEmployees() {
           </div>
         </motion.div>
       </div>
+
+      {/* Filter Section */}
+      {showFilters && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          className="bg-soft border border-app rounded-xl p-4 space-y-4"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-app flex items-center gap-2">
+              <Filter className="w-5 h-5" />
+              กรองข้อมูล
+            </h3>
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedDept("all");
+                setDateFilter({ startDate: "", endDate: "" });
+              }}
+              className="text-sm text-muted hover:text-app"
+            >
+              ล้างการกรอง
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+              <input
+                type="text"
+                placeholder="ค้นหาชื่อ, รหัส, แผนก..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              />
+            </div>
+            
+            {/* Department Filter */}
+            <div>
+              <select
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value)}
+                className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              >
+                <option value="all">ทุกแผนก</option>
+                {Array.from(new Set(employees.map(e => e.dept))).map(dept => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Start Date */}
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+              <input
+                type="month"
+                placeholder="วันที่เริ่มต้น"
+                value={dateFilter.startDate}
+                onChange={(e) => setDateFilter({ ...dateFilter, startDate: e.target.value })}
+                className="w-full pl-10 pr-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              />
+            </div>
+            
+            {/* End Date */}
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+              <input
+                type="month"
+                placeholder="วันที่สิ้นสุด"
+                value={dateFilter.endDate}
+                onChange={(e) => setDateFilter({ ...dateFilter, endDate: e.target.value })}
+                className="w-full pl-10 pr-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+              />
+            </div>
+          </div>
+          
+          {/* Active Filters Display */}
+          {(searchQuery || selectedDept !== "all" || dateFilter.startDate || dateFilter.endDate) && (
+            <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-app">
+              <span className="text-xs text-muted">การกรองที่ใช้งาน:</span>
+              {searchQuery && (
+                <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs">
+                  ค้นหา: {searchQuery}
+                </span>
+              )}
+              {selectedDept !== "all" && (
+                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
+                  แผนก: {selectedDept}
+                </span>
+              )}
+              {dateFilter.startDate && (
+                <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">
+                  ตั้งแต่: {monthFormatter.format(new Date(dateFilter.startDate + "-01"))}
+                </span>
+              )}
+              {dateFilter.endDate && (
+                <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">
+                  ถึง: {monthFormatter.format(new Date(dateFilter.endDate + "-01"))}
+                </span>
+              )}
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-app">
@@ -849,12 +1034,64 @@ export default function OutstandingEmployees() {
               <Package className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold text-app mb-2">รายละเอียดรางวัล Audit:</p>
-                <ul className="text-xs text-muted space-y-1">
-                  <li>• <strong>7-Eleven:</strong> ตรวจนับสินค้า ไม่ขาดเกิน 0.4% ของยอดขายจริง</li>
-                  <li>• <strong>Amazon:</strong> (รอข้อมูลเพิ่มเติม)</li>
-                  <li>• <strong>OTOP:</strong> (แปะไว้ก่อน อาจมีในอนาคต)</li>
-                  <li>• <strong>PTT:</strong> ตรวจได้ 100 คะแนนครั้งแรก = 300 บาท (ทุกคน - หน้าลาน, แม่บ้าน, Office)</li>
-                </ul>
+                <div className="text-xs text-muted space-y-3">
+                  <div>
+                    <p className="font-semibold text-app mb-1">1. เงินรางวัลประกวดปั๊ม ปตท.</p>
+                    <p className="ml-2 mb-1">(สำหรับส่วนงานหน้าร้าน – บัญชี – แม่บ้าน)</p>
+                    <ul className="ml-4 space-y-1 list-disc">
+                      <li>ได้ 98–99 คะแนน : เงินรางวัล 200 บาท</li>
+                      <li>ได้ 100 คะแนน:
+                        <ul className="ml-4 mt-1 space-y-0.5 list-disc">
+                          <li>ครั้งที่ 1 : 300 บาท</li>
+                          <li>ครั้งที่ 2 : 400 บาท</li>
+                          <li>ครั้งที่ 3 : 500 บาท</li>
+                        </ul>
+                      </li>
+                      <li className="text-yellow-400 mt-1">เงื่อนไข: ต้องไม่มีข้อร้องเรียนจาก 1365</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-app mb-1">2. เงินรางวัลร้านคาเฟ่ อเมซอน</p>
+                    <p className="ml-2 mb-1">(ผลการตรวจจากทีม Audit)</p>
+                    <ul className="ml-4 space-y-1 list-disc">
+                      <li>ครั้งที่ 1 : 500 บาท</li>
+                      <li>ครั้งที่ 2 : 500 บาท</li>
+                      <li>ครั้งที่ 3 : 1,000 บาท</li>
+                      <li>หลังจากครั้งที่ 3 เป็นต้นไป : ยืนรางวัล 1,000 บาททุกครั้ง</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-app mb-1">3. เงินรางวัลจากการตรวจ Audit เซเว่น (7-Eleven)</p>
+                    <p className="ml-2 mb-1">รวมถึง รางวัลตัดจ่ายเซเว่น</p>
+                    <div className="ml-4 space-y-2">
+                      <div>
+                        <p className="font-medium text-app mb-1">3.1 รางวัลตัดจ่ายประจำเดือน:</p>
+                        <ul className="ml-4 space-y-0.5 list-disc">
+                          <li>ยอดขายเพิ่มขึ้น 10% ขึ้นไป จากเดือนเดียวกันของปีก่อน → ได้รับรางวัลตัดจ่าย 100%</li>
+                          <li>ยอดขายเพิ่มขึ้น ไม่ถึง 10% → ได้รับรางวัลตัดจ่าย 50%</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-medium text-app mb-1">3.2 รางวัลเพิ่มจากยอดขายสูงกว่าเป้าของเซเว่น:</p>
+                        <ul className="ml-4 space-y-0.5 list-disc">
+                          <li>เพิ่มขึ้น 5%–9.99% : รางวัลเพิ่ม 3,000 บาท</li>
+                          <li>เพิ่มขึ้น 10%–14.99% : รางวัลเพิ่ม 6,000 บาท</li>
+                          <li>เพิ่มขึ้น 15%–19.99% : รางวัลเพิ่ม 9,000 บาท</li>
+                          <li>เพิ่มขึ้น 20% ขึ้นไป : รางวัลเพิ่ม 12,000 บาท</li>
+                        </ul>
+                      </div>
+                      <p className="ml-4 text-yellow-400 mt-1">การแบ่งเงินรางวัล: ผู้จัดการ – ผู้ช่วยผู้จัดการ – ผู้ช่วยฝึกหัด – พนักงาน → แบ่งรางวัลเท่า ๆ กันทุกตำแหน่ง</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-app/20">
+                    <p className="font-semibold text-app mb-1">ผลการประเมินอื่น ๆ:</p>
+                    <ul className="ml-4 space-y-0.5 list-disc">
+                      <li>QSSI = 100 คะแนน</li>
+                      <li>หมวดบริการ = 100 คะแนน</li>
+                      <li>ไม่มีข้อร้องเรียน</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1090,10 +1327,10 @@ export default function OutstandingEmployees() {
                   onChange={(e) => setAuditForm({ ...auditForm, auditCategory: e.target.value as "7-Eleven" | "Amazon" | "OTOP" | "PTT" })}
                   className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
                 >
-                  <option value="7-Eleven">7-Eleven (ตัดจ่าย)</option>
-                  <option value="Amazon">Amazon (ตัดจ่าย)</option>
-                  <option value="OTOP">OTOP (ตัดจ่าย)</option>
-                  <option value="PTT">PTT (หน้าลาน, แม่บ้าน, Office)</option>
+                  <option value="7-Eleven">7-Eleven (รางวัลตัดจ่าย/รางวัลเพิ่มจากยอดขาย)</option>
+                  <option value="Amazon">Amazon (รางวัลร้านคาเฟ่)</option>
+                  <option value="OTOP">OTOP</option>
+                  <option value="PTT">PTT (ประกวดปั๊ม - หน้าร้าน, บัญชี, แม่บ้าน)</option>
                 </select>
               </div>
               <div>
@@ -1106,21 +1343,111 @@ export default function OutstandingEmployees() {
                   placeholder="เช่น 1500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-app mb-2">คะแนน Audit</label>
-                <input
-                  type="number"
-                  value={auditForm.auditScore}
-                  onChange={(e) => setAuditForm({ ...auditForm, auditScore: e.target.value })}
-                  className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
-                  placeholder="เช่น 100"
-                />
-              </div>
+              {/* ฟิลด์เพิ่มเติมสำหรับรางวัล PTT */}
+              {auditForm.auditCategory === "PTT" && (
+                <>
+                  <div>
+                    <label className="block text-sm font-semibold text-app mb-2">คะแนนที่ได้ (98-99 หรือ 100) *</label>
+                    <input
+                      type="number"
+                      value={auditForm.auditScore}
+                      onChange={(e) => setAuditForm({ ...auditForm, auditScore: e.target.value })}
+                      className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                      placeholder="เช่น 98, 99, หรือ 100"
+                      min="98"
+                      max="100"
+                    />
+                  </div>
+                  {auditForm.auditScore === "100" && (
+                    <div>
+                      <label className="block text-sm font-semibold text-app mb-2">ครั้งที่ (สำหรับ 100 คะแนน) *</label>
+                      <select
+                        value={auditForm.auditRemarks || ""}
+                        onChange={(e) => setAuditForm({ ...auditForm, auditRemarks: e.target.value })}
+                        className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                      >
+                        <option value="">เลือกครั้งที่</option>
+                        <option value="1">ครั้งที่ 1 (300 บาท)</option>
+                        <option value="2">ครั้งที่ 2 (400 บาท)</option>
+                        <option value="3">ครั้งที่ 3 (500 บาท)</option>
+                      </select>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="noComplaint1365"
+                      className="w-4 h-4"
+                    />
+                    <label htmlFor="noComplaint1365" className="text-sm text-app">ไม่มีข้อร้องเรียนจาก 1365</label>
+                  </div>
+                </>
+              )}
+              {/* ฟิลด์เพิ่มเติมสำหรับรางวัล Amazon */}
+              {auditForm.auditCategory === "Amazon" && (
+                <div>
+                  <label className="block text-sm font-semibold text-app mb-2">ครั้งที่ *</label>
+                  <select
+                    value={auditForm.auditRemarks || ""}
+                    onChange={(e) => setAuditForm({ ...auditForm, auditRemarks: e.target.value })}
+                    className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                  >
+                    <option value="">เลือกครั้งที่</option>
+                    <option value="1">ครั้งที่ 1 (500 บาท)</option>
+                    <option value="2">ครั้งที่ 2 (500 บาท)</option>
+                    <option value="3">ครั้งที่ 3 (1,000 บาท)</option>
+                    <option value="4+">หลังจากครั้งที่ 3 (ยืนรางวัล 1,000 บาท)</option>
+                  </select>
+                </div>
+              )}
+              {/* ฟิลด์เพิ่มเติมสำหรับรางวัล 7-Eleven */}
+              {auditForm.auditCategory === "7-Eleven" && (
+                <>
+                  <div>
+                    <label className="block text-sm font-semibold text-app mb-2">ประเภทรางวัล *</label>
+                    <select
+                      value={auditForm.auditRemarks || ""}
+                      onChange={(e) => setAuditForm({ ...auditForm, auditRemarks: e.target.value })}
+                      className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                    >
+                      <option value="">เลือกประเภทรางวัล</option>
+                      <option value="cutting">รางวัลตัดจ่ายประจำเดือน</option>
+                      <option value="sales_bonus">รางวัลเพิ่มจากยอดขายสูงกว่าเป้า</option>
+                    </select>
+                  </div>
+                  {auditForm.auditRemarks === "sales_bonus" && (
+                    <div>
+                      <label className="block text-sm font-semibold text-app mb-2">% เพิ่มขึ้นของยอดขาย</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={auditForm.auditScore}
+                        onChange={(e) => setAuditForm({ ...auditForm, auditScore: e.target.value })}
+                        className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                        placeholder="เช่น 10.5"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+              {/* ฟิลด์คะแนน Audit สำหรับประเภทอื่นๆ */}
+              {auditForm.auditCategory !== "PTT" && auditForm.auditCategory !== "Amazon" && auditForm.auditCategory !== "7-Eleven" && (
+                <div>
+                  <label className="block text-sm font-semibold text-app mb-2">คะแนน Audit</label>
+                  <input
+                    type="number"
+                    value={auditForm.auditScore}
+                    onChange={(e) => setAuditForm({ ...auditForm, auditScore: e.target.value })}
+                    className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
+                    placeholder="เช่น 100"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-app mb-2">รายละเอียด/หมายเหตุ</label>
                 <textarea
-                  value={auditForm.auditRemarks}
-                  onChange={(e) => setAuditForm({ ...auditForm, auditRemarks: e.target.value })}
+                  value={auditForm.notes}
+                  onChange={(e) => setAuditForm({ ...auditForm, notes: e.target.value })}
                   rows={3}
                   className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
                   placeholder="เช่น ไม่ขาดเกิน 0.4% ของยอดขายจริง"

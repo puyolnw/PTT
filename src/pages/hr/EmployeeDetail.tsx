@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn, Filter, CalendarDays, CalendarRange, Award, AlertTriangle, ArrowRightLeft, ArrowUp, Briefcase, DollarSign, ChevronRight, Edit, Settings, ChevronDown, ChevronLeft, Search } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn, Filter, CalendarDays, CalendarRange, Award, AlertTriangle, ArrowRightLeft, ArrowUp, Briefcase, DollarSign, ChevronRight, Edit, Settings, ChevronDown, ChevronLeft, Search, Trophy, Star, Medal, Gift, Heart, Package, Shield } from "lucide-react";
 import ProfileCard from "@/components/ProfileCard";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import ModalForm from "@/components/ModalForm";
@@ -14,7 +14,8 @@ import {
   salaryHistory,
   rewardPenaltyHistory,
   positionTransferHistory,
-  workHistory
+  workHistory,
+  welfareRecords
 } from "@/data/mockData";
 
 type ViewMode = "day" | "month" | "year";
@@ -866,6 +867,8 @@ export default function EmployeeDetail() {
     { id: "payroll", label: "เงินเดือน" },
     { id: "transfers", label: "การโยกย้ายตำแหน่ง" },
     { id: "rewards", label: "ประวัติทันบน/โทษ" },
+    { id: "employee-rewards", label: "รางวัล" },
+    { id: "welfare", label: "สวัสดิการ" },
     { id: "calendar", label: "ปฏิทิน" },
   ];
 
@@ -2145,6 +2148,237 @@ export default function EmployeeDetail() {
                   ยังไม่มีประวัติทันบนหรือการลงโทษ
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === "employee-rewards" && (
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-app font-display">
+                    ประวัติการได้รับรางวัล
+                  </h3>
+                  <p className="text-xs text-muted mt-1">
+                    แสดงประวัติการได้รับรางวัลของ {employee?.name} (เบี้ยขยัน, รางวัล Audit, ค่าเรทน้ำมัน)
+                  </p>
+                </div>
+              </div>
+
+              {/* รางวัลและพนักงานดีเด่น */}
+              <div className="bg-soft border border-app rounded-2xl shadow-lg p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl">
+                    <Trophy className="w-6 h-6 text-yellow-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-app font-display">
+                      ประวัติการได้รับรางวัล
+                    </h4>
+                    <p className="text-xs text-muted">เบี้ยขยัน, รางวัล Audit, ค่าเรทน้ำมัน</p>
+                  </div>
+                </div>
+
+                {/* Mock data for rewards - ในระบบจริงจะดึงจาก OutstandingEmployees */}
+                <div className="space-y-4">
+                  {employee && (() => {
+                    // Mock reward data - ในระบบจริงจะดึงจาก OutstandingEmployees
+                    const mockRewards = [
+                      {
+                        id: 1,
+                        type: "เบี้ยขยัน",
+                        month: "2025-10",
+                        amount: 500,
+                        details: "ได้รับเบี้ยขยันครั้งที่ 3 (500 บาท)",
+                        icon: Star,
+                        color: "yellow"
+                      },
+                      {
+                        id: 2,
+                        type: "รางวัล Audit",
+                        month: "2025-10",
+                        amount: 300,
+                        details: "Audit PTT: ตรวจได้ 100 คะแนนครั้งแรก",
+                        icon: Medal,
+                        color: "blue"
+                      },
+                      {
+                        id: 3,
+                        type: "ค่าเรทน้ำมัน",
+                        month: "2025-10",
+                        amount: 200,
+                        details: "ประหยัดน้ำมัน: 1 ลิตร = 3.6 กิโลเมตร (ตามเป้าหมาย)",
+                        icon: TrendingUp,
+                        color: "orange"
+                      }
+                    ].filter(r => r); // กรองเฉพาะที่มีข้อมูล
+
+                    return mockRewards.length > 0 ? (
+                      <div className="space-y-3">
+                        {mockRewards.map((reward) => {
+                          const Icon = reward.icon;
+                          const bgClass = reward.color === "yellow" ? "bg-yellow-500/20" : 
+                                         reward.color === "blue" ? "bg-blue-500/20" : 
+                                         "bg-orange-500/20";
+                          const textClass = reward.color === "yellow" ? "text-yellow-400" : 
+                                           reward.color === "blue" ? "text-blue-400" : 
+                                           "text-orange-400";
+                          return (
+                            <div
+                              key={reward.id}
+                              className="p-4 bg-white border border-app rounded-xl hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-start gap-3 flex-1">
+                                  <div className={`p-2 ${bgClass} rounded-lg`}>
+                                    <Icon className={`w-5 h-5 ${textClass}`} />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <p className="font-semibold text-app">{reward.type}</p>
+                                      <span className="text-xs text-muted">
+                                        {new Date(reward.month + "-01").toLocaleDateString("th-TH", { year: "numeric", month: "long" })}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-muted">{reward.details}</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-bold text-green-400">
+                                    {reward.amount.toLocaleString()} บาท
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-10 text-center border border-dashed border-app rounded-2xl text-muted">
+                        <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>ยังไม่มีประวัติการได้รับรางวัล</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "welfare" && (
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-app font-display">
+                    ประวัติการได้รับสวัสดิการ
+                  </h3>
+                  <p className="text-xs text-muted mt-1">
+                    แสดงประวัติการได้รับสวัสดิการของ {employee?.name} (การเบิก, โบนัส, หอพัก, ค่าน้ำมัน, ทัศนศึกษา, ฯลฯ)
+                  </p>
+                </div>
+              </div>
+
+              {/* สวัสดิการ */}
+              <div className="bg-soft border border-app rounded-2xl shadow-lg p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-gradient-to-br from-ptt-cyan/20 to-ptt-blue/20 rounded-xl">
+                    <Heart className="w-6 h-6 text-ptt-cyan" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-app font-display">
+                      ประวัติการได้รับสวัสดิการ
+                    </h4>
+                    <p className="text-xs text-muted">การเบิก, โบนัส, หอพัก, ค่าน้ำมัน, ทัศนศึกษา, ฯลฯ</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {employee && (() => {
+                    const employeeWelfare = welfareRecords.filter(
+                      w => w.empCode === employee.code && w.status === "อนุมัติ"
+                    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                    const getWelfareTypeLabel = (type: string) => {
+                      const labels: Record<string, string> = {
+                        benefits: "การเบิก",
+                        bonus: "BONUS รายปี",
+                        dormitory: "หอพัก",
+                        fuel: "ค่าน้ำมัน",
+                        trip: "ทัศนศึกษาพาสุข",
+                        holidays: "หยุดงานตามกฎหมาย",
+                        condolence: "เยี่ยมไข้/คลอด/งานศพ",
+                        scholarship: "ทุนการศึกษาบุตร",
+                        insurance: "ประกันชีวิตหัวหน้างาน"
+                      };
+                      return labels[type] || type;
+                    };
+
+                    const getWelfareIcon = (type: string) => {
+                      const icons: Record<string, typeof Package> = {
+                        benefits: Package,
+                        bonus: Gift,
+                        dormitory: Briefcase,
+                        fuel: TrendingUp,
+                        trip: Calendar,
+                        holidays: Calendar,
+                        condolence: Heart,
+                        scholarship: FileText,
+                        insurance: Shield
+                      };
+                      return icons[type] || Package;
+                    };
+
+                    return employeeWelfare.length > 0 ? (
+                      <div className="space-y-3">
+                        {employeeWelfare.map((welfare) => {
+                          const Icon = getWelfareIcon(welfare.type);
+                          return (
+                            <div
+                              key={welfare.id}
+                              className="p-4 bg-white border border-app rounded-xl hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-start gap-3 flex-1">
+                                  <div className="p-2 bg-ptt-cyan/20 rounded-lg">
+                                    <Icon className="w-5 h-5 text-ptt-cyan" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <p className="font-semibold text-app">
+                                        {getWelfareTypeLabel(welfare.type)}
+                                      </p>
+                                      <span className="text-xs text-muted">
+                                        {new Date(welfare.date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+                                      </span>
+                                    </div>
+                                    {welfare.item && (
+                                      <p className="text-sm text-muted mb-1">รายการ: {welfare.item}</p>
+                                    )}
+                                    {welfare.notes && (
+                                      <p className="text-sm text-muted">{welfare.notes}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                {welfare.amount && (
+                                  <div className="text-right">
+                                    <p className="text-lg font-bold text-green-400">
+                                      {welfare.amount.toLocaleString()} บาท
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-10 text-center border border-dashed border-app rounded-2xl text-muted">
+                        <Heart className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>ยังไม่มีประวัติการได้รับสวัสดิการ</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
             </div>
           )}
 
