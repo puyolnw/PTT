@@ -63,6 +63,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
         { to: "/app/gas-station/order-history", icon: Receipt, label: "ประวัติการสั่งซื้อ / บิล" },
         { to: "/app/gas-station/receiving", icon: Package, label: "การรับน้ำมัน" },
         { to: "/app/gas-station/truck-sales", icon: Truck, label: "ขายน้ำมันที่เหลือบนรถ" },
+        { to: "/app/gas-station/truck-profiles", icon: Truck, label: "โปรไฟล์รถส่งน้ำมัน" },
         // { to: "/app/gas-station/payments", icon: CreditCard, label: "การชำระเงินซื้อน้ำมัน" },
       ],
     },

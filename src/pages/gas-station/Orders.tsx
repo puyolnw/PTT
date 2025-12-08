@@ -9,9 +9,7 @@ import {
   CheckCircle,
   Clock,
   AlertTriangle,
-  Edit,
   Eye,
-  Upload,
   Download,
   Truck,
   Building2,
@@ -29,8 +27,10 @@ import {
   Receipt,
   Calendar,
   FileText,
+  User,
 } from "lucide-react";
 import NewOrderForm from "./NewOrderForm";
+import { mockTruckOrders, type TruckOrder, mockTrucks, mockTrailers } from "./TruckProfiles";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -402,9 +402,7 @@ export default function Orders() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ทั้งหมด");
   const [filterBranch, setFilterBranch] = useState("ทั้งหมด");
-  const [editingOrder, setEditingOrder] = useState<number | null>(null);
   const [showTruckModal, setShowTruckModal] = useState(false);
-  const [showSummaryView, setShowSummaryView] = useState(true);
   const [selectedOrderDetail, setSelectedOrderDetail] = useState<typeof mockOrderSummary[0] | null>(null);
   const [selectedApprovedOrder, setSelectedApprovedOrder] = useState<typeof mockApprovedOrders[0] | null>(null);
   const [showConsolidateModal, setShowConsolidateModal] = useState(false);
@@ -417,6 +415,17 @@ export default function Orders() {
     quantity: number;
     legalEntityId: number;
     legalEntityName: string;
+  }>>([]);
+  const [selectedTruckOrders, setSelectedTruckOrders] = useState<TruckOrder[]>([]);
+  const [showTruckOrderModal, setShowTruckOrderModal] = useState(false);
+  const [selectedTrucksAndDrivers, setSelectedTrucksAndDrivers] = useState<Array<{
+    truckId: string;
+    truckPlateNumber: string;
+    trailerId: string;
+    trailerPlateNumber: string;
+    driverId: number;
+    driverName: string;
+    driverCode: string;
   }>>([]);
 
   // Prevent body scroll when modals are open
@@ -455,54 +464,6 @@ export default function Orders() {
 
   const isOverCapacity = totalQuantity > totalTruckCapacity;
 
-  const filteredOrders = mockOrderSummary.filter((order) => {
-    const matchesSearch = 
-      order.branchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.oilType.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = filterStatus === "ทั้งหมด" || order.status === filterStatus;
-    const matchesBranch = filterBranch === "ทั้งหมด" || order.branchName === filterBranch;
-    
-    return matchesSearch && matchesStatus && matchesBranch;
-  });
-
-  // จัดกลุ่มตาม branchId
-  const groupedOrders = filteredOrders.reduce((acc, order) => {
-    const key = order.branchId;
-    if (!acc[key]) {
-      acc[key] = {
-        branchId: order.branchId,
-        branchName: order.branchName,
-        legalEntityId: order.legalEntityId,
-        legalEntityName: order.legalEntityName,
-        status: order.status,
-        orders: [],
-        totalEstimated: 0,
-        totalRecommended: 0,
-        totalOrdered: 0,
-        hasLowStock: false,
-      };
-    }
-    acc[key].orders.push(order);
-    acc[key].totalEstimated += order.estimatedOrderAmount;
-    acc[key].totalRecommended += order.systemRecommended;
-    acc[key].totalOrdered += order.quantityOrdered;
-    if (order.lowStockAlert) acc[key].hasLowStock = true;
-    return acc;
-  }, {} as Record<number, {
-    branchId: number;
-    branchName: string;
-    legalEntityId: number;
-    legalEntityName: string;
-    status: string;
-    orders: typeof mockOrderSummary;
-    totalEstimated: number;
-    totalRecommended: number;
-    totalOrdered: number;
-    hasLowStock: boolean;
-  }>);
-
-  const groupedOrdersArray = Object.values(groupedOrders);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -519,15 +480,6 @@ export default function Orders() {
     }
   };
 
-  const handleEditQuantity = (index: number, newQuantity: number) => {
-    // In real app, this would update the state
-    console.log(`Editing order ${index} to ${newQuantity}`);
-  };
-
-  // const handleApproveOrders = () => {
-  //   // In real app, this would approve all pending orders
-  //   console.log("Approving orders...");
-  // };
 
   return (
     <div className="space-y-6 p-6">
@@ -539,7 +491,7 @@ export default function Orders() {
         className="mb-6"
       >
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">การสั่งซื้อน้ำมัน</h1>
-        <p className="text-gray-600 dark:text-gray-400">สรุปคำขอสั่งน้ำมันทั้ง 5 สาขา - ศูนย์กลางอยู่ที่ปั๊มไฮโซ</p>
+        <p className="text-gray-600 dark:text-gray-400">ปั๊มไฮโซ - สั่งน้ำมันให้ทุกสาขา</p>
       </motion.div>
 
       {/* Summary Cards - Dashboard Style */}
@@ -618,31 +570,7 @@ export default function Orders() {
         ))}
       </div>
 
-      {/* Alert - Over Capacity */}
-      {isOverCapacity && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-5 flex items-center gap-4 shadow-sm mb-6"
-        >
-          <div className="p-2 bg-red-500/20 rounded-xl">
-            <AlertTriangle className="w-6 h-6 text-red-500 flex-shrink-0" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1">
-              ปริมาณรวม {numberFormatter.format(totalQuantity)} ลิตร เกินความจุรถ {numberFormatter.format(totalTruckCapacity)} ลิตร
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">กรุณาตรวจสอบและแบ่งวัน หรือเพิ่มจำนวนรถ</p>
-          </div>
-          <button
-            onClick={() => setShowTruckModal(true)}
-            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 flex items-center gap-2"
-          >
-            <Truck className="w-4 h-4" />
-            จัดการรถ
-          </button>
-        </motion.div>
-      )}
+
 
       {/* Filters - Dashboard Style */}
       <motion.div
@@ -686,17 +614,6 @@ export default function Orders() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowSummaryView(!showSummaryView)}
-            className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            <BarChart3 className="w-4 h-4" />
-            {showSummaryView ? "ดูรายการ" : "ดูสรุป"}
-          </button>
-          <button className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            <Upload className="w-4 h-4" />
-            Import Excel
-          </button>
-          <button
             onClick={() => {
               setNewOrderItems([]);
               setShowNewOrderModal(true);
@@ -709,292 +626,8 @@ export default function Orders() {
         </div>
       </motion.div>
 
-      {/* Summary View - Card Style จัดกลุ่มตามปั้ม */}
-      {showSummaryView && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="space-y-4 mb-6"
-        >
-          <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
-            <div>
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                สรุปคำขอสั่งน้ำมันทั้ง 5 สาขา
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">รายการน้ำมันทั้งหมดของแต่ละปั้มรวมกัน</p>
-            </div>
-            <button
-              onClick={() => {
-                setEditingOrders([...mockOrderSummary.filter((o) => o.status === "รออนุมัติ")]);
-                setShowConsolidateModal(true);
-              }}
-              disabled={mockOrderSummary.filter((o) => o.status === "รออนุมัติ").length === 0}
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              รวบรวมและสั่งน้ำมัน
-            </button>
-          </div>
-
-          {/* Branch Cards */}
-          <div className="grid grid-cols-1 gap-4">
-            {groupedOrdersArray.map((group, groupIndex) => {
-              const mainStatus = group.orders[0]?.status || "รออนุมัติ";
-              
-              return (
-                <motion.div
-                  key={group.branchId}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: groupIndex * 0.1 }}
-                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border-l-4 ${
-                    group.hasLowStock 
-                      ? "border-red-500 dark:border-red-600" 
-                      : mainStatus === "รออนุมัติ"
-                      ? "border-orange-500 dark:border-orange-600"
-                      : mainStatus === "อนุมัติแล้ว"
-                      ? "border-blue-500 dark:border-blue-600"
-                      : "border-emerald-500 dark:border-emerald-600"
-                  }`}
-                >
-                  {/* Branch Header */}
-                  <div className={`p-5 border-b border-gray-200 dark:border-gray-700 ${
-                    group.hasLowStock ? "bg-red-50/30 dark:bg-red-900/10" : "bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900"
-                  }`}>
-                    <div className="flex items-start justify-between flex-wrap gap-4">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 ${
-                          mainStatus === "รออนุมัติ"
-                            ? "bg-gradient-to-br from-orange-500 to-orange-600"
-                            : mainStatus === "อนุมัติแล้ว"
-                            ? "bg-gradient-to-br from-blue-500 to-blue-600"
-                            : "bg-gradient-to-br from-emerald-500 to-emerald-600"
-                        }`}>
-                          <MapPin className="w-7 h-7 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-bold text-gray-800 dark:text-white">
-                              {group.branchName}
-                            </h3>
-                            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${getStatusColor(mainStatus)}`}>
-                              {mainStatus === "รออนุมัติ" && <Clock className="w-3.5 h-3.5" />}
-                              {mainStatus === "อนุมัติแล้ว" && <CheckCircle className="w-3.5 h-3.5" />}
-                              {mainStatus === "ส่งแล้ว" && <CheckCircle className="w-3.5 h-3.5" />}
-                              {mainStatus}
-                            </span>
-                            {group.hasLowStock && (
-                              <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2.5 py-1 rounded-lg border border-red-200 dark:border-red-800">
-                                <AlertTriangle className="w-3.5 h-3.5" />
-                                <span className="text-xs font-semibold">สต็อกต่ำ</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-600 dark:text-gray-400">{group.legalEntityName}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Droplet className="w-4 h-4 text-blue-500" />
-                              <span className="text-gray-600 dark:text-gray-400">
-                                {group.orders.length} ประเภทน้ำมัน
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setSelectedOrderDetail(group.orders[0])}
-                          className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors" 
-                          title="ดูรายละเอียด"
-                        >
-                          <Eye className="w-5 h-5 text-gray-400 hover:text-blue-500" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Oil Items List */}
-                  <div className="p-5">
-                    <div className="space-y-3">
-                      {group.orders.map((order, orderIndex) => {
-                        const difference = order.quantityOrdered - order.estimatedOrderAmount;
-                        const isEditing = editingOrder === orderIndex && group.branchId === order.branchId;
-                        
-                        return (
-                          <div
-                            key={`${order.branchId}-${order.oilType}`}
-                            className={`p-4 rounded-xl border transition-all ${
-                              order.lowStockAlert
-                                ? "bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800"
-                                : "bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700"
-                            }`}
-                          >
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                              {/* Oil Type */}
-                              <div className="md:col-span-3">
-                                <div className="flex items-center gap-2">
-                                  <Droplet className={`w-4 h-4 ${order.lowStockAlert ? "text-red-500" : "text-blue-500"}`} />
-                                  <span className="font-semibold text-gray-800 dark:text-white">{order.oilType}</span>
-                                  {order.lowStockAlert && (
-                                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* ยอดขอจากสาขา */}
-                              <div className="md:col-span-2">
-                                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ยอดขอ</div>
-                                <div className="font-semibold text-gray-800 dark:text-white">
-                                  {numberFormatter.format(order.estimatedOrderAmount)} ลิตร
-                                </div>
-                              </div>
-
-                              {/* ยอดวิเคราะห์ */}
-                              <div className="md:col-span-2">
-                                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ยอดวิเคราะห์</div>
-                                <div className="flex items-center gap-1">
-                                  <span className="font-semibold text-blue-600 dark:text-blue-400">
-                                    {numberFormatter.format(order.systemRecommended)}
-                                  </span>
-                                  {order.systemRecommended > order.estimatedOrderAmount && (
-                                    <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
-                                  )}
-                                  {order.systemRecommended < order.estimatedOrderAmount && (
-                                    <TrendingDown className="w-3.5 h-3.5 text-orange-500" />
-                                  )}
-                                </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">ลิตร</div>
-                              </div>
-
-                              {/* สต็อกปัจจุบัน */}
-                              <div className="md:col-span-2">
-                                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">สต็อกปัจจุบัน</div>
-                                <div className={`font-semibold ${
-                                  order.lowStockAlert 
-                                    ? "text-red-600 dark:text-red-400" 
-                                    : "text-gray-800 dark:text-white"
-                                }`}>
-                                  {numberFormatter.format(order.currentStock)} ลิตร
-                                </div>
-                              </div>
-
-                              {/* ยอดสั่งจริง */}
-                              <div className="md:col-span-2">
-                                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ยอดสั่งจริง</div>
-                                {isEditing ? (
-                                  <div className="flex items-center gap-2">
-                                    <input
-                                      type="number"
-                                      defaultValue={order.quantityOrdered}
-                                      className="w-24 px-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
-                                      onBlur={(e) => {
-                                        handleEditQuantity(orderIndex, parseInt(e.target.value) || 0);
-                                        setEditingOrder(null);
-                                      }}
-                                      autoFocus
-                                    />
-                                    <button
-                                      onClick={() => setEditingOrder(null)}
-                                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                                    >
-                                      <X className="w-3.5 h-3.5 text-gray-400" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold text-orange-600 dark:text-orange-400">
-                                      {numberFormatter.format(order.quantityOrdered)} ลิตร
-                                    </span>
-                                    {difference !== 0 && (
-                                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                                        difference > 0 
-                                          ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30' 
-                                          : 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30'
-                                      }`}>
-                                        {difference > 0 ? '+' : ''}{numberFormatter.format(difference)}
-                                      </span>
-                                    )}
-                                    <button
-                                      onClick={() => setEditingOrder(orderIndex)}
-                                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors" 
-                                      title="แก้ไขยอด"
-                                    >
-                                      <Edit className="w-3.5 h-3.5 text-gray-400 hover:text-blue-500" />
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* นิติบุคคล */}
-                              <div className="md:col-span-1">
-                                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">นิติบุคคล</div>
-                                <select
-                                  defaultValue={order.legalEntityId}
-                                  className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white w-full"
-                                >
-                                  {legalEntities.map((entity) => (
-                                    <option key={entity.id} value={entity.id}>
-                                      {entity.name}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Summary Footer */}
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-3 rounded-lg">
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ยอดรวมที่ขอ</div>
-                          <div className="text-lg font-bold text-gray-800 dark:text-white">
-                            {numberFormatter.format(group.totalEstimated)} ลิตร
-                          </div>
-                        </div>
-                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 p-3 rounded-lg">
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ยอดรวมที่วิเคราะห์</div>
-                          <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                            {numberFormatter.format(group.totalRecommended)} ลิตร
-                          </div>
-                        </div>
-                        <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 p-3 rounded-lg">
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ยอดรวมที่สั่ง</div>
-                          <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                            {numberFormatter.format(group.totalOrdered)} ลิตร
-                          </div>
-                        </div>
-                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 p-3 rounded-lg">
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">จำนวนรายการ</div>
-                          <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                            {group.orders.length} รายการ
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {groupedOrdersArray.length === 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-12 text-center">
-              <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">ไม่พบข้อมูลคำสั่งซื้อ</p>
-            </div>
-          )}
-        </motion.div>
-      )}
-
       {/* Approved Orders List */}
-      {!showSummaryView && mockApprovedOrders.length > 0 && (
+      {mockApprovedOrders.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1515,16 +1148,6 @@ export default function Orders() {
                 </button>
                 {selectedOrderDetail.status === "รออนุมัติ" && (
                   <>
-                    <button
-                      onClick={() => {
-                        setEditingOrder(filteredOrders.findIndex(o => o === selectedOrderDetail));
-                        setSelectedOrderDetail(null);
-                      }}
-                        className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 flex items-center gap-2"
-                    >
-                      <Edit className="w-4 h-4" />
-                      แก้ไขยอด
-                    </button>
                       <button className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4" />
                       อนุมัติ
@@ -1779,6 +1402,62 @@ export default function Orders() {
                 })}
               </div>
 
+              {/* Selected Trucks and Drivers Display */}
+              {selectedTrucksAndDrivers.length > 0 && (
+                <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
+                    <Truck className="w-4 h-4" />
+                    รถและคนขับที่เลือก ({selectedTrucksAndDrivers.length} คัน)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {selectedTrucksAndDrivers.map((pair, index) => {
+                      const truck = mockTrucks.find((t) => t.id === pair.truckId);
+                      const trailer = mockTrailers.find((t) => t.id === pair.trailerId);
+                      
+                      return (
+                        <div
+                          key={index}
+                          className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="space-y-1 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    รถ: {pair.truckPlateNumber}
+                                    {truck && ` (${truck.brand} ${truck.model})`}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Droplet className="w-3.5 h-3.5 text-orange-500" />
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    หาง: {pair.trailerPlateNumber}
+                                    {trailer && ` (${numberFormatter.format(trailer.capacity)} ลิตร)`}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <User className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    คนขับ: {pair.driverName} ({pair.driverCode})
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => setSelectedTrucksAndDrivers(selectedTrucksAndDrivers.filter((_, i) => i !== index))}
+                              className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded ml-2"
+                            >
+                              <X className="w-4 h-4 text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Summary Section */}
                   <div className="mt-6 bg-white dark:bg-gray-800 border-y border-r border-gray-200 dark:border-gray-700 border-l-4 border-orange-500 p-6 rounded-xl shadow-sm bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-900/20 dark:to-red-900/20">
                     <h4 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
@@ -1845,6 +1524,13 @@ export default function Orders() {
                 >
                   <Truck className="w-4 h-4" />
                   จัดการรถ
+                </button>
+                <button
+                  onClick={() => setShowTruckOrderModal(true)}
+                      className="px-6 py-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 font-medium rounded-xl border border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 flex items-center gap-2"
+                >
+                  <Truck className="w-4 h-4" />
+                  เลือกออเดอร์รถ ({selectedTruckOrders.length})
                 </button>
                 <button
                   onClick={() => {
@@ -1952,15 +1638,31 @@ export default function Orders() {
                       }),
                     };
                     
+                    // ตรวจสอบว่ามีการเลือกรถและคนขับหรือไม่
+                    if (selectedTrucksAndDrivers.length === 0) {
+                      alert("กรุณาเลือกรถ หาง และคนขับสำหรับจัดส่ง");
+                      return;
+                    }
+                    
+                    // อัพเดตสถานะออเดอร์รถที่เลือก
+                    if (selectedTruckOrders.length > 0) {
+                      selectedTruckOrders.forEach((truckOrder) => {
+                        // ในระบบจริงจะอัพเดตผ่าน API
+                        console.log(`อัพเดตออเดอร์รถ ${truckOrder.orderNo} เป็น in-use และใช้ในออเดอร์ ${orderNo}`);
+                      });
+                    }
+                    
                     // Navigate ไปยังหน้า PurchaseBook พร้อมข้อมูลบิล
                     navigate('/app/gas-station/purchase-book', {
                       state: {
                         newBill: billData,
                         fromOrders: true,
+                        trucksAndDrivers: selectedTrucksAndDrivers,
                       }
                     });
                     
                     setShowConsolidateModal(false);
+                    setSelectedTrucksAndDrivers([]);
                   }}
                       className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
                 >
@@ -1971,6 +1673,146 @@ export default function Orders() {
             </div>
           </motion.div>
         </div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Truck Order Selection Modal */}
+      <AnimatePresence>
+        {showTruckOrderModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowTruckOrderModal(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              >
+                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <Truck className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
+                        เลือกออเดอร์รถน้ำมัน
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        เลือกออเดอร์รถที่ต้องการใช้ในการส่งน้ำมัน
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowTruckOrderModal(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
+                  <div className="space-y-3">
+                    {mockTruckOrders
+                      .filter((order) => order.status === "pending")
+                      .map((order) => {
+                        const isSelected = selectedTruckOrders.some((o) => o.id === order.id);
+                        return (
+                          <motion.div
+                            key={order.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                              isSelected
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
+                            }`}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedTruckOrders(selectedTruckOrders.filter((o) => o.id !== order.id));
+                              } else {
+                                setSelectedTruckOrders([...selectedTruckOrders, order]);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h4 className="font-semibold text-gray-900 dark:text-white">{order.orderNo}</h4>
+                                  <span className="px-2 py-1 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded text-xs font-medium">
+                                    รอเรียกใช้
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                  <div>
+                                    <p className="text-gray-600 dark:text-gray-400 text-xs">รถ</p>
+                                    <p className="font-semibold text-gray-900 dark:text-white">{order.truckPlateNumber}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-600 dark:text-gray-400 text-xs">หาง</p>
+                                    <p className="font-semibold text-gray-900 dark:text-white">{order.trailerPlateNumber}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-600 dark:text-gray-400 text-xs">คนขับ</p>
+                                    <p className="font-semibold text-gray-900 dark:text-white">{order.driver}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-600 dark:text-gray-400 text-xs">ปริมาณ</p>
+                                    <p className="font-semibold text-gray-900 dark:text-white">
+                                      {numberFormatter.format(order.quantity)} ลิตร
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                                  <span>{order.fromBranch}</span> → <span>{order.toBranch}</span> • {order.oilType}
+                                </div>
+                              </div>
+                              <div className="ml-4">
+                                {isSelected && (
+                                  <CheckCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    {mockTruckOrders.filter((order) => order.status === "pending").length === 0 && (
+                      <div className="text-center py-12">
+                        <Truck className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600 dark:text-gray-400">ไม่มีออเดอร์รถที่พร้อมใช้งาน</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between px-6 py-5 border-t border-gray-200 dark:border-gray-700">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    เลือกแล้ว {selectedTruckOrders.length} ออเดอร์
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setShowTruckOrderModal(false)}
+                      className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700"
+                    >
+                      ยกเลิก
+                    </button>
+                    <button
+                      onClick={() => setShowTruckOrderModal(false)}
+                      className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      ยืนยัน ({selectedTruckOrders.length})
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>
@@ -2030,13 +1872,13 @@ export default function Orders() {
                       items={newOrderItems}
                       onItemsChange={setNewOrderItems}
                       onClose={() => setShowNewOrderModal(false)}
-                      onSave={(items) => {
-                        // เพิ่มรายการใหม่เข้าไปใน mockOrderSummary
+                      onSave={(items, selectedTrucksAndDriversFromForm) => {
+                        // แปลง items เป็น editingOrders format
                         const now = new Date();
                         const timeString = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
                         const dateString = `${now.toISOString().split("T")[0]} ${timeString}`;
                         
-                        // สร้างรายการใหม่
+                        // สร้างรายการใหม่ในรูปแบบ editingOrders
                         const newOrders = items.map((item) => ({
                           branchId: item.branchId,
                           branchName: item.branchName,
@@ -2053,107 +1895,24 @@ export default function Orders() {
                           requestedBy: "คุณนิด",
                         }));
                         
-                        // ในระบบจริงจะต้องอัพเดต state หรือส่งไปยัง API
-                        console.log("New orders created:", newOrders);
-                        alert(`สร้างใบสั่งซื้อใหม่สำเร็จ!\n\nจำนวนสาขา: ${new Set(items.map(i => i.branchId)).size} สาขา\nจำนวนรายการ: ${items.length} รายการ`);
-                        
+                        // เก็บข้อมูลรถและคนขับที่เลือก
+                        setEditingOrders(newOrders);
+                        // แปลง TruckDriverPair ให้ตรงกับ type ที่ต้องการ
+                        setSelectedTrucksAndDrivers(selectedTrucksAndDriversFromForm.map((pair) => ({
+                          truckId: pair.truckId,
+                          truckPlateNumber: pair.truckPlateNumber,
+                          trailerId: pair.trailerId,
+                          trailerPlateNumber: pair.trailerPlateNumber,
+                          driverId: pair.driverId ? parseInt(pair.driverId) : 0,
+                          driverName: pair.driverName || "",
+                          driverCode: pair.driverCode || "",
+                        })));
                         setShowNewOrderModal(false);
                         setNewOrderItems([]);
+                        setShowConsolidateModal(true);
                       }}
                     />
 
-                    {/* Order History Section */}
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                            <History className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="text-lg font-bold text-gray-800 dark:text-white">
-                              ประวัติการสั่งซื้อล่าสุด
-                            </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              ดูประวัติการสั่งซื้อที่ผ่านมา
-                            </p>
-                          </div>
-                        </div>
-                        <NavLink
-                          to="/app/gas-station/order-history"
-                          onClick={() => setShowNewOrderModal(false)}
-                          className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 text-sm"
-                        >
-                          <Receipt className="w-4 h-4" />
-                          ดูทั้งหมด
-                        </NavLink>
-                      </div>
-                      
-                      {/* Recent Orders List */}
-                      <div className="space-y-3 max-h-64 overflow-y-auto">
-                        {mockApprovedOrders.slice(0, 5).map((order, index) => (
-                          <motion.div
-                            key={order.orderNo}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.2, delay: index * 0.05 }}
-                            className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <ShoppingCart className="w-4 h-4 text-blue-500" />
-                                <span className="text-sm font-semibold text-gray-800 dark:text-white">
-                                  {order.orderNo}
-                                </span>
-                                {order.billNo && (
-                                  <>
-                                    <span className="text-gray-400">•</span>
-                                    <Receipt className="w-4 h-4 text-purple-500" />
-                                    <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
-                                      {order.billNo}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                order.status === "ส่งแล้ว" ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" :
-                                order.status === "รับแล้ว" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
-                                "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                              }`}>
-                                {order.status}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
-                              <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  <span>{order.orderDate}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Building2 className="w-3 h-3" />
-                                  <span>{order.branches.length} สาขา</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Droplet className="w-3 h-3" />
-                                  <span>{numberFormatter.format(order.items.reduce((sum, item) => sum + item.quantity, 0))} ลิตร</span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <DollarSign className="w-3 h-3" />
-                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                                  {currencyFormatter.format(order.totalAmount)}
-                                </span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                        {mockApprovedOrders.length === 0 && (
-                          <div className="text-center py-8">
-                            <History className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                            <p className="text-sm text-gray-600 dark:text-gray-400">ยังไม่มีประวัติการสั่งซื้อ</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 </div>
               </motion.div>

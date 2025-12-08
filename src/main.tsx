@@ -213,6 +213,8 @@ import OilDeficitReport from "@/pages/gas-station/OilDeficitReport";
 import OilDeficitMonthly from "@/pages/gas-station/OilDeficitMonthly";
 import OrderHistory from "@/pages/gas-station/OrderHistory";
 import TruckSales from "@/pages/gas-station/TruckSales";
+import TruckProfiles from "@/pages/gas-station/TruckProfiles";
+import TruckProfileDetail from "@/pages/gas-station/TruckProfileDetail";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -930,6 +932,14 @@ const router = createBrowserRouter([
           {
             path: "truck-sales",
             element: <TruckSales />,
+          },
+          {
+            path: "truck-profiles",
+            element: <TruckProfiles />,
+          },
+          {
+            path: "truck-profiles/:id",
+            element: <TruckProfileDetail />,
           },
           {
             path: "payments",

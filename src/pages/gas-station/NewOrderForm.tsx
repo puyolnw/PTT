@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
-import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
 import {
   Plus,
   Save,
@@ -8,7 +8,16 @@ import {
   MapPin,
   Trash2,
   ShoppingCart,
+  Truck,
+  CheckCircle,
+  X,
+  User,
+  Info,
+  Search,
+  ChevronDown,
 } from "lucide-react";
+import { mockTrucks, mockTrailers, mockTruckOrders } from "./TruckProfiles";
+import { employees } from "@/data/mockData";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
@@ -36,13 +45,26 @@ type OrderItem = {
   legalEntityName: string;
 };
 
+type TruckDriverPair = {
+  truckOrderId: string;
+  truckOrderNo: string;
+  truckId: string;
+  truckPlateNumber: string;
+  trailerId: string;
+  trailerPlateNumber: string;
+  isPTTTruck?: boolean; // เป็นรถของ PTT หรือไม่
+  driverId?: string; // ID ของคนขับ
+  driverName?: string; // ชื่อคนขับ
+  driverCode?: string; // รหัสพนักงานคนขับ
+};
+
 type NewOrderFormProps = {
   branches: Branch[];
   legalEntities: LegalEntity[];
   items: OrderItem[];
   onItemsChange: (items: OrderItem[]) => void;
   onClose: () => void;
-  onSave: (items: OrderItem[]) => void;
+  onSave: (items: OrderItem[], selectedTrucksAndDrivers: TruckDriverPair[]) => void;
 };
 
 const oilTypes = [
@@ -67,6 +89,143 @@ export default function NewOrderForm({
   const [selectedOilType, setSelectedOilType] = useState<string>("");
   const [selectedQuantity, setSelectedQuantity] = useState<string>("");
   const [selectedLegalEntity, setSelectedLegalEntity] = useState<number>(legalEntities[0]?.id || 1);
+  const [selectedTrucksAndDrivers, setSelectedTrucksAndDrivers] = useState<TruckDriverPair[]>([]);
+  const [showTruckDriverModal, setShowTruckDriverModal] = useState(false);
+  
+  // Form state for adding truck order
+  const [truckDriverForm, setTruckDriverForm] = useState({
+    truckOrderId: "",
+    truckId: "",
+    trailerId: "",
+    driverId: "",
+  });
+  const [isPTTTruckSelected, setIsPTTTruckSelected] = useState(false);
+  const [driverSearchQuery, setDriverSearchQuery] = useState("");
+  const [isDriverDropdownOpen, setIsDriverDropdownOpen] = useState(false);
+  
+  // Filter employees who can be drivers (อาจจะกรองตาม position หรือ dept)
+  const availableDrivers = employees.filter((emp) => emp.status === "Active");
+  
+  // Filter drivers based on search query
+  const filteredDrivers = availableDrivers.filter((driver) => {
+    const searchLower = driverSearchQuery.toLowerCase();
+    return (
+      driver.name.toLowerCase().includes(searchLower) ||
+      driver.code.toLowerCase().includes(searchLower) ||
+      driver.position.toLowerCase().includes(searchLower) ||
+      (driver.dept && driver.dept.toLowerCase().includes(searchLower))
+    );
+  });
+  
+  // Get selected driver info
+  const selectedDriver = availableDrivers.find((d) => d.id.toString() === truckDriverForm.driverId);
+  
+  // Ref for driver dropdown
+  const driverDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (driverDropdownRef.current && !driverDropdownRef.current.contains(event.target as Node)) {
+        setIsDriverDropdownOpen(false);
+      }
+    };
+    
+    if (isDriverDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDriverDropdownOpen]);
+  
+  // ตรวจสอบว่ามีการสั่งน้ำมัน Premium Diesel หรือไม่
+  const hasPremiumDiesel = items.some((item) => 
+    item.oilType.toLowerCase().includes("premium") && 
+    item.oilType.toLowerCase().includes("diesel")
+  );
+  
+  // ถ้ามีการสั่ง Premium Diesel ให้แสดงรถของ PTT โดยตรง (ไม่ใช่ออเดอร์รถ)
+  // ถ้าไม่มี ให้แสดงออเดอร์รถทั้งหมด (pending status)
+  const availableTruckOrders = hasPremiumDiesel
+    ? [] // ไม่แสดงออเดอร์รถเมื่อมี Premium Diesel
+    : mockTruckOrders.filter((order) => order.status === "pending");
+  
+  const handleAddTruckDriver = () => {
+    if (hasPremiumDiesel) {
+      // กรณี Premium Diesel - ใช้รถของ PTT โดยไม่ต้องเลือกรถและหาง
+      if (!isPTTTruckSelected) {
+        alert("กรุณาเลือกรถของ PTT");
+        return;
+      }
+      
+      // สร้าง orderNo สำหรับรถ PTT
+      const orderNo = `PTT-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${String(selectedTrucksAndDrivers.length + 1).padStart(3, '0')}`;
+      
+      const newPair: TruckDriverPair = {
+        truckOrderId: `PTT-${Date.now()}`,
+        truckOrderNo: orderNo,
+        truckId: "PTT-TRUCK",
+        truckPlateNumber: "รถของ PTT",
+        trailerId: "PTT-TRAILER",
+        trailerPlateNumber: "หางของ PTT",
+        isPTTTruck: true,
+      };
+      
+      setSelectedTrucksAndDrivers([...selectedTrucksAndDrivers, newPair]);
+      setIsPTTTruckSelected(false);
+      setTruckDriverForm({ truckOrderId: "", truckId: "", trailerId: "", driverId: "" });
+    } else {
+      // กรณีปกติ - เลือกออเดอร์รถ
+      if (!truckDriverForm.truckOrderId) {
+        alert("กรุณาเลือกออเดอร์รถ");
+        return;
+      }
+      
+      if (!truckDriverForm.driverId) {
+        alert("กรุณาเลือกคนขับรถ");
+        return;
+      }
+      
+      const truckOrder = availableTruckOrders.find((o) => o.id === truckDriverForm.truckOrderId);
+      const driver = availableDrivers.find((d) => d.id.toString() === truckDriverForm.driverId);
+      
+      if (!truckOrder) {
+        alert("ไม่พบข้อมูลออเดอร์รถที่เลือก");
+        return;
+      }
+      
+      if (!driver) {
+        alert("ไม่พบข้อมูลคนขับที่เลือก");
+        return;
+      }
+      
+      const newPair: TruckDriverPair = {
+        truckOrderId: truckOrder.id,
+        truckOrderNo: truckOrder.orderNo,
+        truckId: truckOrder.truckId,
+        truckPlateNumber: truckOrder.truckPlateNumber,
+        trailerId: truckOrder.trailerId,
+        trailerPlateNumber: truckOrder.trailerPlateNumber,
+        isPTTTruck: false,
+        driverId: driver.id.toString(),
+        driverName: driver.name,
+        driverCode: driver.code,
+      };
+      
+      setSelectedTrucksAndDrivers([...selectedTrucksAndDrivers, newPair]);
+      setTruckDriverForm({ truckOrderId: "", truckId: "", trailerId: "", driverId: "" });
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowTruckDriverModal(false);
+    setIsPTTTruckSelected(false);
+    setTruckDriverForm({ truckOrderId: "", truckId: "", trailerId: "", driverId: "" });
+    setDriverSearchQuery("");
+    setIsDriverDropdownOpen(false);
+  };
 
   const addItem = () => {
     if (!selectedOilType || !selectedQuantity || parseFloat(selectedQuantity) <= 0) {
@@ -312,6 +471,115 @@ export default function NewOrderForm({
         </div>
       )}
 
+      {/* Selected Trucks and Drivers */}
+      {selectedTrucksAndDrivers.length > 0 && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              <Truck className="w-5 h-5 text-blue-500" />
+              รถและคนขับที่เลือก ({selectedTrucksAndDrivers.length} คัน)
+            </h4>
+            <button
+              onClick={() => setShowTruckDriverModal(true)}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              เพิ่มออเดอร์รถ
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {selectedTrucksAndDrivers.map((pair, index) => {
+              const truck = mockTrucks.find((t) => t.id === pair.truckId);
+              const trailer = mockTrailers.find((t) => t.id === pair.trailerId);
+              
+              return (
+                <div
+                  key={index}
+                  className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-semibold text-gray-900 dark:text-white text-sm">
+                          {pair.truckOrderNo}
+                        </span>
+                        {pair.isPTTTruck && (
+                          <span className="px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded text-xs font-medium">
+                            รถ PTT
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex items-center gap-2">
+                          <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                          <span className="text-gray-600 dark:text-gray-400">
+                            รถ: {pair.truckPlateNumber}
+                            {truck && ` (${truck.brand} ${truck.model})`}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Droplet className="w-3.5 h-3.5 text-orange-500" />
+                          <span className="text-gray-600 dark:text-gray-400">
+                            หาง: {pair.trailerPlateNumber}
+                            {trailer && ` (${numberFormatter.format(trailer.capacity)} ลิตร)`}
+                          </span>
+                        </div>
+                        {pair.driverName && (
+                          <div className="flex items-center gap-2">
+                            <User className="w-3.5 h-3.5 text-purple-500" />
+                            <span className="text-gray-600 dark:text-gray-400">
+                              คนขับ: {pair.driverName}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedTrucksAndDrivers(selectedTrucksAndDrivers.filter((_, i) => i !== index))}
+                      className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded ml-2"
+                    >
+                      <X className="w-4 h-4 text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Truck Selection Button */}
+      {selectedTrucksAndDrivers.length === 0 && items.length > 0 && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Truck className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-white">
+                  {hasPremiumDiesel 
+                    ? "กรุณาเลือกออเดอร์รถของ PTT สำหรับจัดส่ง Premium Diesel"
+                    : "กรุณาเลือกออเดอร์รถสำหรับจัดส่ง"
+                  }
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {hasPremiumDiesel 
+                    ? "การสั่งน้ำมัน Premium Diesel ต้องใช้รถของ PTT เท่านั้น"
+                    : "เลือกออเดอร์รถจากรายการที่มีอยู่"
+                  }
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowTruckDriverModal(true)}
+              className="px-6 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+            >
+              <Truck className="w-4 h-4" />
+              เลือกออเดอร์รถ
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Summary */}
       {items.length > 0 && (
         <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
@@ -347,7 +615,17 @@ export default function NewOrderForm({
           ยกเลิก
         </button>
         <button
-          onClick={() => onSave(items)}
+          onClick={() => {
+            if (selectedTrucksAndDrivers.length === 0) {
+              alert(hasPremiumDiesel 
+                ? "กรุณาเลือกออเดอร์รถของ PTT สำหรับจัดส่ง Premium Diesel"
+                : "กรุณาเลือกออเดอร์รถสำหรับจัดส่ง"
+              );
+              setShowTruckDriverModal(true);
+              return;
+            }
+            onSave(items, selectedTrucksAndDrivers);
+          }}
           disabled={items.length === 0}
           className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
@@ -355,6 +633,563 @@ export default function NewOrderForm({
           บันทึกใบสั่งซื้อ
         </button>
       </div>
+
+      {/* Truck and Driver Selection Modal */}
+      <AnimatePresence>
+        {showTruckDriverModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleCloseModal}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              >
+                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <Truck className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
+                        เลือกออเดอร์รถ
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {hasPremiumDiesel 
+                          ? "เลือกออเดอร์รถของ PTT สำหรับจัดส่ง Premium Diesel"
+                          : "เลือกออเดอร์รถสำหรับจัดส่ง"
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCloseModal}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
+                  <div className="space-y-6">
+                    {/* Add Truck Order and Driver Form */}
+                    <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
+                          <Plus className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-bold text-gray-900 dark:text-white">
+                            เพิ่มออเดอร์รถ
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                            {hasPremiumDiesel 
+                              ? "เลือกออเดอร์รถของ PTT สำหรับจัดส่ง Premium Diesel"
+                              : "เลือกออเดอร์รถสำหรับจัดส่ง"
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {hasPremiumDiesel && (
+                        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border-2 border-red-200 dark:border-red-800">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Info className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-red-900 dark:text-red-100">
+                                การสั่งน้ำมัน Premium Diesel
+                              </p>
+                              <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                                ต้องใช้รถของ PTT เท่านั้น รถที่ทาง PTT จัดส่งน้ำมันดีเชลพรีเมี่ยมโดยเฉพาะ
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="space-y-3">
+                        {hasPremiumDiesel ? (
+                          <>
+                            {/* เลือกรถของ PTT */}
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                <span className="flex items-center gap-2">
+                                  <Truck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                                  เลือกรถของ PTT
+                                  <span className="text-red-500">*</span>
+                                </span>
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => setIsPTTTruckSelected(!isPTTTruckSelected)}
+                                className={`w-full px-4 py-4 border-2 rounded-xl transition-all duration-200 font-medium shadow-sm flex items-center justify-center gap-3 ${
+                                  isPTTTruckSelected
+                                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 border-emerald-500 text-white hover:from-emerald-600 hover:to-teal-600"
+                                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white hover:border-emerald-500 dark:hover:border-emerald-500"
+                                }`}
+                              >
+                                <Truck className={`w-6 h-6 ${isPTTTruckSelected ? "text-white" : "text-emerald-600 dark:text-emerald-400"}`} />
+                                <span className="text-lg font-semibold">รถของ PTT</span>
+                                {isPTTTruckSelected && (
+                                  <CheckCircle className="w-5 h-5 text-white" />
+                                )}
+                              </button>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                                รถที่ทาง PTT จัดส่งน้ำมันดีเชลพรีเมี่ยมโดยเฉพาะ
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* เลือกออเดอร์รถ (กรณีปกติ) */}
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                <span className="flex items-center gap-2">
+                                  <Truck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                                  เลือกออเดอร์รถ
+                                  <span className="text-red-500">*</span>
+                                </span>
+                              </label>
+                              <div className="space-y-2">
+                                {availableTruckOrders.map((order) => {
+                                  const truck = mockTrucks.find((t) => t.id === order.truckId);
+                                  const trailer = mockTrailers.find((t) => t.id === order.trailerId);
+                                  const isSelected = truckDriverForm.truckOrderId === order.id;
+                                  return (
+                                    <button
+                                      key={order.id}
+                                      type="button"
+                                      onClick={() => setTruckDriverForm({ ...truckDriverForm, truckOrderId: isSelected ? "" : order.id })}
+                                      className={`w-full px-4 py-4 border-2 rounded-xl transition-all duration-200 font-medium shadow-sm flex items-center justify-between gap-3 ${
+                                        isSelected
+                                          ? "bg-gradient-to-r from-emerald-500 to-teal-500 border-emerald-500 text-white hover:from-emerald-600 hover:to-teal-600"
+                                          : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white hover:border-emerald-500 dark:hover:border-emerald-500"
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-3 flex-1 text-left">
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                          isSelected 
+                                            ? "bg-white/20" 
+                                            : "bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30"
+                                        }`}>
+                                          <Truck className={`w-6 h-6 ${isSelected ? "text-white" : "text-emerald-600 dark:text-emerald-400"}`} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className={`font-semibold text-sm ${isSelected ? "text-white" : "text-gray-900 dark:text-white"}`}>
+                                            {order.orderNo}
+                                          </p>
+                                          <p className={`text-xs mt-0.5 ${isSelected ? "text-emerald-100" : "text-gray-500 dark:text-gray-400"}`}>
+                                            {order.truckPlateNumber} / {order.trailerPlateNumber}
+                                            {truck && ` • ${truck.brand} ${truck.model}`}
+                                            {trailer && ` • ${numberFormatter.format(trailer.capacity)} ลิตร`}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      {isSelected && (
+                                        <CheckCircle className="w-5 h-5 text-white flex-shrink-0" />
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            
+                            {/* เลือกคนขับ */}
+                            <div className="relative" ref={driverDropdownRef}>
+                              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                <span className="flex items-center gap-2">
+                                  <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                  เลือกคนขับรถ
+                                  <span className="text-red-500">*</span>
+                                </span>
+                              </label>
+                              
+                              {/* Dropdown Button */}
+                              <button
+                                type="button"
+                                onClick={() => setIsDriverDropdownOpen(!isDriverDropdownOpen)}
+                                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 font-medium shadow-sm hover:border-blue-500 dark:hover:border-blue-500 flex items-center justify-between gap-3"
+                              >
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  {selectedDriver ? (
+                                    <>
+                                      {selectedDriver.avatar ? (
+                                        <img
+                                          src={selectedDriver.avatar}
+                                          alt={selectedDriver.name}
+                                          className="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-700 flex-shrink-0"
+                                        />
+                                      ) : (
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                                          {selectedDriver.name.charAt(0)}
+                                        </div>
+                                      )}
+                                      <div className="flex-1 min-w-0 text-left">
+                                        <p className="font-semibold text-gray-900 dark:text-white truncate">
+                                          {selectedDriver.name}
+                                        </p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                          {selectedDriver.code} • {selectedDriver.position}
+                                        </p>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <span className="text-gray-500 dark:text-gray-400">-- เลือกคนขับรถ --</span>
+                                  )}
+                                </div>
+                                <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 flex-shrink-0 ${isDriverDropdownOpen ? "rotate-180" : ""}`} />
+                              </button>
+                              
+                              {/* Dropdown Menu */}
+                              <AnimatePresence>
+                                {isDriverDropdownOpen && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="absolute z-10 w-full mt-2 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-xl shadow-xl overflow-hidden"
+                                  >
+                                    {/* Search Input */}
+                                    <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                                      <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                        <input
+                                          type="text"
+                                          placeholder="ค้นหาพนักงาน..."
+                                          value={driverSearchQuery}
+                                          onChange={(e) => setDriverSearchQuery(e.target.value)}
+                                          className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                          autoFocus
+                                        />
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Driver List */}
+                                    <div className="max-h-64 overflow-y-auto">
+                                      {filteredDrivers.length > 0 ? (
+                                        filteredDrivers.map((driver) => {
+                                          const isSelected = truckDriverForm.driverId === driver.id.toString();
+                                          return (
+                                            <button
+                                              key={driver.id}
+                                              type="button"
+                                              onClick={() => {
+                                                setTruckDriverForm({ ...truckDriverForm, driverId: driver.id.toString() });
+                                                setIsDriverDropdownOpen(false);
+                                                setDriverSearchQuery("");
+                                              }}
+                                              className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                                                isSelected ? "bg-blue-50 dark:bg-blue-900/20" : ""
+                                              }`}
+                                            >
+                                              {driver.avatar ? (
+                                                <img
+                                                  src={driver.avatar}
+                                                  alt={driver.name}
+                                                  className="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-700 flex-shrink-0"
+                                                />
+                                              ) : (
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                                                  {driver.name.charAt(0)}
+                                                </div>
+                                              )}
+                                              <div className="flex-1 text-left min-w-0">
+                                                <p className="font-semibold text-gray-900 dark:text-white truncate">
+                                                  {driver.name}
+                                                </p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                  {driver.code} • {driver.position}
+                                                </p>
+                                              </div>
+                                              {isSelected && (
+                                                <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                                              )}
+                                            </button>
+                                          );
+                                        })
+                                      ) : (
+                                        <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                          <p className="text-sm">ไม่พบพนักงานที่ค้นหา</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </>
+                        )}
+                        
+                        {/* Selected Truck/Trailer Info Card */}
+                        {hasPremiumDiesel ? (
+                          isPTTTruckSelected && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="mt-4 p-4 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-xl border-2 border-red-200 dark:border-red-800 shadow-md"
+                            >
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+                                    <Truck className="w-4 h-4 text-white" />
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-red-900 dark:text-red-100 text-sm">
+                                      รถของ PTT
+                                    </p>
+                                    <p className="text-xs text-red-700 dark:text-red-300">
+                                      สำหรับ Premium Diesel
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+                                  <p className="text-sm font-semibold text-gray-900 dark:text-white text-center">
+                                    รถที่ทาง PTT จัดส่งน้ำมันดีเชลพรีเมี่ยมโดยเฉพาะ
+                                  </p>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )
+                        ) : (
+                          truckDriverForm.truckOrderId && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="mt-4 p-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 shadow-md"
+                            >
+                              {(() => {
+                                const selectedOrder = availableTruckOrders.find((o) => o.id === truckDriverForm.truckOrderId);
+                                if (!selectedOrder) return null;
+                                const truck = mockTrucks.find((t) => t.id === selectedOrder.truckId);
+                                const trailer = mockTrailers.find((t) => t.id === selectedOrder.trailerId);
+                                const selectedDriver = availableDrivers.find((d) => d.id.toString() === truckDriverForm.driverId);
+                                return (
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                                        <Truck className="w-4 h-4 text-white" />
+                                      </div>
+                                      <div>
+                                        <p className="font-bold text-blue-900 dark:text-blue-100 text-sm">
+                                          {selectedOrder.orderNo}
+                                        </p>
+                                        <p className="text-xs text-blue-700 dark:text-blue-300">
+                                          ออเดอร์รถน้ำมัน
+                                        </p>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 gap-2.5">
+                                      <div className="flex items-center gap-3 p-2.5 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+                                        <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                                          <Truck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">รถ</p>
+                                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                            {selectedOrder.truckPlateNumber}
+                                            {truck && (
+                                              <span className="text-gray-600 dark:text-gray-400 font-normal ml-1">
+                                                • {truck.brand} {truck.model}
+                                              </span>
+                                            )}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-3 p-2.5 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+                                        <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                                          <Droplet className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">หาง</p>
+                                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                            {selectedOrder.trailerPlateNumber}
+                                            {trailer && (
+                                              <span className="text-gray-600 dark:text-gray-400 font-normal ml-1">
+                                                • {numberFormatter.format(trailer.capacity)} ลิตร
+                                              </span>
+                                            )}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-3 p-2.5 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+                                        <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                                          <MapPin className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">เส้นทาง</p>
+                                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                            {selectedOrder.fromBranch} → {selectedOrder.toBranch}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      
+                                      {selectedDriver && (
+                                        <div className="flex items-center gap-3 p-2.5 bg-white/60 dark:bg-gray-800/60 rounded-lg">
+                                          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">คนขับ</p>
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                              {selectedDriver.name}
+                                              <span className="text-gray-600 dark:text-gray-400 font-normal ml-1">
+                                                • {selectedDriver.code}
+                                              </span>
+                                            </p>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </motion.div>
+                          )
+                        )}
+                      </div>
+                      
+                      <div className="mt-6 flex justify-end">
+                        <button
+                          onClick={handleAddTruckDriver}
+                          disabled={hasPremiumDiesel 
+                            ? !isPTTTruckSelected
+                            : !truckDriverForm.truckOrderId || !truckDriverForm.driverId
+                          }
+                          className="px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-lg"
+                        >
+                          <Plus className="w-5 h-5" />
+                          {hasPremiumDiesel ? "เพิ่มรถ PTT" : "เพิ่มออเดอร์รถ"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Selected Trucks List */}
+                    {selectedTrucksAndDrivers.length > 0 && (
+                      <div>
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                          ออเดอร์รถที่เลือก ({selectedTrucksAndDrivers.length} ออเดอร์)
+                        </h4>
+                        <div className="space-y-3">
+                          {selectedTrucksAndDrivers.map((pair, index) => {
+                            const truck = mockTrucks.find((t) => t.id === pair.truckId);
+                            const trailer = mockTrailers.find((t) => t.id === pair.trailerId);
+                            
+                            return (
+                              <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-white dark:bg-gray-800 rounded-xl p-4 border-2 border-emerald-200 dark:border-emerald-700"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <h5 className="font-semibold text-gray-900 dark:text-white">{pair.truckOrderNo}</h5>
+                                      <span className="px-2 py-1 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded text-xs font-medium">
+                                        รอเรียกใช้
+                                      </span>
+                                      {pair.isPTTTruck && (
+                                        <span className="px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded text-xs font-medium">
+                                          รถ PTT
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      <div>
+                                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">รถ</p>
+                                        <div className="flex items-center gap-2">
+                                          <Truck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                          <p className="font-semibold text-gray-900 dark:text-white">
+                                            {pair.truckPlateNumber}
+                                          </p>
+                                          {truck && (
+                                            <span className="text-xs text-gray-500 dark:text-gray-500">
+                                              ({truck.brand} {truck.model})
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">หาง</p>
+                                        <div className="flex items-center gap-2">
+                                          <Droplet className="w-4 h-4 text-orange-500" />
+                                          <p className="font-semibold text-gray-900 dark:text-white">
+                                            {pair.trailerPlateNumber}
+                                          </p>
+                                          {trailer && (
+                                            <span className="text-xs text-gray-500 dark:text-gray-500">
+                                              ({numberFormatter.format(trailer.capacity)} ลิตร)
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {pair.driverName && (
+                                        <div className="md:col-span-2">
+                                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">คนขับ</p>
+                                          <div className="flex items-center gap-2">
+                                            <User className="w-4 h-4 text-purple-500" />
+                                            <p className="font-semibold text-gray-900 dark:text-white">
+                                              {pair.driverName}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => setSelectedTrucksAndDrivers(selectedTrucksAndDrivers.filter((_, i) => i !== index))}
+                                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg ml-4 transition-colors"
+                                  >
+                                    <X className="w-5 h-5 text-red-500" />
+                                  </button>
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between px-6 py-5 border-t border-gray-200 dark:border-gray-700">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    เลือกแล้ว {selectedTrucksAndDrivers.length} ออเดอร์
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleCloseModal}
+                      className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700"
+                    >
+                      ยกเลิก
+                    </button>
+                    <button
+                      onClick={handleCloseModal}
+                      className="px-8 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      ยืนยัน ({selectedTrucksAndDrivers.length})
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
