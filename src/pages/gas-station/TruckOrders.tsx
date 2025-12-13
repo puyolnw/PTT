@@ -11,12 +11,15 @@ import {
     Clock,
     XCircle,
     Activity,
+    PackageCheck,
 } from "lucide-react";
 import { mockTrucks, mockTrailers, mockTruckOrders } from "./TruckProfiles";
 import type { TruckOrder } from "./TruckProfiles";
 import StartTripModal from "@/components/truck/StartTripModal";
 import EndTripModal from "@/components/truck/EndTripModal";
 import { calculateTripMetrics, formatDuration } from "@/utils/odometerValidation";
+import { mockApprovedOrders } from "@/data/gasStationOrders";
+import { generateTransportNo } from "@/utils/truckOrderHelpers";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
     maximumFractionDigits: 0,
@@ -30,20 +33,31 @@ const dateFormatter = new Intl.DateTimeFormat("th-TH", {
 
 export default function TruckOrders() {
     const [searchTerm, setSearchTerm] = useState("");
-    const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "in-progress" | "completed" | "cancelled">("all");
+    const [filterStatus, setFilterStatus] = useState<"all" | "draft" | "quotation-recorded" | "ready-to-pickup" | "picking-up" | "completed" | "cancelled">("all");
     const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);
     const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
     const [showStartTripModal, setShowStartTripModal] = useState(false);
     const [showEndTripModal, setShowEndTripModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<TruckOrder | null>(null);
 
+
     // Form state for creating new truck order (not oil order)
     const [newOrder, setNewOrder] = useState({
         orderDate: new Date().toISOString().split("T")[0],
+        purchaseOrderNo: "", // เลขที่ใบสั่งซื้อที่จะส่ง
         truckId: "",
         trailerId: "",
+        currentOdometer: 0,
         notes: "",
     });
+
+    // State for selected branches to deliver
+    const [selectedBranches, setSelectedBranches] = useState<number[]>([]);
+
+    // Get selected purchase order details
+    const selectedPurchaseOrder = mockApprovedOrders.find(
+        (order) => order.orderNo === newOrder.purchaseOrderNo
+    );
 
     // Filter orders
     const filteredOrders = mockTruckOrders.filter((order) => {
@@ -58,21 +72,31 @@ export default function TruckOrders() {
     // Summary stats
     const stats = {
         total: mockTruckOrders.length,
-        pending: mockTruckOrders.filter((o) => o.status === "pending").length,
-        inProgress: mockTruckOrders.filter((o) => o.status === "in-progress").length,
+        draft: mockTruckOrders.filter((o) => o.status === "draft").length,
+        pickingUp: mockTruckOrders.filter((o) => o.status === "picking-up").length,
         completed: mockTruckOrders.filter((o) => o.status === "completed").length,
     };
 
     const handleCreateOrder = () => {
+        // Generate transport number
+        const transportNo = generateTransportNo();
+
         // In real app, this would call API
-        console.log("Creating truck order:", newOrder);
+        console.log("Creating truck order:", {
+            ...newOrder,
+            transportNo,
+            selectedBranches,
+        });
         setShowCreateOrderModal(false);
         setNewOrder({
             orderDate: new Date().toISOString().split("T")[0],
+            purchaseOrderNo: "",
             truckId: "",
             trailerId: "",
+            currentOdometer: 0,
             notes: "",
         });
+        setSelectedBranches([]);
     };
 
     const handleViewOrderDetail = (order: TruckOrder) => {
@@ -130,10 +154,14 @@ export default function TruckOrders() {
 
     const getOrderStatusColor = (status: string) => {
         switch (status) {
-            case "pending":
-                return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
-            case "in-use":
+            case "draft":
+                return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
+            case "quotation-recorded":
                 return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+            case "ready-to-pickup":
+                return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
+            case "picking-up":
+                return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400";
             case "completed":
                 return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
             case "cancelled":
@@ -145,10 +173,14 @@ export default function TruckOrders() {
 
     const getOrderStatusText = (status: string) => {
         switch (status) {
-            case "pending":
-                return "รอดำเนินการ";
-            case "in-use":
-                return "กำลังใช้งาน";
+            case "draft":
+                return "ร่าง";
+            case "quotation-recorded":
+                return "บันทึกใบเสนอราคาแล้ว";
+            case "ready-to-pickup":
+                return "พร้อมรับ";
+            case "picking-up":
+                return "กำลังไปรับ";
             case "completed":
                 return "เสร็จสิ้น";
             case "cancelled":
@@ -160,9 +192,13 @@ export default function TruckOrders() {
 
     const getOrderStatusIcon = (status: string) => {
         switch (status) {
-            case "pending":
+            case "draft":
+                return <FileText className="w-4 h-4" />;
+            case "quotation-recorded":
+                return <FileText className="w-4 h-4" />;
+            case "ready-to-pickup":
                 return <Clock className="w-4 h-4" />;
-            case "in-use":
+            case "picking-up":
                 return <Activity className="w-4 h-4" />;
             case "completed":
                 return <CheckCircle className="w-4 h-4" />;
@@ -205,8 +241,8 @@ export default function TruckOrders() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {[
                     { label: "ออเดอร์ทั้งหมด", value: stats.total, color: "blue", icon: FileText },
-                    { label: "รอดำเนินการ", value: stats.pending, color: "yellow", icon: Clock },
-                    { label: "กำลังใช้งาน", value: stats.inProgress, color: "blue", icon: Activity },
+                    { label: "ร่าง", value: stats.draft, color: "gray", icon: Clock },
+                    { label: "กำลังไปรับ", value: stats.pickingUp, color: "orange", icon: Activity },
                     { label: "เสร็จสิ้น", value: stats.completed, color: "emerald", icon: CheckCircle },
                 ].map((stat, index) => (
                     <motion.div
@@ -252,8 +288,10 @@ export default function TruckOrders() {
                         className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                         <option value="all">สถานะทั้งหมด</option>
-                        <option value="pending">รอดำเนินการ</option>
-                        <option value="in-progress">กำลังใช้งาน</option>
+                        <option value="draft">ร่าง</option>
+                        <option value="quotation-recorded">บันทึกใบเสนอราคาแล้ว</option>
+                        <option value="ready-to-pickup">พร้อมรับ</option>
+                        <option value="picking-up">กำลังไปรับ</option>
                         <option value="completed">เสร็จสิ้น</option>
                         <option value="cancelled">ยกเลิก</option>
                     </select>
@@ -274,6 +312,9 @@ export default function TruckOrders() {
                                     เลขออเดอร์
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    เลขที่ขนส่ง
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     วันที่
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -283,10 +324,13 @@ export default function TruckOrders() {
                                     คนขับ
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    เลขไมล์ปัจจุบัน
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     สถานะ
                                 </th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    จัดการ
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    สถานะรับน้ำมัน
                                 </th>
                             </tr>
                         </thead>
@@ -304,6 +348,9 @@ export default function TruckOrders() {
                                                 {order.orderNo}
                                             </span>
                                         </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                        {order.transportNo}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                         {dateFormatter.format(new Date(order.orderDate))}
@@ -332,31 +379,70 @@ export default function TruckOrders() {
                                             {getOrderStatusText(order.status)}
                                         </span>
                                     </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span
+                                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${order.oilReceiptId
+                                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                                : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                                                }`}
+                                        >
+                                            {order.oilReceiptId ? (
+                                                <>
+                                                    <CheckCircle className="w-3 h-3" />
+                                                    รับแล้ว
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Clock className="w-3 h-3" />
+                                                    ยังไม่รับ
+                                                </>
+                                            )}
+                                        </span>
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                                        {order.status === "pending" && (
-                                            <button
-                                                onClick={() => handleStartTrip(order)}
-                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                                            >
-                                                เริ่มเดินทาง
-                                            </button>
-                                        )}
-                                        {order.status === "in-progress" && (
-                                            <button
-                                                onClick={() => handleEndTrip(order)}
-                                                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
-                                            >
-                                                จบงาน
-                                            </button>
-                                        )}
-                                        {order.status === "completed" && order.totalDistance && (
-                                            <div className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                                                <div className="font-semibold text-emerald-600 dark:text-emerald-400">
-                                                    {numberFormatter.format(order.totalDistance)} กม.
+                                        <div className="flex items-center gap-2">
+                                            {order.status === "ready-to-pickup" && (
+                                                <button
+                                                    onClick={() => handleStartTrip(order)}
+                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                                >
+                                                    เริ่มเดินทาง
+                                                </button>
+                                            )}
+                                            {order.status === "picking-up" && !order.oilReceiptId && (
+                                                <>
+                                                    <button
+                                                        onClick={() => window.location.href = `/app/gas-station/oil-receipt?orderId=${order.id}`}
+                                                        className="flex items-center gap-1 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+                                                    >
+                                                        <PackageCheck className="w-4 h-4" />
+                                                        บันทึกการรับน้ำมัน
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleEndTrip(order)}
+                                                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+                                                    >
+                                                        จบงาน
+                                                    </button>
+                                                </>
+                                            )}
+                                            {order.status === "picking-up" && order.oilReceiptId && (
+                                                <button
+                                                    onClick={() => handleEndTrip(order)}
+                                                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+                                                >
+                                                    จบงาน
+                                                </button>
+                                            )}
+                                            {order.status === "completed" && order.totalDistance && (
+                                                <div className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                                                    <div className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                                        {numberFormatter.format(order.totalDistance)} กม.
+                                                    </div>
+                                                    <div className="text-xs">{formatDuration(order.tripDuration)}</div>
                                                 </div>
-                                                <div className="text-xs">{formatDuration(order.tripDuration)}</div>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -412,6 +498,33 @@ export default function TruckOrders() {
                                     />
                                 </div>
 
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        เลขที่ใบสั่งซื้อ (Purchase Order)
+                                    </label>
+                                    <select
+                                        value={newOrder.purchaseOrderNo}
+                                        onChange={(e) => setNewOrder({ ...newOrder, purchaseOrderNo: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    >
+                                        <option value="">เลือกใบสั่งซื้อ</option>
+                                        {mockApprovedOrders.map((order) => (
+                                            <option key={order.orderNo} value={order.orderNo}>
+                                                {order.orderNo} - {order.supplierOrderNo} ({order.branches.length} ปั๊ม)
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {selectedPurchaseOrder && (
+                                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                            จำนวนน้ำมันรวม: {numberFormatter.format(
+                                                selectedPurchaseOrder.branches.reduce((sum, branch) =>
+                                                    sum + branch.items.reduce((s, item) => s + item.quantity, 0), 0
+                                                )
+                                            )} ลิตร
+                                        </p>
+                                    )}
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -448,6 +561,19 @@ export default function TruckOrders() {
                                             ))}
                                         </select>
                                     </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        เลขไมล์ปัจจุบัน (กม.)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={newOrder.currentOdometer}
+                                        onChange={(e) => setNewOrder({ ...newOrder, currentOdometer: Number(e.target.value) })}
+                                        placeholder="กรอกเลขไมล์ปัจจุบันของรถ"
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    />
                                 </div>
 
                                 <div>

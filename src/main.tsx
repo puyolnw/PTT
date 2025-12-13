@@ -181,7 +181,7 @@ import AccountingSettings from "@/pages/accounting/Settings";
 import GasStationDashboard from "@/pages/gas-station/Dashboard";
 import StationOrder from "@/pages/gas-station/StationOrder";
 import Orders from "@/pages/gas-station/Orders";
-import Receiving from "@/pages/gas-station/Receiving";
+import OrderManagement from "@/pages/gas-station/OrderManagement";
 import Payments from "@/pages/gas-station/Payments";
 import Sales from "@/pages/gas-station/Sales";
 import UndergroundBook from "@/pages/gas-station/UndergroundBook";
@@ -198,6 +198,8 @@ import QualityTest from "@/pages/gas-station/QualityTest";
 import DepositSlips from "@/pages/gas-station/DepositSlips";
 import Lubricants from "@/pages/gas-station/Lubricants";
 import Gas from "@/pages/gas-station/Gas";
+import OilReceipt from "@/pages/gas-station/OilReceipt";
+import ReceiveFromBranch from "@/pages/gas-station/ReceiveFromBranch";
 import EngineOil from "@/pages/gas-station/EngineOil";
 import StationProducts from "@/pages/gas-station/StationProducts";
 import POS from "@/pages/gas-station/POS";
@@ -211,13 +213,13 @@ import ProductSalesHistory from "@/pages/gas-station/ProductSalesHistory";
 import SalesInstrumentReport from "@/pages/gas-station/SalesInstrumentReport";
 import OilDeficitReport from "@/pages/gas-station/OilDeficitReport";
 import OilDeficitMonthly from "@/pages/gas-station/OilDeficitMonthly";
-import OrderHistory from "@/pages/gas-station/OrderHistory";
 import TruckSales from "@/pages/gas-station/TruckSales";
 import TruckProfiles from "@/pages/gas-station/TruckProfiles";
 import TruckProfileDetail from "@/pages/gas-station/TruckProfileDetail";
 import TrailerProfiles from "@/pages/gas-station/TrailerProfiles";
 import TrailerProfileDetail from "@/pages/gas-station/TrailerProfileDetail";
 import TruckOrders from "@/pages/gas-station/TruckOrders";
+import TransportDelivery from "@/pages/gas-station/TransportDelivery";
 import LubricantsDashboard from "@/pages/gas-station/LubricantsDashboard";
 import AccountingExport from "@/pages/gas-station/AccountingExport";
 import POGeneration from "@/pages/gas-station/POGeneration";
@@ -928,12 +930,16 @@ const router = createBrowserRouter([
             element: <Orders />,
           },
           {
-            path: "order-history",
-            element: <OrderHistory />,
+            path: "order-management",
+            element: <OrderManagement />,
           },
           {
-            path: "receiving",
-            element: <Receiving />,
+            path: "oil-receipt",
+            element: <OilReceipt />,
+          },
+          {
+            path: "receive-from-branch",
+            element: <ReceiveFromBranch />,
           },
           {
             path: "truck-sales",
@@ -958,6 +964,10 @@ const router = createBrowserRouter([
           {
             path: "truck-orders",
             element: <TruckOrders />,
+          },
+          {
+            path: "transport-delivery",
+            element: <TransportDelivery />,
           },
           {
             path: "lubricants-dashboard",

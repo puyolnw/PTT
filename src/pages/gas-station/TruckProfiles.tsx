@@ -131,8 +131,10 @@ export interface MaintenanceRecord {
 // Interface สำหรับออเดอร์รถน้ำมัน
 export interface TruckOrder {
   id: string;
-  orderNo: string;
+  orderNo: string; // เลขที่รอบรับน้ำมัน
   orderDate: string;
+  purchaseOrderNo?: string; // เลขที่ใบสั่งซื้อที่เชื่อมกับ PO
+  transportNo: string; // เลขที่ขนส่ง (TR-YYYYMMDD-XXX)
   truckId: string;
   truckPlateNumber: string;
   trailerId: string;
@@ -142,8 +144,20 @@ export interface TruckOrder {
   toBranch: string;
   oilType: string;
   quantity: number; // ลิตร
-  status: "pending" | "in-progress" | "completed" | "cancelled";
+  status: "draft" | "quotation-recorded" | "ready-to-pickup" | "picking-up" | "completed" | "cancelled";
+
+  // PTT Quotation fields (ใบเสนอราคาจาก ปตท.)
+  pttQuotationNo?: string; // เลขที่ใบเสนอราคาจาก ปตท.
+  pttQuotationDate?: string; // วันที่ใบเสนอราคา
+  pttQuotationAmount?: number; // มูลค่ารวมในใบเสนอราคา
+  pttQuotationAttachment?: string; // ไฟล์แนบใบเสนอราคา
+
+  // Scheduled pickup (วันนัดรับ)
+  scheduledPickupDate?: string; // วันที่นัดไปรับน้ำมัน
+  scheduledPickupTime?: string; // เวลาที่นัดไปรับ
+
   // Odometer tracking fields
+  currentOdometer?: number; // เลขไมล์ปัจจุบันก่อนออกวิ่ง
   startOdometer?: number; // เลขไมล์เริ่มต้น (กม.)
   endOdometer?: number; // เลขไมล์สิ้นสุด (กม.)
   totalDistance?: number; // ระยะทางรวม (กม.)
@@ -152,6 +166,11 @@ export interface TruckOrder {
   tripDuration?: number; // ระยะเวลา (นาที)
   odometerStartPhoto?: string; // รูปไมล์ตอนออก (optional)
   odometerEndPhoto?: string; // รูปไมล์ตอนกลับ (optional)
+
+  // Integration with Oil Receipt
+  deliveryNoteNo?: string; // เลขที่ใบส่งของจาก PTT
+  oilReceiptId?: string; // ID ของใบรับน้ำมัน (เชื่อมกับ OilReceipt)
+  selectedBranches?: number[]; // สาขาที่จะส่ง
   usedInOrderId?: string; // ID ของออเดอร์น้ำมันที่เรียกใช้ออเดอร์รถนี้
   notes?: string;
   createdAt: string;
@@ -371,6 +390,8 @@ export const mockTruckOrders: TruckOrder[] = [
     id: "TO-001",
     orderNo: "TO-20241215-001",
     orderDate: "2024-12-15",
+    purchaseOrderNo: "SO-20241215-001",
+    transportNo: "TR-20241215-001",
     truckId: "TRUCK-001",
     truckPlateNumber: "กก 1111",
     trailerId: "TRAILER-001",
@@ -380,9 +401,10 @@ export const mockTruckOrders: TruckOrder[] = [
     toBranch: "สาขา 2",
     oilType: "Premium Diesel",
     quantity: 10000,
-    status: "in-progress",
+    status: "picking-up",
     startOdometer: 125000,
     startTime: "2024-12-15T08:00:00",
+    selectedBranches: [2, 3],
     usedInOrderId: "SO-20241215-001",
     notes: "รับน้ำมันจากปั๊มไฮโซ",
     createdAt: "2024-12-15 08:00:00",
@@ -392,6 +414,8 @@ export const mockTruckOrders: TruckOrder[] = [
     id: "TO-002",
     orderNo: "TO-20241215-002",
     orderDate: "2024-12-15",
+    purchaseOrderNo: "SO-20241215-002",
+    transportNo: "TR-20241215-002",
     truckId: "TRUCK-002",
     truckPlateNumber: "กก 2222",
     trailerId: "TRAILER-003",
@@ -401,7 +425,8 @@ export const mockTruckOrders: TruckOrder[] = [
     toBranch: "สาขา 3",
     oilType: "Gasohol 95",
     quantity: 12000,
-    status: "pending",
+    status: "draft",
+    selectedBranches: [3, 4],
     notes: "",
     createdAt: "2024-12-15 09:00:00",
     createdBy: "ผู้จัดการ",
@@ -410,6 +435,8 @@ export const mockTruckOrders: TruckOrder[] = [
     id: "TO-003",
     orderNo: "TO-20241214-001",
     orderDate: "2024-12-14",
+    purchaseOrderNo: "SO-20241214-001",
+    transportNo: "TR-20241214-001",
     truckId: "TRUCK-001",
     truckPlateNumber: "กก 1111",
     trailerId: "TRAILER-002",
@@ -426,6 +453,9 @@ export const mockTruckOrders: TruckOrder[] = [
     startTime: "2024-12-14T10:00:00",
     endTime: "2024-12-14T15:30:00",
     tripDuration: 330, // 5 hours 30 minutes
+    deliveryNoteNo: "PTT-DN-20241214-001",
+    oilReceiptId: "REC-20241214-001",
+    selectedBranches: [4],
     usedInOrderId: "SO-20241214-001",
     notes: "",
     createdAt: "2024-12-14 10:00:00",

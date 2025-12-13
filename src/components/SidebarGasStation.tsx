@@ -22,7 +22,9 @@ import {
   Flame,
   History,
   Monitor,
-  Receipt,
+  Route,
+  PackageCheck,
+  CheckCircle,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -57,11 +59,10 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
       label: "การสั่งซื้อและรับน้ำมัน",
       icon: ShoppingCart,
       items: [
-        // { to: "/app/gas-station/station-order", icon: FilePlus, label: "สั่งน้ำมันของปั้ม" },
-        { to: "/app/gas-station/orders", icon: ShoppingCart, label: "การสั่งซื้อน้ำมัน" },
-        { to: "/app/gas-station/order-history", icon: Receipt, label: "ประวัติการสั่งซื้อ / บิล" },
-        { to: "/app/gas-station/receiving", icon: Package, label: "การรับน้ำมัน" },
-        // { to: "/app/gas-station/payments", icon: CreditCard, label: "การชำระเงินซื้อน้ำมัน" },
+        { to: "/app/gas-station/orders", icon: ShoppingCart, label: "บันทึกใบเสนอราคาจากปตท." },
+        { to: "/app/gas-station/order-management", icon: FileText, label: "จัดการการสั่งซื้อ" },
+        { to: "/app/gas-station/oil-receipt", icon: PackageCheck, label: "รับน้ำมันจาก ปตท" },
+        { to: "/app/gas-station/receive-from-branch", icon: CheckCircle, label: "รับน้ำมันจากสาขาหลัก" },
       ],
     },
     {
@@ -69,7 +70,8 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
       label: "การจัดการรถ",
       icon: Truck,
       items: [
-        { to: "/app/gas-station/truck-orders", icon: FileText, label: "ออเดอร์รถ" },
+        { to: "/app/gas-station/truck-orders", icon: FileText, label: "รอบบรับน้ำมัน" },
+        { to: "/app/gas-station/transport-delivery", icon: Route, label: "รอบส่งน้ำมัน" },
         { to: "/app/gas-station/truck-sales", icon: Truck, label: "ขายน้ำมันที่เหลือบนรถ" },
         { to: "/app/gas-station/truck-profiles", icon: Truck, label: "โปรไฟล์รถส่งน้ำมัน" },
         { to: "/app/gas-station/trailer-profiles", icon: Droplet, label: "โปรไฟล์หางรถน้ำมัน" },
