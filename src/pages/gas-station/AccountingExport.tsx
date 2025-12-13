@@ -126,7 +126,7 @@ export default function AccountingExport() {
                         mockReceivings
                     );
                     break;
-                case "sales":
+                case "sales": {
                     // Mock sales data
                     const mockSales = [
                         {
@@ -144,6 +144,7 @@ export default function AccountingExport() {
                     ];
                     excelExportService.exportSalesReport(startDate, endDate, mockSales);
                     break;
+                }
             }
 
             alert("✅ Export สำเร็จ! ไฟล์ถูกดาวน์โหลดแล้ว");
@@ -194,10 +195,10 @@ export default function AccountingExport() {
                                         key={report.id}
                                         onClick={() => setSelectedReport(report.id)}
                                         className={`w-full p-4 rounded-xl transition-all duration-200 text-left ${selectedReport === report.id
-                                                ? "bg-gradient-to-r " +
-                                                report.color +
-                                                " text-white shadow-lg scale-105"
-                                                : "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                            ? "bg-gradient-to-r " +
+                                            report.color +
+                                            " text-white shadow-lg scale-105"
+                                            : "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
                                             }`}
                                     >
                                         <div className="flex items-center gap-3">
@@ -208,8 +209,8 @@ export default function AccountingExport() {
                                                 </div>
                                                 <div
                                                     className={`text-xs mt-1 ${selectedReport === report.id
-                                                            ? "text-white/80"
-                                                            : "text-gray-500 dark:text-gray-400"
+                                                        ? "text-white/80"
+                                                        : "text-gray-500 dark:text-gray-400"
                                                         }`}
                                                 >
                                                     {report.description}
