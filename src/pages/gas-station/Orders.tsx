@@ -42,6 +42,13 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
+// ตัวเลือกปริมาณมาตรฐาน (ลิตร) สำหรับ dropdown
+const quantityOptions = [
+  1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000,
+  12000, 15000, 18000, 20000, 22000, 24000, 25000, 28000, 30000,
+  32000, 35000, 38000, 40000, 45000, 50000, 60000, 70000, 80000, 90000, 100000
+];
+
 // Mock data - สาขาทั้ง 5 แห่ง
 const branches = [
   { id: 1, name: "ปั๊มไฮโซ", code: "HQ", address: "100 ถนนเพชรบุรี กรุงเทพมหานคร 10400", legalEntityName: "บริษัท A จำกัด" },
@@ -1258,15 +1265,17 @@ export default function Orders() {
                           <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
                             ยอดขอจากสาขา (ลิตร)
                           </label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              value={order.estimatedOrderAmount}
-                              onChange={(e) => handleUpdateOrder('estimatedOrderAmount', parseInt(e.target.value) || 0)}
-                              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-500">ลิตร</span>
-                          </div>
+                          <select
+                            value={order.estimatedOrderAmount}
+                            onChange={(e) => handleUpdateOrder('estimatedOrderAmount', parseInt(e.target.value) || 0)}
+                            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
+                          >
+                            {quantityOptions.map((qty) => (
+                              <option key={qty} value={qty}>
+                                {numberFormatter.format(qty)} ลิตร
+                              </option>
+                            ))}
+                          </select>
                           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">ประมาณการจากผู้จัดการสาขา</p>
                         </div>
 
@@ -1313,15 +1322,17 @@ export default function Orders() {
                           <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
                             ยอดสั่งจริง (ลิตร)
                           </label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              value={order.quantityOrdered}
-                              onChange={(e) => handleUpdateOrder('quantityOrdered', parseInt(e.target.value) || 0)}
-                              className="w-full px-3 py-2 bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-orange-600 dark:text-orange-400 font-semibold"
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-orange-600 dark:text-orange-400">ลิตร</span>
-                          </div>
+                          <select
+                            value={order.quantityOrdered}
+                            onChange={(e) => handleUpdateOrder('quantityOrdered', parseInt(e.target.value) || 0)}
+                            className="w-full px-3 py-2 bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-orange-600 dark:text-orange-400 font-semibold"
+                          >
+                            {quantityOptions.map((qty) => (
+                              <option key={qty} value={qty}>
+                                {numberFormatter.format(qty)} ลิตร
+                              </option>
+                            ))}
+                          </select>
                           {order.quantityOrdered !== order.estimatedOrderAmount && (
                             <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                               {order.quantityOrdered > order.estimatedOrderAmount ? '+' : ''}

@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { 
-  Heart, 
-  Package, 
-  Gift, 
-  Home as HomeIcon, 
-  Fuel, 
-  Plane, 
+import {
+  Heart,
+  Package,
+  Gift,
+  Home as HomeIcon,
+  Fuel,
+  Plane,
   Calendar as CalendarIcon,
   HeartHandshake,
   GraduationCap,
@@ -16,7 +16,11 @@ import {
   Search,
   Filter,
   Edit2,
-  Trash2
+  Trash2,
+  Users,
+  MapPin,
+  X,
+  UserPlus
 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import { employees, welfareRecords as initialWelfareRecords } from "@/data/mockData";
@@ -34,12 +38,70 @@ interface WelfareRecord {
   notes?: string;
 }
 
+// Interface สำหรับโปรเจคทัศนศึกษา
+interface TripParticipant {
+  empCode: string;
+  empName: string;
+  category: string;
+  companion: string | null; // ผู้ติดตาม (ถ้ามี)
+}
+
+interface TripProject {
+  id: number;
+  projectName: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  participants: TripParticipant[];
+  budget?: number;
+  status: "รออนุมัติ" | "อนุมัติ" | "ปฏิเสธ";
+  notes?: string;
+  createdAt: string;
+}
+
 export default function Welfare() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("benefits");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTripModalOpen, setIsTripModalOpen] = useState(false);
+  const [isParticipantModalOpen, setIsParticipantModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [welfareRecords, setWelfareRecords] = useState<WelfareRecord[]>(initialWelfareRecords);
+
+  // State สำหรับโปรเจคทัศนศึกษา
+  const [tripProjects, setTripProjects] = useState<TripProject[]>([
+    {
+      id: 1,
+      projectName: "ทัศนศึกษาปี 2567",
+      destination: "เกาะสมุย",
+      startDate: "2025-02-15",
+      endDate: "2025-02-18",
+      participants: [
+        { empCode: "EMP-0001", empName: "สมชาย ใจดี", category: "ปั๊ม", companion: "ภรรยา" },
+        { empCode: "EMP-0002", empName: "สมหญิง รักงาน", category: "ปั๊ม", companion: null },
+      ],
+      budget: 50000,
+      status: "อนุมัติ",
+      notes: "ทัศนศึกษา 3 วัน 2 คืน",
+      createdAt: "2025-01-10"
+    }
+  ]);
+
+  const [editingTripProject, setEditingTripProject] = useState<TripProject | null>(null);
+  const [currentProjectForParticipants, setCurrentProjectForParticipants] = useState<TripProject | null>(null);
+  const [tripFormData, setTripFormData] = useState({
+    projectName: "",
+    destination: "",
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+    budget: "",
+    notes: ""
+  });
+
+  const [participantFormData, setParticipantFormData] = useState<TripParticipant[]>([]);
+  const [participantCategoryFilter, setParticipantCategoryFilter] = useState<string>("ทั้งหมด");
+  const [participantSearchQuery, setParticipantSearchQuery] = useState("");
+
   const [formData, setFormData] = useState({
     type: "benefits",
     empCode: "",
@@ -94,15 +156,32 @@ export default function Welfare() {
     { id: "insurance", label: "ประกันชีวิตหัวหน้างาน", icon: Shield },
   ];
 
-  // Filter records by active tab
+  // Filter records by active tab (ยกเว้น trip)
   const filteredRecords = welfareRecords.filter(record => {
     const matchesTab = record.type === activeTab;
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       record.empName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       record.empCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
       record.item?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   });
+
+  // Filter trip projects
+  const filteredTripProjects = useMemo(() => {
+    return tripProjects.filter(project => {
+      if (!searchQuery) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        project.projectName.toLowerCase().includes(query) ||
+        project.destination.toLowerCase().includes(query) ||
+        project.participants.some(p =>
+          p.empName.toLowerCase().includes(query) ||
+          p.empCode.toLowerCase().includes(query) ||
+          p.category.toLowerCase().includes(query)
+        )
+      );
+    });
+  }, [tripProjects, searchQuery]);
 
   // Handle employee selection
   const handleEmployeeSelect = (empCode: string) => {
@@ -159,6 +238,153 @@ export default function Welfare() {
     }
   };
 
+  // Handle delete trip project
+  const handleDeleteTripProject = (id: number) => {
+    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบโปรเจคทัศนศึกษานี้?")) {
+      setTripProjects(tripProjects.filter(p => p.id !== id));
+    }
+  };
+
+  // Handle add participant to trip
+  const handleAddParticipant = (empCode: string) => {
+    const employee = employees.find(e => e.code === empCode);
+    if (employee && !participantFormData.find(p => p.empCode === empCode)) {
+      setParticipantFormData([
+        ...participantFormData,
+        {
+          empCode: employee.code,
+          empName: employee.name,
+          category: employee.category || employee.dept || "",
+          companion: null
+        }
+      ]);
+    }
+  };
+
+  // Handle remove participant
+  const handleRemoveParticipant = (empCode: string) => {
+    setParticipantFormData(participantFormData.filter(p => p.empCode !== empCode));
+  };
+
+  // Handle update companion
+  const handleUpdateCompanion = (empCode: string, companion: string) => {
+    setParticipantFormData(participantFormData.map(p =>
+      p.empCode === empCode ? { ...p, companion: companion || null } : p
+    ));
+  };
+
+  // Handle trip project submit (สร้างโปรเจคก่อน ไม่มีพนักงาน)
+  const handleTripSubmit = () => {
+    if (!tripFormData.projectName || !tripFormData.destination || !tripFormData.startDate || !tripFormData.endDate) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน (ชื่อโปรเจค, สถานที่, วันที่เริ่มต้น, วันที่สิ้นสุด)");
+      return;
+    }
+
+    const newProject: TripProject = {
+      id: editingTripProject ? editingTripProject.id : (tripProjects.length > 0 ? Math.max(...tripProjects.map(p => p.id)) + 1 : 1),
+      projectName: tripFormData.projectName,
+      destination: tripFormData.destination,
+      startDate: tripFormData.startDate,
+      endDate: tripFormData.endDate,
+      participants: editingTripProject ? editingTripProject.participants : [], // เก็บ participants เดิมถ้าแก้ไข
+      budget: tripFormData.budget ? parseFloat(tripFormData.budget) : undefined,
+      status: editingTripProject ? editingTripProject.status : "รออนุมัติ",
+      notes: tripFormData.notes || undefined,
+      createdAt: editingTripProject ? editingTripProject.createdAt : new Date().toISOString().split('T')[0]
+    };
+
+    if (editingTripProject) {
+      setTripProjects(tripProjects.map(p => p.id === editingTripProject.id ? newProject : p));
+    } else {
+      setTripProjects([...tripProjects, newProject]);
+    }
+
+    setIsTripModalOpen(false);
+    setEditingTripProject(null);
+    setTripFormData({
+      projectName: "",
+      destination: "",
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date().toISOString().split('T')[0],
+      budget: "",
+      notes: ""
+    });
+    alert(editingTripProject ? "แก้ไขโปรเจคทัศนศึกษาสำเร็จ!" : "สร้างโปรเจคทัศนศึกษาสำเร็จ!");
+  };
+
+  // Handle edit trip project
+  const handleEditTripProject = (project: TripProject) => {
+    setEditingTripProject(project);
+    setTripFormData({
+      projectName: project.projectName,
+      destination: project.destination,
+      startDate: project.startDate,
+      endDate: project.endDate,
+      budget: project.budget?.toString() || "",
+      notes: project.notes || ""
+    });
+    setIsTripModalOpen(true);
+  };
+
+  // Handle open participant modal
+  const handleOpenParticipantModal = (project: TripProject) => {
+    setCurrentProjectForParticipants(project);
+    setParticipantFormData([...project.participants]);
+    setParticipantCategoryFilter("ทั้งหมด");
+    setParticipantSearchQuery("");
+    setIsParticipantModalOpen(true);
+  };
+
+  // Get unique categories from employees
+  const employeeCategories = useMemo(() => {
+    const categories = new Set<string>();
+    employees.forEach(emp => {
+      const cat = emp.category || emp.dept || "";
+      if (cat) categories.add(cat);
+    });
+    return Array.from(categories).sort();
+  }, []);
+
+  // Filter employees for participant selection
+  const filteredEmployeesForParticipant = useMemo(() => {
+    return employees.filter(emp => {
+      // ไม่แสดงพนักงานที่เพิ่มแล้ว
+      if (participantFormData.find(p => p.empCode === emp.code)) return false;
+
+      // กรองตามแผนก
+      const empCategory = emp.category || emp.dept || "";
+      if (participantCategoryFilter !== "ทั้งหมด" && empCategory !== participantCategoryFilter) return false;
+
+      // กรองตาม search query
+      if (participantSearchQuery) {
+        const query = participantSearchQuery.toLowerCase();
+        return (
+          emp.name.toLowerCase().includes(query) ||
+          emp.code.toLowerCase().includes(query) ||
+          empCategory.toLowerCase().includes(query)
+        );
+      }
+
+      return true;
+    });
+  }, [participantCategoryFilter, participantSearchQuery, participantFormData]);
+
+  // Handle save participants
+  const handleSaveParticipants = () => {
+    if (!currentProjectForParticipants) return;
+
+    const updatedProject: TripProject = {
+      ...currentProjectForParticipants,
+      participants: participantFormData
+    };
+
+    setTripProjects(tripProjects.map(p => p.id === currentProjectForParticipants.id ? updatedProject : p));
+    setIsParticipantModalOpen(false);
+    setCurrentProjectForParticipants(null);
+    setParticipantFormData([]);
+    alert("บันทึกข้อมูลพนักงานสำเร็จ!");
+  };
+
   // Update form type when tab changes
   useEffect(() => {
     setFormData(prev => ({ ...prev, type: activeTab }));
@@ -205,15 +431,38 @@ export default function Welfare() {
             <Package className="w-5 h-5" />
             สต๊อกสวัสดิการ
           </button>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-ptt-cyan to-ptt-blue hover:from-ptt-cyan/90 hover:to-ptt-blue/90 
-                     text-app rounded-xl transition-all duration-200 font-semibold 
-                     shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-          >
-            <Plus className="w-5 h-5" />
-            เพิ่มสวัสดิการ
-          </button>
+          {activeTab === "trip" ? (
+            <button
+              onClick={() => {
+                setEditingTripProject(null);
+                setTripFormData({
+                  projectName: "",
+                  destination: "",
+                  startDate: new Date().toISOString().split('T')[0],
+                  endDate: new Date().toISOString().split('T')[0],
+                  budget: "",
+                  notes: ""
+                });
+                setIsTripModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-ptt-cyan to-ptt-blue hover:from-ptt-cyan/90 hover:to-ptt-blue/90 
+                       text-app rounded-xl transition-all duration-200 font-semibold 
+                       shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+            >
+              <Plus className="w-5 h-5" />
+              สร้างโปรเจคทัศนศึกษา
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-ptt-cyan to-ptt-blue hover:from-ptt-cyan/90 hover:to-ptt-blue/90 
+                       text-app rounded-xl transition-all duration-200 font-semibold 
+                       shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+            >
+              <Plus className="w-5 h-5" />
+              เพิ่มสวัสดิการ
+            </button>
+          )}
         </div>
       </div>
 
@@ -376,11 +625,10 @@ export default function Welfare() {
                           key={record.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className={`hover:bg-soft/70 transition-colors ${
-                            record.status === "อนุมัติ" ? "bg-green-500/5" :
-                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                            "bg-yellow-500/5"
-                          }`}
+                          className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
+                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                                "bg-yellow-500/5"
+                            }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
                           <td className="px-4 py-4 text-sm text-app min-w-[180px]">
@@ -419,11 +667,10 @@ export default function Welfare() {
                             )}
                           </td>
                           <td className="px-4 py-4 text-center">
-                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                              record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                              "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                            }`}>
+                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
                               {record.status === "รออนุมัติ" && "⏳ "}
@@ -432,15 +679,15 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <button 
-                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors" 
+                              <button
+                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors"
                                 title="แก้ไข"
                               >
                                 <Edit2 className="w-4 h-4 text-ptt-cyan" />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleDelete(record.id)}
-                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors" 
+                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
                                 title="ลบ"
                               >
                                 <Trash2 className="w-4 h-4 text-red-400" />
@@ -579,7 +826,7 @@ export default function Welfare() {
                   <li>สามารถแจ้งความประสงค์เพื่อรับโบนัสได้ตามประกาศบริษัท</li>
                 </ul>
               </div>
-              
+
               {filteredRecords.length > 0 ? (
                 <div className="overflow-x-auto rounded-xl border border-app mt-4">
                   <table className="w-full">
@@ -605,11 +852,10 @@ export default function Welfare() {
                           key={record.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className={`hover:bg-soft/70 transition-colors ${
-                            record.status === "อนุมัติ" ? "bg-green-500/5" :
-                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                            "bg-yellow-500/5"
-                          }`}
+                          className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
+                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                                "bg-yellow-500/5"
+                            }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
                           <td className="px-4 py-4 text-sm text-app min-w-[180px]">
@@ -645,11 +891,10 @@ export default function Welfare() {
                             )}
                           </td>
                           <td className="px-4 py-4 text-center">
-                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                              record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                              "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                            }`}>
+                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
                               {record.status === "รออนุมัติ" && "⏳ "}
@@ -658,15 +903,15 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <button 
-                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors" 
+                              <button
+                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors"
                                 title="แก้ไข"
                               >
                                 <Edit2 className="w-4 h-4 text-ptt-cyan" />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleDelete(record.id)}
-                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors" 
+                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
                                 title="ลบ"
                               >
                                 <Trash2 className="w-4 h-4 text-red-400" />
@@ -732,7 +977,7 @@ export default function Welfare() {
                   <li>พักฟรี + จ่ายน้ำ/ไฟ (ระบุในระบบว่าใครใช้ + รวมบุคคลภายนอก)</li>
                 </ul>
               </div>
-              
+
               {filteredRecords.length > 0 ? (
                 <div className="overflow-x-auto rounded-xl border border-app mt-4">
                   <table className="w-full">
@@ -757,11 +1002,10 @@ export default function Welfare() {
                           key={record.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className={`hover:bg-soft/70 transition-colors ${
-                            record.status === "อนุมัติ" ? "bg-green-500/5" :
-                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                            "bg-yellow-500/5"
-                          }`}
+                          className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
+                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                                "bg-yellow-500/5"
+                            }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
                           <td className="px-4 py-4 text-sm text-app min-w-[180px]">
@@ -788,11 +1032,10 @@ export default function Welfare() {
                             <span className="text-sm text-muted">{record.category}</span>
                           </td>
                           <td className="px-4 py-4 text-center">
-                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                              record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                              "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                            }`}>
+                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
                               {record.status === "รออนุมัติ" && "⏳ "}
@@ -801,15 +1044,15 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <button 
-                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors" 
+                              <button
+                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors"
                                 title="แก้ไข"
                               >
                                 <Edit2 className="w-4 h-4 text-ptt-cyan" />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleDelete(record.id)}
-                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors" 
+                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
                                 title="ลบ"
                               >
                                 <Trash2 className="w-4 h-4 text-red-400" />
@@ -863,7 +1106,7 @@ export default function Welfare() {
                 </div>
               </div>
               <p className="text-muted">เบิกได้</p>
-              
+
               {filteredRecords.length > 0 ? (
                 <div className="overflow-x-auto rounded-xl border border-app mt-4">
                   <table className="w-full">
@@ -890,11 +1133,10 @@ export default function Welfare() {
                           key={record.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className={`hover:bg-soft/70 transition-colors ${
-                            record.status === "อนุมัติ" ? "bg-green-500/5" :
-                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                            "bg-yellow-500/5"
-                          }`}
+                          className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
+                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                                "bg-yellow-500/5"
+                            }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
                           <td className="px-4 py-4 text-sm text-app min-w-[180px]">
@@ -933,11 +1175,10 @@ export default function Welfare() {
                             )}
                           </td>
                           <td className="px-4 py-4 text-center">
-                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                              record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                              "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                            }`}>
+                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
                               {record.status === "รออนุมัติ" && "⏳ "}
@@ -946,15 +1187,15 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <button 
-                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors" 
+                              <button
+                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors"
                                 title="แก้ไข"
                               >
                                 <Edit2 className="w-4 h-4 text-ptt-cyan" />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleDelete(record.id)}
-                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors" 
+                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
                                 title="ลบ"
                               >
                                 <Trash2 className="w-4 h-4 text-red-400" />
@@ -986,10 +1227,12 @@ export default function Welfare() {
                 <div>
                   <h2 className="text-2xl font-bold text-app font-display mb-2">สวัสดิการทัศนศึกษาพาสุข</h2>
                   <p className="text-sm text-muted">
-                    จำนวนรายการ: <span className="font-semibold text-app">{filteredRecords.length}</span> รายการ
-                    {filteredRecords.length > 0 && (
+                    จำนวนโปรเจค: <span className="font-semibold text-app">{filteredTripProjects.length}</span> โปรเจค
+                    {filteredTripProjects.length > 0 && (
                       <>
-                        {" | "}วันที่ล่าสุด: <span className="font-semibold text-ptt-cyan">{formatDateShort(filteredRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date)}</span>
+                        {" | "}พนักงานทั้งหมด: <span className="font-semibold text-ptt-cyan">
+                          {filteredTripProjects.reduce((sum, p) => sum + p.participants.length, 0)}
+                        </span> คน
                       </>
                     )}
                   </p>
@@ -999,7 +1242,7 @@ export default function Welfare() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                     <input
                       type="text"
-                      placeholder="ค้นหา..."
+                      placeholder="ค้นหาโปรเจค, สถานที่, พนักงาน..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10 pr-4 py-2.5 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue w-full md:w-64"
@@ -1020,100 +1263,127 @@ export default function Welfare() {
                   <li>เที่ยวใน/นอกประเทศ (ตามตำแหน่ง/ผลงาน)</li>
                 </ul>
               </div>
-              
-              {filteredRecords.length > 0 ? (
-                <div className="overflow-x-auto rounded-xl border border-app mt-4">
-                  <table className="w-full">
-                    <thead className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-b-2 border-purple-500/30">
-                      <tr>
-                        <th className="px-4 py-4 text-left text-xs font-bold text-app uppercase tracking-wider min-w-[180px]">
-                          <div className="flex items-center gap-1">
-                            <CalendarIcon className="w-3 h-3" />
-                            วัน เดือน ปี
+
+              {filteredTripProjects.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {filteredTripProjects.map((project) => (
+                    <motion.div
+                      key={project.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-soft border border-app rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all"
+                    >
+                      {/* Header */}
+                      <div className={`p-6 border-b border-app ${project.status === "อนุมัติ" ? "bg-gradient-to-r from-green-500/10 to-emerald-500/10" :
+                          project.status === "ปฏิเสธ" ? "bg-gradient-to-r from-red-500/10 to-rose-500/10" :
+                            "bg-gradient-to-r from-purple-500/10 to-pink-500/10"
+                        }`}>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-xl font-bold text-app mb-2 flex items-center gap-2">
+                              <Plane className="w-5 h-5 text-purple-400" />
+                              {project.projectName}
+                            </h3>
+                            <div className="flex items-center gap-2 text-sm text-muted mb-2">
+                              <MapPin className="w-4 h-4" />
+                              <span className="font-semibold text-app">{project.destination}</span>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted">
+                              <div className="flex items-center gap-1">
+                                <CalendarIcon className="w-3 h-3" />
+                                <span>{formatDateShort(project.startDate)} - {formatDateShort(project.endDate)}</span>
+                              </div>
+                            </div>
                           </div>
-                        </th>
-                        <th className="px-4 py-4 text-left text-xs font-bold text-app uppercase tracking-wider">รหัส</th>
-                        <th className="px-4 py-4 text-left text-xs font-bold text-app uppercase tracking-wider">ชื่อ-นามสกุล</th>
-                        <th className="px-4 py-4 text-left text-xs font-bold text-app uppercase tracking-wider">แผนก</th>
-                        <th className="px-4 py-4 text-center text-xs font-bold text-app uppercase tracking-wider">สถานะ</th>
-                        <th className="px-4 py-4 text-center text-xs font-bold text-app uppercase tracking-wider">จัดการ</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-app/20">
-                      {filteredRecords.map((record) => (
-                        <motion.tr
-                          key={record.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className={`hover:bg-soft/70 transition-colors ${
-                            record.status === "อนุมัติ" ? "bg-green-500/5" :
-                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                            "bg-yellow-500/5"
-                          }`}
-                          title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
-                        >
-                          <td className="px-4 py-4 text-sm text-app min-w-[180px]">
-                            {record.date ? (
-                              <div className="flex flex-col gap-1">
-                                <div className="font-semibold text-app text-sm whitespace-nowrap">
-                                  {formatDateShort(record.date)}
-                                </div>
-                                <div className="text-[10px] text-muted leading-tight border-t border-app/20 pt-1">
-                                  {formatDateDetailed(record.date)}
+                          <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${project.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                              project.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                            }`}>
+                            {project.status === "อนุมัติ" && "✓ "}
+                            {project.status === "ปฏิเสธ" && "✗ "}
+                            {project.status === "รออนุมัติ" && "⏳ "}
+                            {project.status}
+                          </span>
+                        </div>
+                        {project.budget && (
+                          <div className="text-sm text-muted">
+                            งบประมาณ: <span className="font-semibold text-app">
+                              {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(project.budget)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Participants */}
+                      <div className="p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Users className="w-4 h-4 text-ptt-cyan" />
+                          <h4 className="font-semibold text-app">พนักงานที่เข้าร่วม ({project.participants.length} คน)</h4>
+                        </div>
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {project.participants.map((participant, idx) => (
+                            <div key={idx} className="p-3 bg-app/5 rounded-lg border border-app/20">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-sm font-semibold text-app">{participant.empName}</span>
+                                    <span className="text-xs text-ptt-cyan">({participant.empCode})</span>
+                                  </div>
+                                  <div className="text-xs text-muted mb-1">แผนก: {participant.category}</div>
+                                  {participant.companion && (
+                                    <div className="text-xs text-purple-400 flex items-center gap-1 mt-1">
+                                      <UserPlus className="w-3 h-3" />
+                                      พา: {participant.companion}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
-                            ) : (
-                              <span className="text-muted italic text-xs">ไม่มีข้อมูลวันที่</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className="text-sm text-ptt-cyan font-semibold">{record.empCode}</span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className="text-sm text-app font-medium">{record.empName}</span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className="text-sm text-muted">{record.category}</span>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                              record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                              "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                            }`}>
-                              {record.status === "อนุมัติ" && "✓ "}
-                              {record.status === "ปฏิเสธ" && "✗ "}
-                              {record.status === "รออนุมัติ" && "⏳ "}
-                              {record.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button 
-                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors" 
-                                title="แก้ไข"
-                              >
-                                <Edit2 className="w-4 h-4 text-ptt-cyan" />
-                              </button>
-                              <button 
-                                onClick={() => handleDelete(record.id)}
-                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors" 
-                                title="ลบ"
-                              >
-                                <Trash2 className="w-4 h-4 text-red-400" />
-                              </button>
                             </div>
-                          </td>
-                        </motion.tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          ))}
+                        </div>
+                        {project.notes && (
+                          <div className="mt-4 p-3 bg-app/5 rounded-lg border border-app/20">
+                            <p className="text-xs text-muted italic">{project.notes}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="p-4 border-t border-app bg-soft/50 flex items-center justify-between">
+                        <button
+                          onClick={() => handleOpenParticipantModal(project)}
+                          className="px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 
+                                   text-purple-400 rounded-lg transition-all duration-200 font-semibold 
+                                   border border-purple-500/30 hover:shadow-lg flex items-center gap-2"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          {project.participants.length > 0 ? "จัดการพนักงาน" : "เพิ่มพนักงาน"}
+                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleEditTripProject(project)}
+                            className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors"
+                            title="แก้ไขโปรเจค"
+                          >
+                            <Edit2 className="w-4 h-4 text-ptt-cyan" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTripProject(project.id)}
+                            className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                            title="ลบโปรเจค"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               ) : (
                 <div className="text-center py-16 bg-soft/30 rounded-xl border-2 border-dashed border-app mt-4">
                   <Plane className="w-16 h-16 text-muted mx-auto mb-4 opacity-50" />
-                  <p className="text-muted font-light text-lg mb-2">ยังไม่มีรายการทัศนศึกษา</p>
-                  <p className="text-xs text-muted">คลิกปุ่ม "เพิ่มสวัสดิการ" เพื่อเพิ่มรายการใหม่</p>
+                  <p className="text-muted font-light text-lg mb-2">ยังไม่มีโปรเจคทัศนศึกษา</p>
+                  <p className="text-xs text-muted">คลิกปุ่ม "สร้างโปรเจคทัศนศึกษา" เพื่อสร้างโปรเจคใหม่</p>
                 </div>
               )}
             </motion.div>
@@ -1205,7 +1475,7 @@ export default function Welfare() {
                   </div>
                 </div>
               </div>
-              
+
               {filteredRecords.length > 0 ? (
                 <div className="overflow-x-auto rounded-xl border border-app mt-4">
                   <table className="w-full">
@@ -1231,11 +1501,10 @@ export default function Welfare() {
                           key={record.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className={`hover:bg-soft/70 transition-colors ${
-                            record.status === "อนุมัติ" ? "bg-green-500/5" :
-                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                            "bg-yellow-500/5"
-                          }`}
+                          className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
+                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                                "bg-yellow-500/5"
+                            }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
                           <td className="px-4 py-4 text-sm text-app min-w-[180px]">
@@ -1271,11 +1540,10 @@ export default function Welfare() {
                             )}
                           </td>
                           <td className="px-4 py-4 text-center">
-                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                              record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                              "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                            }`}>
+                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
                               {record.status === "รออนุมัติ" && "⏳ "}
@@ -1284,15 +1552,15 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <button 
-                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors" 
+                              <button
+                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors"
                                 title="แก้ไข"
                               >
                                 <Edit2 className="w-4 h-4 text-ptt-cyan" />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleDelete(record.id)}
-                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors" 
+                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
                                 title="ลบ"
                               >
                                 <Trash2 className="w-4 h-4 text-red-400" />
@@ -1359,7 +1627,7 @@ export default function Welfare() {
                   <li>เงิน: ตามระดับการศึกษา</li>
                 </ul>
               </div>
-              
+
               {filteredRecords.length > 0 ? (
                 <div className="overflow-x-auto rounded-xl border border-app mt-4">
                   <table className="w-full">
@@ -1385,11 +1653,10 @@ export default function Welfare() {
                           key={record.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className={`hover:bg-soft/70 transition-colors ${
-                            record.status === "อนุมัติ" ? "bg-green-500/5" :
-                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                            "bg-yellow-500/5"
-                          }`}
+                          className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
+                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                                "bg-yellow-500/5"
+                            }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
                           <td className="px-4 py-4 text-sm text-app min-w-[180px]">
@@ -1425,11 +1692,10 @@ export default function Welfare() {
                             )}
                           </td>
                           <td className="px-4 py-4 text-center">
-                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                              record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                              "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                            }`}>
+                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
                               {record.status === "รออนุมัติ" && "⏳ "}
@@ -1438,15 +1704,15 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <button 
-                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors" 
+                              <button
+                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors"
                                 title="แก้ไข"
                               >
                                 <Edit2 className="w-4 h-4 text-ptt-cyan" />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleDelete(record.id)}
-                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors" 
+                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
                                 title="ลบ"
                               >
                                 <Trash2 className="w-4 h-4 text-red-400" />
@@ -1511,7 +1777,7 @@ export default function Welfare() {
                   <li>สำหรับพนักงานระดับหัวหน้างาน</li>
                 </ul>
               </div>
-              
+
               {filteredRecords.length > 0 ? (
                 <div className="overflow-x-auto rounded-xl border border-app mt-4">
                   <table className="w-full">
@@ -1537,11 +1803,10 @@ export default function Welfare() {
                           key={record.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className={`hover:bg-soft/70 transition-colors ${
-                            record.status === "อนุมัติ" ? "bg-green-500/5" :
-                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                            "bg-yellow-500/5"
-                          }`}
+                          className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
+                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                                "bg-yellow-500/5"
+                            }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
                           <td className="px-4 py-4 text-sm text-app min-w-[180px]">
@@ -1577,11 +1842,10 @@ export default function Welfare() {
                             )}
                           </td>
                           <td className="px-4 py-4 text-center">
-                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                              record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                              "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                            }`}>
+                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
                               {record.status === "รออนุมัติ" && "⏳ "}
@@ -1590,15 +1854,15 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <button 
-                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors" 
+                              <button
+                                className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors"
                                 title="แก้ไข"
                               >
                                 <Edit2 className="w-4 h-4 text-ptt-cyan" />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleDelete(record.id)}
-                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors" 
+                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
                                 title="ลบ"
                               >
                                 <Trash2 className="w-4 h-4 text-red-400" />
@@ -1621,6 +1885,294 @@ export default function Welfare() {
           )}
         </div>
       </div>
+
+      {/* Add/Edit Trip Project Modal (สร้างโปรเจคก่อน ไม่มีพนักงาน) */}
+      <ModalForm
+        isOpen={isTripModalOpen}
+        onClose={() => {
+          setIsTripModalOpen(false);
+          setEditingTripProject(null);
+          setTripFormData({
+            projectName: "",
+            destination: "",
+            startDate: new Date().toISOString().split('T')[0],
+            endDate: new Date().toISOString().split('T')[0],
+            budget: "",
+            notes: ""
+          });
+        }}
+        title={editingTripProject ? "แก้ไขโปรเจคทัศนศึกษา" : "สร้างโปรเจคทัศนศึกษา"}
+        onSubmit={handleTripSubmit}
+        submitLabel={editingTripProject ? "บันทึกการแก้ไข" : "สร้างโปรเจค"}
+        size="lg"
+      >
+        <div className="space-y-6">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <strong>หมายเหตุ:</strong> สร้างโปรเจคก่อน หลังจากนั้นสามารถเพิ่มพนักงานได้จากปุ่ม "เพิ่มพนักงาน" ในแต่ละโปรเจค
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                ชื่อโปรเจค <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={tripFormData.projectName}
+                onChange={(e) => setTripFormData({ ...tripFormData, projectName: e.target.value })}
+                placeholder="เช่น ทัศนศึกษาปี 2567"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  สถานที่/จุดหมายปลายทาง <span className="text-red-400">*</span>
+                </div>
+              </label>
+              <input
+                type="text"
+                value={tripFormData.destination}
+                onChange={(e) => setTripFormData({ ...tripFormData, destination: e.target.value })}
+                placeholder="เช่น เกาะสมุย, ภูเก็ต, ญี่ปุ่น"
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app placeholder:text-muted
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                <div className="flex items-center gap-1">
+                  <CalendarIcon className="w-3 h-3" />
+                  วันที่เริ่มต้น <span className="text-red-400">*</span>
+                </div>
+              </label>
+              <input
+                type="date"
+                value={tripFormData.startDate}
+                onChange={(e) => setTripFormData({ ...tripFormData, startDate: e.target.value })}
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-app mb-1.5">
+                <div className="flex items-center gap-1">
+                  <CalendarIcon className="w-3 h-3" />
+                  วันที่สิ้นสุด <span className="text-red-400">*</span>
+                </div>
+              </label>
+              <input
+                type="date"
+                value={tripFormData.endDate}
+                onChange={(e) => setTripFormData({ ...tripFormData, endDate: e.target.value })}
+                min={tripFormData.startDate}
+                className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                         text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
+              งบประมาณ (บาท)
+            </label>
+            <input
+              type="number"
+              value={tripFormData.budget}
+              onChange={(e) => setTripFormData({ ...tripFormData, budget: e.target.value })}
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                       text-app placeholder:text-muted
+                       focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-app mb-1.5">
+              หมายเหตุ
+            </label>
+            <textarea
+              rows={3}
+              value={tripFormData.notes}
+              onChange={(e) => setTripFormData({ ...tripFormData, notes: e.target.value })}
+              placeholder="ระบุหมายเหตุ (ถ้ามี)..."
+              className="w-full px-4 py-3 bg-soft border border-app rounded-xl
+                       text-app placeholder:text-muted
+                       focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                       transition-all duration-200 hover:border-app/50 resize-none"
+            />
+          </div>
+        </div>
+      </ModalForm>
+
+      {/* Manage Participants Modal */}
+      <ModalForm
+        isOpen={isParticipantModalOpen}
+        onClose={() => {
+          setIsParticipantModalOpen(false);
+          setCurrentProjectForParticipants(null);
+          setParticipantFormData([]);
+          setParticipantCategoryFilter("ทั้งหมด");
+          setParticipantSearchQuery("");
+        }}
+        title={currentProjectForParticipants ? `จัดการพนักงาน - ${currentProjectForParticipants.projectName}` : "จัดการพนักงาน"}
+        onSubmit={handleSaveParticipants}
+        submitLabel="บันทึก"
+        size="xl"
+      >
+        <div className="space-y-6">
+          {currentProjectForParticipants && (
+            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-4 h-4 text-purple-400" />
+                <span className="font-semibold text-app">{currentProjectForParticipants.destination}</span>
+              </div>
+              <div className="text-sm text-muted">
+                {formatDateShort(currentProjectForParticipants.startDate)} - {formatDateShort(currentProjectForParticipants.endDate)}
+              </div>
+            </div>
+          )}
+
+          {/* Filter Section */}
+          <div className="bg-soft border border-app rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-1 mb-2">
+              <Filter className="w-4 h-4 text-ptt-cyan" />
+              <span className="text-sm font-semibold text-app">กรองพนักงาน</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted">แผนก</label>
+                <select
+                  value={participantCategoryFilter}
+                  onChange={(e) => setParticipantCategoryFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-app/5 border border-app/20 rounded-lg text-sm text-app
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                           transition-all duration-200 cursor-pointer"
+                >
+                  <option value="ทั้งหมด">ทั้งหมด</option>
+                  {employeeCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted">ค้นหา</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                  <input
+                    type="text"
+                    value={participantSearchQuery}
+                    onChange={(e) => setParticipantSearchQuery(e.target.value)}
+                    placeholder="ค้นหาชื่อ, รหัส, แผนก..."
+                    className="w-full pl-10 pr-3 py-2 bg-app/5 border border-app/20 rounded-lg text-sm text-app
+                             placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                             transition-all duration-200"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="text-xs text-muted">
+              พบ {filteredEmployeesForParticipant.length} คน
+            </div>
+          </div>
+
+          {/* Add Employee Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-semibold text-app">
+                <div className="flex items-center gap-1">
+                  <Users className="w-4 h-4" />
+                  เพิ่มพนักงาน
+                </div>
+              </label>
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleAddParticipant(e.target.value);
+                    e.target.value = "";
+                  }
+                }}
+                className="px-3 py-2 bg-soft border border-app rounded-lg text-app text-sm
+                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                         transition-all duration-200 hover:border-app/50 cursor-pointer"
+              >
+                <option value="">เลือกพนักงาน...</option>
+                {filteredEmployeesForParticipant.map((emp) => (
+                  <option key={emp.id} value={emp.code}>
+                    {emp.code} - {emp.name} ({emp.category || emp.dept})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {participantFormData.length > 0 ? (
+              <div className="space-y-3 max-h-96 overflow-y-auto p-3 bg-app/5 rounded-xl border border-app/20">
+                {participantFormData.map((participant, idx) => (
+                  <div key={idx} className="p-3 bg-soft rounded-lg border border-app/20">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-app">{participant.empName}</span>
+                          <span className="text-xs text-ptt-cyan">({participant.empCode})</span>
+                        </div>
+                        <div className="text-xs text-muted">แผนก: {participant.category}</div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveParticipant(participant.empCode)}
+                        className="p-1 hover:bg-red-500/20 rounded transition-colors"
+                        title="ลบ"
+                      >
+                        <X className="w-4 h-4 text-red-400" />
+                      </button>
+                    </div>
+                    <div className="mt-2">
+                      <label className="block text-xs font-semibold text-app mb-1">
+                        <div className="flex items-center gap-1">
+                          <UserPlus className="w-3 h-3" />
+                          ผู้ติดตาม (ถ้ามี)
+                        </div>
+                      </label>
+                      <input
+                        type="text"
+                        value={participant.companion || ""}
+                        onChange={(e) => handleUpdateCompanion(participant.empCode, e.target.value)}
+                        placeholder="เช่น ภรรยา, สามี, บุตร"
+                        className="w-full px-3 py-2 bg-app/5 border border-app/20 rounded-lg text-sm text-app
+                                 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ptt-blue/50
+                                 transition-all duration-200"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 bg-app/5 rounded-xl border-2 border-dashed border-app text-center">
+                <Users className="w-8 h-8 text-muted mx-auto mb-2 opacity-50" />
+                <p className="text-sm text-muted">ยังไม่มีพนักงานที่เข้าร่วม</p>
+                <p className="text-xs text-muted mt-1">เลือกพนักงานจาก dropdown ด้านบน</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </ModalForm>
 
       {/* Add Welfare Modal */}
       <ModalForm

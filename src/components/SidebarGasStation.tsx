@@ -15,7 +15,6 @@ import {
   ChevronDown,
   ChevronUp,
   TrendingDown,
-  FilePlus,
   RotateCcw,
   FileSpreadsheet,
   Truck,
@@ -58,13 +57,22 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
       label: "การสั่งซื้อและรับน้ำมัน",
       icon: ShoppingCart,
       items: [
-        { to: "/app/gas-station/station-order", icon: FilePlus, label: "สั่งน้ำมันของปั้ม" },
+        // { to: "/app/gas-station/station-order", icon: FilePlus, label: "สั่งน้ำมันของปั้ม" },
         { to: "/app/gas-station/orders", icon: ShoppingCart, label: "การสั่งซื้อน้ำมัน" },
         { to: "/app/gas-station/order-history", icon: Receipt, label: "ประวัติการสั่งซื้อ / บิล" },
         { to: "/app/gas-station/receiving", icon: Package, label: "การรับน้ำมัน" },
+        // { to: "/app/gas-station/payments", icon: CreditCard, label: "การชำระเงินซื้อน้ำมัน" },
+      ],
+    },
+    {
+      id: "fleet",
+      label: "การจัดการรถ",
+      icon: Truck,
+      items: [
+        { to: "/app/gas-station/truck-orders", icon: FileText, label: "ออเดอร์รถ" },
         { to: "/app/gas-station/truck-sales", icon: Truck, label: "ขายน้ำมันที่เหลือบนรถ" },
         { to: "/app/gas-station/truck-profiles", icon: Truck, label: "โปรไฟล์รถส่งน้ำมัน" },
-        // { to: "/app/gas-station/payments", icon: CreditCard, label: "การชำระเงินซื้อน้ำมัน" },
+        { to: "/app/gas-station/trailer-profiles", icon: Droplet, label: "โปรไฟล์หางรถน้ำมัน" },
       ],
     },
     {
@@ -101,10 +109,27 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
       items: [
         { to: "/app/gas-station/station-products", icon: Package, label: "สินค้าภายในปั้ม" },
         { to: "/app/gas-station/pos", icon: Monitor, label: "ระบบ POS - ขายสินค้า" },
-        { to: "/app/gas-station/lubricants", icon: Wrench, label: "น้ำมันหล่อลื่น" },
         { to: "/app/gas-station/gas", icon: Flame, label: "การจัดการแก๊ส" },
-        { to: "/app/gas-station/engine-oil", icon: Droplet, label: "น้ำมันเครื่อง" },
         { to: "/app/gas-station/product-sales-history", icon: History, label: "ประวัติการขายสินค้า" },
+      ],
+    },
+    {
+      id: "lubricants",
+      label: "น้ำมันเครื่อง & Lubricants",
+      icon: Droplet,
+      items: [
+        { to: "/app/gas-station/lubricants-dashboard", icon: BarChart3, label: "Dashboard" },
+        { to: "/app/gas-station/lubricants", icon: Wrench, label: "น้ำมันหล่อลื่น" },
+        { to: "/app/gas-station/engine-oil", icon: Droplet, label: "น้ำมันเครื่อง" },
+      ],
+    },
+    {
+      id: "accounting",
+      label: "บัญชีและรายงาน",
+      icon: FileText,
+      items: [
+        { to: "/app/gas-station/po-generation", icon: FileText, label: "ออกใบสั่งซื้อ (PO)" },
+        { to: "/app/gas-station/accounting-export", icon: FileSpreadsheet, label: "Export รายงาน" },
       ],
     },
   ];

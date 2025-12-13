@@ -23,6 +23,12 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
+// ตัวเลือกปริมาณมาตรฐาน (ลิตร) สำหรับ dropdown
+const quantityOptions = [
+  1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000,
+  12000, 15000,
+];
+
 type Branch = {
   id: number;
   name: string;
@@ -329,15 +335,18 @@ export default function NewOrderForm({
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               จำนวน (ลิตร) *
             </label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
+            <select
               value={selectedQuantity}
               onChange={(e) => setSelectedQuantity(e.target.value)}
-              placeholder="0"
               className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
-            />
+            >
+              <option value="">เลือกปริมาณ</option>
+              {quantityOptions.map((qty) => (
+                <option key={qty} value={qty}>
+                  {numberFormatter.format(qty)} ลิตร
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* นิติบุคคล */}
@@ -423,14 +432,17 @@ export default function NewOrderForm({
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
+                      <select
                         value={item.quantity}
                         onChange={(e) => updateItem(index, "quantity", parseFloat(e.target.value) || 0)}
                         className="w-32 px-2 py-1 text-right bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white text-sm"
-                      />
+                      >
+                        {quantityOptions.map((qty) => (
+                          <option key={qty} value={qty}>
+                            {numberFormatter.format(qty)}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="py-3 px-4">
                       <select

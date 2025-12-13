@@ -15,6 +15,8 @@ import {
   Settings,
   Clock,
   Building2,
+  FileText,
+  AlertTriangle,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -31,17 +33,22 @@ const dateFormatter = new Intl.DateTimeFormat("th-TH", {
 // Interface สำหรับหาง (Trailer)
 interface Trailer {
   id: string;
-  plateNumber: string;
+  plateNumber: string; // ทะเบียนรถส่วนหาง (Tail License Plate)
   capacity: number;
   status: "available" | "in-use" | "maintenance";
   lastMaintenanceDate?: string;
   nextMaintenanceDate?: string;
+  // เอกสารประจำหาง
+  compulsoryInsuranceExpiry?: string;
+  vehicleTaxExpiry?: string;
+  insuranceExpiry?: string;
+  hazmatLicenseExpiry?: string;
 }
 
 // Interface สำหรับรถ (Truck Head)
 interface TruckProfile {
   id: string;
-  plateNumber: string;
+  plateNumber: string; // ทะเบียนรถส่วนหัว (Head License Plate)
   brand: string;
   model: string;
   year: number;
@@ -56,6 +63,11 @@ interface TruckProfile {
   nextMaintenanceDate?: string;
   compatibleTrailers: string[];
   currentTrailerId?: string;
+  // เอกสารประจำรถหัวลาก
+  compulsoryInsuranceExpiry?: string;
+  vehicleTaxExpiry?: string;
+  insuranceExpiry?: string;
+  hazmatLicenseExpiry?: string;
 }
 
 // Interface สำหรับประวัติการใช้งาน
@@ -82,6 +94,10 @@ const mockTrailers: Trailer[] = [
     status: "in-use",
     lastMaintenanceDate: "2024-11-15",
     nextMaintenanceDate: "2025-02-15",
+    compulsoryInsuranceExpiry: "2025-06-30",
+    vehicleTaxExpiry: "2025-03-15",
+    insuranceExpiry: "2025-08-20",
+    hazmatLicenseExpiry: "2025-12-31",
   },
   {
     id: "TRAILER-002",
@@ -90,6 +106,10 @@ const mockTrailers: Trailer[] = [
     status: "available",
     lastMaintenanceDate: "2024-10-20",
     nextMaintenanceDate: "2025-01-20",
+    compulsoryInsuranceExpiry: "2025-01-15",
+    vehicleTaxExpiry: "2025-05-10",
+    insuranceExpiry: "2025-07-25",
+    hazmatLicenseExpiry: "2025-11-30",
   },
   {
     id: "TRAILER-003",
@@ -98,6 +118,10 @@ const mockTrailers: Trailer[] = [
     status: "in-use",
     lastMaintenanceDate: "2024-12-01",
     nextMaintenanceDate: "2025-03-01",
+    compulsoryInsuranceExpiry: "2025-09-15",
+    vehicleTaxExpiry: "2025-04-20",
+    insuranceExpiry: "2025-10-10",
+    hazmatLicenseExpiry: "2025-12-25",
   },
 ];
 
@@ -120,6 +144,10 @@ const mockTrucks: TruckProfile[] = [
     nextMaintenanceDate: "2025-02-20",
     compatibleTrailers: ["TRAILER-001", "TRAILER-002", "TRAILER-003"],
     currentTrailerId: "TRAILER-001",
+    compulsoryInsuranceExpiry: "2025-07-15",
+    vehicleTaxExpiry: "2025-06-30",
+    insuranceExpiry: "2025-09-20",
+    hazmatLicenseExpiry: "2025-11-15",
   },
   {
     id: "TRUCK-002",
@@ -138,6 +166,10 @@ const mockTrucks: TruckProfile[] = [
     nextMaintenanceDate: "2025-03-01",
     compatibleTrailers: ["TRAILER-001", "TRAILER-002", "TRAILER-003"],
     currentTrailerId: "TRAILER-003",
+    compulsoryInsuranceExpiry: "2025-01-10",
+    vehicleTaxExpiry: "2025-05-25",
+    insuranceExpiry: "2025-08-15",
+    hazmatLicenseExpiry: "2025-10-30",
   },
 ];
 
@@ -223,10 +255,30 @@ const mockTripHistory: TripHistory[] = [
   },
 ];
 
+// Helper functions for document expiry checking
+const getDaysUntilExpiry = (expiryDate: string): number => {
+  const today = new Date();
+  const expiry = new Date(expiryDate);
+  const diffTime = expiry.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+const isDocumentExpiringSoon = (expiryDate: string | undefined, daysThreshold: number = 30): boolean => {
+  if (!expiryDate) return false;
+  const daysUntil = getDaysUntilExpiry(expiryDate);
+  return daysUntil <= daysThreshold && daysUntil > 0;
+};
+
+const isDocumentExpired = (expiryDate: string | undefined): boolean => {
+  if (!expiryDate) return false;
+  return getDaysUntilExpiry(expiryDate) <= 0;
+};
+
 export default function TruckProfileDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [selectedTab, setSelectedTab] = useState<"overview" | "trips" | "maintenance">("overview");
+  const [selectedTab, setSelectedTab] = useState<"overview" | "trips" | "maintenance" | "documents">("overview");
 
   // หาข้อมูลรถ
   const truck = useMemo(() => {
@@ -350,31 +402,37 @@ export default function TruckProfileDetail() {
       <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => setSelectedTab("overview")}
-          className={`px-6 py-3 font-medium transition-colors ${
-            selectedTab === "overview"
-              ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          }`}
+          className={`px-6 py-3 font-medium transition-colors ${selectedTab === "overview"
+            ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            }`}
         >
           ภาพรวม
         </button>
         <button
           onClick={() => setSelectedTab("trips")}
-          className={`px-6 py-3 font-medium transition-colors ${
-            selectedTab === "trips"
-              ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          }`}
+          className={`px-6 py-3 font-medium transition-colors ${selectedTab === "trips"
+            ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            }`}
         >
           ประวัติการใช้งาน ({tripHistory.length})
         </button>
         <button
+          onClick={() => setSelectedTab("documents")}
+          className={`px-6 py-3 font-medium transition-colors ${selectedTab === "documents"
+            ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            }`}
+        >
+          เอกสาร
+        </button>
+        <button
           onClick={() => setSelectedTab("maintenance")}
-          className={`px-6 py-3 font-medium transition-colors ${
-            selectedTab === "maintenance"
-              ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          }`}
+          className={`px-6 py-3 font-medium transition-colors ${selectedTab === "maintenance"
+            ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            }`}
         >
           บำรุงรักษา
         </button>
@@ -537,19 +595,18 @@ export default function TruckProfileDetail() {
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">สถานะ:</span>
                     <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        currentTrailer.status === "in-use"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                          : currentTrailer.status === "available"
+                      className={`px-2 py-1 rounded text-xs font-medium ${currentTrailer.status === "in-use"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                        : currentTrailer.status === "available"
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                           : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                      }`}
+                        }`}
                     >
                       {currentTrailer.status === "in-use"
                         ? "ใช้งานอยู่"
                         : currentTrailer.status === "available"
-                        ? "พร้อมใช้งาน"
-                        : "ซ่อมบำรุง"}
+                          ? "พร้อมใช้งาน"
+                          : "ซ่อมบำรุง"}
                     </span>
                   </div>
                 </div>
@@ -574,11 +631,10 @@ export default function TruckProfileDetail() {
               {compatibleTrailers.map((trailer) => (
                 <div
                   key={trailer.id}
-                  className={`p-4 rounded-lg border-2 ${
-                    trailer.id === truck.currentTrailerId
-                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                      : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50"
-                  }`}
+                  className={`p-4 rounded-lg border-2 ${trailer.id === truck.currentTrailerId
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50"
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-semibold text-gray-900 dark:text-white">
@@ -598,12 +654,297 @@ export default function TruckProfileDetail() {
                     {trailer.status === "in-use"
                       ? "ใช้งานอยู่"
                       : trailer.status === "available"
-                      ? "พร้อมใช้งาน"
-                      : "ซ่อมบำรุง"}
+                        ? "พร้อมใช้งาน"
+                        : "ซ่อมบำรุง"}
                   </div>
                 </div>
               ))}
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Documents Tab */}
+      {selectedTab === "documents" && (
+        <div className="space-y-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+          >
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              เอกสารประจำรถ
+            </h3>
+
+            {/* Truck Head Documents */}
+            <div className="mb-6">
+              <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                <Truck className="w-4 h-4" />
+                เอกสารรถหัวลาก ({truck.plateNumber})
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* พ.ร.บ. */}
+                <div className={`p-4 rounded-lg border-2 ${isDocumentExpired(truck.compulsoryInsuranceExpiry)
+                  ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800"
+                  : isDocumentExpiringSoon(truck.compulsoryInsuranceExpiry)
+                    ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800"
+                    : "border-gray-200 bg-gray-50 dark:bg-gray-700/50 dark:border-gray-700"
+                  }`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm">พ.ร.บ.</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        {truck.compulsoryInsuranceExpiry
+                          ? dateFormatter.format(new Date(truck.compulsoryInsuranceExpiry))
+                          : "ไม่ระบุ"}
+                      </p>
+                      {truck.compulsoryInsuranceExpiry && isDocumentExpiringSoon(truck.compulsoryInsuranceExpiry) && (
+                        <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                          เหลืออีก {getDaysUntilExpiry(truck.compulsoryInsuranceExpiry)} วัน
+                        </p>
+                      )}
+                    </div>
+                    {isDocumentExpired(truck.compulsoryInsuranceExpiry) ? (
+                      <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    ) : isDocumentExpiringSoon(truck.compulsoryInsuranceExpiry) ? (
+                      <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    ) : (
+                      <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    )}
+                  </div>
+                </div>
+
+                {/* ทะเบียนรถ */}
+                <div className={`p-4 rounded-lg border-2 ${isDocumentExpired(truck.vehicleTaxExpiry)
+                  ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800"
+                  : isDocumentExpiringSoon(truck.vehicleTaxExpiry)
+                    ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800"
+                    : "border-gray-200 bg-gray-50 dark:bg-gray-700/50 dark:border-gray-700"
+                  }`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm">ทะเบียนรถ/ป้ายวงกลม</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        {truck.vehicleTaxExpiry
+                          ? dateFormatter.format(new Date(truck.vehicleTaxExpiry))
+                          : "ไม่ระบุ"}
+                      </p>
+                      {truck.vehicleTaxExpiry && isDocumentExpiringSoon(truck.vehicleTaxExpiry) && (
+                        <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                          เหลืออีก {getDaysUntilExpiry(truck.vehicleTaxExpiry)} วัน
+                        </p>
+                      )}
+                    </div>
+                    {isDocumentExpired(truck.vehicleTaxExpiry) ? (
+                      <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    ) : isDocumentExpiringSoon(truck.vehicleTaxExpiry) ? (
+                      <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    ) : (
+                      <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    )}
+                  </div>
+                </div>
+
+                {/* ประกันภัย */}
+                <div className={`p-4 rounded-lg border-2 ${isDocumentExpired(truck.insuranceExpiry)
+                  ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800"
+                  : isDocumentExpiringSoon(truck.insuranceExpiry)
+                    ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800"
+                    : "border-gray-200 bg-gray-50 dark:bg-gray-700/50 dark:border-gray-700"
+                  }`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm">ประกันภัย</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        {truck.insuranceExpiry
+                          ? dateFormatter.format(new Date(truck.insuranceExpiry))
+                          : "ไม่ระบุ"}
+                      </p>
+                      {truck.insuranceExpiry && isDocumentExpiringSoon(truck.insuranceExpiry) && (
+                        <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                          เหลืออีก {getDaysUntilExpiry(truck.insuranceExpiry)} วัน
+                        </p>
+                      )}
+                    </div>
+                    {isDocumentExpired(truck.insuranceExpiry) ? (
+                      <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    ) : isDocumentExpiringSoon(truck.insuranceExpiry) ? (
+                      <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    ) : (
+                      <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    )}
+                  </div>
+                </div>
+
+                {/* ใบอนุญาตขนส่งวัตถุอันตราย */}
+                <div className={`p-4 rounded-lg border-2 ${isDocumentExpired(truck.hazmatLicenseExpiry)
+                  ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800"
+                  : isDocumentExpiringSoon(truck.hazmatLicenseExpiry)
+                    ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800"
+                    : "border-gray-200 bg-gray-50 dark:bg-gray-700/50 dark:border-gray-700"
+                  }`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm">ใบอนุญาตขนส่งวัตถุอันตราย</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        {truck.hazmatLicenseExpiry
+                          ? dateFormatter.format(new Date(truck.hazmatLicenseExpiry))
+                          : "ไม่ระบุ"}
+                      </p>
+                      {truck.hazmatLicenseExpiry && isDocumentExpiringSoon(truck.hazmatLicenseExpiry) && (
+                        <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                          เหลืออีก {getDaysUntilExpiry(truck.hazmatLicenseExpiry)} วัน
+                        </p>
+                      )}
+                    </div>
+                    {isDocumentExpired(truck.hazmatLicenseExpiry) ? (
+                      <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    ) : isDocumentExpiringSoon(truck.hazmatLicenseExpiry) ? (
+                      <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    ) : (
+                      <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Trailer Documents */}
+            {currentTrailer && (
+              <div>
+                <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                  <Droplet className="w-4 h-4" />
+                  เอกสารหาง ({currentTrailer.plateNumber})
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* พ.ร.บ. */}
+                  <div className={`p-4 rounded-lg border-2 ${isDocumentExpired(currentTrailer.compulsoryInsuranceExpiry)
+                    ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800"
+                    : isDocumentExpiringSoon(currentTrailer.compulsoryInsuranceExpiry)
+                      ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800"
+                      : "border-gray-200 bg-gray-50 dark:bg-gray-700/50 dark:border-gray-700"
+                    }`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">พ.ร.บ.</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {currentTrailer.compulsoryInsuranceExpiry
+                            ? dateFormatter.format(new Date(currentTrailer.compulsoryInsuranceExpiry))
+                            : "ไม่ระบุ"}
+                        </p>
+                        {currentTrailer.compulsoryInsuranceExpiry && isDocumentExpiringSoon(currentTrailer.compulsoryInsuranceExpiry) && (
+                          <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                            เหลืออีก {getDaysUntilExpiry(currentTrailer.compulsoryInsuranceExpiry)} วัน
+                          </p>
+                        )}
+                      </div>
+                      {isDocumentExpired(currentTrailer.compulsoryInsuranceExpiry) ? (
+                        <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                      ) : isDocumentExpiringSoon(currentTrailer.compulsoryInsuranceExpiry) ? (
+                        <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                      ) : (
+                        <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ทะเบียนรถ */}
+                  <div className={`p-4 rounded-lg border-2 ${isDocumentExpired(currentTrailer.vehicleTaxExpiry)
+                    ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800"
+                    : isDocumentExpiringSoon(currentTrailer.vehicleTaxExpiry)
+                      ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800"
+                      : "border-gray-200 bg-gray-50 dark:bg-gray-700/50 dark:border-gray-700"
+                    }`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">ทะเบียนรถ/ป้ายวงกลม</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {currentTrailer.vehicleTaxExpiry
+                            ? dateFormatter.format(new Date(currentTrailer.vehicleTaxExpiry))
+                            : "ไม่ระบุ"}
+                        </p>
+                        {currentTrailer.vehicleTaxExpiry && isDocumentExpiringSoon(currentTrailer.vehicleTaxExpiry) && (
+                          <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                            เหลืออีก {getDaysUntilExpiry(currentTrailer.vehicleTaxExpiry)} วัน
+                          </p>
+                        )}
+                      </div>
+                      {isDocumentExpired(currentTrailer.vehicleTaxExpiry) ? (
+                        <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                      ) : isDocumentExpiringSoon(currentTrailer.vehicleTaxExpiry) ? (
+                        <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                      ) : (
+                        <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ประกันภัย */}
+                  <div className={`p-4 rounded-lg border-2 ${isDocumentExpired(currentTrailer.insuranceExpiry)
+                    ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800"
+                    : isDocumentExpiringSoon(currentTrailer.insuranceExpiry)
+                      ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800"
+                      : "border-gray-200 bg-gray-50 dark:bg-gray-700/50 dark:border-gray-700"
+                    }`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">ประกันภัย</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {currentTrailer.insuranceExpiry
+                            ? dateFormatter.format(new Date(currentTrailer.insuranceExpiry))
+                            : "ไม่ระบุ"}
+                        </p>
+                        {currentTrailer.insuranceExpiry && isDocumentExpiringSoon(currentTrailer.insuranceExpiry) && (
+                          <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                            เหลืออีก {getDaysUntilExpiry(currentTrailer.insuranceExpiry)} วัน
+                          </p>
+                        )}
+                      </div>
+                      {isDocumentExpired(currentTrailer.insuranceExpiry) ? (
+                        <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                      ) : isDocumentExpiringSoon(currentTrailer.insuranceExpiry) ? (
+                        <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                      ) : (
+                        <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ใบอนุญาตขนส่งวัตถุอันตราย */}
+                  <div className={`p-4 rounded-lg border-2 ${isDocumentExpired(currentTrailer.hazmatLicenseExpiry)
+                    ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800"
+                    : isDocumentExpiringSoon(currentTrailer.hazmatLicenseExpiry)
+                      ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800"
+                      : "border-gray-200 bg-gray-50 dark:bg-gray-700/50 dark:border-gray-700"
+                    }`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">ใบอนุญาตขนส่งวัตถุอันตราย</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {currentTrailer.hazmatLicenseExpiry
+                            ? dateFormatter.format(new Date(currentTrailer.hazmatLicenseExpiry))
+                            : "ไม่ระบุ"}
+                        </p>
+                        {currentTrailer.hazmatLicenseExpiry && isDocumentExpiringSoon(currentTrailer.hazmatLicenseExpiry) && (
+                          <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                            เหลืออีก {getDaysUntilExpiry(currentTrailer.hazmatLicenseExpiry)} วัน
+                          </p>
+                        )}
+                      </div>
+                      {isDocumentExpired(currentTrailer.hazmatLicenseExpiry) ? (
+                        <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                      ) : isDocumentExpiringSoon(currentTrailer.hazmatLicenseExpiry) ? (
+                        <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                      ) : (
+                        <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
       )}
@@ -691,19 +1032,18 @@ export default function TruckProfileDetail() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            trip.status === "completed"
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                              : trip.status === "in-progress"
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${trip.status === "completed"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                            : trip.status === "in-progress"
                               ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                               : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                          }`}
+                            }`}
                         >
                           {trip.status === "completed"
                             ? "เสร็จสิ้น"
                             : trip.status === "in-progress"
-                            ? "กำลังดำเนินการ"
-                            : "ยกเลิก"}
+                              ? "กำลังดำเนินการ"
+                              : "ยกเลิก"}
                         </span>
                       </td>
                     </tr>

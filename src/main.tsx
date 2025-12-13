@@ -215,6 +215,12 @@ import OrderHistory from "@/pages/gas-station/OrderHistory";
 import TruckSales from "@/pages/gas-station/TruckSales";
 import TruckProfiles from "@/pages/gas-station/TruckProfiles";
 import TruckProfileDetail from "@/pages/gas-station/TruckProfileDetail";
+import TrailerProfiles from "@/pages/gas-station/TrailerProfiles";
+import TrailerProfileDetail from "@/pages/gas-station/TrailerProfileDetail";
+import TruckOrders from "@/pages/gas-station/TruckOrders";
+import LubricantsDashboard from "@/pages/gas-station/LubricantsDashboard";
+import AccountingExport from "@/pages/gas-station/AccountingExport";
+import POGeneration from "@/pages/gas-station/POGeneration";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -940,6 +946,30 @@ const router = createBrowserRouter([
           {
             path: "truck-profiles/:id",
             element: <TruckProfileDetail />,
+          },
+          {
+            path: "trailer-profiles",
+            element: <TrailerProfiles />,
+          },
+          {
+            path: "trailer-profiles/:id",
+            element: <TrailerProfileDetail />,
+          },
+          {
+            path: "truck-orders",
+            element: <TruckOrders />,
+          },
+          {
+            path: "lubricants-dashboard",
+            element: <LubricantsDashboard />,
+          },
+          {
+            path: "accounting-export",
+            element: <AccountingExport />,
+          },
+          {
+            path: "po-generation",
+            element: <POGeneration />,
           },
           {
             path: "payments",

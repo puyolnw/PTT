@@ -18,6 +18,12 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
+const currencyFormatter = new Intl.NumberFormat("th-TH", {
+  style: "currency",
+  currency: "THB",
+  maximumFractionDigits: 0,
+});
+
 type OilType =
   | "Premium Diesel"
   | "Premium Gasohol 95"
@@ -30,67 +36,81 @@ type OilType =
 type StockUpdateItem = {
   id: string;
   branch: string;
+  tankNumber: number; // หลุม
   oilType: OilType;
   currentStock: number; // สต็อกปัจจุบัน (ลิตร)
   usageAmount: number; // จำนวนที่ใช้ไป (ลิตร) - สำหรับกรอก
   updatedStock: number; // สต็อกหลังอัพเดต (ลิตร) - คำนวณอัตโนมัติ
   lastUpdated: string;
   status: "pending" | "updated";
+  pricePerLiter: number;
+  totalValue: number;
+  maxCapacity: number;
 };
 
-// สาขาทั้งหมด
+// สาขาทั้งหมด (ตรงกับ Stock.tsx - ไม่รวมมายมาส)
+// ลำดับ: ไฮโซ -> ดินดำ -> หนองจิก -> ตาก -> บายพาส
 const branches = [
   { id: 1, name: "ปั๊มไฮโซ", code: "HQ" },
-  { id: 2, name: "สาขา 2", code: "B2" },
-  { id: 3, name: "สาขา 3", code: "B3" },
-  { id: 4, name: "สาขา 4", code: "B4" },
-  { id: 5, name: "สาขา 5", code: "B5" },
+  { id: 2, name: "ดินดำ", code: "DD" },
+  { id: 3, name: "หนองจิก", code: "NJ" },
+  { id: 4, name: "ตาก", code: "TK" },
+  { id: 5, name: "บายพาส", code: "BP" },
 ];
 
-// Mock data - ดึงข้อมูลสต็อกปัจจุบันสำหรับทุกสาขา
-const generateInitialStockData = (): StockUpdateItem[] => {
-  const oilTypes: OilType[] = [
-    "Premium Diesel",
-    "Premium Gasohol 95",
-    "Diesel",
-    "E85",
-    "E20",
-    "Gasohol 91",
-    "Gasohol 95",
-  ];
-  
-  const baseStocks: Record<OilType, number> = {
-    "Premium Diesel": 45000,
-    "Premium Gasohol 95": 38000,
-    "Diesel": 52000,
-    "E85": 15000,
-    "E20": 28000,
-    "Gasohol 91": 22000,
-    "Gasohol 95": 35000,
-  };
+// Mock data จาก Stock.tsx - ใช้ข้อมูลเดียวกัน
+// เรียงตามลำดับ: ปั๊มไฮโซ -> ดินดำ -> หนองจิก -> ตาก -> บายพาส (ไม่รวมมายมาส)
+const mockStockDataFromStock = [
+  // ปั๊มไฮโซ - 5 หลุม
+  { id: "STK-001", branch: "ปั๊มไฮโซ", tankNumber: 1, oilType: "Gasohol 95" as OilType, currentStock: 18000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 41.49, totalValue: 746820 },
+  { id: "STK-002", branch: "ปั๊มไฮโซ", tankNumber: 2, oilType: "Premium Diesel" as OilType, currentStock: 7500, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 33.49, totalValue: 251175 },
+  { id: "STK-003", branch: "ปั๊มไฮโซ", tankNumber: 3, oilType: "E20" as OilType, currentStock: 8300, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 36.90, totalValue: 306270 },
+  { id: "STK-004", branch: "ปั๊มไฮโซ", tankNumber: 4, oilType: "Diesel" as OilType, currentStock: 17000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 32.49, totalValue: 552330 },
+  { id: "STK-005", branch: "ปั๊มไฮโซ", tankNumber: 5, oilType: "Gasohol 91" as OilType, currentStock: 19000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 38.49, totalValue: 731310 },
+  // ดินดำ - 5 หลุม
+  { id: "STK-101", branch: "ดินดำ", tankNumber: 1, oilType: "Premium Diesel" as OilType, currentStock: 19000, minThreshold: 700, maxCapacity: 20000, pricePerLiter: 33.49, totalValue: 636310 },
+  { id: "STK-102", branch: "ดินดำ", tankNumber: 2, oilType: "Gasohol 95" as OilType, currentStock: 9600, minThreshold: 400, maxCapacity: 10000, pricePerLiter: 41.49, totalValue: 398304 },
+  { id: "STK-103", branch: "ดินดำ", tankNumber: 3, oilType: "E20" as OilType, currentStock: 9600, minThreshold: 400, maxCapacity: 10000, pricePerLiter: 36.90, totalValue: 354240 },
+  { id: "STK-104", branch: "ดินดำ", tankNumber: 4, oilType: "Diesel" as OilType, currentStock: 19400, minThreshold: 600, maxCapacity: 20000, pricePerLiter: 32.49, totalValue: 630306 },
+  { id: "STK-105", branch: "ดินดำ", tankNumber: 5, oilType: "Gasohol 91" as OilType, currentStock: 19400, minThreshold: 600, maxCapacity: 20000, pricePerLiter: 38.49, totalValue: 746706 },
+  // หนองจิก - 5 หลุม
+  { id: "STK-201", branch: "หนองจิก", tankNumber: 1, oilType: "Gasohol 95" as OilType, currentStock: 18000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 41.49, totalValue: 746820 },
+  { id: "STK-202", branch: "หนองจิก", tankNumber: 2, oilType: "Premium Diesel" as OilType, currentStock: 7500, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 33.49, totalValue: 251175 },
+  { id: "STK-203", branch: "หนองจิก", tankNumber: 3, oilType: "E20" as OilType, currentStock: 8300, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 36.90, totalValue: 306270 },
+  { id: "STK-204", branch: "หนองจิก", tankNumber: 4, oilType: "Diesel" as OilType, currentStock: 17000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 32.49, totalValue: 552330 },
+  { id: "STK-205", branch: "หนองจิก", tankNumber: 5, oilType: "Gasohol 91" as OilType, currentStock: 19000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 38.49, totalValue: 731310 },
+  // ตาก (ปตท. ตักสิดา) - 7 หลุม
+  { id: "STK-301", branch: "ตาก", tankNumber: 1, oilType: "Gasohol 95" as OilType, currentStock: 18000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 41.49, totalValue: 746820 },
+  { id: "STK-302", branch: "ตาก", tankNumber: 2, oilType: "Gasohol 91" as OilType, currentStock: 19000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 38.49, totalValue: 731310 },
+  { id: "STK-303", branch: "ตาก", tankNumber: 3, oilType: "Diesel" as OilType, currentStock: 17000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 32.49, totalValue: 552330 },
+  { id: "STK-304", branch: "ตาก", tankNumber: 4, oilType: "E85" as OilType, currentStock: 9000, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 28.49, totalValue: 256410 },
+  { id: "STK-305", branch: "ตาก", tankNumber: 5, oilType: "Premium Diesel" as OilType, currentStock: 7500, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 33.49, totalValue: 251175 },
+  { id: "STK-306", branch: "ตาก", tankNumber: 6, oilType: "E20" as OilType, currentStock: 17000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 36.90, totalValue: 627300 },
+  { id: "STK-307", branch: "ตาก", tankNumber: 7, oilType: "Premium Gasohol 95" as OilType, currentStock: 13000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 41.49, totalValue: 539370 },
+  // บายพาส - 5 หลุม
+  { id: "STK-401", branch: "บายพาส", tankNumber: 1, oilType: "Gasohol 95" as OilType, currentStock: 18000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 41.49, totalValue: 746820 },
+  { id: "STK-402", branch: "บายพาส", tankNumber: 2, oilType: "Premium Diesel" as OilType, currentStock: 7500, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 33.49, totalValue: 251175 },
+  { id: "STK-403", branch: "บายพาส", tankNumber: 3, oilType: "E20" as OilType, currentStock: 8300, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 36.90, totalValue: 306270 },
+  { id: "STK-404", branch: "บายพาส", tankNumber: 4, oilType: "Diesel" as OilType, currentStock: 17000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 32.49, totalValue: 552330 },
+  { id: "STK-405", branch: "บายพาส", tankNumber: 5, oilType: "Gasohol 91" as OilType, currentStock: 19000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 38.49, totalValue: 731310 },
+];
 
-  const data: StockUpdateItem[] = [];
-  branches.forEach((branch, branchIndex) => {
-    oilTypes.forEach((oilType, oilIndex) => {
-      // เพิ่มความหลากหลายให้แต่ละสาขามีสต็อกต่างกันเล็กน้อย
-      const variation = (branchIndex * 1000) + (oilIndex * 500);
-      const baseStock = baseStocks[oilType];
-      const currentStock = baseStock + variation;
-      
-      data.push({
-        id: `STK-${branch.code}-${oilIndex + 1}`,
-        branch: branch.name,
-        oilType,
-        currentStock,
-        usageAmount: 0,
-        updatedStock: currentStock,
-        lastUpdated: "2024-12-15 18:30",
-        status: "pending",
-      });
-    });
-  });
-  
-  return data;
+// แปลงข้อมูลจาก Stock.tsx เป็น StockUpdateItem
+const generateInitialStockData = (): StockUpdateItem[] => {
+  return mockStockDataFromStock.map((item) => ({
+    id: item.id,
+    branch: item.branch,
+    tankNumber: item.tankNumber,
+    oilType: item.oilType,
+    currentStock: item.currentStock,
+    usageAmount: 0,
+    updatedStock: item.currentStock,
+    lastUpdated: "2024-12-15 18:30",
+    status: "pending",
+    pricePerLiter: item.pricePerLiter,
+    totalValue: item.totalValue,
+    maxCapacity: item.maxCapacity,
+  }));
 };
 
 const initialStockData = generateInitialStockData();
@@ -108,10 +128,12 @@ export default function UpdateStock() {
       prev.map((item) => {
         if (item.id === id) {
           const updatedStock = Math.max(0, item.currentStock - usageAmount);
+          const updatedTotalValue = updatedStock * item.pricePerLiter;
           return {
             ...item,
             usageAmount,
             updatedStock,
+            totalValue: updatedTotalValue,
             status: usageAmount > 0 ? "updated" : "pending",
           };
         }
@@ -120,20 +142,31 @@ export default function UpdateStock() {
     );
   };
 
-  // กรองข้อมูลตามสาขาที่เลือก
+  // กรองข้อมูลตามสาขาที่เลือก และเรียงลำดับ
   const filteredStockItems = useMemo(() => {
-    if (selectedBranch === "all") {
-      return stockItems;
+    // กรองออกมายมาส และกรองตามสาขาที่เลือก
+    let filtered = stockItems.filter(item => item.branch !== "มายมาส");
+    
+    if (selectedBranch !== "all") {
+      filtered = filtered.filter(item => item.branch === selectedBranch);
     }
-    return stockItems.filter(item => item.branch === selectedBranch);
+    
+    // เรียงตามสาขา (ไฮโซ -> ดินดำ -> หนองจิก -> ตาก -> บายพาส) แล้วตามหลุม
+    return [...filtered].sort((a, b) => {
+      if (a.branch !== b.branch) {
+        const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตาก", "บายพาส"];
+        return branchOrder.indexOf(a.branch) - branchOrder.indexOf(b.branch);
+      }
+      return a.tankNumber - b.tankNumber;
+    });
   }, [stockItems, selectedBranch]);
 
-  // สรุปข้อมูลตามสาขา
+  // สรุปข้อมูลตามสาขา (ไม่รวมมายมาส)
   const branchSummary = useMemo(() => {
     const summary: Record<string, { totalUsage: number; updatedCount: number; totalItems: number }> = {};
     
     branches.forEach(branch => {
-      const branchItems = stockItems.filter(item => item.branch === branch.name);
+      const branchItems = stockItems.filter(item => item.branch === branch.name && item.branch !== "มายมาส");
       summary[branch.name] = {
         totalUsage: branchItems.reduce((sum, item) => sum + item.usageAmount, 0),
         updatedCount: branchItems.filter(item => item.usageAmount > 0).length,
@@ -281,6 +314,9 @@ export default function UpdateStock() {
               <p className="text-2xl font-bold text-gray-800 dark:text-white">
                 {numberFormatter.format(totalUsage)} ลิตร
               </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                มูลค่า: {currencyFormatter.format(filteredStockItems.reduce((sum, item) => sum + (item.usageAmount * item.pricePerLiter), 0))}
+              </p>
             </div>
           </div>
         </motion.div>
@@ -394,6 +430,9 @@ export default function UpdateStock() {
                     สาขา
                   </th>
                 )}
+                <th className="text-center py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
+                  หลุม
+                </th>
                 <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
                   ประเภทน้ำมัน
                 </th>
@@ -427,11 +466,22 @@ export default function UpdateStock() {
                       {item.branch}
                     </td>
                   )}
-                  <td className="py-4 px-6 text-sm font-semibold text-gray-800 dark:text-white">
-                    {item.oilType}
+                  <td className="py-4 px-6 text-sm text-center font-semibold text-gray-800 dark:text-white">
+                    {item.tankNumber}
                   </td>
-                  <td className="py-4 px-6 text-sm text-right text-gray-600 dark:text-gray-400">
-                    {numberFormatter.format(item.currentStock)} ลิตร
+                  <td className="py-4 px-6 text-sm font-semibold text-gray-800 dark:text-white">
+                    <div className="flex flex-col">
+                      <span>{item.oilType}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">ถังที่ {item.tankNumber}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6 text-sm text-right font-semibold text-gray-800 dark:text-white">
+                    <div className="flex flex-col items-end">
+                      <span>{numberFormatter.format(item.currentStock)} ลิตร</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                        {currencyFormatter.format(item.totalValue)}
+                      </span>
+                    </div>
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-end gap-2">
@@ -452,7 +502,12 @@ export default function UpdateStock() {
                     </div>
                   </td>
                   <td className="py-4 px-6 text-sm text-right font-semibold text-gray-800 dark:text-white">
-                    {numberFormatter.format(item.updatedStock)} ลิตร
+                    <div className="flex flex-col items-end">
+                      <span>{numberFormatter.format(item.updatedStock)} ลิตร</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                        {currencyFormatter.format(item.updatedStock * item.pricePerLiter)}
+                      </span>
+                    </div>
                   </td>
                   <td className="py-4 px-6 text-center">
                     {item.usageAmount > 0 ? (

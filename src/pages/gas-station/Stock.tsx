@@ -13,6 +13,9 @@ import {
   Eye,
   ShoppingCart,
   RefreshCw,
+  Settings,
+  Save,
+  X,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -39,6 +42,7 @@ type StockStatus = "normal" | "warning" | "critical";
 type StockItem = {
   id: string;
   branch: string;
+  tankNumber: number; // หลุม
   oilType: OilType;
   currentStock: number; // ลิตร
   minThreshold: number; // เกณฑ์ต่ำสุด
@@ -51,505 +55,497 @@ type StockItem = {
   daysRemaining: number; // จำนวนวันที่เหลือ (คำนวณจากยอดขายเฉลี่ย)
 };
 
-// Mock data - ทั้ง 5 ปั๊ม
+// Mock data - ทั้ง 5 ปั๊ม (ข้อมูลตามรูปภาพ)
 const mockStockData: StockItem[] = [
-  // ปั๊มไฮโซ
+  // ตาก (ปตท. ตักสิดา) - 7 หลุม ตามรูปภาพที่ 1
   {
-    id: "STK-001",
-    branch: "ปั๊มไฮโซ",
-    oilType: "Premium Diesel",
-    currentStock: 45000,
-    minThreshold: 20000,
-    maxCapacity: 100000,
+    id: "STK-301",
+    branch: "ตาก",
+    tankNumber: 1,
+    oilType: "Gasohol 95", // 695
+    currentStock: 18000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 41.49,
+    totalValue: 746820,
+    averageDailySales: 3600,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-302",
+    branch: "ตาก",
+    tankNumber: 2,
+    oilType: "Gasohol 91", // 691
+    currentStock: 19000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 38.49,
+    totalValue: 731310,
+    averageDailySales: 3800,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-303",
+    branch: "ตาก",
+    tankNumber: 3,
+    oilType: "Diesel", // HSD
+    currentStock: 17000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 32.49,
+    totalValue: 552330,
+    averageDailySales: 3400,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-304",
+    branch: "ตาก",
+    tankNumber: 4,
+    oilType: "E85",
+    currentStock: 9000,
+    minThreshold: 2000,
+    maxCapacity: 10000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 28.49,
+    totalValue: 256410,
+    averageDailySales: 1800,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-305",
+    branch: "ตาก",
+    tankNumber: 5,
+    oilType: "Premium Diesel", // HSP
+    currentStock: 7500,
+    minThreshold: 2000,
+    maxCapacity: 10000,
     status: "normal",
     lastUpdated: "2024-12-15 18:30",
     pricePerLiter: 33.49,
-    totalValue: 1507050,
-    averageDailySales: 8500,
+    totalValue: 251175,
+    averageDailySales: 1500,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-306",
+    branch: "ตาก",
+    tankNumber: 6,
+    oilType: "E20",
+    currentStock: 17000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 36.90,
+    totalValue: 627300,
+    averageDailySales: 3400,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-307",
+    branch: "ตาก",
+    tankNumber: 7,
+    oilType: "Premium Gasohol 95", // 695P
+    currentStock: 13000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 41.49,
+    totalValue: 539370,
+    averageDailySales: 2600,
+    daysRemaining: 5,
+  },
+
+  // ดินดำ - 5 หลุม ตามรูปภาพที่ 2
+  {
+    id: "STK-101",
+    branch: "ดินดำ",
+    tankNumber: 1,
+    oilType: "Premium Diesel", // HSP
+    currentStock: 19000,
+    minThreshold: 700,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 33.49,
+    totalValue: 636310,
+    averageDailySales: 3800,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-102",
+    branch: "ดินดำ",
+    tankNumber: 2,
+    oilType: "Gasohol 95", // G95
+    currentStock: 9600,
+    minThreshold: 400,
+    maxCapacity: 10000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 41.49,
+    totalValue: 398304,
+    averageDailySales: 1920,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-103",
+    branch: "ดินดำ",
+    tankNumber: 3,
+    oilType: "E20",
+    currentStock: 9600,
+    minThreshold: 400,
+    maxCapacity: 10000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 36.90,
+    totalValue: 354240,
+    averageDailySales: 1920,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-104",
+    branch: "ดินดำ",
+    tankNumber: 4,
+    oilType: "Diesel", // HSD
+    currentStock: 19400,
+    minThreshold: 600,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 32.49,
+    totalValue: 630306,
+    averageDailySales: 3880,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-105",
+    branch: "ดินดำ",
+    tankNumber: 5,
+    oilType: "Gasohol 91", // G91
+    currentStock: 19400,
+    minThreshold: 600,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 38.49,
+    totalValue: 746706,
+    averageDailySales: 3880,
+    daysRemaining: 5,
+  },
+
+  // มายมาส (ปั๊ม ปตท. มายมาส) - 5 หลุม ตามรูปภาพที่ 3
+  {
+    id: "STK-501",
+    branch: "มายมาส",
+    tankNumber: 1,
+    oilType: "Diesel", // ดีเซล
+    currentStock: 28000,
+    minThreshold: 6000,
+    maxCapacity: 30000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 32.49,
+    totalValue: 909720,
+    averageDailySales: 5600,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-502",
+    branch: "มายมาส",
+    tankNumber: 2,
+    oilType: "Premium Diesel", // ดีเซลพรีเมียม
+    currentStock: 14000,
+    minThreshold: 3000,
+    maxCapacity: 15000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 33.49,
+    totalValue: 468860,
+    averageDailySales: 2800,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-503",
+    branch: "มายมาส",
+    tankNumber: 3,
+    oilType: "E20",
+    currentStock: 14000,
+    minThreshold: 3000,
+    maxCapacity: 15000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 36.90,
+    totalValue: 516600,
+    averageDailySales: 2800,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-504",
+    branch: "มายมาส",
+    tankNumber: 4,
+    oilType: "Gasohol 91", // แก๊ส 91
+    currentStock: 14000,
+    minThreshold: 3000,
+    maxCapacity: 15000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 38.49,
+    totalValue: 538860,
+    averageDailySales: 2800,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-505",
+    branch: "มายมาส",
+    tankNumber: 5,
+    oilType: "Gasohol 95", // แก๊ส 95
+    currentStock: 14000,
+    minThreshold: 3000,
+    maxCapacity: 15000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 41.49,
+    totalValue: 580860,
+    averageDailySales: 2800,
+    daysRemaining: 5,
+  },
+
+  // ปั๊มไฮโซ - 5 หลุม ตามรูปภาพที่ 4
+  {
+    id: "STK-001",
+    branch: "ปั๊มไฮโซ",
+    tankNumber: 1,
+    oilType: "Gasohol 95", // G95
+    currentStock: 18000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 41.49,
+    totalValue: 746820,
+    averageDailySales: 3600,
     daysRemaining: 5,
   },
   {
     id: "STK-002",
     branch: "ปั๊มไฮโซ",
-    oilType: "Premium Gasohol 95",
-    currentStock: 38000,
-    minThreshold: 15000,
-    maxCapacity: 80000,
+    tankNumber: 2,
+    oilType: "Premium Diesel", // HSP
+    currentStock: 7500,
+    minThreshold: 2000,
+    maxCapacity: 10000,
     status: "normal",
     lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 41.49,
-    totalValue: 1576620,
-    averageDailySales: 7200,
+    pricePerLiter: 33.49,
+    totalValue: 251175,
+    averageDailySales: 1500,
     daysRemaining: 5,
   },
   {
     id: "STK-003",
     branch: "ปั๊มไฮโซ",
-    oilType: "Diesel",
-    currentStock: 52000,
-    minThreshold: 25000,
-    maxCapacity: 120000,
+    tankNumber: 3,
+    oilType: "E20",
+    currentStock: 8300,
+    minThreshold: 2000,
+    maxCapacity: 10000,
     status: "normal",
     lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 32.49,
-    totalValue: 1689480,
-    averageDailySales: 12000,
-    daysRemaining: 4,
+    pricePerLiter: 36.90,
+    totalValue: 306270,
+    averageDailySales: 1660,
+    daysRemaining: 5,
   },
   {
     id: "STK-004",
     branch: "ปั๊มไฮโซ",
-    oilType: "E85",
-    currentStock: 15000,
-    minThreshold: 10000,
-    maxCapacity: 40000,
-    status: "warning",
+    tankNumber: 4,
+    oilType: "Diesel", // HSD
+    currentStock: 17000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
+    status: "normal",
     lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 28.49,
-    totalValue: 427350,
-    averageDailySales: 4500,
-    daysRemaining: 3,
+    pricePerLiter: 32.49,
+    totalValue: 552330,
+    averageDailySales: 3400,
+    daysRemaining: 5,
   },
   {
     id: "STK-005",
     branch: "ปั๊มไฮโซ",
-    oilType: "E20",
-    currentStock: 28000,
-    minThreshold: 15000,
-    maxCapacity: 60000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 36.90,
-    totalValue: 1033200,
-    averageDailySales: 6800,
-    daysRemaining: 4,
-  },
-  {
-    id: "STK-006",
-    branch: "ปั๊มไฮโซ",
-    oilType: "Gasohol 91",
-    currentStock: 22000,
-    minThreshold: 12000,
-    maxCapacity: 50000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 38.49,
-    totalValue: 846780,
-    averageDailySales: 5500,
-    daysRemaining: 4,
-  },
-  {
-    id: "STK-007",
-    branch: "ปั๊มไฮโซ",
-    oilType: "Gasohol 95",
-    currentStock: 35000,
-    minThreshold: 18000,
-    maxCapacity: 70000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 41.49,
-    totalValue: 1452150,
-    averageDailySales: 7800,
-    daysRemaining: 4,
-  },
-
-  // ปั๊มธรรมดา 1
-  {
-    id: "STK-101",
-    branch: "ปั๊มธรรมดา 1",
-    oilType: "Premium Diesel",
-    currentStock: 32000,
-    minThreshold: 15000,
-    maxCapacity: 80000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 33.49,
-    totalValue: 1071680,
-    averageDailySales: 6500,
-    daysRemaining: 5,
-  },
-  {
-    id: "STK-102",
-    branch: "ปั๊มธรรมดา 1",
-    oilType: "Premium Gasohol 95",
-    currentStock: 25000,
-    minThreshold: 12000,
-    maxCapacity: 60000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 41.49,
-    totalValue: 1037250,
-    averageDailySales: 5500,
-    daysRemaining: 5,
-  },
-  {
-    id: "STK-103",
-    branch: "ปั๊มธรรมดา 1",
-    oilType: "Diesel",
-    currentStock: 18000,
-    minThreshold: 20000,
-    maxCapacity: 100000,
-    status: "critical",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 32.49,
-    totalValue: 584820,
-    averageDailySales: 9500,
-    daysRemaining: 2,
-  },
-  {
-    id: "STK-104",
-    branch: "ปั๊มธรรมดา 1",
-    oilType: "E85",
-    currentStock: 12000,
-    minThreshold: 8000,
-    maxCapacity: 35000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 28.49,
-    totalValue: 341880,
-    averageDailySales: 3500,
-    daysRemaining: 3,
-  },
-  {
-    id: "STK-105",
-    branch: "ปั๊มธรรมดา 1",
-    oilType: "E20",
-    currentStock: 22000,
-    minThreshold: 12000,
-    maxCapacity: 50000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 36.90,
-    totalValue: 811800,
-    averageDailySales: 5200,
-    daysRemaining: 4,
-  },
-  {
-    id: "STK-106",
-    branch: "ปั๊มธรรมดา 1",
-    oilType: "Gasohol 91",
-    currentStock: 16000,
-    minThreshold: 10000,
-    maxCapacity: 40000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 38.49,
-    totalValue: 615840,
-    averageDailySales: 4200,
-    daysRemaining: 4,
-  },
-  {
-    id: "STK-107",
-    branch: "ปั๊มธรรมดา 1",
-    oilType: "Gasohol 95",
-    currentStock: 28000,
-    minThreshold: 15000,
-    maxCapacity: 60000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 41.49,
-    totalValue: 1161720,
-    averageDailySales: 6200,
-    daysRemaining: 5,
-  },
-
-  // ปั๊มธรรมดา 2
-  {
-    id: "STK-201",
-    branch: "ปั๊มธรรมดา 2",
-    oilType: "Premium Diesel",
-    currentStock: 38000,
-    minThreshold: 15000,
-    maxCapacity: 80000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 33.49,
-    totalValue: 1272620,
-    averageDailySales: 7000,
-    daysRemaining: 5,
-  },
-  {
-    id: "STK-202",
-    branch: "ปั๊มธรรมดา 2",
-    oilType: "Premium Gasohol 95",
-    currentStock: 30000,
-    minThreshold: 12000,
-    maxCapacity: 60000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 41.49,
-    totalValue: 1244700,
-    averageDailySales: 5800,
-    daysRemaining: 5,
-  },
-  {
-    id: "STK-203",
-    branch: "ปั๊มธรรมดา 2",
-    oilType: "Diesel",
-    currentStock: 42000,
-    minThreshold: 20000,
-    maxCapacity: 100000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 32.49,
-    totalValue: 1364580,
-    averageDailySales: 10000,
-    daysRemaining: 4,
-  },
-  {
-    id: "STK-204",
-    branch: "ปั๊มธรรมดา 2",
-    oilType: "E85",
-    currentStock: 8500,
-    minThreshold: 8000,
-    maxCapacity: 35000,
-    status: "warning",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 28.49,
-    totalValue: 242165,
-    averageDailySales: 3800,
-    daysRemaining: 2,
-  },
-  {
-    id: "STK-205",
-    branch: "ปั๊มธรรมดา 2",
-    oilType: "E20",
-    currentStock: 25000,
-    minThreshold: 12000,
-    maxCapacity: 50000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 36.90,
-    totalValue: 922500,
-    averageDailySales: 5500,
-    daysRemaining: 5,
-  },
-  {
-    id: "STK-206",
-    branch: "ปั๊มธรรมดา 2",
-    oilType: "Gasohol 91",
-    currentStock: 18000,
-    minThreshold: 10000,
-    maxCapacity: 40000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 38.49,
-    totalValue: 692820,
-    averageDailySales: 4500,
-    daysRemaining: 4,
-  },
-  {
-    id: "STK-207",
-    branch: "ปั๊มธรรมดา 2",
-    oilType: "Gasohol 95",
-    currentStock: 32000,
-    minThreshold: 15000,
-    maxCapacity: 60000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 41.49,
-    totalValue: 1327680,
-    averageDailySales: 6500,
-    daysRemaining: 5,
-  },
-
-  // ปั๊มธรรมดา 3
-  {
-    id: "STK-301",
-    branch: "ปั๊มธรรมดา 3",
-    oilType: "Premium Diesel",
-    currentStock: 28000,
-    minThreshold: 15000,
-    maxCapacity: 80000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 33.49,
-    totalValue: 937720,
-    averageDailySales: 6000,
-    daysRemaining: 5,
-  },
-  {
-    id: "STK-302",
-    branch: "ปั๊มธรรมดา 3",
-    oilType: "Premium Gasohol 95",
-    currentStock: 20000,
-    minThreshold: 12000,
-    maxCapacity: 60000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 41.49,
-    totalValue: 829800,
-    averageDailySales: 5000,
-    daysRemaining: 4,
-  },
-  {
-    id: "STK-303",
-    branch: "ปั๊มธรรมดา 3",
-    oilType: "Diesel",
-    currentStock: 35000,
-    minThreshold: 20000,
-    maxCapacity: 100000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 32.49,
-    totalValue: 1137150,
-    averageDailySales: 8500,
-    daysRemaining: 4,
-  },
-  {
-    id: "STK-304",
-    branch: "ปั๊มธรรมดา 3",
-    oilType: "E85",
-    currentStock: 10000,
-    minThreshold: 8000,
-    maxCapacity: 35000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 28.49,
-    totalValue: 284900,
-    averageDailySales: 3200,
-    daysRemaining: 3,
-  },
-  {
-    id: "STK-305",
-    branch: "ปั๊มธรรมดา 3",
-    oilType: "E20",
-    currentStock: 11000,
-    minThreshold: 12000,
-    maxCapacity: 50000,
-    status: "critical",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 36.90,
-    totalValue: 405900,
-    averageDailySales: 4800,
-    daysRemaining: 2,
-  },
-  {
-    id: "STK-306",
-    branch: "ปั๊มธรรมดา 3",
-    oilType: "Gasohol 91",
-    currentStock: 14000,
-    minThreshold: 10000,
-    maxCapacity: 40000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 38.49,
-    totalValue: 538860,
-    averageDailySales: 3800,
-    daysRemaining: 4,
-  },
-  {
-    id: "STK-307",
-    branch: "ปั๊มธรรมดา 3",
-    oilType: "Gasohol 95",
-    currentStock: 24000,
-    minThreshold: 15000,
-    maxCapacity: 60000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 41.49,
-    totalValue: 995760,
-    averageDailySales: 5500,
-    daysRemaining: 4,
-  },
-
-  // ปั๊มธรรมดา 4
-  {
-    id: "STK-401",
-    branch: "ปั๊มธรรมดา 4",
-    oilType: "Premium Diesel",
-    currentStock: 35000,
-    minThreshold: 15000,
-    maxCapacity: 80000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 33.49,
-    totalValue: 1172150,
-    averageDailySales: 6800,
-    daysRemaining: 5,
-  },
-  {
-    id: "STK-402",
-    branch: "ปั๊มธรรมดา 4",
-    oilType: "Premium Gasohol 95",
-    currentStock: 27000,
-    minThreshold: 12000,
-    maxCapacity: 60000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 41.49,
-    totalValue: 1120230,
-    averageDailySales: 5400,
-    daysRemaining: 5,
-  },
-  {
-    id: "STK-403",
-    branch: "ปั๊มธรรมดา 4",
-    oilType: "Diesel",
-    currentStock: 48000,
-    minThreshold: 20000,
-    maxCapacity: 100000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 32.49,
-    totalValue: 1559520,
-    averageDailySales: 11000,
-    daysRemaining: 4,
-  },
-  {
-    id: "STK-404",
-    branch: "ปั๊มธรรมดา 4",
-    oilType: "E85",
-    currentStock: 13000,
-    minThreshold: 8000,
-    maxCapacity: 35000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 28.49,
-    totalValue: 370370,
-    averageDailySales: 3900,
-    daysRemaining: 3,
-  },
-  {
-    id: "STK-405",
-    branch: "ปั๊มธรรมดา 4",
-    oilType: "E20",
-    currentStock: 26000,
-    minThreshold: 12000,
-    maxCapacity: 50000,
-    status: "normal",
-    lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 36.90,
-    totalValue: 959400,
-    averageDailySales: 5600,
-    daysRemaining: 5,
-  },
-  {
-    id: "STK-406",
-    branch: "ปั๊มธรรมดา 4",
-    oilType: "Gasohol 91",
+    tankNumber: 5,
+    oilType: "Gasohol 91", // G91
     currentStock: 19000,
-    minThreshold: 10000,
-    maxCapacity: 40000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
     status: "normal",
     lastUpdated: "2024-12-15 18:30",
     pricePerLiter: 38.49,
     totalValue: 731310,
-    averageDailySales: 4600,
-    daysRemaining: 4,
+    averageDailySales: 3800,
+    daysRemaining: 5,
   },
+
+  // หนองจิก - 5 หลุม (ใช้ข้อมูลคล้ายรูปภาพที่ 4)
   {
-    id: "STK-407",
-    branch: "ปั๊มธรรมดา 4",
-    oilType: "Gasohol 95",
-    currentStock: 30000,
-    minThreshold: 15000,
-    maxCapacity: 60000,
+    id: "STK-201",
+    branch: "หนองจิก",
+    tankNumber: 1,
+    oilType: "Gasohol 95", // G95
+    currentStock: 18000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
     status: "normal",
     lastUpdated: "2024-12-15 18:30",
     pricePerLiter: 41.49,
-    totalValue: 1244700,
-    averageDailySales: 6300,
+    totalValue: 746820,
+    averageDailySales: 3600,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-202",
+    branch: "หนองจิก",
+    tankNumber: 2,
+    oilType: "Premium Diesel", // HSP
+    currentStock: 7500,
+    minThreshold: 2000,
+    maxCapacity: 10000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 33.49,
+    totalValue: 251175,
+    averageDailySales: 1500,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-203",
+    branch: "หนองจิก",
+    tankNumber: 3,
+    oilType: "E20",
+    currentStock: 8300,
+    minThreshold: 2000,
+    maxCapacity: 10000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 36.90,
+    totalValue: 306270,
+    averageDailySales: 1660,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-204",
+    branch: "หนองจิก",
+    tankNumber: 4,
+    oilType: "Diesel", // HSD
+    currentStock: 17000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 32.49,
+    totalValue: 552330,
+    averageDailySales: 3400,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-205",
+    branch: "หนองจิก",
+    tankNumber: 5,
+    oilType: "Gasohol 91", // G91
+    currentStock: 19000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 38.49,
+    totalValue: 731310,
+    averageDailySales: 3800,
+    daysRemaining: 5,
+  },
+
+  // บายพาส - 5 หลุม (ใช้ข้อมูลคล้ายรูปภาพที่ 4)
+  {
+    id: "STK-401",
+    branch: "บายพาส",
+    tankNumber: 1,
+    oilType: "Gasohol 95", // G95
+    currentStock: 18000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 41.49,
+    totalValue: 746820,
+    averageDailySales: 3600,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-402",
+    branch: "บายพาส",
+    tankNumber: 2,
+    oilType: "Premium Diesel", // HSP
+    currentStock: 7500,
+    minThreshold: 2000,
+    maxCapacity: 10000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 33.49,
+    totalValue: 251175,
+    averageDailySales: 1500,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-403",
+    branch: "บายพาส",
+    tankNumber: 3,
+    oilType: "E20",
+    currentStock: 8300,
+    minThreshold: 2000,
+    maxCapacity: 10000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 36.90,
+    totalValue: 306270,
+    averageDailySales: 1660,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-404",
+    branch: "บายพาส",
+    tankNumber: 4,
+    oilType: "Diesel", // HSD
+    currentStock: 17000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 32.49,
+    totalValue: 552330,
+    averageDailySales: 3400,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-405",
+    branch: "บายพาส",
+    tankNumber: 5,
+    oilType: "Gasohol 91", // G91
+    currentStock: 19000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 38.49,
+    totalValue: 731310,
+    averageDailySales: 3800,
     daysRemaining: 5,
   },
 ];
@@ -560,13 +556,16 @@ export default function Stock() {
   const [selectedBranch, setSelectedBranch] = useState("ทั้งหมด");
   const [selectedOilType, setSelectedOilType] = useState("ทั้งหมด");
   const [selectedStatus, setSelectedStatus] = useState<"ทั้งหมด" | StockStatus>("ทั้งหมด");
+  const [showThresholdModal, setShowThresholdModal] = useState(false);
+  const [editingThresholds, setEditingThresholds] = useState<Record<string, number>>({});
 
   const filteredStock = mockStockData
     .filter((item) => {
       const matchesSearch =
         item.oilType.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.branch.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchTerm.toLowerCase());
+        item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.tankNumber.toString().includes(searchTerm);
 
       const matchesBranch = selectedBranch === "ทั้งหมด" || item.branch === selectedBranch;
       const matchesOilType = selectedOilType === "ทั้งหมด" || item.oilType === selectedOilType;
@@ -575,8 +574,12 @@ export default function Stock() {
       return matchesSearch && matchesBranch && matchesOilType && matchesStatus;
     })
     .sort((a, b) => {
-      // เรียงตาม currentStock จากน้อยไปมาก (เหลือน้อยสุดไว้บนสุด)
-      return a.currentStock - b.currentStock;
+      // เรียงตามสาขา (ไฮโซ -> ดินดำ -> หนองจิก -> ตาก -> บายพาส -> มายมาส) แล้วตามหลุม
+      if (a.branch !== b.branch) {
+        const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตาก", "บายพาส", "มายมาส"];
+        return branchOrder.indexOf(a.branch) - branchOrder.indexOf(b.branch);
+      }
+      return a.tankNumber - b.tankNumber;
     });
 
   const summary = {
@@ -642,13 +645,22 @@ export default function Stock() {
               ตรวจสอบและจัดการสต็อกน้ำมันทั้ง 5 ปั๊ม แยกตามสาขาและประเภทน้ำมัน พร้อมแจ้งเตือนสต็อกต่ำ
             </p>
           </div>
-          <button
-            onClick={() => navigate("/app/gas-station/update-stock")}
-            className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 whitespace-nowrap"
-          >
-            <RefreshCw className="w-4 h-4" />
-            อัพเดตสต็อก
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowThresholdModal(true)}
+              className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 whitespace-nowrap"
+            >
+              <Settings className="w-4 h-4" />
+              ตั้งค่าเกณฑ์ต่ำสุด
+            </button>
+            <button
+              onClick={() => navigate("/app/gas-station/update-stock")}
+              className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 whitespace-nowrap"
+            >
+              <RefreshCw className="w-4 h-4" />
+              อัพเดตสต็อก
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -658,7 +670,7 @@ export default function Stock() {
           {
             title: "สต็อกรวมทั้งหมด",
             value: numberFormatter.format(summary.totalStock),
-            subtitle: "ลิตร",
+            subtitle: `ลิตร (${currencyFormatter.format(summary.totalValue)})`,
             icon: Droplet,
             iconColor: "bg-gradient-to-br from-blue-500 to-blue-600",
           },
@@ -739,11 +751,12 @@ export default function Stock() {
           className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
         >
           <option>ทั้งหมด</option>
+          <option>ตาก</option>
+          <option>ดินดำ</option>
+          <option>มายมาส</option>
           <option>ปั๊มไฮโซ</option>
-          <option>ปั๊มธรรมดา 1</option>
-          <option>ปั๊มธรรมดา 2</option>
-          <option>ปั๊มธรรมดา 3</option>
-          <option>ปั๊มธรรมดา 4</option>
+          <option>หนองจิก</option>
+          <option>บายพาส</option>
         </select>
         <select
           value={selectedOilType}
@@ -814,10 +827,10 @@ export default function Stock() {
                         <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-red-900 dark:text-red-100 text-sm truncate">
-                            {item.oilType}
+                            {item.branch} - {item.oilType}
                           </div>
                           <div className="text-xs text-red-700 dark:text-red-300">
-                            เหลือ {numberFormatter.format(item.currentStock)} ลิตร
+                            ถังที่ {item.tankNumber} • เหลือ {numberFormatter.format(item.currentStock)} ลิตร ({currencyFormatter.format(item.totalValue)})
                           </div>
                         </div>
                       </div>
@@ -857,6 +870,9 @@ export default function Stock() {
                 <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
                   สาขา
                 </th>
+                <th className="text-center py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
+                  หลุม
+                </th>
                 <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
                   ประเภทน้ำมัน
                 </th>
@@ -891,7 +907,7 @@ export default function Stock() {
             <tbody>
               {filteredStock.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="py-8 px-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <td colSpan={13} className="py-8 px-4 text-center text-sm text-gray-500 dark:text-gray-400">
                     ไม่พบข้อมูลสต็อกที่ตรงกับเงื่อนไขค้นหา
                   </td>
                 </tr>
@@ -909,9 +925,22 @@ export default function Stock() {
                       }`}
                   >
                     <td className="py-4 px-6 text-sm font-semibold text-gray-800 dark:text-white">{item.branch}</td>
-                    <td className="py-4 px-6 text-sm font-semibold text-gray-800 dark:text-white">{item.oilType}</td>
+                    <td className="py-4 px-6 text-sm text-center font-semibold text-gray-800 dark:text-white">
+                      {item.tankNumber}
+                    </td>
+                    <td className="py-4 px-6 text-sm font-semibold text-gray-800 dark:text-white">
+                      <div className="flex flex-col">
+                        <span>{item.oilType}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">ถังที่ {item.tankNumber}</span>
+                      </div>
+                    </td>
                     <td className="py-4 px-6 text-sm text-right font-semibold text-gray-800 dark:text-white">
-                      {numberFormatter.format(item.currentStock)}
+                      <div className="flex flex-col items-end">
+                        <span>{numberFormatter.format(item.currentStock)} ลิตร</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                          {currencyFormatter.format(item.totalValue)}
+                        </span>
+                      </div>
                     </td>
                     <td className="py-4 px-6 text-sm text-right text-gray-600 dark:text-gray-400">
                       {numberFormatter.format(item.minThreshold)}
@@ -994,6 +1023,149 @@ export default function Stock() {
           </table>
         </div>
       </motion.div>
+
+      {/* Threshold Settings Modal */}
+      {showThresholdModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Settings className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
+                    ตั้งค่าเกณฑ์ต่ำสุด (Low Level Alert)
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    ตั้งค่าเกณฑ์ต่ำสุดแยกรายถัง/รายปั๊ม - ปั๊ม Submersible ห้ามแห้งเด็ดขาด
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowThresholdModal(false);
+                  setEditingThresholds({});
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
+              <div className="space-y-4">
+                {/* Info Alert */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                        ข้อควรระวัง
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        ปั๊มแบบ Submersible (ปั๊มจุ่ม) ห้ามแห้งเด็ดขาด เนื่องจากเสี่ยงมอเตอร์ไหม้ 
+                        ในขณะที่ปั๊ม Suction (ดูด) ยอมรับระดับต่ำกว่าได้ กรุณาตั้งค่าเกณฑ์ให้เหมาะสมกับประเภทปั๊ม
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Threshold Settings Table */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">สาขา</th>
+                          <th className="text-center py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">ถังที่</th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">ประเภทน้ำมัน</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">ความจุถัง (ลิตร)</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">เกณฑ์ต่ำสุดปัจจุบัน</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">ตั้งค่าใหม่ (ลิตร)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mockStockData
+                          .sort((a, b) => {
+                            const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตาก", "บายพาส", "มายมาส"];
+                            if (a.branch !== b.branch) {
+                              return branchOrder.indexOf(a.branch) - branchOrder.indexOf(b.branch);
+                            }
+                            return a.tankNumber - b.tankNumber;
+                          })
+                          .map((item) => (
+                            <tr
+                              key={item.id}
+                              className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                            >
+                              <td className="py-3 px-4 text-sm font-semibold text-gray-800 dark:text-white">{item.branch}</td>
+                              <td className="py-3 px-4 text-sm text-center text-gray-800 dark:text-white">{item.tankNumber}</td>
+                              <td className="py-3 px-4 text-sm text-gray-800 dark:text-white">{item.oilType}</td>
+                              <td className="py-3 px-4 text-sm text-right text-gray-600 dark:text-gray-400">
+                                {numberFormatter.format(item.maxCapacity)}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-right text-gray-600 dark:text-gray-400">
+                                {numberFormatter.format(item.minThreshold)}
+                              </td>
+                              <td className="py-3 px-4">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={item.maxCapacity}
+                                  defaultValue={editingThresholds[item.id] ?? item.minThreshold}
+                                  onChange={(e) => {
+                                    setEditingThresholds({
+                                      ...editingThresholds,
+                                      [item.id]: parseInt(e.target.value) || 0,
+                                    });
+                                  }}
+                                  className="w-32 px-3 py-2 text-right bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm"
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => {
+                  setShowThresholdModal(false);
+                  setEditingThresholds({});
+                }}
+                className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={() => {
+                  // ในระบบจริงจะบันทึกผ่าน API
+                  console.log("บันทึกเกณฑ์ต่ำสุด:", editingThresholds);
+                  alert("บันทึกการตั้งค่าเกณฑ์ต่ำสุดเรียบร้อยแล้ว");
+                  setShowThresholdModal(false);
+                  setEditingThresholds({});
+                }}
+                className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                บันทึกการตั้งค่า
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

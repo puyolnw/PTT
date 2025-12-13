@@ -65,12 +65,12 @@ const mockReceivings = [
     receiveTime: "14:30",
     items: [
       {
-    oilType: "Premium Diesel",
-    quantityOrdered: 20000,
-    quantityReceived: 19950,
-    difference: -50,
-    differencePercent: -0.25,
-    apiCheck: 35.2,
+        oilType: "Premium Diesel",
+        quantityOrdered: 20000,
+        quantityReceived: 19950,
+        difference: -50,
+        differencePercent: -0.25,
+        apiCheck: 35.2,
       },
     ],
     driverName: "สมชาย ใจดี",
@@ -88,12 +88,12 @@ const mockReceivings = [
     receiveTime: "15:45",
     items: [
       {
-    oilType: "Gasohol 95",
-    quantityOrdered: 15000,
-    quantityReceived: 15020,
-    difference: 20,
-    differencePercent: 0.13,
-    apiCheck: 52.5,
+        oilType: "Gasohol 95",
+        quantityOrdered: 15000,
+        quantityReceived: 15020,
+        difference: 20,
+        differencePercent: 0.13,
+        apiCheck: 52.5,
       },
     ],
     driverName: "สมหญิง รักดี",
@@ -109,6 +109,8 @@ type ReceivingItem = {
   quantityReceived: number;
   difference: number;
   differencePercent: number;
+  actualUnitPrice: number; // NEW: ราคาต่อหน่วยจริงจากใบกำกับ
+  totalAmount: number; // NEW: quantityReceived * actualUnitPrice
   apiCheck?: number;
 };
 
@@ -116,6 +118,8 @@ type ReceivingForm = {
   orderNo: string;
   supplierOrderNo: string;
   deliveryNoteNo: string;
+  taxInvoiceNo: string; // NEW: Required - เลขที่ใบกำกับภาษี
+  taxInvoiceDate: string; // NEW: Required - วันที่ใบกำกับภาษี
   branch: string;
   branchId: number;
   items: ReceivingItem[];
@@ -140,6 +144,8 @@ export default function Receiving() {
       orderNo: order.orderNo,
       supplierOrderNo: order.supplierOrderNo,
       deliveryNoteNo: `DN-${now.toISOString().split("T")[0].replace(/-/g, "")}-${String(receivings.length + 1).padStart(3, "0")}`,
+      taxInvoiceNo: "", // NEW: Required field
+      taxInvoiceDate: now.toISOString().split("T")[0], // NEW: Default to today
       branch: order.branch,
       branchId: order.branchId,
       items: order.items.map((item) => ({
@@ -148,6 +154,8 @@ export default function Receiving() {
         quantityReceived: item.quantityOrdered, // เริ่มต้นด้วยจำนวนที่สั่ง
         difference: 0,
         differencePercent: 0,
+        actualUnitPrice: 30, // NEW: Default price (should be from config)
+        totalAmount: item.quantityOrdered * 30, // NEW
       })),
       driverName: order.driverName || "",
       truckLicensePlate: order.truckLicensePlate || "",
@@ -167,11 +175,13 @@ export default function Receiving() {
       if (item.oilType === oilType) {
         const difference = quantity - item.quantityOrdered;
         const differencePercent = (difference / item.quantityOrdered) * 100;
+        const totalAmount = quantity * item.actualUnitPrice; // NEW: Calculate total
         return {
           ...item,
           quantityReceived: quantity,
           difference,
           differencePercent,
+          totalAmount, // NEW
         };
       }
       return item;
@@ -190,6 +200,17 @@ export default function Receiving() {
     // Validate
     if (!receivingForm.driverName || !receivingForm.truckLicensePlate) {
       alert("กรุณากรอกชื่อคนขับและทะเบียนรถ");
+      return;
+    }
+
+    // NEW: Validate tax invoice (CRITICAL - Required for VAT claim)
+    if (!receivingForm.taxInvoiceNo || receivingForm.taxInvoiceNo.trim() === "") {
+      alert("⚠️ กรุณากรอกเลขที่ใบกำกับภาษี\n\nเลขที่ใบกำกับภาษีเป็นข้อมูลที่จำเป็นสำหรับการเคลมภาษีซื้อ (Input VAT)");
+      return;
+    }
+
+    if (!receivingForm.taxInvoiceDate) {
+      alert("กรุณาระบุวันที่ใบกำกับภาษี");
       return;
     }
 
@@ -218,14 +239,14 @@ export default function Receiving() {
   };
 
   const filteredReceivings = receivings.filter((receiving) => {
-    const matchesSearch = 
+    const matchesSearch =
       receiving.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       receiving.orderNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       receiving.deliveryNoteNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       receiving.branch.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = filterStatus === "ทั้งหมด" || receiving.status === filterStatus;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -242,15 +263,15 @@ export default function Receiving() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
           className="mb-6"
-      >
+        >
           <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
+            <div>
               <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
                 การรับน้ำมัน
               </h1>
@@ -299,14 +320,14 @@ export default function Receiving() {
               value:
                 receivings.length > 0
                   ? (
-                      receivings.reduce(
-                        (sum, r) =>
-                          sum +
-                          r.items.reduce((s, i) => s + Math.abs(i.differencePercent), 0) /
-                            r.items.length,
-                        0
-                      ) / receivings.length
-                    ).toFixed(2)
+                    receivings.reduce(
+                      (sum, r) =>
+                        sum +
+                        r.items.reduce((s, i) => s + Math.abs(i.differencePercent), 0) /
+                        r.items.length,
+                      0
+                    ) / receivings.length
+                  ).toFixed(2)
                   : "0.00",
               subtitle: "%",
               icon: CheckCircle,
@@ -485,6 +506,57 @@ export default function Receiving() {
                   </div>
                 </div>
 
+                {/* Tax Invoice Info - CRITICAL REQUIRED FIELDS */}
+                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-800 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    <h3 className="text-lg font-bold text-red-900 dark:text-red-100">
+                      ข้อมูลใบกำกับภาษี (Required)
+                    </h3>
+                  </div>
+                  <p className="text-sm text-red-700 dark:text-red-300 mb-4">
+                    ⚠️ เลขที่ใบกำกับภาษีเป็นข้อมูลที่จำเป็นสำหรับการเคลมภาษีซื้อ (Input VAT) ห้ามเว้นว่าง
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-red-900 dark:text-red-100 mb-2">
+                        เลขที่ใบกำกับภาษี *
+                      </label>
+                      <input
+                        type="text"
+                        value={receivingForm.taxInvoiceNo}
+                        onChange={(e) =>
+                          setReceivingForm({
+                            ...receivingForm,
+                            taxInvoiceNo: e.target.value,
+                          })
+                        }
+                        placeholder="กรอกเลขที่ใบกำกับภาษี (เช่น TAX-2024-001)"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border-2 border-red-300 dark:border-red-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500 text-gray-800 dark:text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-red-900 dark:text-red-100 mb-2">
+                        วันที่ใบกำกับภาษี *
+                      </label>
+                      <input
+                        type="date"
+                        value={receivingForm.taxInvoiceDate}
+                        onChange={(e) =>
+                          setReceivingForm({
+                            ...receivingForm,
+                            taxInvoiceDate: e.target.value,
+                          })
+                        }
+                        max={new Date().toISOString().split("T")[0]}
+                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border-2 border-red-300 dark:border-red-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500 text-gray-800 dark:text-white"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Driver & Truck Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div>
@@ -536,13 +608,12 @@ export default function Receiving() {
                     return (
                       <div
                         key={index}
-                        className={`p-4 rounded-xl border-2 ${
-                          isError
-                            ? "bg-red-50/50 dark:bg-red-900/10 border-red-300 dark:border-red-800"
-                            : isWarning
+                        className={`p-4 rounded-xl border-2 ${isError
+                          ? "bg-red-50/50 dark:bg-red-900/10 border-red-300 dark:border-red-800"
+                          : isWarning
                             ? "bg-orange-50/50 dark:bg-orange-900/10 border-orange-300 dark:border-orange-800"
                             : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-3 mb-3">
                           <Droplet className="w-5 h-5 text-blue-500" />
@@ -572,13 +643,12 @@ export default function Receiving() {
                                   parseInt(e.target.value) || 0
                                 )
                               }
-                              className={`w-full px-3 py-2 bg-white dark:bg-gray-800 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white ${
-                                isError
-                                  ? "border-red-300 dark:border-red-700"
-                                  : isWarning
+                              className={`w-full px-3 py-2 bg-white dark:bg-gray-800 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white ${isError
+                                ? "border-red-300 dark:border-red-700"
+                                : isWarning
                                   ? "border-orange-300 dark:border-orange-700"
                                   : "border-gray-200 dark:border-gray-700"
-                              }`}
+                                }`}
                             />
                           </div>
                           <div>
@@ -635,48 +705,48 @@ export default function Receiving() {
                   >
                     <Save className="w-5 h-5" />
                     บันทึกการรับน้ำมัน
-        </button>
+                  </button>
                 </div>
               </div>
-      </motion.div>
+            </motion.div>
           )}
         </AnimatePresence>
 
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        {/* Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex flex-wrap items-center gap-4 mb-6"
-      >
+        >
           <div className="flex-1 min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="ค้นหาเลขที่รับ, เลขที่ใบสั่งซื้อ, เลขที่ใบส่งของ..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            <input
+              type="text"
+              placeholder="ค้นหาเลขที่รับ, เลขที่ใบสั่งซื้อ, เลขที่ใบส่งของ..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
-          />
-        </div>
-        <div className="flex items-center gap-2">
+            />
+          </div>
+          <div className="flex items-center gap-2">
             <Filter className="w-5 h-5 text-gray-400" />
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
               className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
-          >
-            <option>ทั้งหมด</option>
-            <option>รับแล้ว</option>
-            <option>รอรับ</option>
-          </select>
-        </div>
-      </motion.div>
+            >
+              <option>ทั้งหมด</option>
+              <option>รับแล้ว</option>
+              <option>รอรับ</option>
+            </select>
+          </div>
+        </motion.div>
 
         {/* Receivings List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
           className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
         >
@@ -803,7 +873,7 @@ export default function Receiving() {
                                   {numberFormatter.format(item.difference)} ลิตร (
                                   {item.differencePercent > 0 ? "+" : ""}
                                   {item.differencePercent.toFixed(2)}%)
-                    </span>
+                                </span>
                               </div>
                             </div>
                           ))}
@@ -827,10 +897,10 @@ export default function Receiving() {
                   </div>
                 </motion.div>
               ))}
-        </div>
+            </div>
           )}
-      </motion.div>
-        </div>
+        </motion.div>
+      </div>
     </div>
   );
 }
