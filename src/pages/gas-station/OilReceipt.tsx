@@ -24,6 +24,7 @@ import {
 import { mockOilReceipts, type OilReceipt } from "@/data/gasStationReceipts";
 import { mockApprovedOrders } from "@/data/gasStationOrders";
 import { mockTruckOrders } from "./TruckProfiles";
+import { logActivity } from "@/types/gasStationActivity";
 
 // Import mock transport deliveries for auto-filling
 const mockTransportDeliveries = [
@@ -1023,6 +1024,30 @@ export default function OilReceipt() {
                                         ) : (
                                             <button
                                                 onClick={() => {
+                                                    const receiptNo = `REC-${new Date().toISOString().split("T")[0].replace(/-/g, "")}-${Date.now().toString().slice(-4)}`;
+                                                    
+                                                    // บันทึกประวัติการทำงาน
+                                                    logActivity({
+                                                        module: "รับน้ำมันจาก ปตท",
+                                                        action: "create",
+                                                        recordId: receiptNo,
+                                                        recordType: "OilReceipt",
+                                                        userId: "EMP-001", // TODO: ดึงจาก session
+                                                        userName: "นายสมศักดิ์ ใจดี", // TODO: ดึงจาก session
+                                                        description: `บันทึกการรับน้ำมันจาก ปตท. ใบสั่งซื้อ ${formData.purchaseOrderNo} จำนวน ${formData.measurements.length} รายการ`,
+                                                        details: {
+                                                            purchaseOrderNo: formData.purchaseOrderNo,
+                                                            deliveryNoteNo: formData.deliveryNoteNo,
+                                                            receiveDate: formData.receiveDate,
+                                                            receiveTime: formData.receiveTime,
+                                                            truckLicensePlate: formData.truckLicensePlate,
+                                                            driverName: formData.driverName,
+                                                            measurementsCount: formData.measurements.length,
+                                                            totalQuantity: formData.measurements.reduce((sum, m) => sum + (m.afterDip - m.beforeDip), 0),
+                                                        },
+                                                        status: "success",
+                                                    });
+                                                    
                                                     alert("บันทึกใบรับน้ำมันสำเร็จ!");
                                                     setShowCreateModal(false);
                                                     resetForm();

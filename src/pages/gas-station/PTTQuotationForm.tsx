@@ -9,6 +9,7 @@ import {
 import { mockApprovedOrders } from "@/data/gasStationOrders";
 import { mockTrucks, mockTrailers } from "./TruckProfiles";
 import { employees } from "@/data/mockData";
+import { logActivity } from "@/types/gasStationActivity";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
     maximumFractionDigits: 0,
@@ -98,6 +99,27 @@ export default function PTTQuotationForm({ existingQuotations = [], onClose, onS
             return;
         }
 
+        // บันทึกประวัติการทำงาน
+        logActivity({
+            module: "บันทึกใบเสนอราคาจากปตท.",
+            action: "create",
+            recordId: formData.pttQuotationNo || `QT-${Date.now()}`,
+            recordType: "PTTQuotation",
+            userId: "EMP-001", // TODO: ดึงจาก session
+            userName: "นายสมศักดิ์ ใจดี", // TODO: ดึงจาก session
+            description: `บันทึกใบเสนอราคาจากปตท. หมายเลข ${formData.pttQuotationNo} สำหรับใบสั่งซื้อ ${formData.purchaseOrderNo}`,
+            details: {
+                purchaseOrderNo: formData.purchaseOrderNo,
+                pttQuotationNo: formData.pttQuotationNo,
+                pttQuotationDate: formData.pttQuotationDate,
+                pttQuotationAmount: formData.pttQuotationAmount,
+                truckId: formData.truckId,
+                trailerId: formData.trailerId,
+                driverId: formData.driverId,
+            },
+            status: "success",
+        });
+        
         onSave(formData as PTTQuotationData);
     };
 

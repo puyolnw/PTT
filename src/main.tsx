@@ -193,6 +193,7 @@ import PurchaseBook from "@/pages/gas-station/PurchaseBook";
 import WholesaleBook from "@/pages/gas-station/WholesaleBook";
 import ControlSheet from "@/pages/gas-station/ControlSheet";
 import TankEntryBook from "@/pages/gas-station/TankEntryBook";
+import RecordTankEntry from "@/pages/gas-station/RecordTankEntry";
 import OilTransfer from "@/pages/gas-station/OilTransfer";
 import QualityTest from "@/pages/gas-station/QualityTest";
 import DepositSlips from "@/pages/gas-station/DepositSlips";
@@ -1024,6 +1025,10 @@ const router = createBrowserRouter([
           {
             path: "tank-entry-book",
             element: <TankEntryBook />,
+          },
+          {
+            path: "record-tank-entry",
+            element: <RecordTankEntry />,
           },
           {
             path: "oil-transfer",

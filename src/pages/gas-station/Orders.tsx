@@ -30,9 +30,7 @@ import {
   User,
 } from "lucide-react";
 import NewOrderForm from "./NewOrderForm";
-import PTTQuotationForm, { type PTTQuotationData } from "./PTTQuotationForm";
 import { mockTruckOrders, type TruckOrder, mockTrucks, mockTrailers } from "./TruckProfiles";
-import { mockPTTQuotations, type PTTQuotation } from "@/data/gasStationOrders";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -60,7 +58,6 @@ import { branches, legalEntities, mockOrderSummary } from "@/data/gasStationOrde
 
 // Import shared data
 import { mockApprovedOrders } from "@/data/gasStationOrders";
-import { employees } from "@/data/mockData";
 
 // Mock data - ใบสั่งซื้อที่อนุมัติแล้ว (บิลรวมการสั่งในแต่ละครั้ง)
 // ข้อมูลนี้ถูกย้ายไปที่ src/data/gasStationOrders.ts แล้ว
@@ -129,13 +126,9 @@ export default function Orders() {
     driverCode: string;
   }>>([]);
 
-  // PTT Quotation states
-  const [showPTTQuotationModal, setShowPTTQuotationModal] = useState(false);
-  const [pttQuotations, setPTTQuotations] = useState<PTTQuotation[]>(mockPTTQuotations);
-
   // Prevent body scroll when modals are open
   useEffect(() => {
-    if (showTruckModal || selectedOrderDetail || showConsolidateModal || selectedApprovedOrder || showPTTQuotationModal) {
+    if (showTruckModal || selectedOrderDetail || showConsolidateModal || selectedApprovedOrder) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
@@ -144,7 +137,7 @@ export default function Orders() {
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [showTruckModal, selectedOrderDetail, showConsolidateModal, selectedApprovedOrder, showPTTQuotationModal]);
+  }, [showTruckModal, selectedOrderDetail, showConsolidateModal, selectedApprovedOrder]);
 
   // Handle ESC key
   useEffect(() => {
@@ -155,13 +148,12 @@ export default function Orders() {
         if (selectedApprovedOrder) setSelectedApprovedOrder(null);
         if (showTruckModal) setShowTruckModal(false);
         if (showNewOrderModal) setShowNewOrderModal(false);
-        if (showPTTQuotationModal) setShowPTTQuotationModal(false);
       }
     };
 
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [showTruckModal, selectedOrderDetail, showConsolidateModal, selectedApprovedOrder, showNewOrderModal, showPTTQuotationModal]);
+  }, [showTruckModal, selectedOrderDetail, showConsolidateModal, selectedApprovedOrder, showNewOrderModal]);
 
   // คำนวณยอดรวมที่ต้องสั่ง
   const totalQuantity = mockOrderSummary.reduce((sum, order) => sum + (order.quantityOrdered || 0), 0);
@@ -320,11 +312,14 @@ export default function Orders() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowPTTQuotationModal(true)}
-            className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
+            onClick={() => {
+              setNewOrderItems([]);
+              setShowNewOrderModal(true);
+            }}
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
           >
-            <FileText className="w-4 h-4" />
-            บันทึกใบเสนอราคา ปตท.
+            <Plus className="w-4 h-4" />
+            สร้างใบสั่งซื้อใหม่
           </button>
         </div>
       </motion.div>
@@ -1080,7 +1075,7 @@ export default function Orders() {
                               <div>
                                 <span className="text-gray-600 dark:text-gray-400">ส่วนต่างจากที่ขอ:</span>
                                 <span className={`ml-2 font-semibold ${order.quantityOrdered - order.estimatedOrderAmount > 0 ? 'text-blue-600 dark:text-blue-400' :
-                                  order.quantityOrdered - order.estimatedOrderAmount < 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                    order.quantityOrdered - order.estimatedOrderAmount < 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
                                   }`}>
                                   {order.quantityOrdered - order.estimatedOrderAmount > 0 ? '+' : ''}
                                   {numberFormatter.format(order.quantityOrdered - order.estimatedOrderAmount)} ลิตร
@@ -1089,7 +1084,7 @@ export default function Orders() {
                               <div>
                                 <span className="text-gray-600 dark:text-gray-400">ส่วนต่างจากระบบ:</span>
                                 <span className={`ml-2 font-semibold ${order.quantityOrdered - order.systemRecommended > 0 ? 'text-blue-600 dark:text-blue-400' :
-                                  order.quantityOrdered - order.systemRecommended < 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                    order.quantityOrdered - order.systemRecommended < 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
                                   }`}>
                                   {order.quantityOrdered - order.systemRecommended > 0 ? '+' : ''}
                                   {numberFormatter.format(order.quantityOrdered - order.systemRecommended)} ลิตร
@@ -1433,8 +1428,8 @@ export default function Orders() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected
-                              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                              : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
                               }`}
                             onClick={() => {
                               if (isSelected) {
@@ -1742,8 +1737,8 @@ export default function Orders() {
                               <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-start gap-4 flex-1">
                                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 ${hasItems
-                                    ? "bg-gradient-to-br from-blue-500 to-cyan-500"
-                                    : "bg-gray-200 dark:bg-gray-700"
+                                      ? "bg-gradient-to-br from-blue-500 to-cyan-500"
+                                      : "bg-gray-200 dark:bg-gray-700"
                                     }`}>
                                     <MapPin className={`w-6 h-6 ${hasItems ? "text-white" : "text-gray-400"}`} />
                                   </div>
@@ -1761,8 +1756,8 @@ export default function Orders() {
                                 <div className="text-right ml-4">
                                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">ยอดรวมสาขา</p>
                                   <p className={`text-lg font-bold ${hasItems
-                                    ? "text-blue-600 dark:text-blue-400"
-                                    : "text-gray-400 dark:text-gray-500"
+                                      ? "text-blue-600 dark:text-blue-400"
+                                      : "text-gray-400 dark:text-gray-500"
                                     }`}>
                                     {hasItems
                                       ? currencyFormatter.format(branchData.totalAmount || 0)
@@ -1891,100 +1886,6 @@ export default function Orders() {
                     <Download className="w-4 h-4" />
                     Export Excel
                   </button>
-                </div>
-              </motion.div>
-            </div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* PTT Quotation Modal */}
-      <AnimatePresence>
-        {showPTTQuotationModal && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowPTTQuotationModal(false)}
-              className="fixed inset-0 bg-black/50 z-50"
-            />
-
-            {/* Modal */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
-                      <FileText className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                        บันทึกใบเสนอราคาจาก ปตท.
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        เลือก PO และกรอกข้อมูลใบเสนอราคา
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowPTTQuotationModal(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
-                    aria-label="ปิด"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
-                  <PTTQuotationForm
-                    existingQuotations={pttQuotations.map(q => ({
-                      purchaseOrderNo: q.purchaseOrderNo,
-                      truckId: q.truckId,
-                      trailerId: q.trailerId,
-                      driverId: q.driverId,
-                    }))}
-                    onClose={() => setShowPTTQuotationModal(false)}
-                    onSave={(data: PTTQuotationData) => {
-                      // Get truck, trailer, driver details
-                      const truck = mockTrucks.find((t) => t.id === data.truckId);
-                      const trailer = mockTrailers.find((t) => t.id === data.trailerId);
-                      const driver = employees.find((e) => e.id.toString() === data.driverId);
-
-                      if (!truck || !trailer || !driver) {
-                        alert("ไม่พบข้อมูลรถหรือคนขับ");
-                        return;
-                      }
-
-                      // Create new quotation
-                      const newQuotation: PTTQuotation = {
-                        id: `PTTQ-${Date.now()}`,
-                        ...data,
-                        truckPlateNumber: truck.plateNumber,
-                        trailerPlateNumber: trailer.plateNumber,
-                        driverName: driver.name,
-                        driverCode: driver.code,
-                        status: "draft",
-                        createdAt: new Date().toISOString(),
-                        createdBy: "คุณนิด",
-                      };
-
-                      // Add to list
-                      setPTTQuotations([...pttQuotations, newQuotation]);
-                      setShowPTTQuotationModal(false);
-
-                      // Show success message
-                      alert(`บันทึกใบเสนอราคา ${data.pttQuotationNo} สำเร็จ!`);
-                    }}
-                  />
                 </div>
               </motion.div>
             </div>

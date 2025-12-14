@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
     Truck,
     Plus,
@@ -18,7 +18,8 @@ import type { TruckOrder } from "./TruckProfiles";
 import StartTripModal from "@/components/truck/StartTripModal";
 import EndTripModal from "@/components/truck/EndTripModal";
 import { calculateTripMetrics, formatDuration } from "@/utils/odometerValidation";
-import { mockApprovedOrders } from "@/data/gasStationOrders";
+import { mockApprovedOrders, mockPTTQuotations } from "@/data/gasStationOrders";
+import { mockOilReceipts } from "@/data/gasStationReceipts";
 import { generateTransportNo } from "@/utils/truckOrderHelpers";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -59,23 +60,73 @@ export default function TruckOrders() {
         (order) => order.orderNo === newOrder.purchaseOrderNo
     );
 
+    // Combine data from PTTQuotation and OilReceipt
+    const combinedOrders = useMemo(() => {
+        return mockTruckOrders.map((order) => {
+            // Find matching PTT Quotation by purchaseOrderNo
+            const quotation = mockPTTQuotations.find(
+                (q) => q.purchaseOrderNo === order.purchaseOrderNo
+            );
+
+            // Find matching Oil Receipt by purchaseOrderNo or oilReceiptId
+            const receipt = mockOilReceipts.find(
+                (r) => r.purchaseOrderNo === order.purchaseOrderNo || r.id === order.oilReceiptId
+            );
+
+            // Merge data
+            const mergedOrder: TruckOrder = {
+                ...order,
+                // Update from PTT Quotation if exists
+                ...(quotation && {
+                    pttQuotationNo: quotation.pttQuotationNo,
+                    pttQuotationDate: quotation.pttQuotationDate,
+                    pttQuotationAmount: quotation.pttQuotationAmount,
+                    pttQuotationAttachment: quotation.pttQuotationAttachment,
+                    scheduledPickupDate: quotation.scheduledPickupDate,
+                    scheduledPickupTime: quotation.scheduledPickupTime,
+                    // Update status if quotation exists
+                    status: quotation.status === "confirmed" || quotation.status === "ready-to-pickup" 
+                        ? "quotation-recorded" 
+                        : order.status,
+                }),
+                // Update from Oil Receipt if exists
+                ...(receipt && {
+                    deliveryNoteNo: receipt.deliveryNoteNo,
+                    oilReceiptId: receipt.id,
+                    // Update status to completed if receipt exists
+                    status: receipt.status === "completed" ? "completed" : order.status,
+                }),
+            };
+
+            return mergedOrder;
+        });
+    }, []);
+
     // Filter orders
-    const filteredOrders = mockTruckOrders.filter((order) => {
-        const matchesSearch =
-            order.orderNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.truckPlateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.driver.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = filterStatus === "all" || order.status === filterStatus;
-        return matchesSearch && matchesStatus;
-    });
+    const filteredOrders = useMemo(() => {
+        return combinedOrders.filter((order) => {
+            const matchesSearch =
+                order.orderNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                order.transportNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                order.truckPlateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                order.driver.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                order.purchaseOrderNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                order.pttQuotationNo?.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesStatus = filterStatus === "all" || order.status === filterStatus;
+            return matchesSearch && matchesStatus;
+        });
+    }, [searchTerm, filterStatus, combinedOrders]);
 
     // Summary stats
-    const stats = {
-        total: mockTruckOrders.length,
-        draft: mockTruckOrders.filter((o) => o.status === "draft").length,
-        pickingUp: mockTruckOrders.filter((o) => o.status === "picking-up").length,
-        completed: mockTruckOrders.filter((o) => o.status === "completed").length,
-    };
+    const stats = useMemo(() => {
+        return {
+            total: combinedOrders.length,
+            draft: combinedOrders.filter((o) => o.status === "draft").length,
+            quotationRecorded: combinedOrders.filter((o) => o.status === "quotation-recorded").length,
+            pickingUp: combinedOrders.filter((o) => o.status === "picking-up").length,
+            completed: combinedOrders.filter((o) => o.status === "completed").length,
+        };
+    }, [combinedOrders]);
 
     const handleCreateOrder = () => {
         // Generate transport number
@@ -315,6 +366,9 @@ export default function TruckOrders() {
                                     เลขที่ขนส่ง
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    เลขที่ PO
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     วันที่
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -324,13 +378,16 @@ export default function TruckOrders() {
                                     คนขับ
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    เลขไมล์ปัจจุบัน
+                                    ใบเสนอราคา ปตท.
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     สถานะ
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     สถานะรับน้ำมัน
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    การดำเนินการ
                                 </th>
                             </tr>
                         </thead>
@@ -352,6 +409,9 @@ export default function TruckOrders() {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                                         {order.transportNo}
                                     </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                        {order.purchaseOrderNo || "-"}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                         {dateFormatter.format(new Date(order.orderDate))}
                                     </td>
@@ -368,6 +428,22 @@ export default function TruckOrders() {
                                             <User className="w-4 h-4 text-gray-400" />
                                             <span className="text-sm text-gray-900 dark:text-white">{order.driver}</span>
                                         </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {order.pttQuotationNo ? (
+                                            <div className="text-sm">
+                                                <div className="font-medium text-blue-600 dark:text-blue-400">
+                                                    {order.pttQuotationNo}
+                                                </div>
+                                                {order.pttQuotationDate && (
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {new Date(order.pttQuotationDate).toLocaleDateString("th-TH")}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span
@@ -659,6 +735,12 @@ export default function TruckOrders() {
                                         </p>
                                     </div>
                                     <div>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">เลขที่ PO</p>
+                                        <p className="font-semibold text-gray-900 dark:text-white">
+                                            {selectedOrder.purchaseOrderNo || "-"}
+                                        </p>
+                                    </div>
+                                    <div>
                                         <p className="text-sm text-gray-600 dark:text-gray-400">รถหัวลาก</p>
                                         <p className="font-semibold text-gray-900 dark:text-white">
                                             {selectedOrder.truckPlateNumber}
@@ -675,24 +757,107 @@ export default function TruckOrders() {
                                         <p className="font-semibold text-gray-900 dark:text-white">{selectedOrder.driver}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">จากสาขา</p>
-                                        <p className="font-semibold text-gray-900 dark:text-white">{selectedOrder.fromBranch}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">ไปสาขา</p>
-                                        <p className="font-semibold text-gray-900 dark:text-white">{selectedOrder.toBranch}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">ประเภทน้ำมัน</p>
-                                        <p className="font-semibold text-gray-900 dark:text-white">{selectedOrder.oilType}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">ปริมาณ</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">เลขที่ขนส่ง</p>
                                         <p className="font-semibold text-gray-900 dark:text-white">
-                                            {numberFormatter.format(selectedOrder.quantity)} ลิตร
+                                            {selectedOrder.transportNo}
                                         </p>
                                     </div>
                                 </div>
+
+                                {/* PTT Quotation Info */}
+                                {selectedOrder.pttQuotationNo && (
+                                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                        <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-3">ใบเสนอราคา ปตท.</p>
+                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <p className="text-gray-600 dark:text-gray-400">เลขที่ใบเสนอราคา</p>
+                                                <p className="font-semibold text-gray-900 dark:text-white">
+                                                    {selectedOrder.pttQuotationNo}
+                                                </p>
+                                            </div>
+                                            {selectedOrder.pttQuotationDate && (
+                                                <div>
+                                                    <p className="text-gray-600 dark:text-gray-400">วันที่ใบเสนอราคา</p>
+                                                    <p className="font-semibold text-gray-900 dark:text-white">
+                                                        {dateFormatter.format(new Date(selectedOrder.pttQuotationDate))}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {selectedOrder.pttQuotationAmount && (
+                                                <div>
+                                                    <p className="text-gray-600 dark:text-gray-400">มูลค่ารวม</p>
+                                                    <p className="font-semibold text-gray-900 dark:text-white">
+                                                        {new Intl.NumberFormat("th-TH", {
+                                                            style: "currency",
+                                                            currency: "THB",
+                                                            maximumFractionDigits: 0,
+                                                        }).format(selectedOrder.pttQuotationAmount)}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {selectedOrder.scheduledPickupDate && (
+                                                <div>
+                                                    <p className="text-gray-600 dark:text-gray-400">วันนัดรับ</p>
+                                                    <p className="font-semibold text-gray-900 dark:text-white">
+                                                        {dateFormatter.format(new Date(selectedOrder.scheduledPickupDate))}
+                                                        {selectedOrder.scheduledPickupTime && ` ${selectedOrder.scheduledPickupTime}`}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Oil Receipt Info */}
+                                {selectedOrder.oilReceiptId && (() => {
+                                    const receipt = mockOilReceipts.find(r => r.id === selectedOrder.oilReceiptId);
+                                    return receipt ? (
+                                        <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                                            <p className="text-sm font-semibold text-green-600 dark:text-green-400 mb-3">ข้อมูลการรับน้ำมัน</p>
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div>
+                                                    <p className="text-gray-600 dark:text-gray-400">เลขที่ใบรับน้ำมัน</p>
+                                                    <p className="font-semibold text-gray-900 dark:text-white">
+                                                        {receipt.receiptNo}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-gray-600 dark:text-gray-400">เลขที่ใบส่งของ</p>
+                                                    <p className="font-semibold text-gray-900 dark:text-white">
+                                                        {receipt.deliveryNoteNo}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-gray-600 dark:text-gray-400">วันที่รับ</p>
+                                                    <p className="font-semibold text-gray-900 dark:text-white">
+                                                        {dateFormatter.format(new Date(receipt.receiveDate))} {receipt.receiveTime}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-gray-600 dark:text-gray-400">จำนวนรายการ</p>
+                                                    <p className="font-semibold text-gray-900 dark:text-white">
+                                                        {receipt.items.length} รายการ
+                                                    </p>
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <p className="text-gray-600 dark:text-gray-400 mb-2">รายการน้ำมันที่รับ</p>
+                                                    <div className="space-y-2">
+                                                        {receipt.items.map((item, idx) => (
+                                                            <div key={idx} className="p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="font-medium text-gray-900 dark:text-white">{item.oilType}</span>
+                                                                    <span className="text-gray-600 dark:text-gray-400">
+                                                                        {numberFormatter.format(item.quantityReceived)} ลิตร
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : null;
+                                })()}
 
                                 {selectedOrder.notes && (
                                     <div>

@@ -1,6 +1,8 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { logActivity } from "@/types/gasStationActivity";
 import {
     Truck,
     MapPin,
@@ -14,11 +16,12 @@ import {
     XCircle,
     Gauge,
     PackageCheck,
-    FileDown
+    FileDown,
+    BookOpen,
 } from "lucide-react";
 
 // Mock Data for Transports
-const mockTransports = [
+        const mockTransports = [
     {
         id: "TR-20241215-001",
         status: "in_transit",
@@ -31,7 +34,7 @@ const mockTransports = [
         startMileage: 125000,
         deliveryNoteNo: "DN-HO-20241215-001",
         items: [
-            { oilType: "Diesel B7", quantity: 12000, compartment: 1 },
+            { oilType: "Premium Diesel", quantity: 12000, compartment: 1 },
             { oilType: "Gasohol 95", quantity: 8000, compartment: 2 },
             { oilType: "Gasohol 91", quantity: 4000, compartment: 3 }
         ]
@@ -48,8 +51,8 @@ const mockTransports = [
         startMileage: 98500,
         deliveryNoteNo: "DN-HO-20241215-002",
         items: [
-            { oilType: "Diesel B7", quantity: 15000, compartment: 1 },
-            { oilType: "Diesel B7", quantity: 5000, compartment: 2 },
+            { oilType: "Premium Diesel", quantity: 15000, compartment: 1 },
+            { oilType: "Premium Diesel", quantity: 5000, compartment: 2 },
             { oilType: "Gasohol 95", quantity: 10000, compartment: 3 }
         ]
     },
@@ -65,19 +68,22 @@ const mockTransports = [
         startMileage: 124000,
         deliveryNoteNo: "DN-HO-20241214-999",
         items: [
-            { oilType: "Diesel B7", quantity: 10000, compartment: 1 }
+            { oilType: "Premium Diesel", quantity: 10000, compartment: 1 }
         ]
     }
 ];
 
-// Mock Tanks
+// Mock Tanks - ต้องตรงกับ mockUndergroundTanks ใน RecordTankEntry
 const mockTanks = [
-    { id: 1, name: "Tank 1 (Diesel B7)", oilType: "Diesel B7", capacity: 20000, currentLevel: 5000 },
-    { id: 2, name: "Tank 2 (Gasohol 95)", oilType: "Gasohol 95", capacity: 15000, currentLevel: 3000 },
-    { id: 3, name: "Tank 3 (Gasohol 91)", oilType: "Gasohol 91", capacity: 10000, currentLevel: 2000 },
+    { id: 1, name: "Tank 1 (Premium Diesel)", oilType: "Premium Diesel", capacity: 50000, currentLevel: 25000, code: "34 HSD", pumpCode: "P18", description: "E สินสา" },
+    { id: 2, name: "Tank 2 (Gasohol 95)", oilType: "Gasohol 95", capacity: 40000, currentLevel: 18000, code: "18 63H95", pumpCode: "P59", description: "B 5" },
+    { id: 3, name: "Tank 3 (Gasohol 91)", oilType: "Gasohol 91", capacity: 35000, currentLevel: 15000, code: "59 69H91", pumpCode: "P67", description: "B สมาคม" },
+    { id: 4, name: "Tank 4 (Gasohol E20)", oilType: "Gasohol E20", capacity: 45000, currentLevel: 22000, code: "83 E 20", pumpCode: "P26", description: "B หนอง" },
+    { id: 5, name: "Tank 5 (Diesel)", oilType: "Diesel", capacity: 48000, currentLevel: 20000, code: "12 HSD", pumpCode: "P12", description: "E หลัก" },
 ];
 
 export default function ReceiveFromBranch() {
+    const navigate = useNavigate();
     // State
     const [selectedTransport, setSelectedTransport] = useState<any>(null);
     const [step, setStep] = useState(1); // 1: Select Transport, 2: Verify & Details, 3: Success
@@ -124,7 +130,86 @@ export default function ReceiveFromBranch() {
     const handleSave = () => {
         // Logic to save data would go here
         // alert("Received successfully! Stock updated.");
+        
+        // บันทึกประวัติการทำงาน
+        const recordId = selectedTransport?.id || `REC-BR-${Date.now()}`;
+        const totalQuantity = formData.measurements.reduce((sum: number, item: any) => {
+            return sum + ((item.afterDip || 0) - (item.beforeDip || 0));
+        }, 0);
+        
+        // คำนวณระยะทางจากเลขไมล์
+        const distance = formData.endMileage > 0 && selectedTransport?.startOdometer ? 
+            formData.endMileage - selectedTransport.startOdometer : 0;
+        
+        logActivity({
+            module: "รับน้ำมันจากสาขาหลัก",
+            action: "create",
+            recordId: recordId,
+            recordType: "BranchReceipt",
+            userId: "EMP-001", // TODO: ดึงจาก session
+            userName: "นายสมศักดิ์ ใจดี", // TODO: ดึงจาก session
+            description: `บันทึกการรับน้ำมันจากสาขาหลัก ${selectedTransport?.sourceBranch} จำนวน ${formData.measurements.length} รายการ รวม ${totalQuantity.toLocaleString("th-TH")} ลิตร`,
+            details: {
+                transportNo: selectedTransport?.id,
+                sourceBranch: selectedTransport?.sourceBranch,
+                destinationBranch: selectedTransport?.destinationBranch,
+                truckPlate: selectedTransport?.truckPlate,
+                driverName: selectedTransport?.driverName,
+                receiveDate: formData.receiveDate,
+                receiveTime: formData.receiveTime,
+                distance: distance,
+                measurementsCount: formData.measurements.length,
+                totalQuantity: totalQuantity,
+            },
+            status: "success",
+        });
+        
         setStep(3); // Go to Success Step
+    };
+
+    // Navigate to RecordTankEntry with data
+    const handleRecordTankEntry = () => {
+        // Prepare data to pass to RecordTankEntry
+        // Filter only measurements that have tank selected and measurements filled
+        const validMeasurements = formData.measurements.filter((item: any) => 
+            item.targetTankId && item.beforeDip > 0 && item.afterDip > 0
+        );
+
+        if (validMeasurements.length === 0) {
+            alert("กรุณากรอกข้อมูลการวัดยอด (Before Dip และ After Dip) และเลือกถังสำหรับทุกรายการก่อนบันทึกน้ำมันลงหลุม");
+            return;
+        }
+
+        const tankEntryData = {
+            transportNo: selectedTransport?.id,
+            deliveryNoteNo: selectedTransport?.deliveryNoteNo,
+            source: "Branch" as const,
+            sourceBranchName: selectedTransport?.sourceBranch,
+            truckLicensePlate: selectedTransport?.truckPlate,
+            driverName: selectedTransport?.driverName,
+            receiveDate: formData.receiveDate,
+            receiveTime: formData.receiveTime,
+            measurements: validMeasurements.map((item: any) => {
+                const tank = mockTanks.find((t) => t.id === item.targetTankId);
+                return {
+                    oilType: item.oilType,
+                    tankId: item.targetTankId,
+                    tankCode: tank?.code || tank?.name || "",
+                    beforeDip: item.beforeDip || 0,
+                    afterDip: item.afterDip || 0,
+                    quantity: (item.afterDip || 0) - (item.beforeDip || 0),
+                    quantityOrdered: item.quantity,
+                    compartment: item.compartment,
+                    pumpCode: tank?.pumpCode || "",
+                    description: tank?.description || "",
+                };
+            }),
+        };
+
+        // Navigate with state
+        navigate("/app/gas-station/record-tank-entry", {
+            state: { fromReceiveFromBranch: true, data: tankEntryData },
+        });
     };
 
     const handleMockDownload = (docName: string) => {
@@ -504,7 +589,7 @@ export default function ReceiveFromBranch() {
 
                                         <div className="grid grid-cols-3 gap-4">
                                             <div>
-                                                <label className="text-xs text-gray-500">วัดก่อนลง (Before)</label>
+                                                <label className="text-xs text-gray-500">วัดก่อนลง (Before) <span className="text-red-500">*</span></label>
                                                 <input
                                                     type="number"
                                                     className="w-full border rounded px-2 py-1 text-sm"
@@ -514,10 +599,11 @@ export default function ReceiveFromBranch() {
                                                         newMeasurements[index].beforeDip = parseFloat(e.target.value);
                                                         setFormData({ ...formData, measurements: newMeasurements });
                                                     }}
+                                                    placeholder="0"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-xs text-gray-500">วัดหลังลง (After)</label>
+                                                <label className="text-xs text-gray-500">วัดหลังลง (After) <span className="text-red-500">*</span></label>
                                                 <input
                                                     type="number"
                                                     className="w-full border rounded px-2 py-1 text-sm"
@@ -527,13 +613,19 @@ export default function ReceiveFromBranch() {
                                                         newMeasurements[index].afterDip = parseFloat(e.target.value);
                                                         setFormData({ ...formData, measurements: newMeasurements });
                                                     }}
+                                                    placeholder="0"
                                                 />
                                             </div>
                                             <div>
                                                 <label className="text-xs text-gray-500">รับจริง (คำนวณ)</label>
-                                                <div className="text-sm font-bold text-gray-700 py-1">
+                                                <div className={`text-sm font-bold py-1 ${((item.afterDip || 0) - (item.beforeDip || 0)) > 0 ? 'text-green-600' : 'text-gray-700'}`}>
                                                     {((item.afterDip || 0) - (item.beforeDip || 0)).toLocaleString()} ลิตร
                                                 </div>
+                                                {item.quantity && (
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        สั่ง: {item.quantity.toLocaleString()} ลิตร
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -551,8 +643,8 @@ export default function ReceiveFromBranch() {
                             </button>
                             <button
                                 onClick={handleSave}
-                                disabled={!isDeliveryNoteMatch || !distance}
-                                className={`flex-1 px-6 py-2.5 rounded-xl text-white font-semibold flex items-center justify-center gap-2 shadow-lg transition-all ${(!isDeliveryNoteMatch || !distance)
+                                disabled={!isDeliveryNoteMatch || !distance || formData.measurements.some((item: any) => !item.targetTankId || !item.beforeDip || !item.afterDip)}
+                                className={`flex-1 px-6 py-2.5 rounded-xl text-white font-semibold flex items-center justify-center gap-2 shadow-lg transition-all ${(!isDeliveryNoteMatch || !distance || formData.measurements.some((item: any) => !item.targetTankId || !item.beforeDip || !item.afterDip))
                                     ? "bg-gray-400 cursor-not-allowed"
                                     : "bg-gradient-to-r from-blue-600 to-cyan-600 hover:scale-[1.02]"
                                     }`}
@@ -590,6 +682,13 @@ export default function ReceiveFromBranch() {
                         >
                             <FileDown className="w-5 h-5" />
                             ดาวน์โหลดใบเสร็จรับเงิน
+                        </button>
+                        <button
+                            onClick={handleRecordTankEntry}
+                            className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-bold hover:from-teal-700 hover:to-cyan-700 transition-colors flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-1"
+                        >
+                            <BookOpen className="w-5 h-5" />
+                            บันทึกน้ำมันลงหลุม
                         </button>
                     </div>
 
