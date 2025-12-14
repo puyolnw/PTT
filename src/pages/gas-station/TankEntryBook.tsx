@@ -1,458 +1,144 @@
-import { motion } from "framer-motion";
-import { useState } from "react";
-import { Droplet, BookOpen, Calendar, Filter } from "lucide-react";
-
-const numberFormatter = new Intl.NumberFormat("th-TH", {
-  maximumFractionDigits: 2,
-});
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useMemo } from "react";
+import { Droplet, BookOpen, Calendar, Filter, Edit, Trash2, Plus, X, Save, Check } from "lucide-react";
 
 const integerFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
 type TankEntry = {
-  date: string;
+  id: string;
+  date: string; // รูปแบบ ด/ป/ว เช่น "7/7/68"
   fullDate: Date; // วันที่แบบเต็มสำหรับการกรอง
-  tankCode: string; // เช่น "34 HSD", "83 E 20", "18 63H95"
-  quantity: number; // จำนวนลิตร
-  price1: number; // ราคาต่อลิตร (คอลัมน์ที่ 3)
-  price2: number; // ราคาต่อลิตร (คอลัมน์ที่ 4) บางตัวมี .90
-  totalAmount: number; // ยอดรวม
-  pumpCode: string; // รหัสหัวจ่าย เช่น "P18", "P26"
-  description: string; // คำอธิบาย เช่น "E สินสา", "B หนอง"
+  tankId: number; // ID ตัวเลข เช่น 34, 59, 18
+  fuelType: string; // รหัสน้ำมัน เช่น "HSD", "6SH91", "E20"
+  quantity1: string; // คอลัมน์ที่ 1 (อาจเป็นผลรวม เช่น "16000+9000+8000")
+  quantity2: string; // คอลัมน์ที่ 2
+  quantity3: string; // คอลัมน์ที่ 3
+  isVerified?: boolean; // มี checkmark หรือไม่
 };
 
-// ฟังก์ชันสร้างวันที่ในรูปแบบ ด/ป/ว (เช่น 15/12/67)
-const formatDateThai = (date: Date): string => {
-  const day = date.getDate();
-  const month = date.getMonth() + 1;
-  const year = (date.getFullYear() + 543) % 100; // แปลงเป็น พ.ศ. และเอา 2 หลักสุดท้าย
-  return `${day}/${month}/${year}`;
+// ฟังก์ชันคำนวณผลรวมจาก string เช่น "16000+9000+8000" = 33000
+const calculateSum = (value: string): number => {
+  if (!value || value.trim() === "") return 0;
+  return value
+    .split("+")
+    .map(v => parseFloat(v.trim().replace(/,/g, "")))
+    .filter(v => !isNaN(v))
+    .reduce((sum, v) => sum + v, 0);
 };
 
-// สร้างวันที่เริ่มต้น (วันนี้)
-const today = new Date();
-const generateDateForDay = (daysAgo: number): string => {
-  const date = new Date(today);
-  date.setDate(date.getDate() - daysAgo);
-  return formatDateThai(date);
+// ฟังก์ชันจัดรูปแบบผลรวม เช่น "16000+9000" -> "16,000+9,000"
+const formatQuantity = (value: string): string => {
+  if (!value || value.trim() === "") return "";
+  return value
+    .split("+")
+    .map(v => {
+      const num = parseFloat(v.trim().replace(/,/g, ""));
+      return isNaN(num) ? v.trim() : integerFormatter.format(num);
+    })
+    .join("+");
 };
 
-const getFullDateForDay = (daysAgo: number): Date => {
-  const date = new Date(today);
-  date.setDate(date.getDate() - daysAgo);
-  return date;
-};
-
-// Mock data เลียนแบบสมุดจริง - 6 วัน (วันนี้ + 5 วันก่อนหน้า)
-const mockTankEntries: TankEntry[] = [
-  // วันนี้ (วันที่ 0)
-  {
-    date: generateDateForDay(0),
-    fullDate: getFullDateForDay(0),
-    tankCode: "34 HSD",
-    quantity: 8500,
-    price1: 33.49,
-    price2: 33.89,
-    totalAmount: 3800,
-    pumpCode: "P18",
-    description: "E สินสา",
-  },
-  {
-    date: generateDateForDay(0),
-    fullDate: getFullDateForDay(0),
-    tankCode: "83 E 20",
-    quantity: 7200,
-    price1: 34.79,
-    price2: 33.59,
-    totalAmount: 7500,
-    pumpCode: "P26",
-    description: "B หนอง",
-  },
-  {
-    date: generateDateForDay(0),
-    fullDate: getFullDateForDay(0),
-    tankCode: "18 63H95",
-    quantity: 4500,
-    price1: 36.90,
-    price2: 36.00,
-    totalAmount: 2000,
-    pumpCode: "P59",
-    description: "B 5",
-  },
-  {
-    date: generateDateForDay(0),
-    fullDate: getFullDateForDay(0),
-    tankCode: "59 69H91",
-    quantity: 2200,
-    price1: 36.53,
-    price2: 35.63,
-    totalAmount: 10200,
-    pumpCode: "P67",
-    description: "B สมาคม",
-  },
-  {
-    date: generateDateForDay(0),
-    fullDate: getFullDateForDay(0),
-    tankCode: "34 HSD",
-    quantity: 12000,
-    price1: 33.49,
-    price2: 33.89,
-    totalAmount: 6800,
-    pumpCode: "P18",
-    description: "E สินสา",
-  },
-  // วันที่ 1 (เมื่อวาน)
-  {
-    date: generateDateForDay(1),
-    fullDate: getFullDateForDay(1),
-    tankCode: "34 HSD",
-    quantity: 8000,
-    price1: 33.49,
-    price2: 33.89,
-    totalAmount: 3600,
-    pumpCode: "P18",
-    description: "E สินสา",
-  },
-  {
-    date: generateDateForDay(1),
-    fullDate: getFullDateForDay(1),
-    tankCode: "83 E 20",
-    quantity: 7000,
-    price1: 34.79,
-    price2: 33.59,
-    totalAmount: 7200,
-    pumpCode: "P26",
-    description: "B หนอง",
-  },
-  {
-    date: generateDateForDay(1),
-    fullDate: getFullDateForDay(1),
-    tankCode: "18 63H95",
-    quantity: 4000,
-    price1: 36.90,
-    price2: 36.00,
-    totalAmount: 1800,
-    pumpCode: "P59",
-    description: "B 5",
-  },
-  {
-    date: generateDateForDay(1),
-    fullDate: getFullDateForDay(1),
-    tankCode: "59 69H91",
-    quantity: 2000,
-    price1: 36.53,
-    price2: 35.63,
-    totalAmount: 9900,
-    pumpCode: "P67",
-    description: "B สมาคม",
-  },
-  {
-    date: generateDateForDay(1),
-    fullDate: getFullDateForDay(1),
-    tankCode: "34 HSD",
-    quantity: 11000,
-    price1: 33.49,
-    price2: 33.89,
-    totalAmount: 6300,
-    pumpCode: "P18",
-    description: "E สินสา",
-  },
-  {
-    date: generateDateForDay(1),
-    fullDate: getFullDateForDay(1),
-    tankCode: "83 E 20",
-    quantity: 1000,
-    price1: 34.79,
-    price2: 33.59,
-    totalAmount: 900,
-    pumpCode: "P26",
-    description: "B หนอง",
-  },
-  // วันที่ 2
-  {
-    date: generateDateForDay(2),
-    fullDate: getFullDateForDay(2),
-    tankCode: "34 HSD",
-    quantity: 9000,
-    price1: 33.49,
-    price2: 33.89,
-    totalAmount: 4000,
-    pumpCode: "P18",
-    description: "E สินสา",
-  },
-  {
-    date: generateDateForDay(2),
-    fullDate: getFullDateForDay(2),
-    tankCode: "83 E 20",
-    quantity: 6500,
-    price1: 34.79,
-    price2: 33.59,
-    totalAmount: 6800,
-    pumpCode: "P26",
-    description: "B หนอง",
-  },
-  {
-    date: generateDateForDay(2),
-    fullDate: getFullDateForDay(2),
-    tankCode: "18 63H95",
-    quantity: 3800,
-    price1: 36.90,
-    price2: 36.00,
-    totalAmount: 1700,
-    pumpCode: "P59",
-    description: "B 5",
-  },
-  {
-    date: generateDateForDay(2),
-    fullDate: getFullDateForDay(2),
-    tankCode: "59 69H91",
-    quantity: 2500,
-    price1: 36.53,
-    price2: 35.63,
-    totalAmount: 10500,
-    pumpCode: "P67",
-    description: "B สมาคม",
-  },
-  {
-    date: generateDateForDay(2),
-    fullDate: getFullDateForDay(2),
-    tankCode: "34 HSD",
-    quantity: 10500,
-    price1: 33.49,
-    price2: 33.89,
-    totalAmount: 6000,
-    pumpCode: "P18",
-    description: "E สินสา",
-  },
-  // วันที่ 3
-  {
-    date: generateDateForDay(3),
-    fullDate: getFullDateForDay(3),
-    tankCode: "34 HSD",
-    quantity: 7500,
-    price1: 33.49,
-    price2: 33.89,
-    totalAmount: 3400,
-    pumpCode: "P18",
-    description: "E สินสา",
-  },
-  {
-    date: generateDateForDay(3),
-    fullDate: getFullDateForDay(3),
-    tankCode: "83 E 20",
-    quantity: 6800,
-    price1: 34.79,
-    price2: 33.59,
-    totalAmount: 7000,
-    pumpCode: "P26",
-    description: "B หนอง",
-  },
-  {
-    date: generateDateForDay(3),
-    fullDate: getFullDateForDay(3),
-    tankCode: "18 63H95",
-    quantity: 4200,
-    price1: 36.90,
-    price2: 36.00,
-    totalAmount: 1900,
-    pumpCode: "P59",
-    description: "B 5",
-  },
-  {
-    date: generateDateForDay(3),
-    fullDate: getFullDateForDay(3),
-    tankCode: "59 69H91",
-    quantity: 1800,
-    price1: 36.53,
-    price2: 35.63,
-    totalAmount: 9500,
-    pumpCode: "P67",
-    description: "B สมาคม",
-  },
-  {
-    date: generateDateForDay(3),
-    fullDate: getFullDateForDay(3),
-    tankCode: "34 HSD",
-    quantity: 11500,
-    price1: 33.49,
-    price2: 33.89,
-    totalAmount: 6500,
-    pumpCode: "P18",
-    description: "E สินสา",
-  },
-  {
-    date: generateDateForDay(3),
-    fullDate: getFullDateForDay(3),
-    tankCode: "83 E 20",
-    quantity: 1200,
-    price1: 34.79,
-    price2: 33.59,
-    totalAmount: 1000,
-    pumpCode: "P26",
-    description: "B หนอง",
-  },
-  // วันที่ 4
-  {
-    date: generateDateForDay(4),
-    fullDate: getFullDateForDay(4),
-    tankCode: "34 HSD",
-    quantity: 8200,
-    price1: 33.49,
-    price2: 33.89,
-    totalAmount: 3700,
-    pumpCode: "P18",
-    description: "E สินสา",
-  },
-  {
-    date: generateDateForDay(4),
-    fullDate: getFullDateForDay(4),
-    tankCode: "83 E 20",
-    quantity: 7100,
-    price1: 34.79,
-    price2: 33.59,
-    totalAmount: 7300,
-    pumpCode: "P26",
-    description: "B หนอง",
-  },
-  {
-    date: generateDateForDay(4),
-    fullDate: getFullDateForDay(4),
-    tankCode: "18 63H95",
-    quantity: 4100,
-    price1: 36.90,
-    price2: 36.00,
-    totalAmount: 1850,
-    pumpCode: "P59",
-    description: "B 5",
-  },
-  {
-    date: generateDateForDay(4),
-    fullDate: getFullDateForDay(4),
-    tankCode: "59 69H91",
-    quantity: 2100,
-    price1: 36.53,
-    price2: 35.63,
-    totalAmount: 9800,
-    pumpCode: "P67",
-    description: "B สมาคม",
-  },
-  {
-    date: generateDateForDay(4),
-    fullDate: getFullDateForDay(4),
-    tankCode: "34 HSD",
-    quantity: 10800,
-    price1: 33.49,
-    price2: 33.89,
-    totalAmount: 6200,
-    pumpCode: "P18",
-    description: "E สินสา",
-  },
-  // วันที่ 5
-  {
-    date: generateDateForDay(5),
-    fullDate: getFullDateForDay(5),
-    tankCode: "34 HSD",
-    quantity: 8800,
-    price1: 33.49,
-    price2: 33.89,
-    totalAmount: 3900,
-    pumpCode: "P18",
-    description: "E สินสา",
-  },
-  {
-    date: generateDateForDay(5),
-    fullDate: getFullDateForDay(5),
-    tankCode: "83 E 20",
-    quantity: 6900,
-    price1: 34.79,
-    price2: 33.59,
-    totalAmount: 7100,
-    pumpCode: "P26",
-    description: "B หนอง",
-  },
-  {
-    date: generateDateForDay(5),
-    fullDate: getFullDateForDay(5),
-    tankCode: "18 63H95",
-    quantity: 3900,
-    price1: 36.90,
-    price2: 36.00,
-    totalAmount: 1750,
-    pumpCode: "P59",
-    description: "B 5",
-  },
-  {
-    date: generateDateForDay(5),
-    fullDate: getFullDateForDay(5),
-    tankCode: "59 69H91",
-    quantity: 2300,
-    price1: 36.53,
-    price2: 35.63,
-    totalAmount: 10100,
-    pumpCode: "P67",
-    description: "B สมาคม",
-  },
-  {
-    date: generateDateForDay(5),
-    fullDate: getFullDateForDay(5),
-    tankCode: "34 HSD",
-    quantity: 11200,
-    price1: 33.49,
-    price2: 33.89,
-    totalAmount: 6400,
-    pumpCode: "P18",
-    description: "E สินสา",
-  },
-  {
-    date: generateDateForDay(5),
-    fullDate: getFullDateForDay(5),
-    tankCode: "83 E 20",
-    quantity: 1100,
-    price1: 34.79,
-    price2: 33.59,
-    totalAmount: 950,
-    pumpCode: "P26",
-    description: "B หนอง",
-  },
+// Mock data ตามรูปภาพ - สมุดตั้งพัก
+const initialTankEntries: TankEntry[] = [
+  // วันที่ 7/7/68
+  { id: "1", date: "7/7/68", fullDate: new Date(2024, 6, 7), tankId: 34, fuelType: "HSD", quantity1: "16000+9000+8000+1000+8000+15000", quantity2: "8000", quantity3: "8000", isVerified: true },
+  { id: "2", date: "7/7/68", fullDate: new Date(2024, 6, 7), tankId: 59, fuelType: "6SH91", quantity1: "3000+4000+4000", quantity2: "4000+4000", quantity3: "4000", isVerified: true },
+  { id: "3", date: "7/7/68", fullDate: new Date(2024, 6, 7), tankId: 18, fuelType: "63495", quantity1: "4000", quantity2: "4000", quantity3: "1000", isVerified: true },
+  { id: "4", date: "7/7/68", fullDate: new Date(2024, 6, 7), tankId: 83, fuelType: "E20", quantity1: "4000", quantity2: "1000", quantity3: "1000+", isVerified: true },
+  { id: "5", date: "7/7/68", fullDate: new Date(2024, 6, 7), tankId: 91, fuelType: "E85", quantity1: "", quantity2: "", quantity3: "1000+", isVerified: false },
+  { id: "6", date: "7/7/68", fullDate: new Date(2024, 6, 7), tankId: 75, fuelType: "HSP", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
+  { id: "7", date: "7/7/68", fullDate: new Date(2024, 6, 7), tankId: 26, fuelType: "695PM", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
+  
+  // วันที่ 8/7/68
+  { id: "8", date: "8/7/68", fullDate: new Date(2024, 6, 8), tankId: 34, fuelType: "HBD", quantity1: "8000+15000+1000+8000", quantity2: "8000", quantity3: "8000", isVerified: true },
+  { id: "9", date: "8/7/68", fullDate: new Date(2024, 6, 8), tankId: 59, fuelType: "69491", quantity1: "4000+4000", quantity2: "4000", quantity3: "4000", isVerified: true },
+  { id: "10", date: "8/7/68", fullDate: new Date(2024, 6, 8), tankId: 18, fuelType: "66495", quantity1: "4000", quantity2: "4000+4000", quantity3: "3000", isVerified: true },
+  { id: "11", date: "8/7/68", fullDate: new Date(2024, 6, 8), tankId: 83, fuelType: "820", quantity1: "4000", quantity2: "", quantity3: "", isVerified: true },
+  { id: "12", date: "8/7/68", fullDate: new Date(2024, 6, 8), tankId: 91, fuelType: "885", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
+  { id: "13", date: "8/7/68", fullDate: new Date(2024, 6, 8), tankId: 75, fuelType: "HSP", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
+  { id: "14", date: "8/7/68", fullDate: new Date(2024, 6, 8), tankId: 26, fuelType: "695 PM", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
+  
+  // วันที่ 9/9/68
+  { id: "15", date: "9/9/68", fullDate: new Date(2024, 8, 9), tankId: 34, fuelType: "HSD", quantity1: "8000+7000+8000", quantity2: "7000", quantity3: "8000", isVerified: true },
+  { id: "16", date: "9/9/68", fullDate: new Date(2024, 8, 9), tankId: 59, fuelType: "68H91", quantity1: "4000", quantity2: "8000", quantity3: "3000", isVerified: true },
+  { id: "17", date: "9/9/68", fullDate: new Date(2024, 8, 9), tankId: 18, fuelType: "68495", quantity1: "4000", quantity2: "4000", quantity3: "1000", isVerified: true },
+  { id: "18", date: "9/9/68", fullDate: new Date(2024, 8, 9), tankId: 83, fuelType: "820", quantity1: "4000", quantity2: "", quantity3: "", isVerified: true },
+  { id: "19", date: "9/9/68", fullDate: new Date(2024, 8, 9), tankId: 91, fuelType: "885", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
+  { id: "20", date: "9/9/68", fullDate: new Date(2024, 8, 9), tankId: 75, fuelType: "HSP", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
+  { id: "21", date: "9/9/68", fullDate: new Date(2024, 8, 9), tankId: 26, fuelType: "695 PM", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
 ];
 
 export default function TankEntryBook() {
+  const [tankEntries, setTankEntries] = useState<TankEntry[]>(initialTankEntries);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<TankEntry | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newEntry, setNewEntry] = useState<Omit<TankEntry, "id">>({
+    date: "7/7/68",
+    fullDate: new Date(2024, 6, 7),
+    tankId: 34,
+    fuelType: "",
+    quantity1: "",
+    quantity2: "",
+    quantity3: "",
+    isVerified: false,
+  });
+
   // State สำหรับการกรอง
   const [selectedDay, setSelectedDay] = useState<number | "all">("all");
   const [selectedMonth, setSelectedMonth] = useState<number | "all">("all");
   const [selectedYear, setSelectedYear] = useState<number | "all">("all");
 
   // กรองข้อมูลตามวัน เดือน ปี
-  const filteredTankEntries = mockTankEntries.filter((entry) => {
-    const entryDate = entry.fullDate;
-    const entryDay = entryDate.getDate();
-    const entryMonth = entryDate.getMonth() + 1; // 1-12
-    const entryYear = entryDate.getFullYear();
+  const filteredTankEntries = useMemo(() => {
+    return tankEntries.filter((entry) => {
+      const entryDate = entry.fullDate;
+      const entryDay = entryDate.getDate();
+      const entryMonth = entryDate.getMonth() + 1; // 1-12
+      const entryYear = entryDate.getFullYear();
 
-    const dayMatch = selectedDay === "all" || entryDay === selectedDay;
-    const monthMatch = selectedMonth === "all" || entryMonth === selectedMonth;
-    const yearMatch = selectedYear === "all" || entryYear === selectedYear;
+      const dayMatch = selectedDay === "all" || entryDay === selectedDay;
+      const monthMatch = selectedMonth === "all" || entryMonth === selectedMonth;
+      const yearMatch = selectedYear === "all" || entryYear === selectedYear;
 
-    return dayMatch && monthMatch && yearMatch;
-  });
+      return dayMatch && monthMatch && yearMatch;
+    });
+  }, [tankEntries, selectedDay, selectedMonth, selectedYear]);
 
   // คำนวณยอดรวมจากข้อมูลที่กรองแล้ว
-  const totalQuantity = filteredTankEntries.reduce((sum, e) => sum + e.quantity, 0);
-  const totalAmount = filteredTankEntries.reduce((sum, e) => sum + e.totalAmount, 0);
+  const totals = useMemo(() => {
+    const q1Total = filteredTankEntries.reduce((sum, e) => sum + calculateSum(e.quantity1), 0);
+    const q2Total = filteredTankEntries.reduce((sum, e) => sum + calculateSum(e.quantity2), 0);
+    const q3Total = filteredTankEntries.reduce((sum, e) => sum + calculateSum(e.quantity3), 0);
+    return {
+      quantity1: q1Total,
+      quantity2: q2Total,
+      quantity3: q3Total,
+      total: q1Total + q2Total + q3Total,
+    };
+  }, [filteredTankEntries]);
 
   // สร้างรายการวันที่ เดือน ปี ที่มีในข้อมูล
-  const availableDays = Array.from(
-    new Set(mockTankEntries.map((e) => e.fullDate.getDate()))
-  ).sort((a, b) => a - b);
+  const availableDays = useMemo(() => {
+    return Array.from(
+      new Set(tankEntries.map((e) => e.fullDate.getDate()))
+    ).sort((a, b) => a - b);
+  }, [tankEntries]);
 
-  const availableMonths = Array.from(
-    new Set(mockTankEntries.map((e) => e.fullDate.getMonth() + 1))
-  ).sort((a, b) => a - b);
+  const availableMonths = useMemo(() => {
+    return Array.from(
+      new Set(tankEntries.map((e) => e.fullDate.getMonth() + 1))
+    ).sort((a, b) => a - b);
+  }, [tankEntries]);
 
-  const availableYears = Array.from(
-    new Set(mockTankEntries.map((e) => e.fullDate.getFullYear()))
-  ).sort((a, b) => b - a);
+  const availableYears = useMemo(() => {
+    return Array.from(
+      new Set(tankEntries.map((e) => e.fullDate.getFullYear()))
+    ).sort((a, b) => b - a);
+  }, [tankEntries]);
 
   const monthNames = [
     "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
@@ -466,6 +152,75 @@ export default function TankEntryBook() {
     setSelectedYear("all");
   };
 
+  // ฟังก์ชันลบ
+  const handleDelete = (id: string) => {
+    if (window.confirm("คุณต้องการลบรายการนี้หรือไม่?")) {
+      setTankEntries(prev => prev.filter(entry => entry.id !== id));
+    }
+  };
+
+  // ฟังก์ชันเริ่มแก้ไข
+  const handleStartEdit = (entry: TankEntry) => {
+    setEditingId(entry.id);
+    setEditForm({ ...entry });
+  };
+
+  // ฟังก์ชันบันทึกการแก้ไข
+  const handleSaveEdit = () => {
+    if (!editForm) return;
+    setTankEntries(prev => prev.map(entry => 
+      entry.id === editForm.id ? editForm : entry
+    ));
+    setEditingId(null);
+    setEditForm(null);
+  };
+
+  // ฟังก์ชันยกเลิกการแก้ไข
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditForm(null);
+  };
+
+  // ฟังก์ชันเพิ่มรายการใหม่
+  const handleAddEntry = () => {
+    const newId = `entry-${Date.now()}`;
+    const entry: TankEntry = {
+      id: newId,
+      ...newEntry,
+    };
+    setTankEntries(prev => [...prev, entry]);
+    setShowAddModal(false);
+    setNewEntry({
+      date: "7/7/68",
+      fullDate: new Date(2024, 6, 7),
+      tankId: 34,
+      fuelType: "",
+      quantity1: "",
+      quantity2: "",
+      quantity3: "",
+      isVerified: false,
+    });
+  };
+
+  // ฟังก์ชัน toggle verification
+  const handleToggleVerify = (id: string) => {
+    setTankEntries(prev => prev.map(entry => 
+      entry.id === id ? { ...entry, isVerified: !entry.isVerified } : entry
+    ));
+  };
+
+  // จัดกลุ่มตามวันที่
+  const groupedByDate = useMemo(() => {
+    const groups: { [key: string]: TankEntry[] } = {};
+    filteredTankEntries.forEach(entry => {
+      if (!groups[entry.date]) {
+        groups[entry.date] = [];
+      }
+      groups[entry.date].push(entry);
+    });
+    return groups;
+  }, [filteredTankEntries]);
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -475,17 +230,28 @@ export default function TankEntryBook() {
         transition={{ duration: 0.5 }}
         className="mb-4"
       >
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
-          <BookOpen className="w-8 h-8 text-teal-500" />
-          สมุดน้ำมันลงหลุม
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 text-sm">
-          บันทึกรายการน้ำมันที่ลงหลุมใต้ดิน แยกตามรหัสหลุม ประเภทน้ำมัน และหัวจ่าย
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
+              <BookOpen className="w-8 h-8 text-teal-500" />
+              สมุดตั้งพัก
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              บันทึกรายการน้ำมันที่ลงหลุม แยกตามวันที่ รหัสหลุม และประเภทน้ำมัน
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            เพิ่มรายการ
+          </button>
+        </div>
       </motion.div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -496,9 +262,9 @@ export default function TankEntryBook() {
             <Droplet className="w-6 h-6 text-blue-500" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">รวมจำนวนลิตร</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">รวมคอลัมน์ 1</p>
             <p className="text-lg font-bold text-gray-900 dark:text-white">
-              {integerFormatter.format(totalQuantity)} ลิตร
+              {integerFormatter.format(totals.quantity1)} ลิตร
             </p>
           </div>
         </motion.div>
@@ -509,13 +275,47 @@ export default function TankEntryBook() {
           transition={{ duration: 0.4, delay: 0.15 }}
           className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex items-center gap-3"
         >
+          <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+            <Droplet className="w-6 h-6 text-green-500" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">รวมคอลัมน์ 2</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
+              {integerFormatter.format(totals.quantity2)} ลิตร
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex items-center gap-3"
+        >
+          <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+            <Droplet className="w-6 h-6 text-purple-500" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">รวมคอลัมน์ 3</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
+              {integerFormatter.format(totals.quantity3)} ลิตร
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.25 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex items-center gap-3"
+        >
           <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
             <Droplet className="w-6 h-6 text-emerald-500" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">รวมยอดเงิน</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">รวมทั้งหมด</p>
             <p className="text-lg font-bold text-gray-900 dark:text-white">
-              {numberFormatter.format(totalAmount)} บาท
+              {integerFormatter.format(totals.total)} ลิตร
             </p>
           </div>
         </motion.div>
@@ -610,103 +410,218 @@ export default function TankEntryBook() {
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-gray-800 dark:text-white">
-              สมุดน้ำมันลงหลุม (รูปแบบสมุดบันทึก)
+              สมุดตั้งพัก (รูปแบบสมุดบันทึก)
             </h2>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              บันทึกรายการน้ำมันที่ลงหลุม แยกตามรหัสหลุม/ประเภทน้ำมัน จำนวนลิตร ราคา และหัวจ่าย
+              บันทึกรายการน้ำมันที่ลงหลุม แยกตามวันที่ รหัสหลุม และประเภทน้ำมัน
             </p>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60">
-                <th className="py-3 px-3 text-left font-semibold text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">
-                  ด/ป/ว / รหัสหลุม
+              <tr className="border-b-2 border-red-300 dark:border-red-700 bg-gray-50 dark:bg-gray-900/60">
+                <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 border-r border-red-200 dark:border-red-800">
+                  ด/ป/ว
                 </th>
-                <th className="py-3 px-3 text-right font-semibold text-gray-600 dark:text-gray-300">
-                  จำนวน (ลิตร)
+                <th className="py-3 px-4 text-center font-semibold text-gray-600 dark:text-gray-300 border-r border-red-200 dark:border-red-800">
+                  รหัส
                 </th>
-                <th className="py-3 px-3 text-right font-semibold text-gray-600 dark:text-gray-300">
-                  ราคา 1
+                <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 border-r border-red-200 dark:border-red-800">
+                  ประเภทน้ำมัน
                 </th>
-                <th className="py-3 px-3 text-right font-semibold text-gray-600 dark:text-gray-300">
-                  ราคา 2
+                <th className="py-3 px-4 text-right font-semibold text-gray-600 dark:text-gray-300 border-r border-red-200 dark:border-red-800">
+                  จำนวน 1
                 </th>
-                <th className="py-3 px-3 text-right font-semibold text-gray-600 dark:text-gray-300">
-                  ยอดรวม
+                <th className="py-3 px-4 text-right font-semibold text-gray-600 dark:text-gray-300 border-r border-red-200 dark:border-red-800">
+                  จำนวน 2
                 </th>
-                <th className="py-3 px-3 text-center font-semibold text-gray-600 dark:text-gray-300 border-l border-gray-200 dark:border-gray-700">
-                  หัวจ่าย / คำอธิบาย
+                <th className="py-3 px-4 text-right font-semibold text-gray-600 dark:text-gray-300 border-r border-red-200 dark:border-red-800">
+                  จำนวน 3
+                </th>
+                <th className="py-3 px-4 text-center font-semibold text-gray-600 dark:text-gray-300">
+                  การดำเนินการ
                 </th>
               </tr>
             </thead>
             <tbody>
-              {filteredTankEntries.map((entry, index) => {
-                // ตรวจสอบว่าเป็นวันใหม่หรือไม่ (date เปลี่ยนจากแถวก่อนหน้า)
-                const isNewDay = index === 0 || filteredTankEntries[index - 1].date !== entry.date;
+              {Object.entries(groupedByDate).map(([date, entries]) => (
+                <React.Fragment key={date}>
+                  {entries.map((entry, index) => {
+                    const isEditing = editingId === entry.id;
+                    const displayEntry = isEditing && editForm ? editForm : entry;
 
-                return (
-                  <motion.tr
-                    key={`${entry.date}-${entry.tankCode}-${index}`}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/40 ${isNewDay ? "border-t-2 border-gray-300 dark:border-gray-600" : ""
-                      }`}
-                  >
-                    {/* ด/ป/ว / รหัสหลุม */}
-                    <td className="py-2 px-3 text-left font-semibold text-gray-800 dark:text-gray-100 border-r border-gray-200 dark:border-gray-700">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400">{entry.date}</span>
-                        <span>{entry.tankCode}</span>
-                      </div>
-                    </td>
-                    {/* จำนวน (ลิตร) */}
-                    <td className="py-2 px-3 text-right text-gray-800 dark:text-gray-100">
-                      {integerFormatter.format(entry.quantity)}
-                    </td>
-                    {/* ราคา 1 */}
-                    <td className="py-2 px-3 text-right text-gray-700 dark:text-gray-200">
-                      {numberFormatter.format(entry.price1)}
-                    </td>
-                    {/* ราคา 2 */}
-                    <td className="py-2 px-3 text-right text-gray-700 dark:text-gray-200">
-                      {numberFormatter.format(entry.price2)}
-                      {entry.price2 % 1 === 0.9 && <span className="text-gray-500">.90</span>}
-                    </td>
-                    {/* ยอดรวม */}
-                    <td className="py-2 px-3 text-right font-semibold text-gray-800 dark:text-gray-100">
-                      {integerFormatter.format(entry.totalAmount)}
-                    </td>
-                    {/* หัวจ่าย / คำอธิบาย */}
-                    <td className="py-2 px-3 text-left text-gray-700 dark:text-gray-200 border-l border-gray-200 dark:border-gray-700">
-                      <div className="flex flex-col">
-                        <span className="font-semibold">{entry.pumpCode}</span>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400">{entry.description}</span>
-                      </div>
-                    </td>
-                  </motion.tr>
-                );
-              })}
+                    return (
+                      <motion.tr
+                        key={entry.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className={`border-b border-red-200 dark:border-red-800 hover:bg-gray-50 dark:hover:bg-gray-900/40 ${
+                          index === 0 ? "border-t-2 border-red-300 dark:border-red-700" : ""
+                        }`}
+                      >
+                        {/* ด/ป/ว */}
+                        <td className="py-2 px-4 text-left font-semibold text-gray-800 dark:text-gray-100 border-r border-red-200 dark:border-red-800">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={displayEntry.date}
+                              onChange={(e) => setEditForm(prev => prev ? { ...prev, date: e.target.value } : null)}
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
+                            />
+                          ) : (
+                            entry.date
+                          )}
+                        </td>
+
+                        {/* รหัส */}
+                        <td className="py-2 px-4 text-center font-semibold text-gray-800 dark:text-gray-100 border-r border-red-200 dark:border-red-800">
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              value={displayEntry.tankId}
+                              onChange={(e) => setEditForm(prev => prev ? { ...prev, tankId: Number(e.target.value) } : null)}
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm text-center"
+                            />
+                          ) : (
+                            entry.tankId
+                          )}
+                        </td>
+
+                        {/* ประเภทน้ำมัน */}
+                        <td className="py-2 px-4 text-left text-gray-800 dark:text-gray-100 border-r border-red-200 dark:border-red-800">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={displayEntry.fuelType}
+                              onChange={(e) => setEditForm(prev => prev ? { ...prev, fuelType: e.target.value } : null)}
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
+                            />
+                          ) : (
+                            entry.fuelType
+                          )}
+                        </td>
+
+                        {/* จำนวน 1 */}
+                        <td className="py-2 px-4 text-right text-gray-800 dark:text-gray-100 border-r border-red-200 dark:border-red-800">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={displayEntry.quantity1}
+                              onChange={(e) => setEditForm(prev => prev ? { ...prev, quantity1: e.target.value } : null)}
+                              placeholder="เช่น 16000+9000"
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm text-right"
+                            />
+                          ) : (
+                            <span>{formatQuantity(entry.quantity1) || "-"}</span>
+                          )}
+                        </td>
+
+                        {/* จำนวน 2 */}
+                        <td className="py-2 px-4 text-right text-gray-800 dark:text-gray-100 border-r border-red-200 dark:border-red-800">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={displayEntry.quantity2}
+                              onChange={(e) => setEditForm(prev => prev ? { ...prev, quantity2: e.target.value } : null)}
+                              placeholder="เช่น 8000"
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm text-right"
+                            />
+                          ) : (
+                            <span>{formatQuantity(entry.quantity2) || "-"}</span>
+                          )}
+                        </td>
+
+                        {/* จำนวน 3 */}
+                        <td className="py-2 px-4 text-right text-gray-800 dark:text-gray-100 border-r border-red-200 dark:border-red-800">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={displayEntry.quantity3}
+                              onChange={(e) => setEditForm(prev => prev ? { ...prev, quantity3: e.target.value } : null)}
+                              placeholder="เช่น 8000"
+                              className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm text-right"
+                            />
+                          ) : (
+                            <span>{formatQuantity(entry.quantity3) || "-"}</span>
+                          )}
+                        </td>
+
+                        {/* การดำเนินการ */}
+                        <td className="py-2 px-4 text-center border-r border-red-200 dark:border-red-800">
+                          <div className="flex items-center justify-center gap-2">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  onClick={handleSaveEdit}
+                                  className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+                                  title="บันทึก"
+                                >
+                                  <Save className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="p-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded transition-colors"
+                                  title="ยกเลิก"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleStartEdit(entry)}
+                                  className="p-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                                  title="แก้ไข"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(entry.id)}
+                                  className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                                  title="ลบ"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleToggleVerify(entry.id)}
+                                  className={`p-1.5 rounded transition-colors ${
+                                    entry.isVerified
+                                      ? "bg-green-500 hover:bg-green-600 text-white"
+                                      : "bg-gray-300 hover:bg-gray-400 text-gray-700 dark:bg-gray-600 dark:text-gray-300"
+                                  }`}
+                                  title={entry.isVerified ? "ยกเลิกการยืนยัน" : "ยืนยัน"}
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
             </tbody>
             {/* Footer Summary */}
             <tfoot>
-              <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/60">
-                <td className="py-2 px-3 text-left font-bold text-gray-800 dark:text-white border-r border-gray-200 dark:border-gray-700">
+              <tr className="border-t-2 border-red-300 dark:border-red-700 bg-gray-50 dark:bg-gray-900/60">
+                <td className="py-3 px-4 text-left font-bold text-gray-800 dark:text-white border-r border-red-200 dark:border-red-800" colSpan={3}>
                   รวม
                 </td>
-                <td className="py-2 px-3 text-right font-bold text-gray-800 dark:text-white">
-                  {integerFormatter.format(totalQuantity)}
+                <td className="py-3 px-4 text-right font-bold text-gray-800 dark:text-white border-r border-red-200 dark:border-red-800">
+                  {integerFormatter.format(totals.quantity1)}
                 </td>
-                <td className="py-2 px-3 text-right text-gray-600 dark:text-gray-400" colSpan={2}>
-                  -
+                <td className="py-3 px-4 text-right font-bold text-gray-800 dark:text-white border-r border-red-200 dark:border-red-800">
+                  {integerFormatter.format(totals.quantity2)}
                 </td>
-                <td className="py-2 px-3 text-right font-bold text-gray-800 dark:text-white">
-                  {integerFormatter.format(totalAmount)}
+                <td className="py-3 px-4 text-right font-bold text-gray-800 dark:text-white border-r border-red-200 dark:border-red-800">
+                  {integerFormatter.format(totals.quantity3)}
                 </td>
-                <td className="py-2 px-3 text-left text-gray-600 dark:text-gray-400 border-l border-gray-200 dark:border-gray-700">
+                <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">
                   -
                 </td>
               </tr>
@@ -714,6 +629,146 @@ export default function TankEntryBook() {
           </table>
         </div>
       </motion.div>
+
+      {/* Add Entry Modal */}
+      <AnimatePresence>
+        {showAddModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAddModal(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              >
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">เพิ่มรายการใหม่</h2>
+                  <button
+                    onClick={() => setShowAddModal(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        วันที่ (ด/ป/ว)
+                      </label>
+                      <input
+                        type="text"
+                        value={newEntry.date}
+                        onChange={(e) => setNewEntry({ ...newEntry, date: e.target.value })}
+                        placeholder="7/7/68"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        รหัส (ID)
+                      </label>
+                      <input
+                        type="number"
+                        value={newEntry.tankId}
+                        onChange={(e) => setNewEntry({ ...newEntry, tankId: Number(e.target.value) })}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      ประเภทน้ำมัน
+                    </label>
+                    <input
+                      type="text"
+                      value={newEntry.fuelType}
+                      onChange={(e) => setNewEntry({ ...newEntry, fuelType: e.target.value })}
+                      placeholder="เช่น HSD, E20, 6SH91"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        จำนวน 1
+                      </label>
+                      <input
+                        type="text"
+                        value={newEntry.quantity1}
+                        onChange={(e) => setNewEntry({ ...newEntry, quantity1: e.target.value })}
+                        placeholder="เช่น 16000+9000"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        จำนวน 2
+                      </label>
+                      <input
+                        type="text"
+                        value={newEntry.quantity2}
+                        onChange={(e) => setNewEntry({ ...newEntry, quantity2: e.target.value })}
+                        placeholder="เช่น 8000"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        จำนวน 3
+                      </label>
+                      <input
+                        type="text"
+                        value={newEntry.quantity3}
+                        onChange={(e) => setNewEntry({ ...newEntry, quantity3: e.target.value })}
+                        placeholder="เช่น 8000"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={newEntry.isVerified}
+                      onChange={(e) => setNewEntry({ ...newEntry, isVerified: e.target.checked })}
+                      className="w-4 h-4"
+                    />
+                    <label className="text-sm text-gray-700 dark:text-gray-300">ยืนยันแล้ว (มี checkmark)</label>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={handleAddEntry}
+                    className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors flex items-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    บันทึก
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
