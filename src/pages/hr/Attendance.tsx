@@ -92,6 +92,9 @@ export default function Attendance() {
   
   const shiftPlanRef = useRef<HTMLDivElement | null>(null);
   const shiftColorPalette = ["bg-green-500/20", "bg-blue-500/20", "bg-purple-500/20", "bg-orange-500/20", "bg-ptt-cyan/20"];
+  
+  // Track edited cells (empCode-date string)
+  const [editedCells, setEditedCells] = useState<Set<string>>(new Set());
 
 
 
@@ -645,6 +648,11 @@ export default function Attendance() {
     // For now, we'll just show a confirmation
     // Note: updatedLog is created but not used in this mock implementation
     void updatedLog;
+    
+    // Mark this cell as edited
+    const cellKey = `${employee.code}-${dateStr}`;
+    setEditedCells(prev => new Set(prev).add(cellKey));
+    
     alert(
       `บันทึกข้อมูลสำเร็จ!\n\n` +
       `พนักงาน: ${employee.name} (${employee.code})\n` +
@@ -918,14 +926,20 @@ export default function Attendance() {
                   <th className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app sticky left-[330px] bg-soft z-20 min-w-[120px]">
                     กะ
                   </th>
-                  {days.map((day, idx) => (
-                    <th
-                      key={idx}
-                      className="px-2 py-3 text-center text-xs font-semibold text-app border-r border-app min-w-[50px]"
-                    >
-                      {day.getDate()}
-                    </th>
-                  ))}
+                  {days.map((day, idx) => {
+                    const dayOfWeek = day.getDay();
+                    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
+                    return (
+                      <th
+                        key={idx}
+                        className={`px-2 py-3 text-center text-xs font-semibold border-r border-app min-w-[50px] ${
+                          isWeekend ? "bg-red-500/30 text-red-700 dark:text-red-400" : "text-app"
+                        }`}
+                      >
+                        {day.getDate()}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody className="divide-y divide-app">
@@ -969,6 +983,9 @@ export default function Attendance() {
                       const isHolidayDay = isHoliday(day);
                       const isEmpHoliday = isEmployeeHoliday(day, data.employee.code);
                       const holidayName = getHolidayName(day);
+                      const dateStr = day.toISOString().split('T')[0];
+                      const cellKey = `${data.employee.code}-${dateStr}`;
+                      const isEdited = editedCells.has(cellKey);
                       
                       const getCellColor = () => {
                         if (isHolidayDay || isEmpHoliday) return "bg-gray-200/30";
@@ -998,22 +1015,43 @@ export default function Attendance() {
                         
                         if (!att.log) {
                           return (
-                            <div className="text-[9px] text-muted">-</div>
+                            <div className="flex flex-col gap-0.5">
+                              <div className="text-[9px] text-muted">-</div>
+                              {isEdited && (
+                                <div className="text-[8px] text-ptt-cyan font-semibold">
+                                  แก้ไข
+                                </div>
+                              )}
+                            </div>
                           );
                         }
                         
                         if (att.status === "ลา") {
                           return (
-                            <div className="text-[9px] font-semibold text-yellow-700 dark:text-yellow-400">
-                              ลา
+                            <div className="flex flex-col gap-0.5">
+                              <div className="text-[9px] font-semibold text-yellow-700 dark:text-yellow-400">
+                                ลา
+                              </div>
+                              {isEdited && (
+                                <div className="text-[8px] text-ptt-cyan font-semibold">
+                                  แก้ไข
+                                </div>
+                              )}
                             </div>
                           );
                         }
                         
                         if (att.status === "ขาดงาน") {
                           return (
-                            <div className="text-[9px] font-semibold text-red-700 dark:text-red-400">
-                              ขาด
+                            <div className="flex flex-col gap-0.5">
+                              <div className="text-[9px] font-semibold text-red-700 dark:text-red-400">
+                                ขาด
+                              </div>
+                              {isEdited && (
+                                <div className="text-[8px] text-ptt-cyan font-semibold">
+                                  แก้ไข
+                                </div>
+                              )}
                             </div>
                           );
                         }
@@ -1032,6 +1070,11 @@ export default function Attendance() {
                               <div className="text-[9px] text-blue-700 dark:text-blue-400">
                                 {att.checkOut.replace(':', '.')}
                               </div>
+                              {isEdited && (
+                                <div className="text-[8px] text-ptt-cyan font-semibold mt-0.5">
+                                  แก้ไข
+                                </div>
+                              )}
                             </div>
                           );
                         }
@@ -1039,12 +1082,19 @@ export default function Attendance() {
                         // ถ้ามีแค่เวลาเข้า
                         if (att.checkIn && att.checkIn !== "-") {
                           return (
-                            <div className={`text-[9px] font-medium ${
-                              att.status?.includes("สาย") 
-                                ? "text-orange-700 dark:text-orange-400" 
-                                : "text-green-700 dark:text-green-400"
-                            }`}>
-                              {att.checkIn.replace(':', '.')}
+                            <div className="flex flex-col gap-0.5">
+                              <div className={`text-[9px] font-medium ${
+                                att.status?.includes("สาย") 
+                                  ? "text-orange-700 dark:text-orange-400" 
+                                  : "text-green-700 dark:text-green-400"
+                              }`}>
+                                {att.checkIn.replace(':', '.')}
+                              </div>
+                              {isEdited && (
+                                <div className="text-[8px] text-ptt-cyan font-semibold mt-0.5">
+                                  แก้ไข
+                                </div>
+                              )}
                             </div>
                           );
                         }
