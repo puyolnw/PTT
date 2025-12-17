@@ -25,6 +25,7 @@ import {
   Route,
   PackageCheck,
   CheckCircle,
+  User,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -71,8 +72,10 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
       label: "การจัดการรถ",
       icon: Truck,
       items: [
+        { to: "/app/gas-station/truck-dashboard", icon: Monitor, label: "Dashboard สถานะรถ" },
         { to: "/app/gas-station/truck-orders", icon: FileText, label: "รอบบรับน้ำมัน" },
         { to: "/app/gas-station/transport-delivery", icon: Route, label: "รอบส่งน้ำมัน" },
+        { to: "/app/gas-station/driver-app", icon: User, label: "แอปคนขับ" },
         { to: "/app/gas-station/truck-sales", icon: Truck, label: "ขายน้ำมันที่เหลือบนรถ" },
         { to: "/app/gas-station/truck-profiles", icon: Truck, label: "โปรไฟล์รถส่งน้ำมัน" },
         { to: "/app/gas-station/trailer-profiles", icon: Droplet, label: "โปรไฟล์หางรถน้ำมัน" },

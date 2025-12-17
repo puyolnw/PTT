@@ -13,13 +13,30 @@ import {
     Calendar,
     Download,
     X,
-    ChevronRight,
     Save,
     BookOpen,
     AlertTriangle,
+    MapPin,
 } from "lucide-react";
 import { mockOilReceipts } from "@/data/gasStationReceipts";
 import { logActivity } from "@/types/gasStationActivity";
+
+// Mock data สำหรับ Transport Delivery (เพื่อดูว่ารถกำลังส่งที่ไหน)
+// ในระบบจริงควรดึงจาก API หรือ shared data
+const mockTransportDeliveries = [
+    {
+        transportNo: "TR-20241215-001",
+        truckPlateNumber: "กก 1111",
+        status: "กำลังขนส่ง" as const,
+        destinationBranchNames: ["สาขา 2", "สาขา 3"],
+    },
+    {
+        transportNo: "TR-20241215-002",
+        truckPlateNumber: "กก 2222",
+        status: "กำลังขนส่ง" as const,
+        destinationBranchNames: ["สาขา 4"],
+    },
+];
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
     style: "currency",
@@ -460,6 +477,20 @@ export default function RecordTankEntry() {
                 beforeDip: tank.currentStock, // Auto-fill current stock as beforeDip
             });
         }
+    };
+
+    // ฟังก์ชันหา transport delivery ที่เกี่ยวข้องกับ record
+    const getTransportDelivery = (record: TankEntryRecord) => {
+        if (!record.truckLicensePlate && !record.transportNo) return null;
+        
+        return mockTransportDeliveries.find((transport) => {
+            const matchesTruck = record.truckLicensePlate && 
+                transport.truckPlateNumber === record.truckLicensePlate;
+            const matchesTransportNo = record.transportNo && 
+                transport.transportNo === record.transportNo;
+            
+            return (matchesTruck || matchesTransportNo) && transport.status === "กำลังขนส่ง";
+        }) || null;
     };
 
     // Filter records
@@ -954,14 +985,15 @@ export default function RecordTankEntry() {
                 </div>
             </motion.div>
 
-            {/* Records List */}
-            <div className="space-y-4">
+            {/* Records Table */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
+            >
                 {filteredRecords.length === 0 ? (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-12 text-center"
-                    >
+                    <div className="p-12 text-center">
                         <BookOpen className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                         <p className="text-gray-500 dark:text-gray-400 text-lg">ไม่พบรายการบันทึก</p>
                         <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
@@ -969,127 +1001,269 @@ export default function RecordTankEntry() {
                                 ? "ลองเปลี่ยนเงื่อนไขการค้นหาหรือกรอง"
                                 : "คลิก 'บันทึกใหม่' เพื่อเริ่มต้น"}
                         </p>
-                    </motion.div>
+                    </div>
                 ) : (
-                    filteredRecords.map((record, index) => {
-                        return (
-                            <motion.div
-                                key={record.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5, delay: index * 0.05 }}
-                                className={`rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow ${
-                                    record.isIncorrect 
-                                        ? "bg-red-50 dark:bg-red-900/10 border-2 border-red-300 dark:border-red-800" 
-                                        : "bg-white dark:bg-gray-800"
-                                }`}
-                            >
-                                <div className="p-5">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-4 flex-1">
-                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${
-                                                record.isIncorrect 
-                                                    ? "bg-gradient-to-br from-red-500 to-red-600" 
-                                                    : "bg-gradient-to-br from-teal-500 to-cyan-600"
-                                            }`}>
-                                                {record.isIncorrect ? (
-                                                    <AlertTriangle className="w-6 h-6 text-white" />
-                                                ) : (
-                                                    <Droplet className="w-6 h-6 text-white" />
-                                                )}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-1 flex-wrap">
-                                                    <h3 className={`text-lg font-bold ${
-                                                        record.isIncorrect 
-                                                            ? "text-red-800 dark:text-red-300" 
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        วันที่/เวลา
+                                    </th>
+                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        รหัสหลุม
+                                    </th>
+                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        ประเภทน้ำมัน
+                                    </th>
+                                    <th className="py-3 px-4 text-right font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        จำนวน (ลิตร)
+                                    </th>
+                                    <th className="py-3 px-4 text-right font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        ยอดก่อน/หลัง
+                                    </th>
+                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        ต้นทาง
+                                    </th>
+                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        ใบรับ/PO
+                                    </th>
+                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        รถ
+                                    </th>
+                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        กำลังส่งที่
+                                    </th>
+                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        หัวจ่าย
+                                    </th>
+                                    <th className="py-3 px-4 text-center font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        สถานะ
+                                    </th>
+                                    <th className="py-3 px-4 text-center font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                        การดำเนินการ
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                {filteredRecords.map((record, index) => {
+                                    const isIncorrect = record.isIncorrect;
+                                    const incorrectEntry = isIncorrect ? (record as IncorrectTankEntry) : null;
+                                    
+                                    return (
+                                        <motion.tr
+                                            key={record.id}
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ duration: 0.3, delay: index * 0.05 }}
+                                            className={`hover:bg-gray-50 dark:hover:bg-gray-900/40 ${
+                                                isIncorrect 
+                                                    ? "bg-red-50/50 dark:bg-red-900/10 border-l-4 border-red-500" 
+                                                    : ""
+                                            }`}
+                                        >
+                                            {/* วันที่/เวลา */}
+                                            <td className="py-3 px-4 text-gray-800 dark:text-gray-200">
+                                                <div className="flex items-center gap-1">
+                                                    <Calendar className="w-4 h-4 text-gray-400" />
+                                                    <div>
+                                                        <div className="font-medium">{record.entryDate}</div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400">{record.entryTime}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* รหัสหลุม */}
+                                            <td className="py-3 px-4">
+                                                <div className="flex items-center gap-2">
+                                                    {isIncorrect && (
+                                                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                                                    )}
+                                                    <div>
+                                                        <div className={`font-semibold ${
+                                                            isIncorrect 
+                                                                ? "text-red-700 dark:text-red-400" 
+                                                                : "text-gray-800 dark:text-white"
+                                                        }`}>
+                                                            {isIncorrect && incorrectEntry?.wrongTankCode
+                                                                ? incorrectEntry.wrongTankCode
+                                                                : record.tankCode}
+                                                        </div>
+                                                        {isIncorrect && incorrectEntry?.correctTankCode && (
+                                                            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                                                ควร: {incorrectEntry.correctTankCode}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* ประเภทน้ำมัน */}
+                                            <td className="py-3 px-4">
+                                                <div>
+                                                    <div className={`font-medium ${
+                                                        isIncorrect 
+                                                            ? "text-red-700 dark:text-red-400" 
                                                             : "text-gray-800 dark:text-white"
                                                     }`}>
-                                                        {record.isIncorrect && (record as IncorrectTankEntry).wrongTankCode 
-                                                            ? `${(record as IncorrectTankEntry).wrongTankCode} - ${(record as IncorrectTankEntry).wrongOilType} ❌`
-                                                            : `${record.tankCode} - ${record.oilType}`
-                                                        }
-                                                    </h3>
-                                                    {record.isIncorrect && (
-                                                        <span className="text-xs font-semibold px-3 py-1 rounded-full bg-red-500 text-white border border-red-600">
+                                                        {isIncorrect && incorrectEntry?.wrongOilType
+                                                            ? incorrectEntry.wrongOilType
+                                                            : record.oilType}
+                                                    </div>
+                                                    {isIncorrect && incorrectEntry?.correctOilType && (
+                                                        <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                                            ควร: {incorrectEntry.correctOilType}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            {/* จำนวน (ลิตร) */}
+                                            <td className="py-3 px-4 text-right">
+                                                <div className="font-semibold text-gray-800 dark:text-white">
+                                                    {numberFormatter.format(record.quantity)}
+                                                </div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {currencyFormatter.format(record.totalAmount)}
+                                                </div>
+                                            </td>
+
+                                            {/* ยอดก่อน/หลัง */}
+                                            <td className="py-3 px-4 text-right">
+                                                <div className="text-xs">
+                                                    <div className="text-gray-600 dark:text-gray-400">
+                                                        ก่อน: {numberFormatter.format(record.beforeDip)}
+                                                    </div>
+                                                    <div className="text-gray-600 dark:text-gray-400">
+                                                        หลัง: {numberFormatter.format(record.afterDip)}
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* ต้นทาง */}
+                                            <td className="py-3 px-4">
+                                                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                                    {getSourceText(record.source)}
+                                                </span>
+                                                {record.source === "Branch" && record.sourceBranchName && (
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        {record.sourceBranchName}
+                                                    </div>
+                                                )}
+                                            </td>
+
+                                            {/* ใบรับ/PO */}
+                                            <td className="py-3 px-4">
+                                                <div className="text-xs space-y-1">
+                                                    {record.receiptNo && (
+                                                        <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                                                            <FileText className="w-3 h-3" />
+                                                            {record.receiptNo}
+                                                        </div>
+                                                    )}
+                                                    {record.purchaseOrderNo && (
+                                                        <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                                                            <FileText className="w-3 h-3" />
+                                                            PO: {record.purchaseOrderNo}
+                                                        </div>
+                                                    )}
+                                                    {!record.receiptNo && !record.purchaseOrderNo && (
+                                                        <span className="text-gray-400 dark:text-gray-500">-</span>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            {/* รถ */}
+                                            <td className="py-3 px-4">
+                                                {record.truckLicensePlate ? (
+                                                    <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                                        <Truck className="w-3 h-3" />
+                                                        {record.truckLicensePlate}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
+                                                )}
+                                            </td>
+
+                                            {/* กำลังส่งที่ */}
+                                            <td className="py-3 px-4">
+                                                {(() => {
+                                                    const transport = getTransportDelivery(record);
+                                                    if (transport && transport.destinationBranchNames.length > 0) {
+                                                        return (
+                                                            <div className="space-y-1">
+                                                                <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400 font-medium">
+                                                                    <MapPin className="w-3 h-3" />
+                                                                    กำลังส่ง
+                                                                </div>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {transport.destinationBranchNames.map((branch, idx) => (
+                                                                        <span
+                                                                            key={idx}
+                                                                            className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                                                                        >
+                                                                            {branch}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>;
+                                                })()}
+                                            </td>
+
+                                            {/* หัวจ่าย */}
+                                            <td className="py-3 px-4">
+                                                {record.pumpCode ? (
+                                                    <div>
+                                                        <div className="text-sm font-medium text-gray-800 dark:text-white">
+                                                            {record.pumpCode}
+                                                        </div>
+                                                        {record.description && (
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                                {record.description}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
+                                                )}
+                                            </td>
+
+                                            {/* สถานะ */}
+                                            <td className="py-3 px-4 text-center">
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${getStatusColor(record.status)}`}>
+                                                        {getStatusText(record.status)}
+                                                    </span>
+                                                    {isIncorrect && (
+                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500 text-white">
                                                             ⚠️ ลงหลุมผิด
                                                         </span>
                                                     )}
-                                                    <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${getStatusColor(record.status)}`}>
-                                                        {getStatusText(record.status)}
-                                                    </span>
-                                                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                                        {getSourceText(record.source)}
-                                                    </span>
                                                 </div>
-                                                {record.isIncorrect && (record as IncorrectTankEntry).correctTankCode && (
-                                                    <div className="mb-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                                                        <p className="text-xs text-green-700 dark:text-green-400">
-                                                            <strong>ควรลง:</strong> {(record as IncorrectTankEntry).correctTankCode} - {(record as IncorrectTankEntry).correctOilType}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                                    <span className="flex items-center gap-1">
-                                                        <Calendar className="w-4 h-4" />
-                                                        {record.entryDate} {record.entryTime}
-                                                    </span>
-                                                    {record.receiptNo && (
-                                                        <span className="flex items-center gap-1">
-                                                            <FileText className="w-4 h-4" />
-                                                            ใบรับ: {record.receiptNo}
-                                                        </span>
-                                                    )}
-                                                    {record.purchaseOrderNo && (
-                                                        <span className="flex items-center gap-1">
-                                                            <FileText className="w-4 h-4" />
-                                                            PO: {record.purchaseOrderNo}
-                                                        </span>
-                                                    )}
-                                                    {record.truckLicensePlate && (
-                                                        <span className="flex items-center gap-1">
-                                                            <Truck className="w-4 h-4" />
-                                                            {record.truckLicensePlate}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
-                                                    <span className="flex items-center gap-1">
-                                                        <Droplet className="w-3 h-3" />
-                                                        ลงหลุม: {numberFormatter.format(record.quantity)} ลิตร
-                                                    </span>
-                                                    <span className="flex items-center gap-1">
-                                                        ยอดก่อน: {numberFormatter.format(record.beforeDip)} ลิตร
-                                                    </span>
-                                                    <span className="flex items-center gap-1">
-                                                        ยอดหลัง: {numberFormatter.format(record.afterDip)} ลิตร
-                                                    </span>
-                                                    {record.pumpCode && (
-                                                        <span className="flex items-center gap-1">
-                                                            หัวจ่าย: {record.pumpCode}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                onClick={() => handleViewDetail(record)}
-                                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2 text-blue-600 dark:text-blue-400"
-                                                title="ดูรายละเอียด"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                                <span className="text-sm font-medium">ดูรายละเอียด</span>
-                                                <ChevronRight className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        );
-                    })
+                                            </td>
+
+                                            {/* การดำเนินการ */}
+                                            <td className="py-3 px-4 text-center">
+                                                <button
+                                                    onClick={() => handleViewDetail(record)}
+                                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                    title="ดูรายละเอียด"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                    ดูรายละเอียด
+                                                </button>
+                                            </td>
+                                        </motion.tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
-            </div>
+            </motion.div>
 
             {/* Create Entry Modal */}
             <AnimatePresence>

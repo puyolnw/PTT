@@ -199,7 +199,6 @@ import QualityTest from "@/pages/gas-station/QualityTest";
 import DepositSlips from "@/pages/gas-station/DepositSlips";
 import Lubricants from "@/pages/gas-station/Lubricants";
 import Gas from "@/pages/gas-station/Gas";
-import OilReceipt from "@/pages/gas-station/OilReceipt";
 import ReceiveFromBranch from "@/pages/gas-station/ReceiveFromBranch";
 import EngineOil from "@/pages/gas-station/EngineOil";
 import StationProducts from "@/pages/gas-station/StationProducts";
@@ -216,6 +215,7 @@ import OilDeficitReport from "@/pages/gas-station/OilDeficitReport";
 import OilDeficitMonthly from "@/pages/gas-station/OilDeficitMonthly";
 import TruckSales from "@/pages/gas-station/TruckSales";
 import TruckProfiles from "@/pages/gas-station/TruckProfiles";
+import TruckDashboard from "@/pages/gas-station/TruckDashboard";
 import TruckProfileDetail from "@/pages/gas-station/TruckProfileDetail";
 import TrailerProfiles from "@/pages/gas-station/TrailerProfiles";
 import TrailerProfileDetail from "@/pages/gas-station/TrailerProfileDetail";
@@ -224,6 +224,7 @@ import TransportDelivery from "@/pages/gas-station/TransportDelivery";
 import LubricantsDashboard from "@/pages/gas-station/LubricantsDashboard";
 import AccountingExport from "@/pages/gas-station/AccountingExport";
 import POGeneration from "@/pages/gas-station/POGeneration";
+import DriverApp from "@/pages/gas-station/DriverApp";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -934,10 +935,7 @@ const router = createBrowserRouter([
             path: "order-management",
             element: <OrderManagement />,
           },
-          {
-            path: "oil-receipt",
-            element: <OilReceipt />,
-          },
+
           {
             path: "receive-from-branch",
             element: <ReceiveFromBranch />,
@@ -967,8 +965,16 @@ const router = createBrowserRouter([
             element: <TruckOrders />,
           },
           {
+            path: "truck-dashboard",
+            element: <TruckDashboard />,
+          },
+          {
             path: "transport-delivery",
             element: <TransportDelivery />,
+          },
+          {
+            path: "driver-app",
+            element: <DriverApp />,
           },
           {
             path: "lubricants-dashboard",
