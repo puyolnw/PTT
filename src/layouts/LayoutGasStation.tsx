@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import SidebarGasStation from "@/components/SidebarGasStation";
 import Navbar from "@/components/Navbar";
+import { GasStationProvider } from "@/contexts/GasStationContext";
 
 export default function LayoutGasStation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -99,7 +100,9 @@ export default function LayoutGasStation() {
         
         {/* Main Content Area */}
         <main className="flex-1 px-4 py-4 md:px-8 md:py-8 bg-app overflow-auto">
-          <Outlet />
+          <GasStationProvider>
+            <Outlet />
+          </GasStationProvider>
         </main>
       </div>
     </>

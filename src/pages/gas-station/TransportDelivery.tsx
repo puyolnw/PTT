@@ -1,5 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useMemo } from "react";
+import { useGasStation } from "@/contexts/GasStationContext";
+import type { TransportDelivery as TransportDeliveryType, DriverJob } from "@/types/gasStation";
 import {
   Truck,
   Plus,
@@ -48,8 +50,8 @@ interface Compartment {
   destinationBranchName?: string;
 }
 
-// Interface สำหรับ Delivery Item (รายการที่ต้องส่ง)
-interface DeliveryItem {
+// Local types for mock data (will be converted to types from @/types/gasStation)
+type LocalDeliveryItem = {
   id: string;
   branchId: number;
   branchName: string;
@@ -61,12 +63,11 @@ interface DeliveryItem {
   totalAmount: number;
   orderNo?: string;
   status: "รอส่ง" | "กำลังส่ง" | "ส่งแล้ว";
-}
+};
 
-// Interface สำหรับ Transport Delivery (รอบส่งน้ำมัน)
-interface TransportDelivery {
+type LocalTransportDelivery = {
   id: string;
-  transportNo: string; // เลขขนส่ง (Transport ID)
+  transportNo: string;
   transportDate: string;
   transportTime: string;
   truckId: string;
@@ -76,22 +77,22 @@ interface TransportDelivery {
   driverId?: string;
   driverName: string;
   driverCode?: string;
-  sourceBranchId: number; // ต้นทาง
+  sourceBranchId: number;
   sourceBranchName: string;
-  destinationBranchIds: number[]; // ปลายทาง (อาจมีหลายสาขา)
+  destinationBranchIds: number[];
   destinationBranchNames: string[];
-  deliveryItems: DeliveryItem[]; // รายการที่ต้องส่ง
-  compartments: Compartment[]; // แผนการลงน้ำมัน
-  startOdometer?: number; // เลขไมล์เริ่มต้น
-  endOdometer?: number; // เลขไมล์สิ้นสุด
-  totalDistance?: number; // ระยะทางรวม (กม.)
+  deliveryItems: LocalDeliveryItem[];
+  compartments: Compartment[];
+  startOdometer?: number;
+  endOdometer?: number;
+  totalDistance?: number;
   status: "รอเริ่ม" | "กำลังขนส่ง" | "ขนส่งสำเร็จ" | "ยกเลิก";
-  startTime?: string; // เวลาเริ่มขนส่ง
-  endTime?: string; // เวลาถึงปลายทาง
+  startTime?: string;
+  endTime?: string;
   notes?: string;
   createdAt: string;
   createdBy: string;
-}
+};
 
 // Mock data - คนขับ
 const mockDrivers = [
@@ -101,7 +102,7 @@ const mockDrivers = [
 ];
 
 // Mock data - รอบส่งน้ำมัน
-const mockTransportDeliveries: TransportDelivery[] = [
+const mockTransportDeliveries: LocalTransportDelivery[] = [
   {
     id: "TRANS-001",
     transportNo: "TR-20241215-001",
@@ -209,13 +210,13 @@ const mockTransportDeliveries: TransportDelivery[] = [
 ];
 
 // Helper function: ดึงข้อมูลใบส่งของที่รอส่ง (จาก OrderManagement - ข้อมูลที่อนุมัติแล้ว)
-function getPendingDeliveryItems(): DeliveryItem[] {
+function getPendingDeliveryItems(): LocalDeliveryItem[] {
   // ดึงข้อมูลจาก mockOrderSummary ที่มี status = "อนุมัติแล้ว" หรือ "ส่งแล้ว"
   const approvedOrders = mockOrderSummary.filter(
     (order) => order.status === "อนุมัติแล้ว" || order.status === "ส่งแล้ว"
   );
 
-  const deliveryItems: DeliveryItem[] = [];
+  const deliveryItems: LocalDeliveryItem[] = [];
   approvedOrders.forEach((order) => {
     const branch = branches.find((b) => b.id === order.branchId);
     if (!branch) return;
@@ -247,11 +248,18 @@ function generateTransportNo(): string {
 }
 
 export default function TransportDelivery() {
+  const { 
+    transportDeliveries, 
+    createTransportDelivery,
+    startTransport,
+    createDriverJob,
+    getDriverJobByTransportNo,
+  } = useGasStation();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ทั้งหมด");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedTransport, setSelectedTransport] = useState<TransportDelivery | null>(null);
+  const [selectedTransport, setSelectedTransport] = useState<TransportDeliveryType | null>(null);
   const [expandedTransports, setExpandedTransports] = useState<Set<string>>(new Set());
 
   // Form state for creating new transport
@@ -274,11 +282,20 @@ export default function TransportDelivery() {
     (order) => order.orderNo === newTransport.purchaseOrderNo
   );
 
-  // Get pending delivery items
-  const pendingDeliveryItems = useMemo(() => getPendingDeliveryItems(), []);
+  // Get pending delivery items (convert to proper type)
+  const pendingDeliveryItems = useMemo(() => {
+    const items = getPendingDeliveryItems();
+    return items.map((item) => ({
+      ...item,
+      oilType: item.oilType as TransportDeliveryType["deliveryItems"][0]["oilType"],
+    }));
+  }, []);
 
   // Filter transports
-  const filteredTransports = mockTransportDeliveries.filter((transport) => {
+  // ใช้ข้อมูลจาก context หรือ mock data ถ้ายังไม่มี
+  const allTransports = transportDeliveries.length > 0 ? transportDeliveries : mockTransportDeliveries;
+  
+  const filteredTransports = allTransports.filter((transport) => {
     const matchesSearch =
       transport.transportNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transport.truckPlateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -293,10 +310,10 @@ export default function TransportDelivery() {
 
   // Summary stats
   const stats = {
-    total: mockTransportDeliveries.length,
-    pending: mockTransportDeliveries.filter((t) => t.status === "รอเริ่ม").length,
-    inProgress: mockTransportDeliveries.filter((t) => t.status === "กำลังขนส่ง").length,
-    completed: mockTransportDeliveries.filter((t) => t.status === "ขนส่งสำเร็จ").length,
+    total: allTransports.length,
+    pending: allTransports.filter((t) => t.status === "รอเริ่ม").length,
+    inProgress: allTransports.filter((t) => t.status === "กำลังขนส่ง").length,
+    completed: allTransports.filter((t) => t.status === "ขนส่งสำเร็จ").length,
   };
 
   const toggleTransport = (transportId: string) => {
@@ -368,7 +385,7 @@ export default function TransportDelivery() {
         compartments.push({
           chamber: currentChamber,
           capacity: chamberCapacity,
-          oilType: item.oilType,
+          oilType: item.oilType as TransportDeliveryType["compartments"][0]["oilType"],
           quantity: fillAmount,
           destinationBranchId: item.branchId,
           destinationBranchName: item.branchName,
@@ -381,7 +398,7 @@ export default function TransportDelivery() {
     });
 
     // Create new transport
-    const newTransportData: TransportDelivery = {
+    const newTransportData: TransportDeliveryType = {
       id: `TRANS-${Date.now()}`,
       transportNo: generateTransportNo(),
       transportDate: newTransport.transportDate,
@@ -397,8 +414,14 @@ export default function TransportDelivery() {
       sourceBranchName: branches.find((b) => b.id === newTransport.sourceBranchId)?.name || "",
       destinationBranchIds: [...new Set(selectedItems.map((item) => item.branchId))],
       destinationBranchNames: [...new Set(selectedItems.map((item) => item.branchName))],
-      deliveryItems: selectedItems,
-      compartments: compartments,
+      deliveryItems: selectedItems.map((item) => ({
+        ...item,
+        oilType: item.oilType as TransportDeliveryType["deliveryItems"][0]["oilType"],
+      })),
+      compartments: compartments.map((c) => ({
+        ...c,
+        oilType: c.oilType ? (c.oilType as TransportDeliveryType["compartments"][0]["oilType"]) : undefined,
+      })),
       startOdometer: newTransport.startOdometer ? parseInt(newTransport.startOdometer) : undefined,
       status: "รอเริ่ม",
       notes: newTransport.notes,
@@ -406,8 +429,38 @@ export default function TransportDelivery() {
       createdBy: "ผู้จัดการคลัง",
     };
 
-    // In real app, this would call API
-    console.log("Creating transport:", newTransportData);
+    // บันทึก Transport Delivery ใน context
+    createTransportDelivery(newTransportData);
+
+    // สร้าง DriverJob สำหรับคนขับ
+    const sourceBranch = branches.find((b) => b.id === newTransport.sourceBranchId);
+    const driverJob: DriverJob = {
+      id: `JOB-${Date.now()}`,
+      transportNo: newTransportData.transportNo,
+      transportDate: newTransportData.transportDate,
+      transportTime: newTransportData.transportTime,
+      sourceBranchId: newTransport.sourceBranchId,
+      sourceBranchName: sourceBranch?.name || "",
+      sourceAddress: sourceBranch?.address || "",
+      destinationBranches: selectedItems.map((item) => ({
+        branchId: item.branchId,
+        branchName: item.branchName,
+        address: item.address,
+        oilType: item.oilType as DriverJob["destinationBranches"][0]["oilType"],
+        quantity: item.quantity,
+        status: "รอส่ง" as const,
+      })),
+      compartments: compartments.map((c) => ({
+        ...c,
+        oilType: c.oilType ? (c.oilType as DriverJob["compartments"][0]["oilType"]) : undefined,
+      })),
+      truckPlateNumber: truck.plateNumber,
+      trailerPlateNumber: trailer.plateNumber,
+      driverId: newTransport.driverId,
+      driverName: driver.name,
+      status: "รอเริ่ม",
+    };
+    createDriverJob(driverJob);
 
     // Reset form
     setNewTransport({
@@ -428,21 +481,30 @@ export default function TransportDelivery() {
     alert("สร้างรอบส่งน้ำมันสำเร็จ!");
   };
 
-  const handleStartTransport = (transport: TransportDelivery) => {
+  const handleStartTransport = (transport: TransportDeliveryType) => {
     if (!transport.startOdometer) {
       alert("กรุณากรอกเลขไมล์เริ่มต้น");
       return;
     }
 
-    // In real app, this would call API
-    console.log("Starting transport:", transport.id);
+    // อัปเดตสถานะใน context
+    startTransport(transport.id, transport.startOdometer || 0);
+    
+    // อัปเดต DriverJob status
+    const driverJob = getDriverJobByTransportNo(transport.transportNo);
+    if (driverJob) {
+      // DriverJob จะถูกอัปเดตโดย DriverApp เมื่อคนขับกด "ออกเดินทาง"
+    }
+    
     alert("เริ่มขนส่งแล้ว!");
   };
 
-  const handleViewDetail = (transport: TransportDelivery) => {
+  const handleViewDetail = (transport: TransportDeliveryType) => {
     setSelectedTransport(transport);
     setShowDetailModal(true);
   };
+
+  // เชื่อมโยงกับ DriverApp - เมื่อคลิกดูรายละเอียด Transport สามารถไปดู DriverJob ได้
 
   // Prevent body scroll when modals are open
   useEffect(() => {
@@ -651,7 +713,7 @@ export default function TransportDelivery() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleStartTransport(transport);
+                          handleStartTransport(transport as TransportDeliveryType);
                         }}
                         className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg transition-all duration-200 font-semibold flex items-center gap-2"
                       >
@@ -662,7 +724,7 @@ export default function TransportDelivery() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleViewDetail(transport);
+                        handleViewDetail(transport as TransportDeliveryType);
                       }}
                       className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                       title="ดูรายละเอียด"

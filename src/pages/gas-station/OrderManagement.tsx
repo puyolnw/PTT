@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useMemo } from "react";
+import { useGasStation } from "@/contexts/GasStationContext";
 import {
   CheckCircle,
   Clock,
@@ -15,7 +16,7 @@ import {
   Package,
 } from "lucide-react";
 // Import shared data from gasStationOrders.ts (ข้อมูลเดียวกันกับหน้า "บันทึกใบเสนอราคาจากปตท")
-import { mockApprovedOrders, type ApprovedOrder } from "@/data/gasStationOrders";
+import type { PurchaseOrder } from "@/types/gasStation";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -32,20 +33,21 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
 // แสดงข้อมูลตามเลขที่ใบสั่งซื้อ (orderNo) แทนการจัดกลุ่มตามปั๊ม
 
 export default function OrderManagement() {
+  const { purchaseOrders } = useGasStation();
   const [filterOrderNo] = useState("ล่าสุด"); // Default: แสดงใบสั่งซื้อล่าสุด
-  const [selectedOrder, setSelectedOrder] = useState<ApprovedOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
 
-  // ใช้ข้อมูลจาก mockApprovedOrders โดยตรง (แสดงตามเลขที่ใบสั่งซื้อ)
+  // ใช้ข้อมูลจาก context โดยตรง (แสดงตามเลขที่ใบสั่งซื้อ)
   // เรียงตาม orderDate และ orderNo เพื่อหา "ล่าสุด"
   const orders = useMemo(() => {
-    return [...mockApprovedOrders].sort((a, b) => {
+    return [...purchaseOrders].sort((a, b) => {
       // เรียงตาม orderDate (ล่าสุดก่อน)
       const dateCompare = new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime();
       if (dateCompare !== 0) return dateCompare;
       // ถ้าวันที่เท่ากัน เรียงตาม orderNo (ล่าสุดก่อน)
       return b.orderNo.localeCompare(a.orderNo);
     });
-  }, []);
+  }, [purchaseOrders]);
 
   // หาเลขที่ใบสั่งซื้อล่าสุด
   const latestOrderNo = useMemo(() => {

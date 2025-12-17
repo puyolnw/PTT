@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useGasStation } from "@/contexts/GasStationContext";
+import type { TankEntryRecord as TankEntryRecordType, OilType } from "@/types/gasStation";
 import {
     Droplet,
     Plus,
@@ -48,8 +50,8 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
     maximumFractionDigits: 0,
 });
 
-// Interface สำหรับบันทึกน้ำมันลงหลุม
-export interface TankEntryRecord {
+// Interface สำหรับบันทึกน้ำมันลงหลุม (local type - ใช้ในไฟล์นี้เท่านั้น)
+interface TankEntryRecordLocal {
     id: string;
     entryDate: string;
     entryTime: string;
@@ -101,7 +103,7 @@ export interface TankEntryRecord {
 }
 
 // Interface สำหรับบันทึกการลงน้ำมันผิด
-export interface IncorrectTankEntry extends TankEntryRecord {
+interface IncorrectTankEntry extends TankEntryRecordLocal {
     isIncorrect: true;
     
     // ข้อมูลการลงหลุมผิด
@@ -137,7 +139,7 @@ const mockUndergroundTanks = [
 ];
 
 // Mock data - บันทึกน้ำมันลงหลุม
-const mockTankEntryRecords: TankEntryRecord[] = [
+const mockTankEntryRecords: TankEntryRecordType[] = [
     {
         id: "TE-001",
         entryDate: new Date().toISOString().split("T")[0],
@@ -145,7 +147,7 @@ const mockTankEntryRecords: TankEntryRecord[] = [
         receiptNo: "REC-20241214-001",
         purchaseOrderNo: "SO-20241215-001",
         source: "PTT",
-        oilType: "Premium Diesel",
+        oilType: "Premium Diesel" as OilType,
         tankNumber: 1,
         tankCode: "34 HSD",
         quantity: 32000,
@@ -173,7 +175,7 @@ const mockTankEntryRecords: TankEntryRecord[] = [
         receiptNo: "REC-20241214-001",
         purchaseOrderNo: "SO-20241215-001",
         source: "PTT",
-        oilType: "Gasohol 95",
+        oilType: "Gasohol 95" as OilType,
         tankNumber: 3,
         tankCode: "18 63H95",
         quantity: 28000,
@@ -202,7 +204,7 @@ const mockIncorrectEntries: IncorrectTankEntry[] = [
         receiptNo: "REC-20241214-002",
         purchaseOrderNo: "SO-20241215-002",
         source: "PTT",
-        oilType: "Gasohol 95", // ประเภทน้ำมันที่ลงผิด
+        oilType: "Gasohol 95" as OilType, // ประเภทน้ำมันที่ลงผิด
         tankNumber: 2, // หลุมที่ลงผิด
         tankCode: "83 E 20", // รหัสหลุมที่ลงผิด
         quantity: 15000,
@@ -235,6 +237,12 @@ const mockIncorrectEntries: IncorrectTankEntry[] = [
 ];
 
 export default function RecordTankEntry() {
+    const { 
+        oilReceipts, 
+        transportDeliveries, 
+        tankEntries,
+        createTankEntry, 
+    } = useGasStation();
     const location = useLocation();
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState("");
@@ -245,7 +253,7 @@ export default function RecordTankEntry() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showIncorrectEntryModal, setShowIncorrectEntryModal] = useState(false);
-    const [selectedRecord, setSelectedRecord] = useState<TankEntryRecord | null>(null);
+    const [selectedRecord, setSelectedRecord] = useState<TankEntryRecordType | IncorrectTankEntry | null>(null);
 
     // Form state for creating new tank entry
     const [formData, setFormData] = useState({
@@ -308,9 +316,12 @@ export default function RecordTankEntry() {
     });
 
     // State for all records (normal + incorrect)
-    const [allRecords, setAllRecords] = useState<TankEntryRecord[]>([
-        ...mockTankEntryRecords,
-        ...mockIncorrectEntries,
+    const [allRecords, setAllRecords] = useState<TankEntryRecordType[]>([
+        ...(tankEntries.length > 0 ? tankEntries : mockTankEntryRecords),
+        ...(mockIncorrectEntries.map((entry) => ({
+            ...entry,
+            oilType: entry.wrongOilType as OilType,
+        }))),
     ]);
 
     // Auto-fill from ReceiveFromBranch
@@ -409,7 +420,7 @@ export default function RecordTankEntry() {
 
     // Auto-fill from receipt
     const handleReceiptChange = (receiptNo: string) => {
-        const receipt = mockOilReceipts.find((r) => r.receiptNo === receiptNo);
+        const receipt = oilReceipts.find((r) => r.receiptNo === receiptNo) || mockOilReceipts.find((r) => r.receiptNo === receiptNo);
         if (receipt && receipt.items && receipt.items.length > 0) {
             // Auto-fill basic info
             setFormData((prev) => ({
@@ -480,10 +491,11 @@ export default function RecordTankEntry() {
     };
 
     // ฟังก์ชันหา transport delivery ที่เกี่ยวข้องกับ record
-    const getTransportDelivery = (record: TankEntryRecord) => {
+    const getTransportDelivery = (record: TankEntryRecordType) => {
         if (!record.truckLicensePlate && !record.transportNo) return null;
         
-        return mockTransportDeliveries.find((transport) => {
+        const allTransports = transportDeliveries.length > 0 ? transportDeliveries : mockTransportDeliveries;
+        return allTransports.find((transport) => {
             const matchesTruck = record.truckLicensePlate && 
                 transport.truckPlateNumber === record.truckLicensePlate;
             const matchesTransportNo = record.transportNo && 
@@ -601,13 +613,40 @@ export default function RecordTankEntry() {
         // Calculate total amount
         const totalAmount = formData.quantity * formData.pricePerLiter;
 
-        // In real app, this would call API
+        // สร้าง Tank Entry Record
         const recordId = `TE-${new Date().toISOString().split("T")[0].replace(/-/g, "")}-${Date.now().toString().slice(-4)}`;
-        console.log("Saving tank entry:", {
-            ...formData,
-            totalAmount,
+        const newTankEntry: TankEntryRecordType = {
+            id: recordId,
+            entryDate: formData.entryDate,
+            entryTime: formData.entryTime,
+            receiptNo: formData.receiptNo || undefined,
+            purchaseOrderNo: formData.purchaseOrderNo || undefined,
+            transportNo: formData.transportNo || undefined,
+            source: formData.source as "PTT" | "Branch" | "Other",
+            sourceBranchName: formData.sourceBranchName || undefined,
+            truckLicensePlate: formData.truckLicensePlate || undefined,
+            driverName: formData.driverName || undefined,
+            oilType: formData.oilType as OilType,
+            tankNumber: formData.tankNumber,
+            tankCode: formData.tankCode,
+            quantity: formData.quantity,
+            beforeDip: formData.beforeDip,
+            afterDip: formData.afterDip,
             quantityReceived: formData.quantity,
-        });
+            pricePerLiter: formData.pricePerLiter,
+            totalAmount: totalAmount,
+            pumpCode: formData.pumpCode || undefined,
+            description: formData.description || undefined,
+            status: "completed",
+            recordedBy: "EMP-001", // TODO: ดึงจาก session
+            recordedByName: "นายสมศักดิ์ ใจดี", // TODO: ดึงจาก session
+            notes: formData.notes || undefined,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+
+        // บันทึกใน context
+        createTankEntry(newTankEntry);
 
         // บันทึกประวัติการทำงาน
         logActivity({
@@ -619,7 +658,7 @@ export default function RecordTankEntry() {
             userName: "นายสมศักดิ์ ใจดี", // TODO: ดึงจาก session
             description: `บันทึกน้ำมันลงหลุม: ${formData.oilType} จำนวน ${numberFormatter.format(formData.quantity)} ลิตร ลงถัง #${formData.tankNumber} (${formData.tankCode})`,
             details: {
-                oilType: formData.oilType,
+                oilType: formData.oilType as OilType,
                 tankNumber: formData.tankNumber,
                 tankCode: formData.tankCode,
                 quantity: formData.quantity,
@@ -767,7 +806,7 @@ export default function RecordTankEntry() {
             sourceBranchName: incorrectEntryForm.sourceBranchName || undefined,
             truckLicensePlate: incorrectEntryForm.truckLicensePlate || undefined,
             driverName: incorrectEntryForm.driverName || undefined,
-            oilType: incorrectEntryForm.wrongOilType,
+            oilType: incorrectEntryForm.wrongOilType as OilType,
             tankNumber: incorrectEntryForm.wrongTankNumber,
             tankCode: incorrectEntryForm.wrongTankCode,
             quantity: incorrectEntryForm.quantity,
@@ -798,8 +837,17 @@ export default function RecordTankEntry() {
             estimatedLoss: estimatedLoss,
         };
 
+        // Convert to TankEntryRecordType for context
+        const tankEntryRecord: TankEntryRecordType = {
+            ...newIncorrectEntry,
+            oilType: newIncorrectEntry.wrongOilType as OilType,
+        };
+        
+        // บันทึกใน context
+        createTankEntry(tankEntryRecord);
+        
         // Add to records
-        setAllRecords((prev) => [...prev, newIncorrectEntry]);
+        setAllRecords((prev) => [...prev, tankEntryRecord]);
 
         // บันทึกประวัติการทำงาน
         logActivity({
@@ -826,7 +874,7 @@ export default function RecordTankEntry() {
         resetIncorrectEntryForm();
     };
 
-    const handleViewDetail = (record: TankEntryRecord) => {
+    const handleViewDetail = (record: TankEntryRecordType) => {
         setSelectedRecord(record);
         setShowDetailModal(true);
     };
@@ -1418,7 +1466,7 @@ export default function RecordTankEntry() {
                                                     className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 text-gray-800 dark:text-white"
                                                 >
                                                     <option value="">-- เลือกใบรับน้ำมัน --</option>
-                                                    {mockOilReceipts
+                                                    {(oilReceipts.length > 0 ? oilReceipts : mockOilReceipts)
                                                         .filter((r) => r.status === "completed") // แสดงเฉพาะที่เสร็จสมบูรณ์
                                                         .map((receipt) => (
                                                             <option key={receipt.id} value={receipt.receiptNo}>
@@ -1432,13 +1480,13 @@ export default function RecordTankEntry() {
                                             </div>
 
                                             {/* Show receipt items summary */}
-                                            {formData.receiptNo && mockOilReceipts.find((r) => r.receiptNo === formData.receiptNo) && (
+                                            {formData.receiptNo && (oilReceipts.length > 0 ? oilReceipts : mockOilReceipts).find((r) => r.receiptNo === formData.receiptNo) && (
                                                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                                                     <h5 className="text-sm font-semibold text-green-900 dark:text-green-300 mb-3">
-                                                        รายการน้ำมันที่รับมา ({mockOilReceipts.find((r) => r.receiptNo === formData.receiptNo)?.items.length || 0} รายการ)
+                                                        รายการน้ำมันที่รับมา ({(oilReceipts.length > 0 ? oilReceipts : mockOilReceipts).find((r) => r.receiptNo === formData.receiptNo)?.items.length || 0} รายการ)
                                                     </h5>
                                                     <div className="space-y-2">
-                                                        {mockOilReceipts
+                                                        {(oilReceipts.length > 0 ? oilReceipts : mockOilReceipts)
                                                             .find((r) => r.receiptNo === formData.receiptNo)
                                                             ?.items.map((item, idx) => {
                                                                 const tank = mockUndergroundTanks.find((t) => t.id === item.tankNumber);

@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useGasStation } from "@/contexts/GasStationContext";
 import {
   ShoppingCart,
   Plus,
@@ -50,14 +51,8 @@ const quantityOptions = [
 ];
 
 // Import shared data from gasStationOrders.ts
-import { branches, legalEntities, mockOrderSummary } from "@/data/gasStationOrders";
-
-// Mock data - สรุปคำขอจากทั้ง 5 สาขา (รวมปั๊มไฮโซ)
-// ข้อมูลนี้ถูกย้ายไปที่ src/data/gasStationOrders.ts แล้ว
-// ใช้ import mockOrderSummary จาก "@/data/gasStationOrders" แทน
-
-// Import shared data
-import { mockApprovedOrders } from "@/data/gasStationOrders";
+import { branches, legalEntities } from "@/data/gasStationOrders";
+import type { PurchaseOrder, OrderSummaryItem } from "@/types/gasStation";
 
 // Mock data - ใบสั่งซื้อที่อนุมัติแล้ว (บิลรวมการสั่งในแต่ละครั้ง)
 // ข้อมูลนี้ถูกย้ายไปที่ src/data/gasStationOrders.ts แล้ว
@@ -97,14 +92,15 @@ const mockTruckCapacity = {
 
 export default function Orders() {
   const navigate = useNavigate();
+  const { orders, purchaseOrders, createPurchaseOrder, updateOrder } = useGasStation();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ทั้งหมด");
   const [filterBranch, setFilterBranch] = useState("ทั้งหมด");
   const [showTruckModal, setShowTruckModal] = useState(false);
-  const [selectedOrderDetail, setSelectedOrderDetail] = useState<typeof mockOrderSummary[0] | null>(null);
-  const [selectedApprovedOrder, setSelectedApprovedOrder] = useState<typeof mockApprovedOrders[0] | null>(null);
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState<typeof orders[0] | null>(null);
+  const [selectedApprovedOrder, setSelectedApprovedOrder] = useState<typeof purchaseOrders[0] | null>(null);
   const [showConsolidateModal, setShowConsolidateModal] = useState(false);
-  const [editingOrders, setEditingOrders] = useState<typeof mockOrderSummary>([]);
+  const [editingOrders, setEditingOrders] = useState<typeof orders>([]);
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
   const [newOrderItems, setNewOrderItems] = useState<Array<{
     branchId: number;
@@ -156,7 +152,7 @@ export default function Orders() {
   }, [showTruckModal, selectedOrderDetail, showConsolidateModal, selectedApprovedOrder, showNewOrderModal]);
 
   // คำนวณยอดรวมที่ต้องสั่ง
-  const totalQuantity = mockOrderSummary.reduce((sum, order) => sum + (order.quantityOrdered || 0), 0);
+  const totalQuantity = orders.reduce((sum, order) => sum + (order.quantityOrdered || 0), 0);
   const totalTruckCapacity = mockTruckCapacity.morning.chambers.reduce((sum, c) => sum + c.capacity, 0) +
     mockTruckCapacity.afternoon.chambers.reduce((sum, c) => sum + c.capacity, 0);
 
@@ -197,7 +193,7 @@ export default function Orders() {
         {[
           {
             title: "ใบสั่งซื้อรออนุมัติ",
-            value: mockOrderSummary.filter((o) => o.status === "รออนุมัติ").length,
+            value: orders.filter((o) => o.status === "รออนุมัติ").length,
             subtitle: "รายการ",
             icon: Clock,
             iconColor: "bg-gradient-to-br from-orange-500 to-orange-600",
@@ -206,7 +202,7 @@ export default function Orders() {
           },
           {
             title: "ใบสั่งซื้ออนุมัติแล้ว",
-            value: mockOrderSummary.filter((o) => o.status === "อนุมัติแล้ว").length,
+            value: orders.filter((o) => o.status === "อนุมัติแล้ว").length,
             subtitle: "รายการ",
             icon: CheckCircle,
             iconColor: "bg-gradient-to-br from-blue-500 to-blue-600",
@@ -325,7 +321,7 @@ export default function Orders() {
       </motion.div>
 
       {/* Approved Orders List */}
-      {mockApprovedOrders.length > 0 && (
+      {purchaseOrders.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -344,7 +340,7 @@ export default function Orders() {
                 <div className="text-right">
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">ยอดรวมทั้งหมด</p>
                   <p className="text-lg font-bold text-gray-800 dark:text-white">
-                    {currencyFormatter.format(mockApprovedOrders.reduce((sum, o) => sum + o.totalAmount, 0))}
+                    {currencyFormatter.format(purchaseOrders.reduce((sum, o) => sum + o.totalAmount, 0))}
                   </p>
                 </div>
               </div>
@@ -366,7 +362,7 @@ export default function Orders() {
                 </tr>
               </thead>
               <tbody>
-                {mockApprovedOrders.map((order, index) => (
+                {purchaseOrders.map((order, index) => (
                   <motion.tr
                     key={order.orderNo}
                     initial={{ opacity: 0, x: -20 }}
@@ -1238,9 +1234,9 @@ export default function Orders() {
                         const deliveryDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // วันถัดไป
 
                         // สร้าง orderNo และ supplierOrderNo
-                        const orderNo = `SO-${orderDate.replace(/-/g, '')}-${String(mockApprovedOrders.length + 1).padStart(3, '0')}`;
-                        const supplierOrderNo = `PTT-${orderDate.replace(/-/g, '')}-${String(mockApprovedOrders.length + 1).padStart(3, '0')}`;
-                        const billNo = `BILL-${orderDate.replace(/-/g, '')}-${String(mockApprovedOrders.length + 1).padStart(3, '0')}`;
+                        const orderNo = `SO-${orderDate.replace(/-/g, '')}-${String(purchaseOrders.length + 1).padStart(3, '0')}`;
+                        const supplierOrderNo = `PTT-${orderDate.replace(/-/g, '')}-${String(purchaseOrders.length + 1).padStart(3, '0')}`;
+                        const billNo = `BILL-${orderDate.replace(/-/g, '')}-${String(purchaseOrders.length + 1).padStart(3, '0')}`;
 
                         // คำนวณราคาต่อลิตร (mock - ในระบบจริงจะดึงจาก API)
                         const priceMap: Record<string, number> = {
@@ -1326,16 +1322,49 @@ export default function Orders() {
                           items,
                           totalAmount,
                           branches: branchesData,
-                          status: "ส่งแล้ว",
+                          status: "รอเริ่ม" as const, // เปลี่ยนเป็นรอเริ่มเพื่อให้สามารถสร้าง Transport ได้
                           approvedBy: "คุณนิด",
-                          approvedAt: new Date().toLocaleString('th-TH', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          }),
+                          approvedAt: new Date().toISOString(),
                         };
+
+                        // บันทึก Purchase Order ใน context
+                        createPurchaseOrder({
+                          ...billData,
+                          items: billData.items.map((item, idx) => ({
+                            id: `item-${idx}`,
+                            oilType: item.oilType as PurchaseOrder["items"][0]["oilType"],
+                            quantity: item.quantity,
+                            pricePerLiter: item.pricePerLiter,
+                            totalAmount: item.totalAmount,
+                          })),
+                          branches: billData.branches.map((branch) => ({
+                            branchId: branch.branchId,
+                            branchName: branch.branchName,
+                            legalEntityName: branch.legalEntityName,
+                            address: branch.address,
+                            deliveryStatus: "รอส่ง" as const,
+                            items: branch.items.map((item, idx) => ({
+                              id: `item-${idx}`,
+                              oilType: item.oilType as PurchaseOrder["items"][0]["oilType"],
+                              quantity: item.quantity,
+                              pricePerLiter: item.pricePerLiter,
+                              totalAmount: item.totalAmount,
+                            })),
+                            totalAmount: branch.totalAmount,
+                          })),
+                        });
+
+                        // อัปเดตสถานะ Order ทั้งหมดเป็น "อนุมัติแล้ว"
+                        editingOrders.forEach((order) => {
+                          const orderId = `${order.branchId}-${order.oilType}`;
+                          updateOrder(orderId, {
+                            status: "อนุมัติแล้ว",
+                            orderNo: orderNo,
+                            supplierOrderNo: supplierOrderNo,
+                            approvedBy: "คุณนิด",
+                            approvedAt: new Date().toISOString(),
+                          });
+                        });
 
                         // ตรวจสอบว่ามีการเลือกรถและคนขับหรือไม่
                         if (selectedTrucksAndDrivers.length === 0) {
@@ -1594,7 +1623,10 @@ export default function Orders() {
                         }));
 
                         // เก็บข้อมูลรถและคนขับที่เลือก
-                        setEditingOrders(newOrders);
+                        setEditingOrders(newOrders.map((order) => ({
+                          ...order,
+                          oilType: order.oilType as OrderSummaryItem["oilType"],
+                        })));
                         // แปลง TruckDriverPair ให้ตรงกับ type ที่ต้องการ
                         setSelectedTrucksAndDrivers(selectedTrucksAndDriversFromForm.map((pair) => ({
                           truckId: pair.truckId,

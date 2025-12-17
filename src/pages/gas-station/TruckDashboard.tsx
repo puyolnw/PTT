@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { mockTrucks, mockTruckOrders, type TruckOrder } from "./TruckProfiles";
 import type { TruckProfile } from "./TruckProfiles";
+import { useGasStation } from "@/contexts/GasStationContext";
 
 // Mock data สำหรับ Transport Delivery (เพื่อดูว่ารถกำลังส่งที่ไหน)
 // ในระบบจริงควรดึงจาก API หรือ shared data
@@ -115,20 +116,23 @@ const getStageText = (stage: TruckStage): string => {
 };
 
 export default function TruckDashboard() {
+    const { transportDeliveries, trucks } = useGasStation();
     const [selectedTruckId, setSelectedTruckId] = useState<string | null>(null);
 
-    // ฟังก์ชันหา transport delivery ที่เกี่ยวข้อง
+    // ฟังก์ชันหา transport delivery ที่เกี่ยวข้อง - ใช้ข้อมูลจาก context
     const getTransportDelivery = (truckId: string, truckPlateNumber: string) => {
-        return mockTransportDeliveries.find(
+        const allTransports = transportDeliveries.length > 0 ? transportDeliveries : mockTransportDeliveries;
+        return allTransports.find(
             (transport) =>
                 (transport.truckId === truckId || transport.truckPlateNumber === truckPlateNumber) &&
                 transport.status === "กำลังขนส่ง"
         );
     };
 
-    // รวมข้อมูลรถกับ order และสถานะ
+    // รวมข้อมูลรถกับ order และสถานะ - ใช้ข้อมูลจาก context
+    const allTrucks = trucks.length > 0 ? trucks : mockTrucks;
     const trucksWithStatus: TruckStatus[] = useMemo(() => {
-        return mockTrucks.map((truck) => {
+        return allTrucks.map((truck) => {
             // หา order ล่าสุดที่ยังไม่เสร็จ
             const activeOrder = mockTruckOrders
                 .filter((order) => order.truckId === truck.id)

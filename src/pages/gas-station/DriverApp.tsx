@@ -1,5 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useGasStation } from "@/contexts/GasStationContext";
+import type { DriverJob as DriverJobType } from "@/types/gasStation";
 import {
     Truck,
     Package,
@@ -122,12 +124,13 @@ const mockDriverJobs: DriverJob[] = [
 type Step = "start-trip" | "pickup-oil" | "route-planning" | "delivery" | "completed";
 
 export default function DriverApp() {
-    const [selectedJob, setSelectedJob] = useState<DriverJob | null>(null);
+    const { driverJobs, updateDriverJob, createDriverJob } = useGasStation();
+    const [selectedJob, setSelectedJob] = useState<DriverJobType | null>(null);
     const [currentStep, setCurrentStep] = useState<Step>("start-trip");
     const [currentDeliveryIndex, setCurrentDeliveryIndex] = useState(0);
     const [routeOrder, setRouteOrder] = useState<number[]>([]); // ลำดับการส่ง
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null); // สำหรับ drag and drop
-    const [viewingJobDetail, setViewingJobDetail] = useState<DriverJob | null>(null); // สำหรับดูรายละเอียดรอบส่ง
+    const [viewingJobDetail, setViewingJobDetail] = useState<DriverJobType | null>(null); // สำหรับดูรายละเอียดรอบส่ง
 
     // Form states for Step 1: Start Trip
     const [startOdometer, setStartOdometer] = useState("");
@@ -143,16 +146,36 @@ export default function DriverApp() {
     const [deliveryOdometer, setDeliveryOdometer] = useState("");
     const [deliveryNotes, setDeliveryNotes] = useState("");
 
-    // Separate completed and active jobs
+    // Initialize mock data to context if empty
+    useEffect(() => {
+        if (driverJobs.length === 0 && mockDriverJobs.length > 0) {
+            mockDriverJobs.forEach((job) => {
+                createDriverJob({
+                    ...job,
+                    destinationBranches: job.destinationBranches.map((b) => ({
+                        ...b,
+                        oilType: b.oilType as DriverJobType["destinationBranches"][0]["oilType"],
+                    })),
+                    compartments: job.compartments.map((c) => ({
+                        ...c,
+                        oilType: c.oilType ? (c.oilType as DriverJobType["compartments"][0]["oilType"]) : undefined,
+                    })),
+                });
+            });
+        }
+    }, [driverJobs.length, createDriverJob]);
+
+    // Separate completed and active jobs - ใช้ข้อมูลจาก context หรือ mock data
+    const allJobs = driverJobs.length > 0 ? driverJobs : mockDriverJobs;
     const completedJobs = useMemo(() => {
-        return mockDriverJobs.filter((job) => job.status === "ส่งเสร็จ");
-    }, []);
+        return allJobs.filter((job) => job.status === "ส่งเสร็จ");
+    }, [allJobs]);
 
     const activeJobs = useMemo(() => {
-        return mockDriverJobs.filter((job) => job.status !== "ส่งเสร็จ");
-    }, []);
+        return allJobs.filter((job) => job.status !== "ส่งเสร็จ");
+    }, [allJobs]);
 
-    const handleSelectJob = (job: DriverJob) => {
+    const handleSelectJob = (job: DriverJobType) => {
         setSelectedJob(job);
         // Initialize route order if not set
         if (!job.routeOrder || job.routeOrder.length === 0) {
@@ -185,7 +208,7 @@ export default function DriverApp() {
     };
 
     // Get branches in route order
-    const getOrderedBranches = (job: DriverJob) => {
+    const getOrderedBranches = (job: DriverJobType) => {
         if (!job.routeOrder || job.routeOrder.length === 0) {
             return job.destinationBranches;
         }
@@ -220,6 +243,64 @@ export default function DriverApp() {
         setPhotos(photos.filter((_, i) => i !== index));
     };
 
+    // Function to go back to previous step
+    const handleGoBack = () => {
+        if (!selectedJob) return;
+        
+        switch (currentStep) {
+            case "pickup-oil": {
+                // Go back to start-trip
+                setCurrentStep("start-trip");
+                // Reset job status if needed
+                if (selectedJob.status === "ออกเดินทางแล้ว") {
+                    const updatedJob = {
+                        ...selectedJob,
+                        status: "รอเริ่ม" as const,
+                        startTrip: undefined,
+                    };
+                    setSelectedJob(updatedJob);
+                }
+                // Load existing data if available
+                if (selectedJob.startTrip) {
+                    setStartOdometer(selectedJob.startTrip.startOdometer.toString());
+                    if (selectedJob.startTrip.startOdometerPhoto) {
+                        setStartOdometerPhoto(selectedJob.startTrip.startOdometerPhoto);
+                    }
+                }
+                break;
+            }
+            case "route-planning": {
+                // Go back to pickup-oil
+                setCurrentStep("pickup-oil");
+                // Load existing data if available
+                if (selectedJob.pickupConfirmation) {
+                    setPickupPhotos(selectedJob.pickupConfirmation.photos);
+                    setPickupOdometer(selectedJob.pickupConfirmation.odometerReading.toString());
+                    if (selectedJob.pickupConfirmation.notes) {
+                        setPickupNotes(selectedJob.pickupConfirmation.notes);
+                    }
+                }
+                break;
+            }
+            case "delivery": {
+                // Go back to route-planning
+                setCurrentStep("route-planning");
+                break;
+            }
+            case "completed": {
+                // Go back to delivery
+                setCurrentStep("delivery");
+                // Find first undelivered branch
+                const orderedBranches = getOrderedBranches(selectedJob);
+                const firstPendingIndex = orderedBranches.findIndex((b) => b.status !== "ส่งแล้ว");
+                setCurrentDeliveryIndex(firstPendingIndex >= 0 ? firstPendingIndex : 0);
+                break;
+            }
+            default:
+                break;
+        }
+    };
+
     // Step 1: Start Trip
     const handleStartTrip = () => {
         if (!selectedJob) return;
@@ -238,6 +319,18 @@ export default function DriverApp() {
             },
         };
 
+        // อัปเดตใน context
+        updateDriverJob(selectedJob.id, {
+            ...updatedJob,
+            destinationBranches: updatedJob.destinationBranches.map((b) => ({
+                ...b,
+                oilType: b.oilType as DriverJobType["destinationBranches"][0]["oilType"],
+            })),
+            compartments: updatedJob.compartments?.map((c) => ({
+                ...c,
+                oilType: c.oilType ? (c.oilType as DriverJobType["compartments"][0]["oilType"]) : undefined,
+            })),
+        });
         setSelectedJob(updatedJob);
         setCurrentStep("pickup-oil");
         resetFormStates();
@@ -266,6 +359,18 @@ export default function DriverApp() {
             },
         };
 
+        // อัปเดตใน context
+        updateDriverJob(selectedJob.id, {
+            ...updatedJob,
+            destinationBranches: updatedJob.destinationBranches.map((b) => ({
+                ...b,
+                oilType: b.oilType as DriverJobType["destinationBranches"][0]["oilType"],
+            })),
+            compartments: updatedJob.compartments?.map((c) => ({
+                ...c,
+                oilType: c.oilType ? (c.oilType as DriverJobType["compartments"][0]["oilType"]) : undefined,
+            })),
+        });
         setSelectedJob(updatedJob);
         setCurrentStep("route-planning");
         resetFormStates();
@@ -306,6 +411,18 @@ export default function DriverApp() {
             status: "จัดเรียงเส้นทางแล้ว" as const,
             routeOrder: routeOrder,
         };
+        // อัปเดตใน context
+        updateDriverJob(selectedJob.id, {
+            ...updatedJob,
+            destinationBranches: updatedJob.destinationBranches.map((b) => ({
+                ...b,
+                oilType: b.oilType as DriverJobType["destinationBranches"][0]["oilType"],
+            })),
+            compartments: updatedJob.compartments?.map((c) => ({
+                ...c,
+                oilType: c.oilType ? (c.oilType as DriverJobType["compartments"][0]["oilType"]) : undefined,
+            })),
+        });
         setSelectedJob(updatedJob);
         setCurrentStep("delivery");
         setCurrentDeliveryIndex(0);
@@ -352,6 +469,18 @@ export default function DriverApp() {
             status: newStatus,
         };
 
+        // อัปเดตใน context
+        updateDriverJob(selectedJob.id, {
+            ...updatedJob,
+            destinationBranches: updatedJob.destinationBranches.map((b) => ({
+                ...b,
+                oilType: b.oilType as DriverJobType["destinationBranches"][0]["oilType"],
+            })),
+            compartments: updatedJob.compartments?.map((c) => ({
+                ...c,
+                oilType: c.oilType ? (c.oilType as DriverJobType["compartments"][0]["oilType"]) : undefined,
+            })),
+        });
         setSelectedJob(updatedJob);
 
         if (allDelivered) {
@@ -580,7 +709,7 @@ export default function DriverApp() {
                                         key={job.id}
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        onClick={() => handleSelectJob(job)}
+                                        onClick={() => handleSelectJob(job as DriverJobType)}
                                         className="p-5 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 cursor-pointer transition-colors bg-white dark:bg-gray-800"
                                     >
                                         <div className="flex items-start justify-between mb-3">
@@ -643,7 +772,7 @@ export default function DriverApp() {
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setViewingJobDetail(job);
+                                                            setViewingJobDetail(job as DriverJobType);
                                                         }}
                                                         className="text-xs px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold transition-colors"
                                                     >
@@ -686,7 +815,7 @@ export default function DriverApp() {
                                             key={job.id}
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            onClick={() => setViewingJobDetail(job)}
+                                            onClick={() => setViewingJobDetail(job as DriverJobType)}
                                             className="p-5 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-green-500 dark:hover:border-green-400 cursor-pointer transition-colors bg-white dark:bg-gray-800"
                                         >
                                             <div className="flex items-start justify-between mb-3">
@@ -953,13 +1082,15 @@ export default function DriverApp() {
                                     </div>
                                 </div>
 
-                                <button
-                                    onClick={handleStartTrip}
-                                    className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <Play className="h-6 w-6" />
-                                    ออกเดินทาง
-                                </button>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleStartTrip}
+                                        className="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Play className="h-6 w-6" />
+                                        ออกเดินทาง
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     )}
@@ -974,9 +1105,19 @@ export default function DriverApp() {
                             transition={{ duration: 0.3 }}
                         >
                             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6">
-                                    ขั้นตอนที่ 2: รับน้ำมัน
-                                </h2>
+                                <div className="flex items-center justify-between mb-6">
+                                    <button
+                                        onClick={handleGoBack}
+                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
+                                    >
+                                        <ChevronRight className="h-5 w-5 rotate-180" />
+                                        กลับ
+                                    </button>
+                                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                                        ขั้นตอนที่ 2: รับน้ำมัน
+                                    </h2>
+                                    <div className="w-24"></div>
+                                </div>
 
                                 <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                                     <div className="flex items-start gap-3">
@@ -1014,7 +1155,7 @@ export default function DriverApp() {
                                                             {compartment.oilType}
                                                         </p>
                                                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                            {numberFormatter.format(compartment.quantity)} ลิตร → {compartment.destinationBranchName}
+                                                            {compartment.quantity ? numberFormatter.format(compartment.quantity) : "-"} ลิตร → {compartment.destinationBranchName || "-"}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -1108,9 +1249,19 @@ export default function DriverApp() {
                             transition={{ duration: 0.3 }}
                         >
                             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6">
-                                    ขั้นตอนที่ 3: จัดเรียงเส้นทางการส่งน้ำมัน
-                                </h2>
+                                <div className="flex items-center justify-between mb-6">
+                                    <button
+                                        onClick={handleGoBack}
+                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
+                                    >
+                                        <ChevronRight className="h-5 w-5 rotate-180" />
+                                        กลับ
+                                    </button>
+                                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                                        ขั้นตอนที่ 3: จัดเรียงเส้นทางการส่งน้ำมัน
+                                    </h2>
+                                    <div className="w-24"></div>
+                                </div>
 
                                 <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
                                     <div className="flex items-start gap-3">
@@ -1244,6 +1395,13 @@ export default function DriverApp() {
                         >
                             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                                 <div className="flex items-center justify-between mb-6">
+                                    <button
+                                        onClick={handleGoBack}
+                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
+                                    >
+                                        <ChevronRight className="h-5 w-5 rotate-180" />
+                                        กลับ
+                                    </button>
                                     <h2 className="text-xl font-bold text-gray-800 dark:text-white">
                                         ขั้นตอนที่ 4: ส่งน้ำมัน
                                     </h2>
@@ -1379,6 +1537,15 @@ export default function DriverApp() {
                             transition={{ duration: 0.3 }}
                         >
                             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                                <div className="flex items-center justify-start mb-6">
+                                    <button
+                                        onClick={handleGoBack}
+                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
+                                    >
+                                        <ChevronRight className="h-5 w-5 rotate-180" />
+                                        กลับ
+                                    </button>
+                                </div>
                                 {/* Get delivered and undelivered branches */}
                                 <div className="text-center mb-6">
                                     <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">

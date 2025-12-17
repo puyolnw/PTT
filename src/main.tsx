@@ -225,6 +225,9 @@ import LubricantsDashboard from "@/pages/gas-station/LubricantsDashboard";
 import AccountingExport from "@/pages/gas-station/AccountingExport";
 import POGeneration from "@/pages/gas-station/POGeneration";
 import DriverApp from "@/pages/gas-station/DriverApp";
+import Quotation from "@/pages/gas-station/Quotation";
+import DeliveryNote from "@/pages/gas-station/DeliveryNote";
+import Receipt from "@/pages/gas-station/Receipt";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -975,6 +978,18 @@ const router = createBrowserRouter([
           {
             path: "driver-app",
             element: <DriverApp />,
+          },
+          {
+            path: "quotation",
+            element: <Quotation />,
+          },
+          {
+            path: "delivery-note",
+            element: <DeliveryNote />,
+          },
+          {
+            path: "receipt",
+            element: <Receipt />,
           },
           {
             path: "lubricants-dashboard",
