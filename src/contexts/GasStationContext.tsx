@@ -53,11 +53,13 @@ interface GasStationContextType {
   // Actions - Delivery Notes
   createDeliveryNote: (deliveryNote: DeliveryNote) => void;
   updateDeliveryNote: (deliveryNoteId: string, updates: Partial<DeliveryNote>) => void;
+  deleteDeliveryNote: (deliveryNoteId: string) => void;
   signDeliveryNote: (deliveryNoteId: string, signature: string, isReceiver: boolean) => void;
 
   // Actions - Receipts
   createReceipt: (receipt: Receipt) => void;
   updateReceipt: (receiptId: string, updates: Partial<Receipt>) => void;
+  deleteReceipt: (receiptId: string) => void;
   issueReceipt: (receiptId: string) => void;
 
   // Actions - Transport Delivery
@@ -129,8 +131,108 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     }))
   );
   const [quotationsState, setQuotationsState] = useState<Quotation[]>([]);
-  const [deliveryNotesState, setDeliveryNotesState] = useState<DeliveryNote[]>([]);
-  const [receiptsState, setReceiptsState] = useState<Receipt[]>([]);
+  // Mock data for Delivery Notes
+  const mockDeliveryNotes: DeliveryNote[] = [
+    {
+      id: "DN-001",
+      deliveryNoteNo: "1/1",
+      deliveryDate: new Date().toISOString().split("T")[0],
+      transportNo: "TR-20241215-001",
+      fromBranchId: 1,
+      fromBranchName: "ปั๊มไฮโซ",
+      toBranchId: 2,
+      toBranchName: "สาขา 2",
+      items: [
+        { id: "item-1", oilType: "Premium Diesel", quantity: 22000, pricePerLiter: 32.5, totalAmount: 715000 },
+        { id: "item-2", oilType: "Gasohol 95", quantity: 15000, pricePerLiter: 35.0, totalAmount: 525000 },
+      ],
+      totalAmount: 1240000,
+      truckPlateNumber: "กก 1111",
+      trailerPlateNumber: "กข 1234",
+      driverName: "สมชาย ใจดี",
+      startOdometer: 125000,
+      status: "delivered",
+      senderSignature: "ผู้ส่ง: สมชาย ใจดี",
+      senderSignedAt: new Date().toISOString(),
+      receiverSignature: "ผู้รับ: วิชัย รักงาน",
+      receiverSignedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      createdBy: "ผู้จัดการคลัง",
+    },
+    {
+      id: "DN-002",
+      deliveryNoteNo: "2/1",
+      deliveryDate: new Date(Date.now() - 86400000).toISOString().split("T")[0],
+      transportNo: "TR-20241214-002",
+      fromBranchId: 1,
+      fromBranchName: "ปั๊มไฮโซ",
+      toBranchId: 3,
+      toBranchName: "สาขา 3",
+      items: [
+        { id: "item-1", oilType: "Diesel", quantity: 20000, pricePerLiter: 30.0, totalAmount: 600000 },
+      ],
+      totalAmount: 600000,
+      truckPlateNumber: "กก 2222",
+      trailerPlateNumber: "กข 5678",
+      driverName: "วิชัย รักงาน",
+      startOdometer: 98000,
+      status: "in-transit",
+      senderSignature: "ผู้ส่ง: วิชัย รักงาน",
+      senderSignedAt: new Date(Date.now() - 86400000).toISOString(),
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      createdBy: "ผู้จัดการคลัง",
+    },
+  ];
+  const [deliveryNotesState, setDeliveryNotesState] = useState<DeliveryNote[]>(mockDeliveryNotes);
+  
+  // Mock data for Receipts
+  const mockReceipts: Receipt[] = [
+    {
+      id: "REC-001",
+      receiptNo: "1/1",
+      receiptDate: new Date().toISOString().split("T")[0],
+      documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+      customerName: "สาขา 2",
+      customerAddress: "456 ถนนพหลโยธิน กรุงเทพมหานคร 10400",
+      customerTaxId: "0105536000001",
+      items: [
+        { id: "item-1", oilType: "Premium Diesel", quantity: 22000, pricePerLiter: 32.5, totalAmount: 715000 },
+        { id: "item-2", oilType: "Gasohol 95", quantity: 15000, pricePerLiter: 35.0, totalAmount: 525000 },
+      ],
+      amountBeforeVat: 1158878.5,
+      vatAmount: 81121.5,
+      totalAmount: 1240000,
+      amountInWords: "หนึ่งล้านสองแสนสี่หมื่นบาทถ้วน",
+      deliveryNoteNo: "1/1",
+      status: "paid",
+      receiverSignature: "ผู้รับเงิน: วิชัย รักงาน",
+      receiverSignedAt: new Date().toISOString(),
+      receiverName: "วิชัย รักงาน",
+      createdAt: new Date().toISOString(),
+      createdBy: "ผู้จัดการคลัง",
+    },
+    {
+      id: "REC-002",
+      receiptNo: "2/1",
+      receiptDate: new Date(Date.now() - 86400000).toISOString().split("T")[0],
+      documentType: "ใบเสร็จรับเงิน",
+      customerName: "สาขา 3",
+      customerAddress: "789 ถนนรัชดาภิเษก กรุงเทพมหานคร 10320",
+      customerTaxId: "0105536000002",
+      items: [
+        { id: "item-1", oilType: "Diesel", quantity: 20000, pricePerLiter: 30.0, totalAmount: 600000 },
+      ],
+      amountBeforeVat: 560747.66,
+      vatAmount: 39252.34,
+      totalAmount: 600000,
+      amountInWords: "หกแสนบาทถ้วน",
+      deliveryNoteNo: "2/1",
+      status: "issued",
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      createdBy: "ผู้จัดการคลัง",
+    },
+  ];
+  const [receiptsState, setReceiptsState] = useState<Receipt[]>(mockReceipts);
   const [transportDeliveriesState, setTransportDeliveriesState] = useState<TransportDelivery[]>([]);
   const [driverJobsState, setDriverJobsState] = useState<DriverJob[]>([]);
   const [oilReceiptsState, setOilReceiptsState] = useState<OilReceipt[]>(
@@ -249,8 +351,12 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
 
   const updateDeliveryNote = useCallback((deliveryNoteId: string, updates: Partial<DeliveryNote>) => {
     setDeliveryNotesState((prev) =>
-      prev.map((dn) => (dn.id === deliveryNoteId ? { ...dn, ...updates } : dn))
+      prev.map((dn) => (dn.id === deliveryNoteId ? { ...dn, ...updates, updatedAt: new Date().toISOString() } : dn))
     );
+  }, []);
+
+  const deleteDeliveryNote = useCallback((deliveryNoteId: string) => {
+    setDeliveryNotesState((prev) => prev.filter((dn) => dn.id !== deliveryNoteId));
   }, []);
 
   const signDeliveryNote = useCallback(
@@ -283,6 +389,10 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     setReceiptsState((prev) =>
       prev.map((r) => (r.id === receiptId ? { ...r, ...updates } : r))
     );
+  }, []);
+
+  const deleteReceipt = useCallback((receiptId: string) => {
+    setReceiptsState((prev) => prev.filter((r) => r.id !== receiptId));
   }, []);
 
   const issueReceipt = useCallback((receiptId: string) => {
@@ -449,9 +559,11 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     confirmQuotation,
     createDeliveryNote,
     updateDeliveryNote,
+    deleteDeliveryNote,
     signDeliveryNote,
     createReceipt,
     updateReceipt,
+    deleteReceipt,
     issueReceipt,
     createTransportDelivery,
     updateTransportDelivery,

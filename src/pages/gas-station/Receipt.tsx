@@ -12,6 +12,8 @@ import {
   Droplet,
   DollarSign,
   PenTool,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
 import type { Receipt } from "@/types/gasStation";
@@ -33,6 +35,7 @@ export default function ReceiptPage() {
     deliveryNotes,
     createReceipt,
     updateReceipt,
+    deleteReceipt,
     issueReceipt,
     getNextRunningNumber,
     getDeliveryNoteByNo,
@@ -42,12 +45,14 @@ export default function ReceiptPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "draft" | "issued" | "paid" | "cancelled">("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showSignModal, setShowSignModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [signature, setSignature] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Form state for creating new receipt
+  // Form state for creating/editing receipt
   const [formData, setFormData] = useState({
     documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี" as Receipt["documentType"],
     deliveryNoteNo: "",
@@ -57,12 +62,22 @@ export default function ReceiptPage() {
     customerAddress: "",
     customerTaxId: "",
     items: [] as Array<{
+      id?: string;
       oilType: string;
       quantity: number;
       pricePerLiter: number;
       totalAmount: number;
     }>,
     vatRate: 7, // VAT 7%
+  });
+
+  // Form state for adding/editing item
+  const [showItemModal, setShowItemModal] = useState(false);
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [itemForm, setItemForm] = useState({
+    oilType: "",
+    quantity: "",
+    pricePerLiter: "",
   });
 
   // Filter receipts
@@ -221,6 +236,167 @@ export default function ReceiptPage() {
   const handleViewDetail = (receipt: Receipt) => {
     setSelectedReceipt(receipt);
     setShowDetailModal(true);
+  };
+
+  // Handle edit receipt
+  const handleEdit = (receipt: Receipt) => {
+    setSelectedReceipt(receipt);
+    setFormData({
+      documentType: receipt.documentType,
+      deliveryNoteNo: receipt.deliveryNoteNo || "",
+      quotationNo: receipt.quotationNo || "",
+      purchaseOrderNo: receipt.purchaseOrderNo || "",
+      customerName: receipt.customerName,
+      customerAddress: receipt.customerAddress,
+      customerTaxId: receipt.customerTaxId,
+      items: receipt.items.map((item) => ({
+        oilType: item.oilType,
+        quantity: item.quantity,
+        pricePerLiter: item.pricePerLiter,
+        totalAmount: item.totalAmount,
+      })),
+      vatRate: 7,
+    });
+    setIsEditing(true);
+    setShowEditModal(true);
+  };
+
+  // Handle update receipt
+  const handleUpdate = () => {
+    if (!selectedReceipt) return;
+    if (formData.items.length === 0) {
+      alert("กรุณาเลือกรายการสินค้า");
+      return;
+    }
+    if (!formData.customerName) {
+      alert("กรุณากรอกชื่อลูกค้า");
+      return;
+    }
+    if (!formData.customerAddress) {
+      alert("กรุณากรอกที่อยู่ลูกค้า");
+      return;
+    }
+    if (!formData.customerTaxId) {
+      alert("กรุณากรอกเลขประจำตัวผู้เสียภาษี");
+      return;
+    }
+
+    const totalAmount = formData.items.reduce((sum, item) => sum + item.totalAmount, 0);
+    const { beforeVat, vat } = calculateVAT(totalAmount, formData.vatRate);
+    const amountInWords = convertNumberToThaiWords(totalAmount);
+
+    updateReceipt(selectedReceipt.id, {
+      documentType: formData.documentType,
+      customerName: formData.customerName,
+      customerAddress: formData.customerAddress,
+      customerTaxId: formData.customerTaxId,
+      items: formData.items.map((item, idx) => ({
+        id: `item-${idx}`,
+        oilType: item.oilType as Receipt["items"][0]["oilType"],
+        quantity: item.quantity,
+        pricePerLiter: item.pricePerLiter,
+        totalAmount: item.totalAmount,
+      })),
+      amountBeforeVat: beforeVat,
+      vatAmount: vat,
+      totalAmount,
+      amountInWords,
+      purchaseOrderNo: formData.purchaseOrderNo || undefined,
+      deliveryNoteNo: formData.deliveryNoteNo || undefined,
+      quotationNo: formData.quotationNo || undefined,
+    });
+
+    setShowEditModal(false);
+    setIsEditing(false);
+    setSelectedReceipt(null);
+    setFormData({
+      documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+      deliveryNoteNo: "",
+      quotationNo: "",
+      purchaseOrderNo: "",
+      customerName: "",
+      customerAddress: "",
+      customerTaxId: "",
+      items: [],
+      vatRate: 7,
+    });
+    alert("แก้ไขใบเสร็จรับเงินสำเร็จ!");
+  };
+
+  // Handle delete receipt
+  const handleDelete = (receiptId: string) => {
+    if (window.confirm("คุณต้องการลบใบเสร็จรับเงินนี้หรือไม่?")) {
+      deleteReceipt(receiptId);
+      alert("ลบใบเสร็จรับเงินสำเร็จ!");
+    }
+  };
+
+  // Handle add item
+  const handleAddItem = () => {
+    setEditingItemIndex(null);
+    setItemForm({ oilType: "", quantity: "", pricePerLiter: "" });
+    setShowItemModal(true);
+  };
+
+  // Handle edit item
+  const handleEditItem = (index: number) => {
+    const item = formData.items[index];
+    setEditingItemIndex(index);
+    setItemForm({
+      oilType: item.oilType,
+      quantity: item.quantity.toString(),
+      pricePerLiter: item.pricePerLiter.toString(),
+    });
+    setShowItemModal(true);
+  };
+
+  // Handle delete item
+  const handleDeleteItem = (index: number) => {
+    if (window.confirm("คุณต้องการลบรายการนี้หรือไม่?")) {
+      const newItems = formData.items.filter((_, i) => i !== index);
+      setFormData({ ...formData, items: newItems });
+    }
+  };
+
+  // Handle save item
+  const handleSaveItem = () => {
+    if (!itemForm.oilType) {
+      alert("กรุณาเลือกประเภทน้ำมัน");
+      return;
+    }
+    if (!itemForm.quantity || parseFloat(itemForm.quantity) <= 0) {
+      alert("กรุณากรอกจำนวนลิตร");
+      return;
+    }
+    if (!itemForm.pricePerLiter || parseFloat(itemForm.pricePerLiter) <= 0) {
+      alert("กรุณากรอกราคาต่อลิตร");
+      return;
+    }
+
+    const quantity = parseFloat(itemForm.quantity);
+    const pricePerLiter = parseFloat(itemForm.pricePerLiter);
+    const totalAmount = quantity * pricePerLiter;
+
+    const newItem = {
+      oilType: itemForm.oilType,
+      quantity,
+      pricePerLiter,
+      totalAmount,
+    };
+
+    if (editingItemIndex !== null) {
+      // Edit existing item
+      const newItems = [...formData.items];
+      newItems[editingItemIndex] = newItem;
+      setFormData({ ...formData, items: newItems });
+    } else {
+      // Add new item
+      setFormData({ ...formData, items: [...formData.items, newItem] });
+    }
+
+    setShowItemModal(false);
+    setEditingItemIndex(null);
+    setItemForm({ oilType: "", quantity: "", pricePerLiter: "" });
   };
 
   const getStatusColor = (status: Receipt["status"]) => {
@@ -449,13 +625,29 @@ export default function ReceiptPage() {
                       ดูรายละเอียด
                     </button>
                     {receipt.status === "draft" && (
-                      <button
-                        onClick={() => handleIssue(receipt.id)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        ออกใบเสร็จ
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleEdit(receipt)}
+                          className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                        >
+                          <Edit className="w-4 h-4" />
+                          แก้ไข
+                        </button>
+                        <button
+                          onClick={() => handleDelete(receipt.id)}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          ลบ
+                        </button>
+                        <button
+                          onClick={() => handleIssue(receipt.id)}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          ออกใบเสร็จ
+                        </button>
+                      </>
                     )}
                     {receipt.status === "issued" && !receipt.receiverSignature && (
                       <button
@@ -530,15 +722,31 @@ export default function ReceiptPage() {
         )}
       </div>
 
-      {/* Create Modal */}
+      {/* Create/Edit Modal */}
       <AnimatePresence>
-        {showCreateModal && (
+        {(showCreateModal || showEditModal) && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowCreateModal(false)}
+              onClick={() => {
+                setShowCreateModal(false);
+                setShowEditModal(false);
+                setIsEditing(false);
+                setSelectedReceipt(null);
+                setFormData({
+                  documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+                  deliveryNoteNo: "",
+                  quotationNo: "",
+                  purchaseOrderNo: "",
+                  customerName: "",
+                  customerAddress: "",
+                  customerTaxId: "",
+                  items: [],
+                  vatRate: 7,
+                });
+              }}
               className="fixed inset-0 bg-black/50 z-50"
             />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -550,9 +758,27 @@ export default function ReceiptPage() {
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
               >
                 <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">สร้างใบเสร็จรับเงิน</h2>
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                    {isEditing ? "แก้ไขใบเสร็จรับเงิน" : "สร้างใบเสร็จรับเงิน"}
+                  </h2>
                   <button
-                    onClick={() => setShowCreateModal(false)}
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      setShowEditModal(false);
+                      setIsEditing(false);
+                      setSelectedReceipt(null);
+                      setFormData({
+                        documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+                        deliveryNoteNo: "",
+                        quotationNo: "",
+                        purchaseOrderNo: "",
+                        customerName: "",
+                        customerAddress: "",
+                        customerTaxId: "",
+                        items: [],
+                        vatRate: 7,
+                      });
+                    }}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                   >
                     <X className="h-5 w-5 text-gray-500" />
@@ -623,11 +849,21 @@ export default function ReceiptPage() {
                         className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
-                    {formData.items.length > 0 && (
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                           รายการสินค้า
                         </label>
+                        <button
+                          type="button"
+                          onClick={handleAddItem}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-1"
+                        >
+                          <Plus className="w-4 h-4" />
+                          เพิ่มรายการ
+                        </button>
+                      </div>
+                      {formData.items.length > 0 ? (
                         <div className="space-y-2">
                           {formData.items.map((item, idx) => (
                             <div
@@ -635,7 +871,7 @@ export default function ReceiptPage() {
                               className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50"
                             >
                               <div className="flex items-center justify-between">
-                                <div>
+                                <div className="flex-1">
                                   <p className="font-semibold text-gray-800 dark:text-white">{item.oilType}</p>
                                   <p className="text-sm text-gray-600 dark:text-gray-400">
                                     {numberFormatter.format(item.quantity)} ลิตร ×{" "}
@@ -643,10 +879,34 @@ export default function ReceiptPage() {
                                     {currencyFormatter.format(item.totalAmount)}
                                   </p>
                                 </div>
+                                <div className="flex gap-2 ml-4">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditItem(idx)}
+                                    className="px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm transition-colors flex items-center gap-1"
+                                  >
+                                    <Edit className="w-3 h-3" />
+                                    แก้ไข
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteItem(idx)}
+                                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors flex items-center gap-1"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                    ลบ
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           ))}
                         </div>
+                      ) : (
+                        <div className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center text-gray-500 dark:text-gray-400">
+                          ยังไม่มีรายการสินค้า
+                        </div>
+                      )}
+                      {formData.items.length > 0 && (
                         <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm text-gray-600 dark:text-gray-400">ราคาก่อน VAT</span>
@@ -679,27 +939,45 @@ export default function ReceiptPage() {
                             </span>
                           </div>
                           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            ({convertNumberToThaiWords(formData.items.reduce((sum, item) => sum + item.totalAmount, 0))})
+                            ({convertNumberToThaiWords(
+                              formData.items.reduce((sum, item) => sum + item.totalAmount, 0)
+                            )})
                           </p>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-200 dark:border-gray-700">
                   <button
-                    onClick={() => setShowCreateModal(false)}
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      setShowEditModal(false);
+                      setIsEditing(false);
+                      setSelectedReceipt(null);
+                      setFormData({
+                        documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+                        deliveryNoteNo: "",
+                        quotationNo: "",
+                        purchaseOrderNo: "",
+                        customerName: "",
+                        customerAddress: "",
+                        customerTaxId: "",
+                        items: [],
+                        vatRate: 7,
+                      });
+                    }}
                     className="px-6 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   >
                     ยกเลิก
                   </button>
                   {formData.items.length > 0 && formData.customerName && formData.customerAddress && formData.customerTaxId && (
                     <button
-                      onClick={handleSave}
+                      onClick={isEditing ? handleUpdate : handleSave}
                       className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
                     >
                       <Save className="w-4 h-4" />
-                      บันทึก
+                      {isEditing ? "บันทึกการแก้ไข" : "บันทึก"}
                     </button>
                   )}
                 </div>
@@ -847,16 +1125,38 @@ export default function ReceiptPage() {
                     ปิด
                   </button>
                   {selectedReceipt.status === "draft" && (
-                    <button
-                      onClick={() => {
-                        handleIssue(selectedReceipt.id);
-                        setShowDetailModal(false);
-                      }}
-                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      ออกใบเสร็จ
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          setShowDetailModal(false);
+                          handleEdit(selectedReceipt);
+                        }}
+                        className="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                      >
+                        <Edit className="w-4 h-4" />
+                        แก้ไข
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDetailModal(false);
+                          handleDelete(selectedReceipt.id);
+                        }}
+                        className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        ลบ
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleIssue(selectedReceipt.id);
+                          setShowDetailModal(false);
+                        }}
+                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        ออกใบเสร็จ
+                      </button>
+                    </>
                   )}
                   {selectedReceipt.status === "issued" && !selectedReceipt.receiverSignature && (
                     <button
@@ -938,6 +1238,127 @@ export default function ReceiptPage() {
                       ยืนยัน
                     </button>
                   </div>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Add/Edit Item Modal */}
+      <AnimatePresence>
+        {showItemModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowItemModal(false);
+                setEditingItemIndex(null);
+                setItemForm({ oilType: "", quantity: "", pricePerLiter: "" });
+              }}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full"
+              >
+                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                    {editingItemIndex !== null ? "แก้ไขรายการสินค้า" : "เพิ่มรายการสินค้า"}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowItemModal(false);
+                      setEditingItemIndex(null);
+                      setItemForm({ oilType: "", quantity: "", pricePerLiter: "" });
+                    }}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      ประเภทน้ำมัน *
+                    </label>
+                    <select
+                      value={itemForm.oilType}
+                      onChange={(e) => setItemForm({ ...itemForm, oilType: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">เลือกประเภทน้ำมัน</option>
+                      <option value="Premium Diesel">Premium Diesel</option>
+                      <option value="Diesel">Diesel</option>
+                      <option value="Premium Gasohol 95">Premium Gasohol 95</option>
+                      <option value="Gasohol 95">Gasohol 95</option>
+                      <option value="Gasohol 91">Gasohol 91</option>
+                      <option value="E20">E20</option>
+                      <option value="E85">E85</option>
+                      <option value="Gasohol E20">Gasohol E20</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      จำนวนลิตร *
+                    </label>
+                    <input
+                      type="number"
+                      value={itemForm.quantity}
+                      onChange={(e) => setItemForm({ ...itemForm, quantity: e.target.value })}
+                      placeholder="กรอกจำนวนลิตร"
+                      min="0"
+                      step="0.01"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      ราคาต่อลิตร (บาท) *
+                    </label>
+                    <input
+                      type="number"
+                      value={itemForm.pricePerLiter}
+                      onChange={(e) => setItemForm({ ...itemForm, pricePerLiter: e.target.value })}
+                      placeholder="กรอกราคาต่อลิตร"
+                      min="0"
+                      step="0.01"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  {itemForm.quantity && itemForm.pricePerLiter && (
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">ยอดรวม</p>
+                      <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                        {currencyFormatter.format(parseFloat(itemForm.quantity) * parseFloat(itemForm.pricePerLiter))}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => {
+                      setShowItemModal(false);
+                      setEditingItemIndex(null);
+                      setItemForm({ oilType: "", quantity: "", pricePerLiter: "" });
+                    }}
+                    className="px-6 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={handleSaveItem}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    {editingItemIndex !== null ? "บันทึกการแก้ไข" : "เพิ่มรายการ"}
+                  </button>
                 </div>
               </motion.div>
             </div>
