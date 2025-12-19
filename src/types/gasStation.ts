@@ -64,6 +64,16 @@ export interface OrderSummaryItem {
   truckCount?: number;
 }
 
+export interface Attachment {
+  id: string;
+  name: string;
+  type: "image" | "file";
+  url: string; // URL หรือ base64 สำหรับ preview
+  file?: File; // สำหรับไฟล์ที่อัปโหลดใหม่
+  size?: number; // ขนาดไฟล์ (bytes)
+  uploadedAt?: string;
+}
+
 export interface PurchaseOrder {
   orderNo: string;
   supplierOrderNo?: string;
@@ -84,6 +94,7 @@ export interface PurchaseOrder {
   status: "รอเริ่ม" | "กำลังขนส่ง" | "ขนส่งสำเร็จ" | "ยกเลิก";
   approvedBy: string;
   approvedAt: string;
+  attachments?: Attachment[]; // หลักฐาน (รูปภาพและไฟล์)
 }
 
 // ==================== Quotation ====================
@@ -92,10 +103,21 @@ export interface Quotation {
   quotationNo: string; // เลขที่ใบเสนอราคา (Running Number: เลขที่/เล่มที่)
   quotationDate: string;
   purchaseOrderNo?: string; // เชื่อมกับ PO
-  fromBranchId: number;
+  fromBranchId: number; // สาขาใหญ่ (ผู้ขาย/ผู้ส่ง)
   fromBranchName: string;
-  toBranchId: number;
-  toBranchName: string;
+  // รายการสาขาย่อยที่สั่งน้ำมัน (หลายปั๊ม)
+  branches: Array<{
+    branchId: number;
+    branchName: string;
+    legalEntityName: string;
+    address: string;
+    items: OrderItem[]; // รายการน้ำมันที่ปั๊มนี้สั่ง
+    totalAmount: number;
+    status: "รอยืนยัน" | "ยืนยันแล้ว" | "ยกเลิก";
+    confirmedAt?: string;
+    confirmedBy?: string;
+  }>;
+  // รายการรวมทั้งหมด
   items: OrderItem[];
   totalAmount: number;
   status: "draft" | "sent" | "confirmed" | "rejected" | "cancelled";
@@ -136,6 +158,7 @@ export interface DeliveryNote {
   receiverSignature?: string; // ลายเซ็นผู้รับ (ปลายทาง)
   senderSignedAt?: string;
   receiverSignedAt?: string;
+  receiverName?: string; // ชื่อผู้รับ (ปลายทาง)
   status: "draft" | "sent" | "in-transit" | "delivered" | "cancelled";
   createdAt: string;
   createdBy: string;

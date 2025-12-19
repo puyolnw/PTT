@@ -33,12 +33,14 @@ export default function ReceiptPage() {
   const {
     receipts,
     deliveryNotes,
+    purchaseOrders,
     createReceipt,
     updateReceipt,
     deleteReceipt,
     issueReceipt,
     getNextRunningNumber,
     getDeliveryNoteByNo,
+    getOrderByNo,
     getBranchById,
   } = useGasStation();
 
@@ -55,9 +57,10 @@ export default function ReceiptPage() {
   // Form state for creating/editing receipt
   const [formData, setFormData] = useState({
     documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี" as Receipt["documentType"],
+    purchaseOrderNo: "", // เลือกจาก PurchaseOrder
+    selectedBranchId: "", // เลือกสาขาจาก PurchaseOrder
     deliveryNoteNo: "",
     quotationNo: "",
-    purchaseOrderNo: "",
     customerName: "",
     customerAddress: "",
     customerTaxId: "",
@@ -114,11 +117,23 @@ export default function ReceiptPage() {
 
     const toBranch = getBranchById(deliveryNote.toBranchId);
 
+    // หาสาขาจาก PurchaseOrder
+    let selectedBranchId = "";
+    if (deliveryNote.purchaseOrderNo) {
+      const purchaseOrder = getOrderByNo(deliveryNote.purchaseOrderNo);
+      if (purchaseOrder) {
+        const branch = purchaseOrder.branches.find((b) => b.branchId === deliveryNote.toBranchId);
+        if (branch) {
+          selectedBranchId = branch.branchId.toString();
+        }
+      }
+    }
     setFormData({
       documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+      purchaseOrderNo: deliveryNote.purchaseOrderNo || "",
+      selectedBranchId,
       deliveryNoteNo,
       quotationNo: deliveryNote.quotationNo || "",
-      purchaseOrderNo: deliveryNote.purchaseOrderNo || "",
       customerName: toBranch?.name || "",
       customerAddress: toBranch?.address || "",
       customerTaxId: "", // TODO: ดึงจาก branch profile
@@ -141,6 +156,14 @@ export default function ReceiptPage() {
 
   // Handle save receipt
   const handleSave = () => {
+    if (!formData.purchaseOrderNo) {
+      alert("กรุณาเลือกใบสั่งซื้อจากบันทึกใบเสนอราคาจากปตท.");
+      return;
+    }
+    if (!formData.selectedBranchId && purchaseOrders.length > 0) {
+      alert("กรุณาเลือกสาขาที่จะออกใบเสร็จรับเงิน");
+      return;
+    }
     if (formData.items.length === 0) {
       alert("กรุณาเลือกรายการสินค้า");
       return;
@@ -194,9 +217,10 @@ export default function ReceiptPage() {
     setShowCreateModal(false);
     setFormData({
       documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+      purchaseOrderNo: "",
+      selectedBranchId: "",
       deliveryNoteNo: "",
       quotationNo: "",
-      purchaseOrderNo: "",
       customerName: "",
       customerAddress: "",
       customerTaxId: "",
@@ -241,11 +265,23 @@ export default function ReceiptPage() {
   // Handle edit receipt
   const handleEdit = (receipt: Receipt) => {
     setSelectedReceipt(receipt);
+    // หาสาขาจาก PurchaseOrder
+    let selectedBranchId = "";
+    if (receipt.purchaseOrderNo) {
+      const purchaseOrder = getOrderByNo(receipt.purchaseOrderNo);
+      if (purchaseOrder) {
+        const branch = purchaseOrder.branches.find((b) => b.branchName === receipt.customerName);
+        if (branch) {
+          selectedBranchId = branch.branchId.toString();
+        }
+      }
+    }
     setFormData({
       documentType: receipt.documentType,
+      purchaseOrderNo: receipt.purchaseOrderNo || "",
+      selectedBranchId,
       deliveryNoteNo: receipt.deliveryNoteNo || "",
       quotationNo: receipt.quotationNo || "",
-      purchaseOrderNo: receipt.purchaseOrderNo || "",
       customerName: receipt.customerName,
       customerAddress: receipt.customerAddress,
       customerTaxId: receipt.customerTaxId,
@@ -301,7 +337,7 @@ export default function ReceiptPage() {
       vatAmount: vat,
       totalAmount,
       amountInWords,
-      purchaseOrderNo: formData.purchaseOrderNo || undefined,
+      purchaseOrderNo: formData.purchaseOrderNo, // ต้องมี PurchaseOrderNo
       deliveryNoteNo: formData.deliveryNoteNo || undefined,
       quotationNo: formData.quotationNo || undefined,
     });
@@ -311,9 +347,10 @@ export default function ReceiptPage() {
     setSelectedReceipt(null);
     setFormData({
       documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+      purchaseOrderNo: "",
+      selectedBranchId: "",
       deliveryNoteNo: "",
       quotationNo: "",
-      purchaseOrderNo: "",
       customerName: "",
       customerAddress: "",
       customerTaxId: "",
@@ -737,9 +774,10 @@ export default function ReceiptPage() {
                 setSelectedReceipt(null);
                 setFormData({
                   documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+                  purchaseOrderNo: "",
+                  selectedBranchId: "",
                   deliveryNoteNo: "",
                   quotationNo: "",
-                  purchaseOrderNo: "",
                   customerName: "",
                   customerAddress: "",
                   customerTaxId: "",
@@ -769,9 +807,10 @@ export default function ReceiptPage() {
                       setSelectedReceipt(null);
                       setFormData({
                         documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+                        purchaseOrderNo: "",
+                        selectedBranchId: "",
                         deliveryNoteNo: "",
                         quotationNo: "",
-                        purchaseOrderNo: "",
                         customerName: "",
                         customerAddress: "",
                         customerTaxId: "",
@@ -957,9 +996,10 @@ export default function ReceiptPage() {
                       setSelectedReceipt(null);
                       setFormData({
                         documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+                        purchaseOrderNo: "",
+                        selectedBranchId: "",
                         deliveryNoteNo: "",
                         quotationNo: "",
-                        purchaseOrderNo: "",
                         customerName: "",
                         customerAddress: "",
                         customerTaxId: "",

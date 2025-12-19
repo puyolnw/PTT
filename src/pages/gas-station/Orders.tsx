@@ -6,7 +6,6 @@ import {
   ShoppingCart,
   Plus,
   Search,
-  Filter,
   CheckCircle,
   Clock,
   AlertTriangle,
@@ -29,6 +28,9 @@ import {
   Calendar,
   FileText,
   User,
+  Upload,
+  Image,
+  Paperclip,
 } from "lucide-react";
 import NewOrderForm from "./NewOrderForm";
 import { mockTruckOrders, type TruckOrder, mockTrucks, mockTrailers } from "./TruckProfiles";
@@ -121,6 +123,16 @@ export default function Orders() {
     driverName: string;
     driverCode: string;
   }>>([]);
+  const [orderAttachments, setOrderAttachments] = useState<Array<{
+    id: string;
+    name: string;
+    type: "image" | "file";
+    url: string;
+    file?: File;
+    size?: number;
+  }>>([]);
+  const [showAttachmentsModal, setShowAttachmentsModal] = useState(false);
+  const [viewingAttachments, setViewingAttachments] = useState<typeof orderAttachments>([]);
 
   // Prevent body scroll when modals are open
   useEffect(() => {
@@ -156,8 +168,6 @@ export default function Orders() {
   const totalTruckCapacity = mockTruckCapacity.morning.chambers.reduce((sum, c) => sum + c.capacity, 0) +
     mockTruckCapacity.afternoon.chambers.reduce((sum, c) => sum + c.capacity, 0);
 
-  const isOverCapacity = totalQuantity > totalTruckCapacity;
-
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -176,272 +186,195 @@ export default function Orders() {
 
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6"
-      >
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">บันทึกใบเสนอราคาจากปตท.</h1>
-        <p className="text-gray-600 dark:text-gray-400">ปั๊มไฮโซ - สั่งน้ำมันให้ทุกสาขา</p>
-      </motion.div>
-
-      {/* Summary Cards - Dashboard Style */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {[
-          {
-            title: "ใบสั่งซื้อรออนุมัติ",
-            value: orders.filter((o) => o.status === "รออนุมัติ").length,
-            subtitle: "รายการ",
-            icon: Clock,
-            iconColor: "bg-gradient-to-br from-orange-500 to-orange-600",
-            badge: "รออนุมัติ",
-            badgeColor: "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800",
-          },
-          {
-            title: "ใบสั่งซื้ออนุมัติแล้ว",
-            value: orders.filter((o) => o.status === "อนุมัติแล้ว").length,
-            subtitle: "รายการ",
-            icon: CheckCircle,
-            iconColor: "bg-gradient-to-br from-blue-500 to-blue-600",
-            badge: "อนุมัติแล้ว",
-            badgeColor: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800",
-          },
-          {
-            title: "ยอดรวมที่ต้องสั่ง",
-            value: numberFormatter.format(totalQuantity),
-            subtitle: "ลิตร",
-            icon: ShoppingCart,
-            iconColor: "bg-gradient-to-br from-purple-500 to-purple-600",
-          },
-          {
-            title: "ความจุรถทั้งหมด",
-            value: numberFormatter.format(totalTruckCapacity),
-            subtitle: "ลิตร",
-            icon: Truck,
-            iconColor: isOverCapacity ? "bg-gradient-to-br from-red-500 to-red-600" : "bg-gradient-to-br from-green-500 to-green-600",
-            alert: isOverCapacity,
-            alertText: isOverCapacity ? `⚠️ เกินความจุ ${numberFormatter.format(totalQuantity - totalTruckCapacity)} ลิตร` : undefined,
-          },
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
-          >
-            <div className="p-4">
-              <div className="flex items-center">
-                <div className={`w-16 h-16 ${stat.iconColor} rounded-lg flex items-center justify-center shadow-lg mr-4`}>
-                  <stat.icon className="w-8 h-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h6 className="text-gray-600 dark:text-gray-400 text-sm font-semibold mb-1">{stat.title}</h6>
-                  <h6 className="text-gray-800 dark:text-white text-2xl font-extrabold mb-0">{stat.value}</h6>
-                  <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">{stat.subtitle}</p>
-                </div>
-              </div>
-              {(stat.badge || stat.alert) && (
-                <div className="mt-3 flex items-center justify-end gap-2">
-                  {stat.badge && (
-                    <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${stat.badgeColor}`}>
-                      {stat.badge}
-                    </span>
-                  )}
-                  {stat.alert && (
-                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                  )}
-                </div>
-              )}
-              {stat.alertText && (
-                <p className="text-xs text-red-500 mt-2 font-medium">{stat.alertText}</p>
-              )}
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-
-
-      {/* Filters - Dashboard Style */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.5 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 flex flex-col md:flex-row gap-4 mb-6"
-      >
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="ค้นหาสาขา, ประเภทน้ำมัน..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
-          />
-        </div>
-        <select
-          value={filterBranch}
-          onChange={(e) => setFilterBranch(e.target.value)}
-          className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
-        >
-          <option>ทั้งหมด</option>
-          {branches.map((branch) => (
-            <option key={branch.id}>{branch.name}</option>
-          ))}
-        </select>
-        <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-gray-400" />
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
-          >
-            <option>ทั้งหมด</option>
-            <option>รออนุมัติ</option>
-            <option>อนุมัติแล้ว</option>
-            <option>ส่งแล้ว</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              setNewOrderItems([]);
-              setShowNewOrderModal(true);
-            }}
-            className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            สร้างใบสั่งซื้อใหม่
-          </button>
-        </div>
-      </motion.div>
-
-      {/* Approved Orders List */}
-      {purchaseOrders.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6"
-        >
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                  ใบสั่งซื้อที่อนุมัติแล้ว
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">รายการใบสั่งซื้อที่ส่งไปยัง ปตท. E-Order แล้ว - แสดงบิลรวมที่สั่งซื้อ</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">ยอดรวมทั้งหมด</p>
-                  <p className="text-lg font-bold text-gray-800 dark:text-white">
-                    {currencyFormatter.format(purchaseOrders.reduce((sum, o) => sum + o.totalAmount, 0))}
-                  </p>
-                </div>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
+                <ShoppingCart className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                บันทึกใบเสนอราคาจากปตท.
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                ปั๊มไฮโซ - สั่งน้ำมันให้ทุกสาขา
+              </p>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">เลขที่ใบสั่งซื้อ</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">เลขที่บิล</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">เลขที่ออเดอร์ ปตท.</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">วันที่สั่ง</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">วันที่ต้องการรับ</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">รายการ</th>
-                  <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">ยอดรวม</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">สถานะ</th>
-                  <th className="text-center py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {purchaseOrders.map((order, index) => (
-                  <motion.tr
-                    key={order.orderNo}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                  >
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-2">
-                        <ShoppingCart className="w-4 h-4 text-blue-500" />
-                        <span className="text-sm font-semibold text-gray-800 dark:text-white">{order.orderNo}</span>
+
+          {/* Statistics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">ใบสั่งซื้อรออนุมัติ</p>
+              <p className="text-2xl font-bold text-gray-800 dark:text-white">{orders.filter((o) => o.status === "รออนุมัติ").length}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">ใบสั่งซื้ออนุมัติแล้ว</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{orders.filter((o) => o.status === "อนุมัติแล้ว").length}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">ยอดรวมที่ต้องสั่ง</p>
+              <p className="text-2xl font-bold text-gray-800 dark:text-white">{numberFormatter.format(totalQuantity)}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">ความจุรถทั้งหมด</p>
+              <p className="text-2xl font-bold text-gray-800 dark:text-white">{numberFormatter.format(totalTruckCapacity)}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">ส่งแล้ว</p>
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{orders.filter((o) => o.status === "ส่งแล้ว").length}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">มูลค่ารวม</p>
+              <p className="text-2xl font-bold text-gray-800 dark:text-white">
+                {currencyFormatter.format(purchaseOrders.reduce((sum, o) => sum + o.totalAmount, 0))}
+              </p>
+            </div>
+          </div>
+
+
+
+          {/* Filters */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="ค้นหาสาขา, ประเภทน้ำมัน..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <select
+                value={filterBranch}
+                onChange={(e) => setFilterBranch(e.target.value)}
+                className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option>ทั้งหมด</option>
+                {branches.map((branch) => (
+                  <option key={branch.id}>{branch.name}</option>
+                ))}
+              </select>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option>ทั้งหมด</option>
+                <option>รออนุมัติ</option>
+                <option>อนุมัติแล้ว</option>
+                <option>ส่งแล้ว</option>
+              </select>
+            </div>
+            <button
+              onClick={() => {
+                setNewOrderItems([]);
+                setShowNewOrderModal(true);
+              }}
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              สร้างใบสั่งซื้อใหม่
+            </button>
+          </div>
+        </div>
+
+        {/* Purchase Orders List */}
+        {purchaseOrders.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
+              ใบสั่งซื้อที่อนุมัติแล้ว
+            </h2>
+            <div className="space-y-4">
+              {purchaseOrders.map((order) => (
+                <motion.div
+                  key={order.orderNo}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                          เลขที่: {order.orderNo}
+                        </h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(order.status)}`}>
+                          {order.status}
+                        </span>
                       </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      {order.billNo ? (
-                        <div className="flex items-center gap-2">
-                          <Receipt className="w-4 h-4 text-purple-500" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">วันที่สั่ง</p>
+                            <p className="font-semibold text-gray-800 dark:text-white">{order.orderDate}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">วันที่ต้องการรับ</p>
+                            <p className="font-semibold text-gray-800 dark:text-white">{order.deliveryDate}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">เลขที่ออเดอร์ ปตท.</p>
+                            <p className="font-semibold text-gray-800 dark:text-white">{order.supplierOrderNo}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">มูลค่ารวม</p>
+                            <p className="font-semibold text-green-600 dark:text-green-400">
+                              {currencyFormatter.format(order.totalAmount)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      {order.billNo && (
+                        <div className="mb-4">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">เลขที่บิล</p>
                           <NavLink
                             to="/app/gas-station/purchase-book"
-                            className="text-sm font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline transition-colors"
+                            className="text-sm font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline transition-colors flex items-center gap-2"
                           >
+                            <Receipt className="w-4 h-4" />
                             {order.billNo}
                           </NavLink>
                         </div>
-                      ) : (
-                        <span className="text-sm text-gray-400">-</span>
                       )}
-                    </td>
-                    <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">{order.supplierOrderNo}</td>
-                    <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">{order.orderDate}</td>
-                    <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">{order.deliveryDate}</td>
-                    <td className="py-4 px-6">
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-wrap gap-2">
                         {order.items.map((item, idx) => (
-                          <div key={idx} className="text-xs text-gray-600 dark:text-gray-400">
-                            <span className="font-medium">{item.oilType}:</span> {numberFormatter.format(item.quantity)} ลิตร
-                          </div>
+                          <span
+                            key={idx}
+                            className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg text-sm"
+                          >
+                            <Droplet className="inline h-4 w-4 mr-1" />
+                            {item.oilType}: {numberFormatter.format(item.quantity)} ลิตร
+                          </span>
                         ))}
                       </div>
-                    </td>
-                    <td className="py-4 px-6 text-sm text-right font-semibold text-gray-800 dark:text-white">
-                      {currencyFormatter.format(order.totalAmount)}
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${getStatusColor(order.status)}`}>
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => setSelectedApprovedOrder(order)}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
-                          title="ดูรายละเอียด"
-                        >
-                          <Eye className="w-4 h-4 text-gray-400 hover:text-blue-500" />
-                        </button>
-                        {order.billNo && (
-                          <NavLink
-                            to="/app/gas-station/purchase-book"
-                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
-                            title="ดูบิล"
-                          >
-                            <Receipt className="w-4 h-4 text-gray-400 hover:text-purple-500" />
-                          </NavLink>
-                        )}
-                        <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors" title="Export Excel">
-                          <Download className="w-4 h-4 text-gray-400 hover:text-green-500" />
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <button
+                        onClick={() => setSelectedApprovedOrder(order)}
+                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                        ดูรายละเอียด
+                      </button>
+                      <button className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
+                        <Download className="w-4 h-4" />
+                        Export
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </motion.div>
-      )}
+        )}
+      </div>
 
       {/* Truck Capacity Modal */}
       <AnimatePresence>
@@ -667,7 +600,7 @@ export default function Orders() {
                       </div>
 
                       {/* ยอดวิเคราะห์จากระบบ */}
-                      <div className="bg-white dark:bg-gray-800 border-y border-r border-gray-200 dark:border-gray-700 border-l-4 border-blue-500 p-4 rounded-xl shadow-sm">
+                      <div className="bg-white dark:bg-gray-800 border-l-4 border-blue-500 border-t border-b border-r border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
                         <div className="flex items-center gap-2 mb-2">
                           <BarChart3 className="w-4 h-4 text-blue-500" />
                           <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">ยอดวิเคราะห์จากระบบ</span>
@@ -714,7 +647,7 @@ export default function Orders() {
                       </div>
 
                       {/* ยอดสั่งจริง */}
-                      <div className="bg-white dark:bg-gray-800 border-y border-r border-gray-200 dark:border-gray-700 border-l-4 border-orange-500 p-4 rounded-xl shadow-sm">
+                      <div className="bg-white dark:bg-gray-800 border-l-4 border-orange-500 border-t border-b border-r border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
                         <div className="flex items-center gap-2 mb-2">
                           <CheckCircle className="w-4 h-4 text-orange-500" />
                           <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">ยอดสั่งจริง</span>
@@ -922,7 +855,7 @@ export default function Orders() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.05 }}
-                          className="bg-white dark:bg-gray-800 border-y border-r border-gray-200 dark:border-gray-700 border-l-4 border-orange-500 p-6 rounded-xl shadow-sm"
+                          className="bg-white dark:bg-gray-800 border-l-4 border-orange-500 border-t border-b border-r border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-sm"
                         >
                           {/* Header Card */}
                           <div className="flex items-start justify-between mb-4">
@@ -1153,8 +1086,100 @@ export default function Orders() {
                     </div>
                   )}
 
+                  {/* Attachments Section */}
+                  <div className="mt-6 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
+                    <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
+                      <Paperclip className="w-4 h-4" />
+                      หลักฐานใบเสนอราคา ({orderAttachments.length} ไฟล์)
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <label className="flex-1 cursor-pointer">
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              files.forEach((file) => {
+                                const isImage = file.type.startsWith("image/");
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  const url = event.target?.result as string;
+                                  const newAttachment = {
+                                    id: `att-${Date.now()}-${Math.random()}`,
+                                    name: file.name,
+                                    type: (isImage ? "image" : "file") as "image" | "file",
+                                    url,
+                                    file,
+                                    size: file.size,
+                                  };
+                                  setOrderAttachments((prev) => [...prev, newAttachment]);
+                                };
+                                if (isImage) {
+                                  reader.readAsDataURL(file);
+                                } else {
+                                  // สำหรับไฟล์ที่ไม่ใช่รูปภาพ ใช้ object URL
+                                  const url = URL.createObjectURL(file);
+                                  const newAttachment = {
+                                    id: `att-${Date.now()}-${Math.random()}`,
+                                    name: file.name,
+                                    type: "file" as const,
+                                    url,
+                                    file,
+                                    size: file.size,
+                                  };
+                                  setOrderAttachments((prev) => [...prev, newAttachment]);
+                                }
+                              });
+                            }}
+                            className="hidden"
+                          />
+                          <div className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-800 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-lg hover:border-purple-400 dark:hover:border-purple-600 transition-colors">
+                            <Upload className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                            <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                              เพิ่มหลักฐาน (รูปภาพ/ไฟล์)
+                            </span>
+                          </div>
+                        </label>
+                      </div>
+                      {orderAttachments.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {orderAttachments.map((att) => (
+                            <div
+                              key={att.id}
+                              className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-purple-200 dark:border-purple-700 flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                {att.type === "image" ? (
+                                  <Image className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                ) : (
+                                  <Paperclip className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-gray-800 dark:text-white truncate">{att.name}</p>
+                                  {att.size && (
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                      {(att.size / 1024).toFixed(1)} KB
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => setOrderAttachments(orderAttachments.filter((a) => a.id !== att.id))}
+                                className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded ml-2 flex-shrink-0"
+                              >
+                                <X className="w-4 h-4 text-red-500" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Summary Section */}
-                  <div className="mt-6 bg-white dark:bg-gray-800 border-y border-r border-gray-200 dark:border-gray-700 border-l-4 border-orange-500 p-6 rounded-xl shadow-sm bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-900/20 dark:to-red-900/20">
+                  <div className="mt-6 bg-white dark:bg-gray-800 border-l-4 border-orange-500 border-t border-b border-r border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-sm bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-900/20 dark:to-red-900/20">
                     <h4 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                       <BarChart3 className="w-5 h-5" />
                       สรุปยอดรวมทุกสาขา
@@ -1325,6 +1350,14 @@ export default function Orders() {
                           status: "รอเริ่ม" as const, // เปลี่ยนเป็นรอเริ่มเพื่อให้สามารถสร้าง Transport ได้
                           approvedBy: "คุณนิด",
                           approvedAt: new Date().toISOString(),
+                          attachments: orderAttachments.map((att) => ({
+                            id: att.id,
+                            name: att.name,
+                            type: att.type,
+                            url: att.url,
+                            size: att.size,
+                            uploadedAt: new Date().toISOString(),
+                          })),
                         };
 
                         // บันทึก Purchase Order ใน context
@@ -1352,6 +1385,7 @@ export default function Orders() {
                             })),
                             totalAmount: branch.totalAmount,
                           })),
+                          attachments: billData.attachments,
                         });
 
                         // อัปเดตสถานะ Order ทั้งหมดเป็น "อนุมัติแล้ว"
@@ -1391,6 +1425,7 @@ export default function Orders() {
 
                         setShowConsolidateModal(false);
                         setSelectedTrucksAndDrivers([]);
+                        setOrderAttachments([]);
                       }}
                       className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
                     >
@@ -1643,6 +1678,97 @@ export default function Orders() {
                       }}
                     />
 
+                    {/* Attachments Section */}
+                    <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
+                      <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
+                        <Paperclip className="w-4 h-4" />
+                        หลักฐานใบเสนอราคา ({orderAttachments.length} ไฟล์)
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <label className="flex-1 cursor-pointer">
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                              onChange={(e) => {
+                                const files = Array.from(e.target.files || []);
+                                files.forEach((file) => {
+                                  const isImage = file.type.startsWith("image/");
+                                  const reader = new FileReader();
+                                  reader.onload = (event) => {
+                                    const url = event.target?.result as string;
+                                    const newAttachment = {
+                                      id: `att-${Date.now()}-${Math.random()}`,
+                                      name: file.name,
+                                      type: (isImage ? "image" : "file") as "image" | "file",
+                                      url,
+                                      file,
+                                      size: file.size,
+                                    };
+                                    setOrderAttachments((prev) => [...prev, newAttachment]);
+                                  };
+                                  if (isImage) {
+                                    reader.readAsDataURL(file);
+                                  } else {
+                                    // สำหรับไฟล์ที่ไม่ใช่รูปภาพ ใช้ object URL
+                                    const url = URL.createObjectURL(file);
+                                    const newAttachment = {
+                                      id: `att-${Date.now()}-${Math.random()}`,
+                                      name: file.name,
+                                      type: "file" as const,
+                                      url,
+                                      file,
+                                      size: file.size,
+                                    };
+                                    setOrderAttachments((prev) => [...prev, newAttachment]);
+                                  }
+                                });
+                              }}
+                              className="hidden"
+                            />
+                            <div className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-800 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-lg hover:border-purple-400 dark:hover:border-purple-600 transition-colors">
+                              <Upload className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                              <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                                เพิ่มหลักฐาน (รูปภาพ/ไฟล์)
+                              </span>
+                            </div>
+                          </label>
+                        </div>
+                        {orderAttachments.length > 0 && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {orderAttachments.map((att) => (
+                              <div
+                                key={att.id}
+                                className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-purple-200 dark:border-purple-700 flex items-center justify-between"
+                              >
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  {att.type === "image" ? (
+                                    <Image className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                  ) : (
+                                    <Paperclip className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-gray-800 dark:text-white truncate">{att.name}</p>
+                                    {att.size && (
+                                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        {(att.size / 1024).toFixed(1)} KB
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => setOrderAttachments(orderAttachments.filter((a) => a.id !== att.id))}
+                                  className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded ml-2 flex-shrink-0"
+                                >
+                                  <X className="w-4 h-4 text-red-500" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -1905,18 +2031,143 @@ export default function Orders() {
                   >
                     ปิด
                   </button>
-                  {selectedApprovedOrder.billNo && (
-                    <NavLink
-                      to="/app/gas-station/purchase-book"
-                      className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 flex items-center gap-2"
-                    >
-                      <Receipt className="w-4 h-4" />
-                      ดูบิล
-                    </NavLink>
-                  )}
+                  <button
+                    onClick={() => {
+                      setViewingAttachments(selectedApprovedOrder.attachments || []);
+                      setShowAttachmentsModal(true);
+                    }}
+                    className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-all duration-200 font-medium flex items-center gap-2"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                    ดูหลักฐาน {selectedApprovedOrder.attachments && selectedApprovedOrder.attachments.length > 0 && `(${selectedApprovedOrder.attachments.length})`}
+                  </button>
                   <button className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 flex items-center gap-2">
                     <Download className="w-4 h-4" />
                     Export Excel
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Attachments View Modal */}
+      <AnimatePresence>
+        {showAttachmentsModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAttachmentsModal(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              >
+                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <Paperclip className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
+                        หลักฐานใบเสนอราคา
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {viewingAttachments.length} ไฟล์
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowAttachmentsModal(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
+                    aria-label="ปิด"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {viewingAttachments.map((att) => (
+                      <div
+                        key={att.id}
+                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+                      >
+                        {att.type === "image" ? (
+                          <div className="relative">
+                            <img
+                              src={att.url}
+                              alt={att.name}
+                              className="w-full h-48 object-cover"
+                            />
+                            <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <Image className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                  <p className="text-sm font-medium text-gray-800 dark:text-white truncate">{att.name}</p>
+                                </div>
+                                <a
+                                  href={att.url}
+                                  download={att.name}
+                                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                                >
+                                  <Download className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                </a>
+                              </div>
+                              {att.size && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  {(att.size / 1024).toFixed(1)} KB
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                                <Paperclip className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-800 dark:text-white truncate">{att.name}</p>
+                                {att.size && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {(att.size / 1024).toFixed(1)} KB
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <a
+                              href={att.url}
+                              download={att.name}
+                              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                            >
+                              <Download className="w-4 h-4" />
+                              ดาวน์โหลดไฟล์
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {viewingAttachments.length === 0 && (
+                    <div className="text-center py-12">
+                      <Paperclip className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 dark:text-gray-400">ไม่มีหลักฐาน</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => setShowAttachmentsModal(false)}
+                    className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                  >
+                    ปิด
                   </button>
                 </div>
               </motion.div>

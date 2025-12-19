@@ -76,6 +76,7 @@ interface GasStationContextType {
   // Actions - Oil Receipts
   createOilReceipt: (receipt: OilReceipt) => void;
   updateOilReceipt: (receiptId: string, updates: Partial<OilReceipt>) => void;
+  deleteOilReceipt: (receiptId: string) => void;
 
   // Actions - Tank Entries
   createTankEntry: (entry: TankEntryRecord) => void;
@@ -463,8 +464,12 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
 
   const updateOilReceipt = useCallback((receiptId: string, updates: Partial<OilReceipt>) => {
     setOilReceiptsState((prev) =>
-      prev.map((r) => (r.id === receiptId ? { ...r, ...updates } : r))
+      prev.map((r) => (r.id === receiptId ? { ...r, ...updates, updatedAt: new Date().toISOString() } : r))
     );
+  }, []);
+
+  const deleteOilReceipt = useCallback((receiptId: string) => {
+    setOilReceiptsState((prev) => prev.filter((r) => r.id !== receiptId));
   }, []);
 
   // Tank Entries
@@ -574,6 +579,7 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     updateDriverJobStatus,
     createOilReceipt,
     updateOilReceipt,
+    deleteOilReceipt,
     createTankEntry,
     updateTankEntry,
     getNextRunningNumber,

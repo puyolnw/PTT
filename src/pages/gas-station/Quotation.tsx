@@ -60,10 +60,11 @@ export default function Quotation() {
   // Filter quotations
   const filteredQuotations = useMemo(() => {
     return quotations.filter((q) => {
+      const branchNames = q.branches?.map((b) => b.branchName.toLowerCase()).join(" ") || "";
       const matchesSearch =
         q.quotationNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         q.fromBranchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        q.toBranchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        branchNames.includes(searchTerm.toLowerCase()) ||
         q.purchaseOrderNo?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = filterStatus === "all" || q.status === filterStatus;
       return matchesSearch && matchesStatus;
@@ -118,6 +119,8 @@ export default function Quotation() {
 
     const totalAmount = formData.items.reduce((sum, item) => sum + item.totalAmount, 0);
 
+    // สร้าง branches array จาก toBranch
+    const branchTotalAmount = formData.items.reduce((sum, item) => sum + item.totalAmount, 0);
     const newQuotation: Quotation = {
       id: `QT-${Date.now()}`,
       quotationNo,
@@ -125,8 +128,23 @@ export default function Quotation() {
       purchaseOrderNo: formData.purchaseOrderNo || undefined,
       fromBranchId: formData.fromBranchId,
       fromBranchName: fromBranch.name,
-      toBranchId: formData.toBranchId,
-      toBranchName: toBranch.name,
+      branches: [
+        {
+          branchId: formData.toBranchId,
+          branchName: toBranch.name,
+          legalEntityName: toBranch.legalEntityName,
+          address: toBranch.address,
+          items: formData.items.map((item, idx) => ({
+            id: `item-${idx}`,
+            oilType: item.oilType as Quotation["items"][0]["oilType"],
+            quantity: item.quantity,
+            pricePerLiter: item.pricePerLiter,
+            totalAmount: item.totalAmount,
+          })),
+          totalAmount: branchTotalAmount,
+          status: "รอยืนยัน",
+        },
+      ],
       items: formData.items.map((item, idx) => ({
         id: `item-${idx}`,
         oilType: item.oilType as Quotation["items"][0]["oilType"],
@@ -329,7 +347,13 @@ export default function Quotation() {
                         <span className="text-gray-400">→</span>
                         <div>
                           <p className="text-sm text-gray-600 dark:text-gray-400">ไป</p>
-                          <p className="font-semibold text-gray-800 dark:text-white">{quotation.toBranchName}</p>
+                          <p className="font-semibold text-gray-800 dark:text-white">
+                            {quotation.branches && quotation.branches.length > 0
+                              ? quotation.branches.length === 1
+                                ? quotation.branches[0].branchName
+                                : `${quotation.branches.length} สาขา`
+                              : "หลายสาขา"}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
@@ -621,7 +645,11 @@ export default function Quotation() {
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">ไปสาขา</p>
                         <p className="font-semibold text-gray-800 dark:text-white">
-                          {selectedQuotation.toBranchName}
+                          {selectedQuotation.branches && selectedQuotation.branches.length > 0
+                            ? selectedQuotation.branches.length === 1
+                              ? selectedQuotation.branches[0].branchName
+                              : `${selectedQuotation.branches.length} สาขา`
+                            : "หลายสาขา"}
                         </p>
                       </div>
                       <div>

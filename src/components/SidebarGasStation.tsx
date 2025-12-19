@@ -65,7 +65,7 @@ export default function SidebarGasStation({ onClose, isMobile = false, isExpande
         { to: "/app/gas-station/quotation", icon: FileText, label: "ใบเสนอราคา" },
         { to: "/app/gas-station/delivery-note", icon: FileText, label: "ใบส่งของ" },
         { to: "/app/gas-station/receipt", icon: FileText, label: "ใบเสร็จรับเงิน" },
-        { to: "/app/gas-station/oil-receipt", icon: PackageCheck, label: "รับน้ำมันจาก ปตท" },
+        { to: "/app/gas-station/oil-receipt", icon: PackageCheck, label: "ใบรับของ" },
         { to: "/app/gas-station/receive-from-branch", icon: CheckCircle, label: "รับน้ำมันจากสาขาหลัก" },
         { to: "/app/gas-station/record-tank-entry", icon: Droplet, label: "บันทึกน้ำมันลงหลุม" },
       ],

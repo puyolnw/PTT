@@ -228,6 +228,7 @@ import DriverApp from "@/pages/gas-station/DriverApp";
 import Quotation from "@/pages/gas-station/Quotation";
 import DeliveryNote from "@/pages/gas-station/DeliveryNote";
 import Receipt from "@/pages/gas-station/Receipt";
+import OilReceipt from "@/pages/gas-station/OilReceipt";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -990,6 +991,10 @@ const router = createBrowserRouter([
           {
             path: "receipt",
             element: <Receipt />,
+          },
+          {
+            path: "oil-receipt",
+            element: <OilReceipt />,
           },
           {
             path: "lubricants-dashboard",

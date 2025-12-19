@@ -18,7 +18,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
-import type { DeliveryNote } from "@/types/gasStation";
+import type { DeliveryNote, Receipt } from "@/types/gasStation";
+import { convertNumberToThaiWords } from "@/utils/numberToThaiWords";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -34,14 +35,18 @@ export default function DeliveryNotePage() {
   const {
     deliveryNotes,
     quotations,
+    purchaseOrders,
     transportDeliveries,
     branches,
+    receipts,
     createDeliveryNote,
     updateDeliveryNote,
     deleteDeliveryNote,
     signDeliveryNote,
+    createReceipt,
     getNextRunningNumber,
     getQuotationByNo,
+    getOrderByNo,
     getTransportByNo,
     getBranchById,
   } = useGasStation();
@@ -52,15 +57,24 @@ export default function DeliveryNotePage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showSignModal, setShowSignModal] = useState(false);
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [selectedDeliveryNote, setSelectedDeliveryNote] = useState<DeliveryNote | null>(null);
   const [isReceiverSign, setIsReceiverSign] = useState(false);
   const [signature, setSignature] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [receiveFormData, setReceiveFormData] = useState({
+    receiverSignature: "",
+    receiverName: "",
+    endOdometer: "",
+    notes: "",
+  });
 
   // Form state for creating/editing delivery note
   const [formData, setFormData] = useState({
+    purchaseOrderNo: "", // เลือกจาก PurchaseOrder
+    billNo: "", // เลือกบิลจาก PurchaseOrder (ถ้ามีหลายบิล)
+    selectedBranchId: "", // เลือกสาขาจาก PurchaseOrder
     quotationNo: "",
-    purchaseOrderNo: "",
     transportNo: "",
     fromBranchId: 1,
     toBranchId: 2,
@@ -111,7 +125,10 @@ export default function DeliveryNotePage() {
     };
   }, [deliveryNotes]);
 
-  // Handle create from Quotation
+  // Handle create from Quotation - เลือกสาขาที่จะส่ง
+  const [showQuotationBranchModal, setShowQuotationBranchModal] = useState(false);
+  const [pendingQuotationNo, setPendingQuotationNo] = useState<string>("");
+
   const handleCreateFromQuotation = (quotationNo: string) => {
     const quotation = getQuotationByNo(quotationNo);
     if (!quotation) {
@@ -119,19 +136,76 @@ export default function DeliveryNotePage() {
       return;
     }
 
-    setFormData({
-      quotationNo,
-      purchaseOrderNo: quotation.purchaseOrderNo || "",
-      transportNo: "",
-      fromBranchId: quotation.fromBranchId,
-      toBranchId: quotation.toBranchId,
-      items: quotation.items,
-      truckId: "",
-      trailerId: "",
-      driverId: "",
-      startOdometer: "",
-    });
-    setShowCreateModal(true);
+    // ถ้าใบเสนอราคามีหลายสาขา ให้เลือกสาขาก่อน
+    if (quotation.branches && quotation.branches.length > 1) {
+      setPendingQuotationNo(quotationNo);
+      setShowQuotationBranchModal(true);
+      return;
+    }
+
+    // ถ้ามีสาขาเดียวหรือไม่มี branches (backward compatibility)
+    const branch = quotation.branches?.[0];
+    if (branch) {
+      setFormData({
+        purchaseOrderNo: quotation.purchaseOrderNo || "",
+        billNo: "",
+        selectedBranchId: "",
+        quotationNo,
+        transportNo: "",
+        fromBranchId: quotation.fromBranchId,
+        toBranchId: branch.branchId,
+        items: branch.items,
+        truckId: "",
+        trailerId: "",
+        driverId: "",
+        startOdometer: "",
+      });
+      setShowCreateModal(true);
+    } else {
+      // Backward compatibility: ถ้าไม่มี branches ใช้โครงสร้างเดิม
+      setFormData({
+        purchaseOrderNo: quotation.purchaseOrderNo || "",
+        billNo: "",
+        selectedBranchId: "",
+        quotationNo,
+        transportNo: "",
+        fromBranchId: quotation.fromBranchId,
+        toBranchId: (quotation as any).toBranchId || 2,
+        items: quotation.items,
+        truckId: "",
+        trailerId: "",
+        driverId: "",
+        startOdometer: "",
+      });
+      setShowCreateModal(true);
+    }
+  };
+
+  // Handle select branch from quotation
+  const handleSelectQuotationBranch = (branchId: number) => {
+    const quotation = getQuotationByNo(pendingQuotationNo);
+    if (!quotation) return;
+
+    const branch = quotation.branches?.find((b) => b.branchId === branchId);
+    if (branch) {
+      setFormData({
+        purchaseOrderNo: quotation.purchaseOrderNo || "",
+        billNo: "",
+        selectedBranchId: branch.branchId.toString(),
+        quotationNo: pendingQuotationNo,
+        transportNo: "",
+        fromBranchId: quotation.fromBranchId,
+        toBranchId: branch.branchId,
+        items: branch.items,
+        truckId: "",
+        trailerId: "",
+        driverId: "",
+        startOdometer: "",
+      });
+      setShowQuotationBranchModal(false);
+      setPendingQuotationNo("");
+      setShowCreateModal(true);
+    }
   };
 
   // Handle create from Transport
@@ -150,8 +224,10 @@ export default function DeliveryNotePage() {
     }));
 
     setFormData({
-      quotationNo: "",
       purchaseOrderNo: "",
+      billNo: "",
+      selectedBranchId: "",
+      quotationNo: "",
       transportNo,
       fromBranchId: transport.sourceBranchId,
       toBranchId: transport.destinationBranchIds[0] || 1,
@@ -166,6 +242,14 @@ export default function DeliveryNotePage() {
 
   // Handle save delivery note
   const handleSave = () => {
+    if (!formData.purchaseOrderNo) {
+      alert("กรุณาเลือกใบสั่งซื้อจากบันทึกใบเสนอราคาจากปตท.");
+      return;
+    }
+    if (!formData.selectedBranchId) {
+      alert("กรุณาเลือกปั๊ม (สาขา) ที่จะส่งของ");
+      return;
+    }
     if (formData.items.length === 0) {
       alert("กรุณาเลือกรายการสินค้า");
       return;
@@ -188,7 +272,7 @@ export default function DeliveryNotePage() {
       deliveryNoteNo,
       deliveryDate: new Date().toISOString().split("T")[0],
       quotationNo: formData.quotationNo || undefined,
-      purchaseOrderNo: formData.purchaseOrderNo || undefined,
+      purchaseOrderNo: formData.purchaseOrderNo, // ต้องมี PurchaseOrderNo
       transportNo: formData.transportNo || undefined,
       fromBranchId: formData.fromBranchId,
       fromBranchName: fromBranch.name,
@@ -215,8 +299,10 @@ export default function DeliveryNotePage() {
     createDeliveryNote(newDeliveryNote);
     setShowCreateModal(false);
     setFormData({
-      quotationNo: "",
       purchaseOrderNo: "",
+      billNo: "",
+      selectedBranchId: "",
+      quotationNo: "",
       transportNo: "",
       fromBranchId: 1,
       toBranchId: 2,
@@ -243,6 +329,111 @@ export default function DeliveryNotePage() {
     alert(isReceiver ? "เซ็นรับของเรียบร้อย!" : "เซ็นส่งของเรียบร้อย!");
   };
 
+  // Handle receive delivery note (ปั๊มย่อยรับของ)
+  const handleReceiveDeliveryNote = (deliveryNote: DeliveryNote) => {
+    setSelectedDeliveryNote(deliveryNote);
+    setReceiveFormData({
+      receiverSignature: "",
+      receiverName: "",
+      endOdometer: deliveryNote.endOdometer?.toString() || "",
+      notes: "",
+    });
+    setShowReceiveModal(true);
+  };
+
+  // Handle confirm receive
+  const handleConfirmReceive = () => {
+    if (!selectedDeliveryNote) return;
+    if (!receiveFormData.receiverSignature.trim()) {
+      alert("กรุณากรอกลายเซ็นผู้รับ");
+      return;
+    }
+    if (!receiveFormData.receiverName.trim()) {
+      alert("กรุณากรอกชื่อผู้รับ");
+      return;
+    }
+
+    const now = new Date().toISOString();
+    updateDeliveryNote(selectedDeliveryNote.id, {
+      receiverSignature: receiveFormData.receiverSignature,
+      receiverSignedAt: now,
+      receiverName: receiveFormData.receiverName,
+      status: "delivered",
+      endOdometer: receiveFormData.endOdometer ? parseInt(receiveFormData.endOdometer) : undefined,
+    });
+
+    setShowReceiveModal(false);
+    setSelectedDeliveryNote(null);
+    setReceiveFormData({
+      receiverSignature: "",
+      receiverName: "",
+      endOdometer: "",
+      notes: "",
+    });
+    alert("รับของเรียบร้อย! สามารถออกใบเสร็จรับเงินได้แล้ว");
+  };
+
+  // Handle create receipt from delivery note
+  const handleCreateReceiptFromDeliveryNote = (deliveryNote: DeliveryNote) => {
+    // ตรวจสอบว่ามีใบเสร็จอยู่แล้วหรือไม่
+    const existingReceipt = receipts.find((r) => r.deliveryNoteNo === deliveryNote.deliveryNoteNo);
+    if (existingReceipt) {
+      alert(`ใบส่งของนี้มีใบเสร็จรับเงินแล้ว: ${existingReceipt.receiptNo}`);
+      return;
+    }
+
+    const toBranch = getBranchById(deliveryNote.toBranchId);
+    if (!toBranch) {
+      alert("ไม่พบข้อมูลสาขา");
+      return;
+    }
+
+    // คำนวณ VAT
+    const calculateVAT = (amount: number, vatRate: number = 7) => {
+      const beforeVat = amount / (1 + vatRate / 100);
+      const vat = amount - beforeVat;
+      return {
+        beforeVat: Math.round(beforeVat * 100) / 100,
+        vat: Math.round(vat * 100) / 100,
+        total: amount,
+      };
+    };
+
+    const { beforeVat, vat } = calculateVAT(deliveryNote.totalAmount, 7);
+    const receiptNo = getNextRunningNumber("receipt");
+    const amountInWords = convertNumberToThaiWords(deliveryNote.totalAmount);
+
+    const newReceipt: Receipt = {
+      id: `REC-${Date.now()}`,
+      receiptNo,
+      receiptDate: new Date().toISOString().split("T")[0],
+      documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+      customerName: toBranch.name,
+      customerAddress: toBranch.address,
+      customerTaxId: "", // TODO: ดึงจาก branch profile
+      items: deliveryNote.items.map((item, idx) => ({
+        id: `item-${idx}`,
+        oilType: item.oilType as Receipt["items"][0]["oilType"],
+        quantity: item.quantity,
+        pricePerLiter: item.pricePerLiter,
+        totalAmount: item.totalAmount,
+      })),
+      amountBeforeVat: beforeVat,
+      vatAmount: vat,
+      totalAmount: deliveryNote.totalAmount,
+      amountInWords,
+      purchaseOrderNo: deliveryNote.purchaseOrderNo || undefined,
+      deliveryNoteNo: deliveryNote.deliveryNoteNo,
+      quotationNo: deliveryNote.quotationNo || undefined,
+      status: "draft",
+      createdAt: new Date().toISOString(),
+      createdBy: "ผู้จัดการสาขา", // TODO: ดึงจาก session
+    };
+
+    createReceipt(newReceipt);
+    alert(`สร้างใบเสร็จรับเงินสำเร็จ! เลขที่: ${receiptNo}\nสามารถไปแก้ไขและออกใบเสร็จได้ที่หน้าใบเสร็จรับเงิน`);
+  };
+
   // Handle view detail
   const handleViewDetail = (deliveryNote: DeliveryNote) => {
     setSelectedDeliveryNote(deliveryNote);
@@ -252,9 +443,24 @@ export default function DeliveryNotePage() {
   // Handle edit delivery note
   const handleEdit = (deliveryNote: DeliveryNote) => {
     setSelectedDeliveryNote(deliveryNote);
+    // หาสาขาจาก PurchaseOrder
+    let selectedBranchId = "";
+    let billNo = "";
+    if (deliveryNote.purchaseOrderNo) {
+      const purchaseOrder = getOrderByNo(deliveryNote.purchaseOrderNo);
+      if (purchaseOrder) {
+        billNo = purchaseOrder.billNo || "";
+        const branch = purchaseOrder.branches.find((b) => b.branchId === deliveryNote.toBranchId);
+        if (branch) {
+          selectedBranchId = branch.branchId.toString();
+        }
+      }
+    }
     setFormData({
-      quotationNo: deliveryNote.quotationNo || "",
       purchaseOrderNo: deliveryNote.purchaseOrderNo || "",
+      billNo,
+      selectedBranchId,
+      quotationNo: deliveryNote.quotationNo || "",
       transportNo: deliveryNote.transportNo || "",
       fromBranchId: deliveryNote.fromBranchId,
       toBranchId: deliveryNote.toBranchId,
@@ -321,8 +527,10 @@ export default function DeliveryNotePage() {
     setIsEditing(false);
     setSelectedDeliveryNote(null);
     setFormData({
-      quotationNo: "",
       purchaseOrderNo: "",
+      billNo: "",
+      selectedBranchId: "",
+      quotationNo: "",
       transportNo: "",
       fromBranchId: 1,
       toBranchId: 2,
@@ -688,7 +896,53 @@ export default function DeliveryNotePage() {
                         ลบ
                       </button>
                     )}
-                    {(!deliveryNote.senderSignature || !deliveryNote.receiverSignature) && (
+                    {deliveryNote.status === "sent" || deliveryNote.status === "in-transit" ? (
+                      !deliveryNote.receiverSignature ? (
+                        <button
+                          onClick={() => handleReceiveDeliveryNote(deliveryNote)}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          รับของ
+                        </button>
+                      ) : null
+                    ) : deliveryNote.status === "delivered" && !deliveryNote.receiverSignature ? (
+                      <button
+                        onClick={() => handleReceiveDeliveryNote(deliveryNote)}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        รับของ
+                      </button>
+                    ) : null}
+                    {deliveryNote.status === "delivered" && deliveryNote.receiverSignature && (
+                      <>
+                        {!receipts.find((r) => r.deliveryNoteNo === deliveryNote.deliveryNoteNo) ? (
+                          <button
+                            onClick={() => handleCreateReceiptFromDeliveryNote(deliveryNote)}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                          >
+                            <FileText className="w-4 h-4" />
+                            ออกใบเสร็จรับเงิน
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const receipt = receipts.find((r) => r.deliveryNoteNo === deliveryNote.deliveryNoteNo);
+                              if (receipt) {
+                                alert(`ใบส่งของนี้มีใบเสร็จรับเงินแล้ว: ${receipt.receiptNo}`);
+                              }
+                            }}
+                            className="px-4 py-2 bg-gray-400 text-white rounded-lg transition-colors flex items-center gap-2 cursor-not-allowed"
+                            disabled
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            มีใบเสร็จแล้ว
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {(!deliveryNote.senderSignature || !deliveryNote.receiverSignature) && deliveryNote.status !== "delivered" && (
                       <button
                         onClick={() => {
                           setSelectedDeliveryNote(deliveryNote);
@@ -726,23 +980,40 @@ export default function DeliveryNotePage() {
                     {quotations
                       .filter((q) => q.status === "confirmed")
                       .slice(0, 3)
-                      .map((quotation) => (
-                        <button
-                          key={quotation.id}
-                          onClick={() => handleCreateFromQuotation(quotation.quotationNo)}
-                          className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-left"
-                        >
-                          <p className="font-semibold text-gray-800 dark:text-white">
-                            {quotation.quotationNo}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {quotation.fromBranchName} → {quotation.toBranchName}
-                          </p>
-                          <p className="text-sm text-green-600 dark:text-green-400">
-                            {currencyFormatter.format(quotation.totalAmount)}
-                          </p>
-                        </button>
-                      ))}
+                      .map((quotation) => {
+                        // แสดงข้อมูลหลายสาขาถ้ามี
+                        const branches = quotation.branches || [];
+                        const hasMultipleBranches = branches.length > 1;
+                        
+                        return (
+                          <button
+                            key={quotation.id}
+                            onClick={() => handleCreateFromQuotation(quotation.quotationNo)}
+                            className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-left"
+                          >
+                            <p className="font-semibold text-gray-800 dark:text-white">
+                              {quotation.quotationNo}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {quotation.fromBranchName} → {hasMultipleBranches 
+                                ? `${branches.length} สาขา` 
+                                : ((quotation as any).toBranchName || branches[0]?.branchName || "หลายสาขา")}
+                            </p>
+                            {hasMultipleBranches && (
+                              <div className="mt-2 space-y-1">
+                                {branches.map((branch, idx) => (
+                                  <div key={idx} className="text-xs text-gray-600 dark:text-gray-400">
+                                    • {branch.branchName}: {branch.items.map(i => `${i.oilType} ${numberFormatter.format(i.quantity)}L`).join(", ")}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                              {currencyFormatter.format(quotation.totalAmount)}
+                            </p>
+                          </button>
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -796,8 +1067,10 @@ export default function DeliveryNotePage() {
                 setIsEditing(false);
                 setSelectedDeliveryNote(null);
                 setFormData({
-                  quotationNo: "",
                   purchaseOrderNo: "",
+                  billNo: "",
+                  selectedBranchId: "",
+                  quotationNo: "",
                   transportNo: "",
                   fromBranchId: 1,
                   toBranchId: 2,
@@ -829,8 +1102,10 @@ export default function DeliveryNotePage() {
                       setIsEditing(false);
                       setSelectedDeliveryNote(null);
                       setFormData({
-                        quotationNo: "",
                         purchaseOrderNo: "",
+                        billNo: "",
+                        selectedBranchId: "",
+                        quotationNo: "",
                         transportNo: "",
                         fromBranchId: 1,
                         toBranchId: 2,
@@ -848,6 +1123,200 @@ export default function DeliveryNotePage() {
                 </div>
                 <div className="flex-1 overflow-y-auto p-6">
                   <div className="space-y-4">
+                    {/* เลือก Purchase Order จากบันทึกใบเสนอราคาจากปตท. */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        เลือกใบสั่งซื้อจากบันทึกใบเสนอราคาจากปตท. *
+                      </label>
+                      <select
+                        value={formData.purchaseOrderNo}
+                        onChange={(e) => {
+                          const orderNo = e.target.value;
+                          const purchaseOrder = getOrderByNo(orderNo);
+                          if (purchaseOrder) {
+                            // ตั้งค่าเริ่มต้นจาก PurchaseOrder - ดึงข้อมูลทั้งหมดมา
+                            setFormData({
+                              ...formData,
+                              purchaseOrderNo: orderNo,
+                              billNo: purchaseOrder.billNo || "", // ตั้งค่า billNo ถ้ามี
+                              selectedBranchId: "",
+                              fromBranchId: 1, // TODO: ดึงจาก context หรือตั้งค่าเริ่มต้น
+                              toBranchId: 2,
+                              items: [],
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              purchaseOrderNo: orderNo,
+                              billNo: "",
+                              selectedBranchId: "",
+                              items: [],
+                            });
+                          }
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
+                      >
+                        <option value="">-- เลือกใบสั่งซื้อ --</option>
+                        {purchaseOrders
+                          .filter((po) => po.status !== "ยกเลิก")
+                          .map((po) => (
+                            <option key={po.orderNo} value={po.orderNo}>
+                              {po.orderNo} {po.billNo ? `(บิล: ${po.billNo})` : ""} - {po.orderDate} - {currencyFormatter.format(po.totalAmount)}
+                            </option>
+                          ))}
+                      </select>
+                      {formData.purchaseOrderNo && (() => {
+                        const purchaseOrder = getOrderByNo(formData.purchaseOrderNo);
+                        if (purchaseOrder) {
+                          return (
+                            <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                              <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2">
+                                ใบสั่งซื้อ: {purchaseOrder.orderNo}
+                              </p>
+                              {purchaseOrder.billNo && (
+                                <p className="text-xs text-blue-700 dark:text-blue-400">
+                                  บิล: {purchaseOrder.billNo}
+                                </p>
+                              )}
+                              {purchaseOrder.supplierOrderNo && (
+                                <p className="text-xs text-blue-700 dark:text-blue-400">
+                                  เลขที่สั่งซื้อผู้ขาย: {purchaseOrder.supplierOrderNo}
+                                </p>
+                              )}
+                              <p className="text-xs text-blue-700 dark:text-blue-400">
+                                วันที่: {purchaseOrder.orderDate} | วันที่ส่ง: {purchaseOrder.deliveryDate}
+                              </p>
+                              <p className="text-xs text-blue-700 dark:text-blue-400">
+                                มูลค่ารวม: {currencyFormatter.format(purchaseOrder.totalAmount)}
+                              </p>
+                              <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
+                                มี {purchaseOrder.branches.length} สาขา
+                              </p>
+                              {/* แสดงรายการสาขาทั้งหมด */}
+                              <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+                                <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                                  รายการสาขาทั้งหมด:
+                                </p>
+                                <div className="space-y-1 max-h-32 overflow-y-auto">
+                                  {purchaseOrder.branches.map((branch, idx) => (
+                                    <div key={idx} className="text-xs text-blue-700 dark:text-blue-400">
+                                      • {branch.branchName} - {currencyFormatter.format(branch.totalAmount)} ({branch.items.length} รายการ)
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+
+                    {/* แสดงบิล (ถ้ามี) */}
+                    {formData.purchaseOrderNo && (() => {
+                      const purchaseOrder = getOrderByNo(formData.purchaseOrderNo);
+                      if (purchaseOrder && purchaseOrder.billNo) {
+                        return (
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                              บิล
+                            </label>
+                            <div className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-white">
+                              {purchaseOrder.billNo}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* เลือกปั๊ม (สาขา) จาก PurchaseOrder */}
+                    {formData.purchaseOrderNo && (() => {
+                      const purchaseOrder = getOrderByNo(formData.purchaseOrderNo);
+                      if (purchaseOrder && purchaseOrder.branches.length > 0) {
+                        return (
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                              เลือกปั๊ม (สาขา) ที่จะส่งของ *
+                            </label>
+                            <select
+                              value={formData.selectedBranchId}
+                              onChange={(e) => {
+                                const branchId = parseInt(e.target.value);
+                                const branch = purchaseOrder.branches.find((b) => b.branchId === branchId);
+                                if (branch) {
+                                  // ดึงข้อมูลทั้งหมดจาก PurchaseOrder มาแสดง
+                                  setFormData({
+                                    ...formData,
+                                    selectedBranchId: e.target.value,
+                                    billNo: purchaseOrder.billNo || "",
+                                    toBranchId: branch.branchId,
+                                    items: branch.items.map((item) => ({
+                                      oilType: item.oilType,
+                                      quantity: item.quantity,
+                                      pricePerLiter: item.pricePerLiter,
+                                      totalAmount: item.totalAmount,
+                                    })),
+                                  });
+                                }
+                              }}
+                              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
+                            >
+                              <option value="">-- เลือกปั๊ม (สาขา) --</option>
+                              {purchaseOrder.branches.map((branch) => (
+                                <option key={branch.branchId} value={branch.branchId}>
+                                  {branch.branchName} - {currencyFormatter.format(branch.totalAmount)} ({branch.items.length} รายการ)
+                                </option>
+                              ))}
+                            </select>
+                            {formData.selectedBranchId && (() => {
+                              const selectedBranch = purchaseOrder.branches.find(
+                                (b) => b.branchId === parseInt(formData.selectedBranchId)
+                              );
+                              if (selectedBranch) {
+                                return (
+                                  <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                                    <p className="text-xs font-semibold text-green-800 dark:text-green-300 mb-2">
+                                      ปั๊ม (สาขา): {selectedBranch.branchName}
+                                    </p>
+                                    <p className="text-xs text-green-700 dark:text-green-400">
+                                      นิติบุคคล: {selectedBranch.legalEntityName}
+                                    </p>
+                                    <p className="text-xs text-green-700 dark:text-green-400">
+                                      ที่อยู่: {selectedBranch.address}
+                                    </p>
+                                    <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+                                      <p className="text-xs font-semibold text-green-800 dark:text-green-300 mb-1">
+                                        รายการน้ำมันทั้งหมด:
+                                      </p>
+                                      <div className="space-y-1">
+                                        {selectedBranch.items.map((item, idx) => (
+                                          <div key={idx} className="text-xs text-green-700 dark:text-green-400 flex items-center justify-between">
+                                            <span>
+                                              <Droplet className="inline h-3 w-3 mr-1" />
+                                              {item.oilType}
+                                            </span>
+                                            <span className="font-semibold">
+                                              {numberFormatter.format(item.quantity)} ลิตร × {currencyFormatter.format(item.pricePerLiter)} = {currencyFormatter.format(item.totalAmount)}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <p className="text-xs font-semibold text-green-800 dark:text-green-300 mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+                                      รวมทั้งสิ้น: {currencyFormatter.format(selectedBranch.totalAmount)}
+                                    </p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         จากสาขา
@@ -872,6 +1341,7 @@ export default function DeliveryNotePage() {
                         value={formData.toBranchId}
                         onChange={(e) => setFormData({ ...formData, toBranchId: parseInt(e.target.value) })}
                         className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
+                        disabled={!!formData.selectedBranchId}
                       >
                         {branches.map((branch) => (
                           <option key={branch.id} value={branch.id}>
@@ -960,8 +1430,10 @@ export default function DeliveryNotePage() {
                       setIsEditing(false);
                       setSelectedDeliveryNote(null);
                       setFormData({
-                        quotationNo: "",
                         purchaseOrderNo: "",
+                        billNo: "",
+                        selectedBranchId: "",
+                        quotationNo: "",
                         transportNo: "",
                         fromBranchId: 1,
                         toBranchId: 2,
@@ -1198,7 +1670,49 @@ export default function DeliveryNotePage() {
                       ลบ
                     </button>
                   )}
-                  {(!selectedDeliveryNote.senderSignature || !selectedDeliveryNote.receiverSignature) && (
+                  {(selectedDeliveryNote.status === "sent" || selectedDeliveryNote.status === "in-transit") && !selectedDeliveryNote.receiverSignature && (
+                    <button
+                      onClick={() => {
+                        setShowDetailModal(false);
+                        handleReceiveDeliveryNote(selectedDeliveryNote);
+                      }}
+                      className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      รับของ
+                    </button>
+                  )}
+                  {selectedDeliveryNote.status === "delivered" && selectedDeliveryNote.receiverSignature && (
+                    <>
+                      {!receipts.find((r) => r.deliveryNoteNo === selectedDeliveryNote.deliveryNoteNo) ? (
+                        <button
+                          onClick={() => {
+                            setShowDetailModal(false);
+                            handleCreateReceiptFromDeliveryNote(selectedDeliveryNote);
+                          }}
+                          className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          ออกใบเสร็จรับเงิน
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            const receipt = receipts.find((r) => r.deliveryNoteNo === selectedDeliveryNote.deliveryNoteNo);
+                            if (receipt) {
+                              alert(`ใบส่งของนี้มีใบเสร็จรับเงินแล้ว: ${receipt.receiptNo}`);
+                            }
+                          }}
+                          className="px-6 py-2 bg-gray-400 text-white rounded-lg font-semibold transition-colors flex items-center gap-2 cursor-not-allowed"
+                          disabled
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          มีใบเสร็จแล้ว
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {(!selectedDeliveryNote.senderSignature || !selectedDeliveryNote.receiverSignature) && selectedDeliveryNote.status !== "delivered" && (
                     <button
                       onClick={() => {
                         setIsReceiverSign(!selectedDeliveryNote.senderSignature);
@@ -1398,6 +1912,275 @@ export default function DeliveryNotePage() {
                   >
                     <Save className="w-4 h-4" />
                     {editingItemIndex !== null ? "บันทึกการแก้ไข" : "เพิ่มรายการ"}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Receive Delivery Note Modal */}
+      <AnimatePresence>
+        {showReceiveModal && selectedDeliveryNote && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowReceiveModal(false);
+                setSelectedDeliveryNote(null);
+                setReceiveFormData({
+                  receiverSignature: "",
+                  receiverName: "",
+                  endOdometer: "",
+                  notes: "",
+                });
+              }}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              >
+                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                    รับของ: {selectedDeliveryNote.deliveryNoteNo}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowReceiveModal(false);
+                      setSelectedDeliveryNote(null);
+                      setReceiveFormData({
+                        receiverSignature: "",
+                        receiverName: "",
+                        endOdometer: "",
+                        notes: "",
+                      });
+                    }}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                      <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">
+                        ข้อมูลใบส่งของ
+                      </p>
+                      <p className="text-sm text-blue-700 dark:text-blue-400">
+                        จาก: {selectedDeliveryNote.fromBranchName} → ไป: {selectedDeliveryNote.toBranchName}
+                      </p>
+                      <div className="mt-2 space-y-1">
+                        {selectedDeliveryNote.items.map((item, idx) => (
+                          <div key={idx} className="text-xs text-blue-700 dark:text-blue-400">
+                            • {item.oilType}: {numberFormatter.format(item.quantity)} ลิตร
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        ชื่อผู้รับ * (ลายเซ็น)
+                      </label>
+                      <input
+                        type="text"
+                        value={receiveFormData.receiverName}
+                        onChange={(e) => setReceiveFormData({ ...receiveFormData, receiverName: e.target.value })}
+                        placeholder="กรอกชื่อ-นามสกุลผู้รับ"
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        ลายเซ็นผู้รับ *
+                      </label>
+                      <input
+                        type="text"
+                        value={receiveFormData.receiverSignature}
+                        onChange={(e) => setReceiveFormData({ ...receiveFormData, receiverSignature: e.target.value })}
+                        placeholder="กรอกลายเซ็น (ชื่อ-นามสกุล)"
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    {selectedDeliveryNote.startOdometer && (
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                          เลขไมล์สิ้นสุด (กม.)
+                        </label>
+                        <input
+                          type="number"
+                          value={receiveFormData.endOdometer}
+                          onChange={(e) => setReceiveFormData({ ...receiveFormData, endOdometer: e.target.value })}
+                          placeholder={`เลขไมล์เริ่มต้น: ${numberFormatter.format(selectedDeliveryNote.startOdometer || 0)} กม.`}
+                          min={selectedDeliveryNote.startOdometer || 0}
+                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        {receiveFormData.endOdometer && selectedDeliveryNote.startOdometer && (
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            ระยะทาง: {numberFormatter.format(parseInt(receiveFormData.endOdometer) - selectedDeliveryNote.startOdometer)} กม.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        หมายเหตุ (ถ้ามี)
+                      </label>
+                      <textarea
+                        value={receiveFormData.notes}
+                        onChange={(e) => setReceiveFormData({ ...receiveFormData, notes: e.target.value })}
+                        placeholder="กรอกหมายเหตุเพิ่มเติม"
+                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => {
+                      setShowReceiveModal(false);
+                      setSelectedDeliveryNote(null);
+                      setReceiveFormData({
+                        receiverSignature: "",
+                        receiverName: "",
+                        endOdometer: "",
+                        notes: "",
+                      });
+                    }}
+                    className="px-6 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={handleConfirmReceive}
+                    className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    ยืนยันรับของ
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Quotation Branch Selection Modal */}
+      <AnimatePresence>
+        {showQuotationBranchModal && pendingQuotationNo && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowQuotationBranchModal(false);
+                setPendingQuotationNo("");
+              }}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              >
+                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                    เลือกสาขาที่จะส่งของ
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowQuotationBranchModal(false);
+                      setPendingQuotationNo("");
+                    }}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-6">
+                  {(() => {
+                    const quotation = getQuotationByNo(pendingQuotationNo);
+                    if (!quotation || !quotation.branches) return null;
+
+                    return (
+                      <div className="space-y-4">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                          <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                            ใบเสนอราคา: {quotation.quotationNo}
+                          </p>
+                          <p className="text-xs text-blue-700 dark:text-blue-400">
+                            จาก: {quotation.fromBranchName}
+                          </p>
+                          <p className="text-xs text-blue-700 dark:text-blue-400">
+                            มี {quotation.branches.length} สาขาที่สั่งน้ำมัน
+                          </p>
+                        </div>
+                        <div className="space-y-3">
+                          {quotation.branches.map((branch) => (
+                            <button
+                              key={branch.branchId}
+                              onClick={() => handleSelectQuotationBranch(branch.branchId)}
+                              className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="font-semibold text-gray-800 dark:text-white mb-2">
+                                    {branch.branchName}
+                                  </p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                                    {branch.address}
+                                  </p>
+                                  <div className="space-y-1">
+                                    {branch.items.map((item, idx) => (
+                                      <div key={idx} className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-700 dark:text-gray-300">
+                                          <Droplet className="inline h-3 w-3 mr-1" />
+                                          {item.oilType}
+                                        </span>
+                                        <span className="text-gray-700 dark:text-gray-300 font-semibold">
+                                          {numberFormatter.format(item.quantity)} ลิตร
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="ml-4 text-right">
+                                  <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                                    {currencyFormatter.format(branch.totalAmount)}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    {branch.status === "ยืนยันแล้ว" ? "✓ ยืนยันแล้ว" : "รอยืนยัน"}
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+                <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => {
+                      setShowQuotationBranchModal(false);
+                      setPendingQuotationNo("");
+                    }}
+                    className="px-6 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    ยกเลิก
                   </button>
                 </div>
               </motion.div>
