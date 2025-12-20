@@ -8,24 +8,45 @@ import {
     Activity,
     Home,
     ClipboardCheck,
+    X,
+    Download,
+    Clock,
 } from "lucide-react";
+
+// SVG รถน้ำมัน (Tanker Truck)
+function TankerTruckIcon({ className = "", style = {} }) {
+    return (
+        <svg viewBox="0 0 180 90" className={className} style={style} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="30" y="35" width="110" height="30" rx="15" fill="#e0e7ef" stroke="#64748b" strokeWidth="3" />
+            <rect x="140" y="45" width="20" height="20" rx="5" fill="#cbd5e1" stroke="#64748b" strokeWidth="3" />
+            <rect x="20" y="50" width="10" height="15" rx="2" fill="#cbd5e1" stroke="#64748b" strokeWidth="2" />
+            <rect x="10" y="60" width="10" height="8" rx="2" fill="#64748b" />
+            <circle cx="50" cy="75" r="10" fill="#64748b" stroke="#334155" strokeWidth="3" />
+            <circle cx="140" cy="75" r="10" fill="#64748b" stroke="#334155" strokeWidth="3" />
+            <rect x="60" y="40" width="60" height="20" rx="8" fill="#f1f5f9" />
+            <rect x="120" y="50" width="10" height="10" rx="2" fill="#fbbf24" />
+            <rect x="35" y="40" width="15" height="20" rx="5" fill="#fbbf24" />
+            <rect x="80" y="30" width="20" height="10" rx="3" fill="#64748b" />
+        </svg>
+    );
+}
 import { mockTrucks, mockTruckOrders, type TruckOrder } from "./TruckProfiles";
 import type { TruckProfile } from "./TruckProfiles";
 import { useGasStation } from "@/contexts/GasStationContext";
 
 // Mock data สำหรับ Transport Delivery (เพื่อดูว่ารถกำลังส่งที่ไหน)
-// ในระบบจริงควรดึงจาก API หรือ shared data
+// เพิ่ม mock ให้เยอะขึ้นและหลากหลายขึ้น
 const mockTransportDeliveries = [
     {
         transportNo: "TR-20241215-001",
         truckPlateNumber: "กก 1111",
         truckId: "TRUCK-001",
         status: "กำลังขนส่ง" as const,
-        destinationBranchNames: ["สาขา 2", "สาขา 3"],
+        destinationBranchNames: ["ดินดำ", "หนองจิก"],
         destinationBranchIds: [2, 3],
         deliveryItems: [
-            { branchName: "สาขา 2", oilType: "Premium Diesel", quantity: 22000 },
-            { branchName: "สาขา 3", oilType: "Diesel", quantity: 20000 },
+            { branchName: "ดินดำ", oilType: "Premium Diesel", quantity: 22000 },
+            { branchName: "หนองจิก", oilType: "Diesel", quantity: 20000 },
         ],
     },
     {
@@ -33,10 +54,46 @@ const mockTransportDeliveries = [
         truckPlateNumber: "กก 2222",
         truckId: "TRUCK-002",
         status: "กำลังขนส่ง" as const,
-        destinationBranchNames: ["สาขา 4"],
+        destinationBranchNames: ["ตักสิลา"],
         destinationBranchIds: [4],
         deliveryItems: [
-            { branchName: "สาขา 4", oilType: "Premium Diesel", quantity: 24000 },
+            { branchName: "ตักสิลา", oilType: "Premium Diesel", quantity: 24000 },
+        ],
+    },
+    {
+        transportNo: "TR-20241215-003",
+        truckPlateNumber: "กก 3333",
+        truckId: "TRUCK-003",
+        status: "กำลังขนส่ง" as const,
+        destinationBranchNames: ["บายพาส", "สาขา 6", "สาขา 7"],
+        destinationBranchIds: [5, 6, 7],
+        deliveryItems: [
+            { branchName: "บายพาส", oilType: "Gasohol 91", quantity: 15000 },
+            { branchName: "สาขา 6", oilType: "Diesel B7", quantity: 18000 },
+            { branchName: "สาขา 7", oilType: "Premium Diesel", quantity: 12000 },
+        ],
+    },
+    {
+        transportNo: "TR-20241215-004",
+        truckPlateNumber: "กก 4444",
+        truckId: "TRUCK-004",
+        status: "กำลังขนส่ง" as const,
+        destinationBranchNames: ["สาขา 8"],
+        destinationBranchIds: [8],
+        deliveryItems: [
+            { branchName: "สาขา 8", oilType: "Gasohol 95", quantity: 20000 },
+        ],
+    },
+    {
+        transportNo: "TR-20241215-005",
+        truckPlateNumber: "กก 5555",
+        truckId: "TRUCK-005",
+        status: "กำลังขนส่ง" as const,
+        destinationBranchNames: ["สาขา 9", "สาขา 10"],
+        destinationBranchIds: [9, 10],
+        deliveryItems: [
+            { branchName: "สาขา 9", oilType: "Diesel", quantity: 17000 },
+            { branchName: "สาขา 10", oilType: "Gasohol 91", quantity: 13000 },
         ],
     },
 ];
@@ -64,6 +121,26 @@ interface TruckStatus {
             quantity: number;
         }>;
     };
+    // ข้อมูลหลักฐานจากพนักงานขับรถ
+    startTrip?: {
+        startedAt: string;
+        startOdometer: number;
+        startOdometerPhoto?: string;
+    };
+    pickupConfirmation?: {
+        confirmedAt: string;
+        photos: string[];
+        odometerReading: number;
+        notes?: string;
+    };
+    deliveryConfirmations?: Array<{
+        branchId: number;
+        branchName: string;
+        confirmedAt: string;
+        photos: string[];
+        odometerReading: number;
+        notes?: string;
+    }>;
 }
 
 // แปลงสถานะ order เป็น stage
@@ -116,8 +193,12 @@ const getStageText = (stage: TruckStage): string => {
 };
 
 export default function TruckDashboard() {
-    const { transportDeliveries, trucks } = useGasStation();
+    const { transportDeliveries, trucks, driverJobs } = useGasStation();
     const [selectedTruckId, setSelectedTruckId] = useState<string | null>(null);
+    const [selectedStage, setSelectedStage] = useState<TruckStage | null>(null);
+    const [stageDetailsModal, setStageDetailsModal] = useState(false);
+    const filterBranch: number | "all" = "all";
+    const searchTerm = "";
 
     // ฟังก์ชันหา transport delivery ที่เกี่ยวข้อง - ใช้ข้อมูลจาก context
     const getTransportDelivery = (truckId: string, truckPlateNumber: string) => {
@@ -131,8 +212,24 @@ export default function TruckDashboard() {
 
     // รวมข้อมูลรถกับ order และสถานะ - ใช้ข้อมูลจาก context
     const allTrucks = trucks.length > 0 ? trucks : mockTrucks;
+    
+    // Filter trucks
+    const filteredTrucks = useMemo(() => {
+        return allTrucks.filter((truck) => {
+            const matchesSearch =
+                truck.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                truck.assignedDriverName?.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            // Branch filter - ต้องหาจาก order หรือ transport delivery
+            const matchesBranch = filterBranch === "all";
+            // TODO: เพิ่ม branch filter เมื่อมีข้อมูล branch ใน truck
+            
+            return matchesSearch && matchesBranch;
+        });
+    }, [allTrucks, searchTerm, filterBranch]);
+    
     const trucksWithStatus: TruckStatus[] = useMemo(() => {
-        return allTrucks.map((truck) => {
+        return filteredTrucks.map((truck) => {
             // หา order ล่าสุดที่ยังไม่เสร็จ
             const activeOrder = mockTruckOrders
                 .filter((order) => order.truckId === truck.id)
@@ -144,6 +241,17 @@ export default function TruckDashboard() {
 
             // หา transport delivery
             const transportDelivery = getTransportDelivery(truck.id, truck.plateNumber);
+
+            // หาข้อมูล driver job ที่เกี่ยวข้อง
+            const driverJob = driverJobs.find(
+                (job) =>
+                    (job.truckPlateNumber === truck.plateNumber || job.transportNo) &&
+                    (job.status === "ออกเดินทางแล้ว" ||
+                        job.status === "รับน้ำมันแล้ว" ||
+                        job.status === "จัดเรียงเส้นทางแล้ว" ||
+                        job.status === "กำลังส่ง" ||
+                        job.status === "ส่งเสร็จ")
+            );
 
             // กำหนดสถานที่ปัจจุบัน
             let currentLocation = truck.currentLocation || truck.homeDepot || "คลังหลัก";
@@ -166,6 +274,20 @@ export default function TruckDashboard() {
                 }
             }
 
+            // รวบรวม delivery confirmations จากแต่ละ branch
+            const deliveryConfirmations = driverJob
+                ? driverJob.destinationBranches
+                      .filter((branch) => branch.deliveryConfirmation)
+                      .map((branch) => ({
+                          branchId: branch.branchId,
+                          branchName: branch.branchName,
+                          confirmedAt: branch.deliveryConfirmation!.confirmedAt,
+                          photos: branch.deliveryConfirmation!.photos,
+                          odometerReading: branch.deliveryConfirmation!.odometerReading,
+                          notes: branch.deliveryConfirmation!.notes,
+                      }))
+                : [];
+
             return {
                 truck,
                 currentOrder: activeOrder,
@@ -180,9 +302,12 @@ export default function TruckDashboard() {
                           deliveryItems: transportDelivery.deliveryItems,
                       }
                     : undefined,
+                startTrip: driverJob?.startTrip,
+                pickupConfirmation: driverJob?.pickupConfirmation,
+                deliveryConfirmations: deliveryConfirmations,
             };
         });
-    }, []);
+    }, [driverJobs, filteredTrucks]);
 
     // สถิติรวม
     const stats = useMemo(() => {
@@ -230,12 +355,46 @@ export default function TruckDashboard() {
         return stages.findIndex((s) => s.id === stage);
     };
 
+    // ฟังก์ชันเพื่อดึงข้อมูลตามแต่ละ stage
+    const getStageData = (truckStatus: TruckStatus, stage: TruckStage) => {
+        switch (stage) {
+            case "preparing":
+                return {
+                    hasData: false,
+                    data: null,
+                };
+            case "picking-up":
+                return {
+                    hasData: !!truckStatus.startTrip,
+                    data: truckStatus.startTrip,
+                };
+            case "delivering":
+                return {
+                    hasData: !!truckStatus.pickupConfirmation,
+                    data: truckStatus.pickupConfirmation,
+                };
+            case "completed":
+                return {
+                    hasData: (truckStatus.deliveryConfirmations && truckStatus.deliveryConfirmations.length > 0) || false,
+                    data: truckStatus.deliveryConfirmations,
+                };
+            default:
+                return {
+                    hasData: false,
+                    data: null,
+                };
+        }
+    };
+
     const selectedTruck = selectedTruckId
         ? trucksWithStatus.find((t) => t.truck.id === selectedTruckId)
         : trucksWithStatus[0];
 
     // คำนวณ % น้ำมันบนรถ
     const oilPercentage = selectedTruck ? calculateOilPercentage(selectedTruck.remainingOil) : 0;
+
+    // Modal สำหรับรายละเอียดน้ำมันบนรถ
+    const [oilDetailModal, setOilDetailModal] = useState(false);
 
     // Last update time
     const lastUpdateTime = new Date().toLocaleString("th-TH", {
@@ -251,67 +410,54 @@ export default function TruckDashboard() {
         <div className="p-6 md:p-8 text-gray-800 dark:text-gray-200">
             {/* Header */}
             <header className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Dashboard สถานะรถ</h1>
-                <p className="text-gray-500 dark:text-gray-400">
-                    ติดตามสถานะรถส่งน้ำมันแบบเรียลไทม์ ดูขั้นตอนการทำงานและน้ำมันเหลือบนรถ
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                        <Truck className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                        <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Dashboard สถานะรถขนส่ง</h1>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-semibold">
+                            <Droplet className="h-4 w-4" /> น้ำมันรวม {numberFormatter.format(stats.totalRemainingOil)} ลิตร
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold">
+                            <CheckCircle className="h-4 w-4" /> พร้อมใช้งาน {stats.active} คัน
+                        </span>
+                    </div>
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
+                    ติดตามสถานะรถขนส่งน้ำมันแบบเรียลไทม์ <span className="hidden sm:inline">ดูขั้นตอนการทำงานและน้ำมันเหลือบนรถ</span>
                 </p>
             </header>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {/* รถทั้งหมด */}
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm flex items-center gap-5">
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
-                        <Truck className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+            <section className="mb-8">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="rounded-2xl shadow bg-white dark:bg-gray-800 p-4 flex flex-col items-center gap-2 border-t-4 border-blue-400">
+                        <Truck className="h-8 w-8 text-blue-500 mb-1" />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">รถทั้งหมด</span>
+                        <span className="text-2xl font-bold text-gray-800 dark:text-white">{stats.total}</span>
+                        <span className="text-xs text-gray-400">คัน</span>
                     </div>
-                    <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">รถทั้งหมด</p>
-                        <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                            {stats.total} <span className="text-base font-medium text-gray-500">คัน</span>
-                        </p>
+                    <div className="rounded-2xl shadow bg-white dark:bg-gray-800 p-4 flex flex-col items-center gap-2 border-t-4 border-green-400">
+                        <CheckCircle className="h-8 w-8 text-green-500 mb-1" />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">พร้อมใช้งาน</span>
+                        <span className="text-2xl font-bold text-gray-800 dark:text-white">{stats.active}</span>
+                        <span className="text-xs text-gray-400">คัน</span>
                     </div>
-                </div>
-
-                {/* รถพร้อมใช้งาน */}
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm flex items-center gap-5">
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-green-100 dark:bg-green-900/50">
-                        <CheckCircle className="h-7 w-7 text-green-600 dark:text-green-400" />
+                    <div className="rounded-2xl shadow bg-white dark:bg-gray-800 p-4 flex flex-col items-center gap-2 border-t-4 border-orange-400">
+                        <Activity className="h-8 w-8 text-orange-500 mb-1" />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">กำลังทำงาน</span>
+                        <span className="text-2xl font-bold text-gray-800 dark:text-white">{stats.onTrip}</span>
+                        <span className="text-xs text-gray-400">คัน</span>
                     </div>
-                    <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">รถพร้อมใช้งาน</p>
-                        <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                            {stats.active} <span className="text-base font-medium text-gray-500">คัน</span>
-                        </p>
-                    </div>
-                </div>
-
-                {/* รถกำลังทำงาน */}
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm flex items-center gap-5">
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-orange-100 dark:bg-orange-900/50">
-                        <Activity className="h-7 w-7 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">รถกำลังทำงาน</p>
-                        <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                            {stats.onTrip} <span className="text-base font-medium text-gray-500">คัน</span>
-                        </p>
+                    <div className="rounded-2xl shadow bg-white dark:bg-gray-800 p-4 flex flex-col items-center gap-2 border-t-4 border-cyan-400">
+                        <Droplet className="h-8 w-8 text-cyan-500 mb-1" />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">น้ำมันรวม</span>
+                        <span className="text-2xl font-bold text-gray-800 dark:text-white">{numberFormatter.format(stats.totalRemainingOil)}</span>
+                        <span className="text-xs text-gray-400">ลิตร</span>
                     </div>
                 </div>
-
-                {/* น้ำมันเหลือบนรถ */}
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm flex items-center gap-5">
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-cyan-100 dark:bg-cyan-900/50">
-                        <Droplet className="h-7 w-7 text-cyan-600 dark:text-cyan-400" />
-                    </div>
-                    <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">น้ำมันเหลือบนรถ</p>
-                        <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                            {numberFormatter.format(stats.totalRemainingOil)}{" "}
-                            <span className="text-base font-medium text-gray-500">ลิตร</span>
-                        </p>
-                    </div>
-                </div>
-            </div>
+            </section>
 
             {/* Truck Selection */}
             <div className="mb-6">
@@ -376,20 +522,103 @@ export default function TruckDashboard() {
                             </div>
                         </div>
 
-                        {/* Fuel Level Bar */}
-                        <div>
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">น้ำมันบนรถ</span>
-                                <span className="text-sm font-bold text-green-500">{oilPercentage}%</span>
+                        {/* Big Truck Icon with Oil Percentage */}
+                        <div className="flex flex-col items-center justify-center my-8">
+                            <button
+                                className="relative group focus:outline-none"
+                                onClick={() => setOilDetailModal(true)}
+                                title="ดูรายละเอียดน้ำมันบนรถ"
+                                style={{ width: 240, height: 140 }}
+                            >
+                                <span className="block">
+                                    <TankerTruckIcon className="w-[220px] h-[110px] mx-auto" style={{ filter: 'drop-shadow(0 4px 16px #0002)' }} />
+                                </span>
+                                <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" width="140" height="140">
+                                    <circle
+                                        cx="70" cy="70" r="60"
+                                        stroke="#e5e7eb" strokeWidth="12" fill="none"
+                                    />
+                                    <circle
+                                        cx="70" cy="70" r="60"
+                                        stroke="#22c55e"
+                                        strokeWidth="12"
+                                        fill="none"
+                                        strokeDasharray={2 * Math.PI * 60}
+                                        strokeDashoffset={2 * Math.PI * 60 * (1 - oilPercentage / 100)}
+                                        strokeLinecap="round"
+                                        style={{ transition: 'stroke-dashoffset 0.5s' }}
+                                    />
+                                </svg>
+                                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl font-extrabold text-green-600 dark:text-green-400 drop-shadow pointer-events-none select-none">
+                                    {oilPercentage}%
+                                </span>
+                                <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs bg-white/80 dark:bg-gray-900/80 px-2 py-0.5 rounded-full text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 shadow">
+                                    กดดูรายละเอียด
+                                </span>
+                            </button>
+                            <span className="mt-3 text-base font-semibold text-gray-600 dark:text-gray-300">น้ำมันบนรถ</span>
+
+                                                        {/* แสดงรายละเอียดน้ำมันแต่ละประเภท เฉพาะเมื่อมีน้ำมันเหลืออยู่บนรถจริง */}
+                                                        {selectedTruck.remainingOil > 0 && selectedTruck.transportDelivery && Array.isArray(selectedTruck.transportDelivery.deliveryItems) && selectedTruck.transportDelivery.deliveryItems.length > 0 &&
+                                                            selectedTruck.transportDelivery.deliveryItems.some(item => item.quantity > 0) && (
+                                                                <div className="w-full max-w-md mx-auto mt-4">
+                                                                    <div className="space-y-2">
+                                                                        {selectedTruck.transportDelivery.deliveryItems.filter(item => item.quantity > 0).map((item, idx) => (
+                                                                            <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/40 rounded-lg px-4 py-2">
+                                                                                <div className="flex flex-col">
+                                                                                    <span className="font-semibold text-gray-800 dark:text-white">{item.oilType}</span>
+                                                                                    <span className="text-xs text-gray-500 dark:text-gray-400">{item.branchName}</span>
+                                                                                </div>
+                                                                                <span className="font-bold text-green-600 dark:text-green-400">{numberFormatter.format(item.quantity)} ลิตร</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                        )}
+                        </div>
+                    </div>
+            {/* Oil Detail Modal */}
+            {oilDetailModal && selectedTruck && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 p-5">
+                            <div className="flex items-center gap-2">
+                                <Truck className="h-7 w-7 text-green-500" />
+                                <h2 className="text-xl font-bold text-gray-800 dark:text-white">รายละเอียดน้ำมันบนรถ</h2>
                             </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                                <div
-                                    className="h-2.5 rounded-full transition-all duration-500 ease-out bg-green-500"
-                                    style={{ width: `${oilPercentage}%` }}
-                                ></div>
+                            <button
+                                onClick={() => setOilDetailModal(false)}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            >
+                                <X className="h-6 w-6" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <div className="mb-4">
+                                <span className="text-lg font-bold text-green-600 dark:text-green-400">{oilPercentage}%</span>
+                                <span className="ml-2 text-gray-500 dark:text-gray-400">ของความจุรถ (30,000 ลิตร)</span>
+                            </div>
+                            {/* Mock: แสดงน้ำมันแต่ละประเภทบนรถ */}
+                            <div className="space-y-3">
+                                {/* ในระบบจริงควรดึงจาก order/deliveryItems หรือ state จริง */}
+                                {(selectedTruck.transportDelivery?.deliveryItems || [
+                                    { branchName: "สาขา 1", oilType: "Diesel", quantity: 12000 },
+                                    { branchName: "ดินดำ", oilType: "Gasohol 95", quantity: 8000 },
+                                    { branchName: "หนองจิก", oilType: "Premium Diesel", quantity: 10000 },
+                                ]).map((item, idx) => (
+                                    <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/40 rounded-lg px-4 py-2">
+                                        <div className="flex flex-col">
+                                            <span className="font-semibold text-gray-800 dark:text-white">{item.oilType}</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">{item.branchName}</span>
+                                        </div>
+                                        <span className="font-bold text-green-600 dark:text-green-400">{numberFormatter.format(item.quantity)} ลิตร</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
 
                     {/* Status Timeline */}
                     <div className="flex items-start w-full">
@@ -398,19 +627,35 @@ export default function TruckDashboard() {
                             const currentStageIndex = getStageIndex(selectedTruck.stage);
                             const isActive = index <= currentStageIndex;
                             const isLast = index === stages.length - 1;
+                            const hasData = getStageData(selectedTruck, stage.id).hasData;
 
                             return (
                                 <div key={stage.id} className="flex items-start flex-1">
                                     <div className="flex flex-col items-center flex-1 w-full">
-                                        <div
-                                            className={`w-12 h-12 rounded-full flex items-center justify-center relative z-10 ${
+                                        <button
+                                            onClick={() => {
+                                                setSelectedStage(stage.id);
+                                                setStageDetailsModal(true);
+                                            }}
+                                            disabled={!hasData}
+                                            className={`w-12 h-12 rounded-full flex items-center justify-center relative z-10 transition-all ${
+                                                !hasData
+                                                    ? "cursor-not-allowed opacity-50"
+                                                    : "hover:scale-110 hover:shadow-lg cursor-pointer"
+                                            } ${
                                                 isActive
                                                     ? "bg-teal-500 text-white"
                                                     : "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
                                             }`}
+                                            title={hasData ? `คลิกดูรายละเอียด ${stage.label}` : "ไม่มีข้อมูล"}
                                         >
                                             <StageIcon className="h-6 w-6" />
-                                        </div>
+                                            {hasData && (
+                                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                                                    <span className="text-xs text-white font-bold">✓</span>
+                                                </div>
+                                            )}
+                                        </button>
                                         <p
                                             className={`text-sm font-semibold mt-2 text-center ${
                                                 isActive
@@ -483,6 +728,208 @@ export default function TruckDashboard() {
                     {/* Last Update */}
                     <div className="text-center mt-4">
                         <p className="text-xs text-gray-400 dark:text-gray-500">อัปเดตล่าสุด: {lastUpdateTime}</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Stage Details Modal */}
+            {stageDetailsModal && selectedStage && selectedTruck && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        {/* Header */}
+                        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                                    {stages.find((s) => s.id === selectedStage)?.label}
+                                </h2>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    รถ: {selectedTruck.truck.plateNumber}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setStageDetailsModal(false)}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            >
+                                <X className="h-6 w-6" />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 space-y-6">
+                            {selectedStage === "picking-up" && selectedTruck.startTrip && (
+                                <div className="space-y-4">
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                                        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-4">
+                                            ข้อมูลออกเดินทาง
+                                        </h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-sm text-gray-600 dark:text-gray-400">เวลาออกเดินทาง</p>
+                                                <p className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2 mt-1">
+                                                    <Clock className="h-5 w-5 text-blue-600" />
+                                                    {new Date(selectedTruck.startTrip.startedAt).toLocaleTimeString("th-TH")}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-600 dark:text-gray-400">เลขไมล์เริ่มต้น</p>
+                                                <p className="text-lg font-semibold text-gray-800 dark:text-white">
+                                                    {numberFormatter.format(selectedTruck.startTrip.startOdometer)} ไมล์
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {selectedTruck.startTrip.startOdometerPhoto && (
+                                            <div className="mt-4">
+                                                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                                                    รูปหลักฐานเลขไมล์เริ่มต้น
+                                                </p>
+                                                <div className="relative">
+                                                    <img
+                                                        src={selectedTruck.startTrip.startOdometerPhoto}
+                                                        alt="Start odometer"
+                                                        className="w-full h-64 object-cover rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedStage === "delivering" && selectedTruck.pickupConfirmation && (
+                                <div className="space-y-4">
+                                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                                        <h3 className="text-lg font-semibold text-green-900 dark:text-green-300 mb-4">
+                                            ข้อมูลการรับน้ำมัน
+                                        </h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-sm text-gray-600 dark:text-gray-400">เวลายืนยันการรับ</p>
+                                                <p className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2 mt-1">
+                                                    <Clock className="h-5 w-5 text-green-600" />
+                                                    {new Date(selectedTruck.pickupConfirmation.confirmedAt).toLocaleTimeString("th-TH")}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-600 dark:text-gray-400">เลขไมล์</p>
+                                                <p className="text-lg font-semibold text-gray-800 dark:text-white">
+                                                    {numberFormatter.format(selectedTruck.pickupConfirmation.odometerReading)} ไมล์
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {selectedTruck.pickupConfirmation.notes && (
+                                            <div className="mt-3">
+                                                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400">หมายเหตุ</p>
+                                                <p className="text-gray-700 dark:text-gray-300 mt-1">
+                                                    {selectedTruck.pickupConfirmation.notes}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {selectedTruck.pickupConfirmation.photos.length > 0 && (
+                                            <div className="mt-4">
+                                                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3">
+                                                    หลักฐานการรับน้ำมัน ({selectedTruck.pickupConfirmation.photos.length} รูป)
+                                                </p>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {selectedTruck.pickupConfirmation.photos.map((photo, idx) => (
+                                                        <div key={idx} className="relative group">
+                                                            <img
+                                                                src={photo}
+                                                                alt={`Pickup photo ${idx + 1}`}
+                                                                className="w-full h-40 object-cover rounded-lg"
+                                                            />
+                                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                                <Download className="h-6 w-6 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedStage === "completed" && selectedTruck.deliveryConfirmations && selectedTruck.deliveryConfirmations.length > 0 && (
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                                        หลักฐานการส่งน้ำมัน ({selectedTruck.deliveryConfirmations.length} สาขา)
+                                    </h3>
+
+                                    {selectedTruck.deliveryConfirmations.map((delivery, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800"
+                                        >
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h4 className="text-lg font-semibold text-purple-900 dark:text-purple-300">
+                                                    {delivery.branchName}
+                                                </h4>
+                                                <span className="text-xs px-3 py-1 bg-purple-200 dark:bg-purple-900/50 text-purple-900 dark:text-purple-300 rounded-full font-semibold">
+                                                    ส่งแล้ว
+                                                </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">เวลายืนยันการส่ง</p>
+                                                    <p className="text-base font-semibold text-gray-800 dark:text-white flex items-center gap-2 mt-1">
+                                                        <Clock className="h-4 w-4 text-purple-600" />
+                                                        {new Date(delivery.confirmedAt).toLocaleTimeString("th-TH")}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">เลขไมล์</p>
+                                                    <p className="text-base font-semibold text-gray-800 dark:text-white">
+                                                        {numberFormatter.format(delivery.odometerReading)} ไมล์
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {delivery.notes && (
+                                                <div className="mb-4">
+                                                    <p className="text-sm font-semibold text-gray-600 dark:text-gray-400">หมายเหตุ</p>
+                                                    <p className="text-gray-700 dark:text-gray-300 mt-1">{delivery.notes}</p>
+                                                </div>
+                                            )}
+
+                                            {delivery.photos.length > 0 && (
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3">
+                                                        หลักฐานการส่ง ({delivery.photos.length} รูป)
+                                                    </p>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {delivery.photos.map((photo, photIdx) => (
+                                                            <div key={photIdx} className="relative group">
+                                                                <img
+                                                                    src={photo}
+                                                                    alt={`Delivery photo ${photIdx + 1}`}
+                                                                    className="w-full h-40 object-cover rounded-lg"
+                                                                />
+                                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                                    <Download className="h-6 w-6 text-white" />
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {!getStageData(selectedTruck, selectedStage).hasData && (
+                                <div className="bg-gray-50 dark:bg-gray-700/50 p-8 rounded-lg text-center">
+                                    <div className="text-gray-400 dark:text-gray-500 mb-2">
+                                        <Package className="h-12 w-12 mx-auto mb-2" />
+                                    </div>
+                                    <p className="text-gray-600 dark:text-gray-400">ไม่มีข้อมูลหลักฐานสำหรับขั้นตอนนี้</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

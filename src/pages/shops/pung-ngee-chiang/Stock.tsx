@@ -93,7 +93,7 @@ const initialStockData: StockItem[] = [
     transferCode: "001001",
     category: "อุปกรณ์ทำความสะอาด",
     categorySecondary: "03",
-    name: "ราวตากผ้าไม้ไผ่ยาว",
+    name: "ราวตักสิลาผ้าไม้ไผ่ยาว",
     barcode: "00543",
     unit: "ชิ้น",
     quantity: 0,

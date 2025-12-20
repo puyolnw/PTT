@@ -59,7 +59,7 @@ const initialSlips: DepositSlip[] = [
     id: "DS-20241201-002",
     slipNo: "DS-20241201-002",
     customerName: "ลูกค้าเงินสด B",
-    branch: "สาขา 2",
+    branch: "ดินดำ",
     amount: 1000,
     balance: 200,
     issueDate: "2024-12-01",
@@ -400,10 +400,10 @@ export default function DepositSlips() {
                   className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 >
                   <option value="ปั๊มไฮโซ">ปั๊มไฮโซ</option>
-                  <option value="สาขา 2">สาขา 2</option>
-                  <option value="สาขา 3">สาขา 3</option>
-                  <option value="สาขา 4">สาขา 4</option>
-                  <option value="สาขา 5">สาขา 5</option>
+                  <option value="ดินดำ">ดินดำ</option>
+                  <option value="หนองจิก">หนองจิก</option>
+                  <option value="ตักสิลา">ตักสิลา</option>
+                  <option value="บายพาส">บายพาส</option>
                 </select>
               </div>
             </div>

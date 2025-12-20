@@ -4,14 +4,12 @@ import { useNavigate } from "react-router-dom";
 import {
     Droplet,
     Search,
-    Calendar,
     Activity,
     CheckCircle,
     AlertCircle,
     Wrench,
-    ChevronRight,
-    Truck,
     AlertTriangle,
+    Eye,
 } from "lucide-react";
 import { mockTrailers, mockTrucks } from "./TruckProfiles";
 import type { Trailer } from "./TruckProfiles";
@@ -20,11 +18,11 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
     maximumFractionDigits: 0,
 });
 
-const dateFormatter = new Intl.DateTimeFormat("th-TH", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-});
+// // const dateFormatter = new Intl.DateTimeFormat("th-TH", {
+//   year: "numeric",
+//   month: "long",
+//   day: "numeric",
+// });
 
 // Helper functions for document expiry checking
 const getDaysUntilExpiry = (expiryDate: string): number => {
@@ -277,109 +275,120 @@ export default function TrailerProfiles() {
                 </div>
             </motion.div>
 
-            {/* Trailers List */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {filteredTrailers.map((trailer, index) => (
+            {/* Trailers Table */}
                     <motion.div
-                        key={trailer.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 * index }}
-                        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                transition={{ delay: 0.6 }}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+            >
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-gray-700 dark:to-gray-800">
+                            <tr>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                    เลขทะเบียน
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                    ความจุ
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                    รถที่ใช้อยู่
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                    รถที่ใช้ได้
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                    เอกสาร
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                    สถานะ
+                                </th>
+                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                    การดำเนินการ
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                            {filteredTrailers.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                        ไม่พบข้อมูลหาง
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredTrailers.map((trailer) => (
+                                    <tr
+                                        key={trailer.id}
                         onClick={() => navigate(`/app/gas-station/trailer-profiles/${trailer.id}`)}
-                    >
-                        <div className="p-6">
-                            {/* Header */}
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                                        <Droplet className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                                        className="hover:bg-orange-50/50 dark:hover:bg-gray-700/70 transition-colors cursor-pointer"
+                                    >
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-2">
+                                                <Droplet className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                                <div className="text-sm font-semibold text-gray-900 dark:text-white">
                                             {trailer.plateNumber}
-                                        </h3>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                                            ความจุ {numberFormatter.format(trailer.capacity)} ลิตร
-                                        </p>
                                     </div>
                                 </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="text-sm text-gray-900 dark:text-white">
+                                                {numberFormatter.format(trailer.capacity)} ลิตร
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {trailer.currentTruck ? (
+                                                <div className="text-sm text-gray-900 dark:text-white">
+                                                    {trailer.currentTruck.plateNumber}
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-gray-400 dark:text-gray-500">-</span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm text-gray-900 dark:text-white">
+                                                {trailer.compatibleTrucks.length} คัน
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {hasDocumentIssues(trailer) ? (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                                    <AlertTriangle className="w-3 h-3" />
+                                                    มีปัญหา
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-gray-400 dark:text-gray-500">ปกติ</span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
                                 <span
-                                    className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
                                         trailer.status
                                     )}`}
                                 >
                                     {getStatusIcon(trailer.status)}
                                     {getStatusText(trailer.status)}
                                 </span>
-                            </div>
-
-                            {/* Current Truck */}
-                            {trailer.currentTruck && (
-                                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Truck className="w-4 h-4 text-blue-500" />
-                                            <span className="text-sm text-gray-600 dark:text-gray-400">รถที่ใช้อยู่:</span>
-                                            <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                {trailer.currentTruck.plateNumber}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate(`/app/gas-station/trailer-profiles/${trailer.id}`);
+                                                }}
+                                                className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                                                title="ดูรายละเอียด"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
                             )}
-
-                            {/* Document Alert */}
-                            {hasDocumentIssues(trailer) && (
-                                <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                                    <div className="flex items-center gap-2">
-                                        <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                                        <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-                                            มีเอกสารใกล้หมดอายุหรือหมดอายุแล้ว
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Compatible Trucks */}
-                            <div className="mb-4">
-                                <p className="text-xs text-gray-500 dark:text-gray-500 mb-2">
-                                    รถที่ใช้ได้ ({trailer.compatibleTrucks.length} คัน):
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                    {trailer.compatibleTrucks.slice(0, 3).map((truck) => (
-                                        <span
-                                            key={truck.id}
-                                            className={`text-xs px-2 py-1 rounded ${truck.id === trailer.currentTruck?.id
-                                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                                                : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                                                }`}
-                                        >
-                                            {truck.plateNumber}
-                                        </span>
-                                    ))}
-                                    {trailer.compatibleTrucks.length > 3 && (
-                                        <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
-                                            +{trailer.compatibleTrucks.length - 3}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Maintenance Info */}
-                            {trailer.nextMaintenanceDate && (
-                                <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-                                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                        <Calendar className="w-4 h-4" />
-                                        <span>บำรุงรักษาครั้งถัดไป: {dateFormatter.format(new Date(trailer.nextMaintenanceDate))}</span>
-                                    </div>
-                                    <ChevronRight className="w-5 h-5 text-gray-400" />
-                                </div>
-                            )}
+                        </tbody>
+                    </table>
                         </div>
                     </motion.div>
-                ))}
-            </div>
 
             {filteredTrailers.length === 0 && (
                 <motion.div

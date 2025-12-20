@@ -19,7 +19,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
-import type { OilReceipt, QualityTest, DipMeasurement } from "@/types/gasStation";
+import type { OilReceipt, QualityTest, OilType } from "@/types/gasStation";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -193,7 +193,7 @@ export default function OilReceiptPage() {
         testDateTime: formData.qualityTest.testDateTime || new Date().toISOString(),
       },
       items: formData.items.map((item) => ({
-        oilType: item.oilType as DipMeasurement["oilType"],
+        oilType: item.oilType as OilType,
         tankNumber: item.tankNumber,
         quantityOrdered: item.quantityOrdered,
         beforeDip: item.beforeDip,
@@ -204,11 +204,10 @@ export default function OilReceiptPage() {
         pricePerLiter: item.pricePerLiter,
         gainLossReason: item.gainLossReason || undefined,
       })),
-      attachments: [],
       status: "draft",
-      receivedBy: "EMP-001", // TODO: ดึงจาก session
-      receivedByName: "ผู้รับของ", // TODO: ดึงจาก session
+      createdBy: "EMP-001", // TODO: ดึงจาก session
       notes: formData.notes || undefined,
+      totalAmount: 0, // Initial value, needs calculation logic if not provided
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -243,7 +242,7 @@ export default function OilReceiptPage() {
     setSelectedOilReceipt(oilReceipt);
     setFormData({
       deliveryNoteNo: oilReceipt.deliveryNoteNo,
-      purchaseOrderNo: oilReceipt.purchaseOrderNo,
+      purchaseOrderNo: oilReceipt.purchaseOrderNo || "",
       receiveDate: oilReceipt.receiveDate,
       receiveTime: oilReceipt.receiveTime,
       truckLicensePlate: oilReceipt.truckLicensePlate,
@@ -283,7 +282,7 @@ export default function OilReceiptPage() {
       driverLicense: formData.driverLicense || undefined,
       qualityTest: formData.qualityTest,
       items: formData.items.map((item) => ({
-        oilType: item.oilType as DipMeasurement["oilType"],
+        oilType: item.oilType as OilType,
         tankNumber: item.tankNumber,
         quantityOrdered: item.quantityOrdered,
         beforeDip: item.beforeDip,

@@ -193,7 +193,7 @@ const mockUndergroundBook = [
     enteredBy: null,
   },
   {
-    branch: "สาขา 2",
+    branch: "ดินดำ",
     pit: "หลุม 1",
     oilType: "Gasohol 95",
     openingStock: 65000,
@@ -207,7 +207,7 @@ const mockUndergroundBook = [
     enteredBy: "ผู้จัดการสาขา",
   },
   {
-    branch: "สาขา 3",
+    branch: "หนองจิก",
     pit: "หลุม 1",
     oilType: "Diesel",
     openingStock: 50000,

@@ -4,7 +4,6 @@ import {
   FileText,
   Plus,
   Search,
-  Eye,
   Download,
   CheckCircle,
   X,
@@ -12,6 +11,7 @@ import {
   Building2,
   Droplet,
   Truck,
+  Eye,
   User,
   PenTool,
   Edit,
@@ -20,6 +20,8 @@ import {
 import { useGasStation } from "@/contexts/GasStationContext";
 import type { DeliveryNote, Receipt } from "@/types/gasStation";
 import { convertNumberToThaiWords } from "@/utils/numberToThaiWords";
+
+import { mockDrivers } from "@/data/mockData";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -30,6 +32,10 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
 const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
+
+const getDriverById = (id: string) => {
+  return mockDrivers.find(d => d.id.toString() === id || d.code === id);
+};
 
 export default function DeliveryNotePage() {
   const {
@@ -51,8 +57,9 @@ export default function DeliveryNotePage() {
     getBranchById,
   } = useGasStation();
 
+  // const [filterBranch, setFilterBranch] = useState<number | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "draft" | "sent" | "in-transit" | "delivered" | "cancelled">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "draft" | "sent" | "delivered" | "cancelled">("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -65,8 +72,8 @@ export default function DeliveryNotePage() {
   const [receiveFormData, setReceiveFormData] = useState({
     receiverSignature: "",
     receiverName: "",
-    endOdometer: "",
     notes: "",
+    endOdometer: "",
   });
 
   // Form state for creating/editing delivery note
@@ -78,6 +85,10 @@ export default function DeliveryNotePage() {
     transportNo: "",
     fromBranchId: 1,
     toBranchId: 2,
+    truckId: "",
+    trailerId: "",
+    driverId: "",
+    startOdometer: "",
     items: [] as Array<{
       id?: string;
       oilType: string;
@@ -85,10 +96,6 @@ export default function DeliveryNotePage() {
       pricePerLiter: number;
       totalAmount: number;
     }>,
-    truckId: "",
-    trailerId: "",
-    driverId: "",
-    startOdometer: "",
   });
 
   // Form state for adding/editing item
@@ -107,19 +114,23 @@ export default function DeliveryNotePage() {
         dn.deliveryNoteNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         dn.fromBranchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         dn.toBranchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        dn.transportNo?.toLowerCase().includes(searchTerm.toLowerCase());
+        false;
       const matchesStatus = filterStatus === "all" || dn.status === filterStatus;
       return matchesSearch && matchesStatus;
     });
   }, [deliveryNotes, searchTerm, filterStatus]);
 
   // Statistics
+  // const _relatedReceipts = useMemo(() => {
+  //   if (!deliveryNotes) return [];
+  //   return receipts.filter(r => deliveryNotes.some(bn => bn.receiptNo === r.receiptNo));
+  // }, [deliveryNotes, receipts]);
   const stats = useMemo(() => {
     return {
       total: deliveryNotes.length,
       draft: deliveryNotes.filter((dn) => dn.status === "draft").length,
       sent: deliveryNotes.filter((dn) => dn.status === "sent").length,
-      inTransit: deliveryNotes.filter((dn) => dn.status === "in-transit").length,
+      inTransit: 0, // in-transit status not in type definition
       delivered: deliveryNotes.filter((dn) => dn.status === "delivered").length,
       totalAmount: deliveryNotes.reduce((sum, dn) => sum + dn.totalAmount, 0),
     };
@@ -146,7 +157,7 @@ export default function DeliveryNotePage() {
     // ถ้ามีสาขาเดียวหรือไม่มี branches (backward compatibility)
     const branch = quotation.branches?.[0];
     if (branch) {
-      setFormData({
+    setFormData({
         purchaseOrderNo: quotation.purchaseOrderNo || "",
         billNo: "",
         selectedBranchId: "",
@@ -164,20 +175,20 @@ export default function DeliveryNotePage() {
     } else {
       // Backward compatibility: ถ้าไม่มี branches ใช้โครงสร้างเดิม
       setFormData({
-        purchaseOrderNo: quotation.purchaseOrderNo || "",
+      purchaseOrderNo: quotation.purchaseOrderNo || "",
         billNo: "",
         selectedBranchId: "",
         quotationNo,
-        transportNo: "",
-        fromBranchId: quotation.fromBranchId,
+      transportNo: "",
+      fromBranchId: quotation.fromBranchId,
         toBranchId: (quotation as any).toBranchId || 2,
-        items: quotation.items,
-        truckId: "",
-        trailerId: "",
-        driverId: "",
-        startOdometer: "",
-      });
-      setShowCreateModal(true);
+      items: quotation.items,
+      truckId: "",
+      trailerId: "",
+      driverId: "",
+      startOdometer: "",
+    });
+    setShowCreateModal(true);
     }
   };
 
@@ -228,12 +239,12 @@ export default function DeliveryNotePage() {
       billNo: "",
       selectedBranchId: "",
       quotationNo: "",
-      transportNo,
       fromBranchId: transport.sourceBranchId,
       toBranchId: transport.destinationBranchIds[0] || 1,
       items,
-      truckId: transport.truckId,
-      trailerId: transport.trailerId,
+      transportNo: transportNo, // Use the passed transportNo
+      truckId: transport.truckId || "",
+      trailerId: transport.trailerId || "",
       driverId: transport.driverId || "",
       startOdometer: transport.startOdometer?.toString() || "",
     });
@@ -255,7 +266,7 @@ export default function DeliveryNotePage() {
       return;
     }
 
-    const deliveryNoteNo = getNextRunningNumber("delivery_note");
+    const deliveryNoteNo = getNextRunningNumber("delivery-note");
     const fromBranch = getBranchById(formData.fromBranchId);
     const toBranch = getBranchById(formData.toBranchId);
 
@@ -265,7 +276,7 @@ export default function DeliveryNotePage() {
     }
 
     const totalAmount = formData.items.reduce((sum, item) => sum + item.totalAmount, 0);
-    const transport = formData.transportNo ? getTransportByNo(formData.transportNo) : null;
+    // const transport = formData.transportNo ? getTransportByNo(formData.transportNo) : null;
 
     const newDeliveryNote: DeliveryNote = {
       id: `DN-${Date.now()}`,
@@ -273,7 +284,6 @@ export default function DeliveryNotePage() {
       deliveryDate: new Date().toISOString().split("T")[0],
       quotationNo: formData.quotationNo || undefined,
       purchaseOrderNo: formData.purchaseOrderNo, // ต้องมี PurchaseOrderNo
-      transportNo: formData.transportNo || undefined,
       fromBranchId: formData.fromBranchId,
       fromBranchName: fromBranch.name,
       toBranchId: formData.toBranchId,
@@ -284,13 +294,8 @@ export default function DeliveryNotePage() {
         oilType: item.oilType as DeliveryNote["items"][0]["oilType"],
       })),
       totalAmount,
-      truckId: formData.truckId || undefined,
-      truckPlateNumber: transport?.truckPlateNumber || undefined,
-      trailerId: formData.trailerId || undefined,
-      trailerPlateNumber: transport?.trailerPlateNumber || undefined,
-      driverId: formData.driverId || undefined,
-      driverName: transport?.driverName || undefined,
-      startOdometer: formData.startOdometer ? parseInt(formData.startOdometer) : undefined,
+      truckPlateNumber: formData.truckId || undefined,
+      driverName: formData.driverId ? getDriverById(formData.driverId)?.name : undefined,
       status: "draft",
       createdAt: new Date().toISOString(),
       createdBy: "ผู้จัดการคลัง", // TODO: ดึงจาก session
@@ -335,8 +340,8 @@ export default function DeliveryNotePage() {
     setReceiveFormData({
       receiverSignature: "",
       receiverName: "",
-      endOdometer: deliveryNote.endOdometer?.toString() || "",
       notes: "",
+      endOdometer: "",
     });
     setShowReceiveModal(true);
   };
@@ -355,11 +360,10 @@ export default function DeliveryNotePage() {
 
     const now = new Date().toISOString();
     updateDeliveryNote(selectedDeliveryNote.id, {
-      receiverSignature: receiveFormData.receiverSignature,
-      receiverSignedAt: now,
+      signedBy: receiveFormData.receiverSignature,
+      signedAt: now,
       receiverName: receiveFormData.receiverName,
       status: "delivered",
-      endOdometer: receiveFormData.endOdometer ? parseInt(receiveFormData.endOdometer) : undefined,
     });
 
     setShowReceiveModal(false);
@@ -399,15 +403,18 @@ export default function DeliveryNotePage() {
       };
     };
 
-    const { beforeVat, vat } = calculateVAT(deliveryNote.totalAmount, 7);
-    const receiptNo = getNextRunningNumber("receipt");
+    const { vat } = calculateVAT(deliveryNote.totalAmount, 7);
+    // const { beforeVat, vat } = calculateVAT(totalAmount, formData.vatRate);
+    // const amountInWords = convertNumberToThaiWords(totalAmount);
     const amountInWords = convertNumberToThaiWords(deliveryNote.totalAmount);
+
+    const receiptNo = getNextRunningNumber("receipt");
 
     const newReceipt: Receipt = {
       id: `REC-${Date.now()}`,
       receiptNo,
       receiptDate: new Date().toISOString().split("T")[0],
-      documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+      documentType: "ใบเสร็จรับเงิน",
       customerName: toBranch.name,
       customerAddress: toBranch.address,
       customerTaxId: "", // TODO: ดึงจาก branch profile
@@ -418,9 +425,9 @@ export default function DeliveryNotePage() {
         pricePerLiter: item.pricePerLiter,
         totalAmount: item.totalAmount,
       })),
-      amountBeforeVat: beforeVat,
       vatAmount: vat,
       totalAmount: deliveryNote.totalAmount,
+      grandTotal: deliveryNote.totalAmount, // Assuming inclusive VAT or same as total for now
       amountInWords,
       purchaseOrderNo: deliveryNote.purchaseOrderNo || undefined,
       deliveryNoteNo: deliveryNote.deliveryNoteNo,
@@ -461,7 +468,6 @@ export default function DeliveryNotePage() {
       billNo,
       selectedBranchId,
       quotationNo: deliveryNote.quotationNo || "",
-      transportNo: deliveryNote.transportNo || "",
       fromBranchId: deliveryNote.fromBranchId,
       toBranchId: deliveryNote.toBranchId,
       items: deliveryNote.items.map((item) => ({
@@ -470,9 +476,10 @@ export default function DeliveryNotePage() {
         pricePerLiter: item.pricePerLiter,
         totalAmount: item.totalAmount,
       })),
-      truckId: deliveryNote.truckId || "",
-      trailerId: deliveryNote.trailerId || "",
-      driverId: deliveryNote.driverId || "",
+      transportNo: deliveryNote.transportNo || "", // Ensure transportNo is set
+      truckId: deliveryNote.truckPlateNumber || "",
+      trailerId: deliveryNote.trailerPlateNumber || "",
+      driverId: deliveryNote.driverName || "",
       startOdometer: deliveryNote.startOdometer?.toString() || "",
     });
     setIsEditing(true);
@@ -496,12 +503,11 @@ export default function DeliveryNotePage() {
     }
 
     const totalAmount = formData.items.reduce((sum, item) => sum + item.totalAmount, 0);
-    const transport = formData.transportNo ? getTransportByNo(formData.transportNo) : null;
+    // const transport = formData.transportNo ? getTransportByNo(formData.transportNo) : null;
 
     updateDeliveryNote(selectedDeliveryNote.id, {
       quotationNo: formData.quotationNo || undefined,
       purchaseOrderNo: formData.purchaseOrderNo || undefined,
-      transportNo: formData.transportNo || undefined,
       fromBranchId: formData.fromBranchId,
       fromBranchName: fromBranch.name,
       toBranchId: formData.toBranchId,
@@ -514,13 +520,8 @@ export default function DeliveryNotePage() {
         totalAmount: item.totalAmount,
       })),
       totalAmount,
-      truckId: formData.truckId || undefined,
-      truckPlateNumber: transport?.truckPlateNumber || undefined,
-      trailerId: formData.trailerId || undefined,
-      trailerPlateNumber: transport?.trailerPlateNumber || undefined,
-      driverId: formData.driverId || undefined,
-      driverName: transport?.driverName || undefined,
-      startOdometer: formData.startOdometer ? parseInt(formData.startOdometer) : undefined,
+      truckPlateNumber: undefined,
+      driverName: undefined,
     });
 
     setShowEditModal(false);
@@ -625,8 +626,6 @@ export default function DeliveryNotePage() {
         return "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700";
       case "sent":
         return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800";
-      case "in-transit":
-        return "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800";
       case "delivered":
         return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800";
       case "cancelled":
@@ -642,8 +641,6 @@ export default function DeliveryNotePage() {
         return "ร่าง";
       case "sent":
         return "ส่งแล้ว";
-      case "in-transit":
-        return "ระหว่างขนส่ง";
       case "delivered":
         return "ส่งถึงแล้ว";
       case "cancelled":
@@ -823,14 +820,6 @@ export default function DeliveryNotePage() {
                             </span>
                           </div>
                         )}
-                        {deliveryNote.transportNo && (
-                          <div className="flex items-center gap-1">
-                            <FileText className="h-4 w-4 text-gray-400" />
-                            <span className="text-gray-600 dark:text-gray-400">
-                              {deliveryNote.transportNo}
-                            </span>
-                          </div>
-                        )}
                       </div>
                     )}
                     <div className="flex flex-wrap gap-2">
@@ -857,7 +846,7 @@ export default function DeliveryNotePage() {
                           <span>รอผู้ส่งเซ็น</span>
                         </div>
                       )}
-                      {deliveryNote.receiverSignature ? (
+                      {deliveryNote.signedBy ? (
                         <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                           <CheckCircle className="h-4 w-4" />
                           <span>ผู้รับเซ็นแล้ว</span>
@@ -896,8 +885,8 @@ export default function DeliveryNotePage() {
                         ลบ
                       </button>
                     )}
-                    {deliveryNote.status === "sent" || deliveryNote.status === "in-transit" ? (
-                      !deliveryNote.receiverSignature ? (
+                    {deliveryNote.status === "sent" ? (
+                      !deliveryNote.signedBy ? (
                         <button
                           onClick={() => handleReceiveDeliveryNote(deliveryNote)}
                           className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
@@ -906,7 +895,7 @@ export default function DeliveryNotePage() {
                           รับของ
                         </button>
                       ) : null
-                    ) : deliveryNote.status === "delivered" && !deliveryNote.receiverSignature ? (
+                    ) : deliveryNote.status === "delivered" && !deliveryNote.signedBy ? (
                       <button
                         onClick={() => handleReceiveDeliveryNote(deliveryNote)}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
@@ -915,7 +904,7 @@ export default function DeliveryNotePage() {
                         รับของ
                       </button>
                     ) : null}
-                    {deliveryNote.status === "delivered" && deliveryNote.receiverSignature && (
+                    {deliveryNote.status === "delivered" && deliveryNote.signedBy && (
                       <>
                         {!receipts.find((r) => r.deliveryNoteNo === deliveryNote.deliveryNoteNo) ? (
                           <button
@@ -942,17 +931,17 @@ export default function DeliveryNotePage() {
                         )}
                       </>
                     )}
-                    {(!deliveryNote.senderSignature || !deliveryNote.receiverSignature) && deliveryNote.status !== "delivered" && (
+                    {!deliveryNote.signedBy && deliveryNote.status !== "delivered" && (
                       <button
                         onClick={() => {
                           setSelectedDeliveryNote(deliveryNote);
-                          setIsReceiverSign(!deliveryNote.senderSignature);
+                          setIsReceiverSign(true);
                           setShowSignModal(true);
                         }}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
                       >
                         <PenTool className="w-4 h-4" />
-                        {!deliveryNote.senderSignature ? "เซ็นส่ง" : "เซ็นรับ"}
+                        {"เซ็นรับ"}
                       </button>
                     )}
                   </div>
@@ -986,19 +975,19 @@ export default function DeliveryNotePage() {
                         const hasMultipleBranches = branches.length > 1;
                         
                         return (
-                          <button
-                            key={quotation.id}
-                            onClick={() => handleCreateFromQuotation(quotation.quotationNo)}
-                            className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-left"
-                          >
-                            <p className="font-semibold text-gray-800 dark:text-white">
-                              {quotation.quotationNo}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <button
+                          key={quotation.id}
+                          onClick={() => handleCreateFromQuotation(quotation.quotationNo)}
+                          className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-left"
+                        >
+                          <p className="font-semibold text-gray-800 dark:text-white">
+                            {quotation.quotationNo}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
                               {quotation.fromBranchName} → {hasMultipleBranches 
                                 ? `${branches.length} สาขา` 
                                 : ((quotation as any).toBranchName || branches[0]?.branchName || "หลายสาขา")}
-                            </p>
+                          </p>
                             {hasMultipleBranches && (
                               <div className="mt-2 space-y-1">
                                 {branches.map((branch, idx) => (
@@ -1009,9 +998,9 @@ export default function DeliveryNotePage() {
                               </div>
                             )}
                             <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                              {currencyFormatter.format(quotation.totalAmount)}
-                            </p>
-                          </button>
+                            {currencyFormatter.format(quotation.totalAmount)}
+                          </p>
+                        </button>
                         );
                       })}
                   </div>
@@ -1326,11 +1315,16 @@ export default function DeliveryNotePage() {
                         onChange={(e) => setFormData({ ...formData, fromBranchId: parseInt(e.target.value) })}
                         className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
                       >
-                        {branches.map((branch) => (
-                          <option key={branch.id} value={branch.id}>
-                            {branch.name}
-                          </option>
-                        ))}
+                        {branches
+                          .sort((a, b) => {
+                            const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                            return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
+                          })
+                          .map((branch) => (
+                            <option key={branch.id} value={branch.id}>
+                              {branch.name}
+                            </option>
+                          ))}
                       </select>
                     </div>
                     <div>
@@ -1343,11 +1337,16 @@ export default function DeliveryNotePage() {
                         className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
                         disabled={!!formData.selectedBranchId}
                       >
-                        {branches.map((branch) => (
-                          <option key={branch.id} value={branch.id}>
-                            {branch.name}
-                          </option>
-                        ))}
+                        {branches
+                          .sort((a, b) => {
+                            const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                            return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
+                          })
+                          .map((branch) => (
+                            <option key={branch.id} value={branch.id}>
+                              {branch.name}
+                            </option>
+                          ))}
                       </select>
                     </div>
                     <div>
@@ -1408,18 +1407,6 @@ export default function DeliveryNotePage() {
                         </div>
                       )}
                     </div>
-                    {formData.transportNo && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                        <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">
-                          รอบส่ง: {formData.transportNo}
-                        </p>
-                        {formData.startOdometer && (
-                          <p className="text-xs text-blue-700 dark:text-blue-400">
-                            เลขไมล์เริ่มต้น: {numberFormatter.format(parseInt(formData.startOdometer))} กม.
-                          </p>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
                 <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-200 dark:border-gray-700">
@@ -1544,22 +1531,6 @@ export default function DeliveryNotePage() {
                             </p>
                           </div>
                         )}
-                        {selectedDeliveryNote.startOdometer && (
-                          <div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">เลขไมล์เริ่มต้น</p>
-                            <p className="font-semibold text-gray-800 dark:text-white">
-                              {numberFormatter.format(selectedDeliveryNote.startOdometer)} กม.
-                            </p>
-                          </div>
-                        )}
-                        {selectedDeliveryNote.endOdometer && (
-                          <div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">เลขไมล์สิ้นสุด</p>
-                            <p className="font-semibold text-gray-800 dark:text-white">
-                              {numberFormatter.format(selectedDeliveryNote.endOdometer)} กม.
-                            </p>
-                          </div>
-                        )}
                       </div>
                     )}
                     <div>
@@ -1598,20 +1569,15 @@ export default function DeliveryNotePage() {
                         <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           ลายเซ็นผู้ส่ง (ต้นทาง)
                         </p>
-                        {selectedDeliveryNote.senderSignature ? (
+                        {selectedDeliveryNote.status === "sent" ? (
                           <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                             <CheckCircle className="h-5 w-5" />
-                            <span>เซ็นแล้ว</span>
-                            {selectedDeliveryNote.senderSignedAt && (
-                              <span className="text-xs text-gray-500">
-                                {new Date(selectedDeliveryNote.senderSignedAt).toLocaleString("th-TH")}
-                              </span>
-                            )}
+                            <span>ส่งแล้ว</span>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2 text-gray-400">
                             <PenTool className="h-5 w-5" />
-                            <span>รอเซ็น</span>
+                            <span>รอส่ง</span>
                           </div>
                         )}
                       </div>
@@ -1619,13 +1585,13 @@ export default function DeliveryNotePage() {
                         <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           ลายเซ็นผู้รับ (ปลายทาง)
                         </p>
-                        {selectedDeliveryNote.receiverSignature ? (
+                        {selectedDeliveryNote.signedBy ? (
                           <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                             <CheckCircle className="h-5 w-5" />
                             <span>เซ็นแล้ว</span>
-                            {selectedDeliveryNote.receiverSignedAt && (
+                            {selectedDeliveryNote.signedAt && (
                               <span className="text-xs text-gray-500">
-                                {new Date(selectedDeliveryNote.receiverSignedAt).toLocaleString("th-TH")}
+                                {new Date(selectedDeliveryNote.signedAt).toLocaleString("th-TH")}
                               </span>
                             )}
                           </div>
@@ -1670,7 +1636,7 @@ export default function DeliveryNotePage() {
                       ลบ
                     </button>
                   )}
-                  {(selectedDeliveryNote.status === "sent" || selectedDeliveryNote.status === "in-transit") && !selectedDeliveryNote.receiverSignature && (
+                  {selectedDeliveryNote.status === "sent" && !selectedDeliveryNote.signedBy && (
                     <button
                       onClick={() => {
                         setShowDetailModal(false);
@@ -1682,7 +1648,7 @@ export default function DeliveryNotePage() {
                       รับของ
                     </button>
                   )}
-                  {selectedDeliveryNote.status === "delivered" && selectedDeliveryNote.receiverSignature && (
+                  {selectedDeliveryNote.status === "delivered" && selectedDeliveryNote.signedBy && (
                     <>
                       {!receipts.find((r) => r.deliveryNoteNo === selectedDeliveryNote.deliveryNoteNo) ? (
                         <button
@@ -1712,16 +1678,16 @@ export default function DeliveryNotePage() {
                       )}
                     </>
                   )}
-                  {(!selectedDeliveryNote.senderSignature || !selectedDeliveryNote.receiverSignature) && selectedDeliveryNote.status !== "delivered" && (
+                  {!selectedDeliveryNote.signedBy && selectedDeliveryNote.status !== "delivered" && (
                     <button
                       onClick={() => {
-                        setIsReceiverSign(!selectedDeliveryNote.senderSignature);
+                        setIsReceiverSign(true);
                         setShowSignModal(true);
                       }}
                       className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
                     >
                       <PenTool className="w-4 h-4" />
-                      {!selectedDeliveryNote.senderSignature ? "เซ็นส่ง" : "เซ็นรับ"}
+                      เซ็นรับ
                     </button>
                   )}
                   <button className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2">

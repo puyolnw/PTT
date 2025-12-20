@@ -10,7 +10,7 @@ interface StartTripModalProps {
     order: TruckOrder;
     lastOdometerReading?: number;
     lastOdometerDate?: string;
-    onStartTrip: (startOdometer: number, startTime: string, photo?: string) => void;
+    onStartTrip: (startOdometer: number, startTime: string, photo?: string, startFuel?: number) => void;
 }
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -27,6 +27,7 @@ export default function StartTripModal({
 }: StartTripModalProps) {
     const [startOdometer, setStartOdometer] = useState("");
     const [startTime, setStartTime] = useState("");
+    const [startFuel, setStartFuel] = useState("");
     const [photo, setPhoto] = useState<string>("");
     const [error, setError] = useState<string>("");
 
@@ -43,9 +44,15 @@ export default function StartTripModal({
 
     const handleSubmit = () => {
         const odometerValue = parseFloat(startOdometer);
+        const fuelValue = startFuel ? parseFloat(startFuel) : undefined;
 
         if (!startOdometer || isNaN(odometerValue)) {
             setError("กรุณากรอกเลขไมล์เริ่มต้น");
+            return;
+        }
+
+        if (startFuel && isNaN(fuelValue!)) {
+            setError("กรุณากรอกจำนวนน้ำมันที่ถูกต้อง");
             return;
         }
 
@@ -57,7 +64,7 @@ export default function StartTripModal({
         }
 
         // Call parent handler
-        onStartTrip(odometerValue, startTime, photo);
+        onStartTrip(odometerValue, startTime, photo, fuelValue);
         onClose();
     };
 
@@ -174,6 +181,28 @@ export default function StartTripModal({
                                 />
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                     ดูจากหน้าปัดรถและกรอกเลขไมล์ที่แสดง
+                                </p>
+                            </div>
+
+                            {/* Start Fuel */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    ⛽ น้ำมันตอนเริ่มต้น (ลิตร)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={startFuel}
+                                    onChange={(e) => {
+                                        setStartFuel(e.target.value);
+                                        setError("");
+                                    }}
+                                    placeholder="กรอกจำนวนน้ำมันในถังตอนเริ่มต้น"
+                                    className="w-full px-4 py-3 text-lg border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    min="0"
+                                    step="0.1"
+                                />
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    ดูจากหน้าปัดน้ำมันและกรอกจำนวนน้ำมันที่แสดง (ลิตร)
                                 </p>
                             </div>
 

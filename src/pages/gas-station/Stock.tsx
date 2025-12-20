@@ -57,10 +57,10 @@ type StockItem = {
 
 // Mock data - ทั้ง 5 ปั๊ม (ข้อมูลตามรูปภาพ)
 const mockStockData: StockItem[] = [
-  // ตาก (ปตท. ตักสิดา) - 7 หลุม ตามรูปภาพที่ 1
+  // ตักสิลา (ปตท. ตักสิดา) - 7 หลุม ตามรูปภาพที่ 1
   {
     id: "STK-301",
-    branch: "ตาก",
+    branch: "ตักสิลา",
     tankNumber: 1,
     oilType: "Gasohol 95", // 695
     currentStock: 18000,
@@ -75,7 +75,7 @@ const mockStockData: StockItem[] = [
   },
   {
     id: "STK-302",
-    branch: "ตาก",
+    branch: "ตักสิลา",
     tankNumber: 2,
     oilType: "Gasohol 91", // 691
     currentStock: 19000,
@@ -90,7 +90,7 @@ const mockStockData: StockItem[] = [
   },
   {
     id: "STK-303",
-    branch: "ตาก",
+    branch: "ตักสิลา",
     tankNumber: 3,
     oilType: "Diesel", // HSD
     currentStock: 17000,
@@ -105,7 +105,7 @@ const mockStockData: StockItem[] = [
   },
   {
     id: "STK-304",
-    branch: "ตาก",
+    branch: "ตักสิลา",
     tankNumber: 4,
     oilType: "E85",
     currentStock: 9000,
@@ -120,7 +120,7 @@ const mockStockData: StockItem[] = [
   },
   {
     id: "STK-305",
-    branch: "ตาก",
+    branch: "ตักสิลา",
     tankNumber: 5,
     oilType: "Premium Diesel", // HSP
     currentStock: 7500,
@@ -135,7 +135,7 @@ const mockStockData: StockItem[] = [
   },
   {
     id: "STK-306",
-    branch: "ตาก",
+    branch: "ตักสิลา",
     tankNumber: 6,
     oilType: "E20",
     currentStock: 17000,
@@ -150,7 +150,7 @@ const mockStockData: StockItem[] = [
   },
   {
     id: "STK-307",
-    branch: "ตาก",
+    branch: "ตักสิลา",
     tankNumber: 7,
     oilType: "Premium Gasohol 95", // 695P
     currentStock: 13000,
@@ -318,80 +318,155 @@ const mockStockData: StockItem[] = [
     daysRemaining: 5,
   },
 
-  // ปั๊มไฮโซ - 5 หลุม ตามรูปภาพที่ 4
+  // ปั๊มไฮโซ - 10 หลุม ตามรูปภาพ
   {
     id: "STK-001",
     branch: "ปั๊มไฮโซ",
     tankNumber: 1,
-    oilType: "Gasohol 95", // G95
-    currentStock: 18000,
+    oilType: "Diesel", // ดีเซล
+    currentStock: 15000,
     minThreshold: 4000,
     maxCapacity: 20000,
     status: "normal",
     lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 41.49,
-    totalValue: 746820,
-    averageDailySales: 3600,
+    pricePerLiter: 32.49,
+    totalValue: 487350,
+    averageDailySales: 3000,
     daysRemaining: 5,
   },
   {
     id: "STK-002",
     branch: "ปั๊มไฮโซ",
     tankNumber: 2,
-    oilType: "Premium Diesel", // HSP
-    currentStock: 7500,
-    minThreshold: 2000,
-    maxCapacity: 10000,
+    oilType: "Diesel", // ดีเซล
+    currentStock: 18000,
+    minThreshold: 4000,
+    maxCapacity: 20000,
     status: "normal",
     lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 33.49,
-    totalValue: 251175,
-    averageDailySales: 1500,
+    pricePerLiter: 32.49,
+    totalValue: 584820,
+    averageDailySales: 3600,
     daysRemaining: 5,
   },
   {
     id: "STK-003",
     branch: "ปั๊มไฮโซ",
     tankNumber: 3,
-    oilType: "E20",
-    currentStock: 8300,
+    oilType: "Premium Diesel", // ดีเซลพรีเมี่ยม
+    currentStock: 8000,
     minThreshold: 2000,
     maxCapacity: 10000,
     status: "normal",
     lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 36.90,
-    totalValue: 306270,
-    averageDailySales: 1660,
+    pricePerLiter: 33.49,
+    totalValue: 267920,
+    averageDailySales: 1600,
     daysRemaining: 5,
   },
   {
     id: "STK-004",
     branch: "ปั๊มไฮโซ",
     tankNumber: 4,
-    oilType: "Diesel", // HSD
-    currentStock: 17000,
-    minThreshold: 4000,
-    maxCapacity: 20000,
+    oilType: "Gasohol 91", // แก๊ส 91
+    currentStock: 7500,
+    minThreshold: 2000,
+    maxCapacity: 10000,
     status: "normal",
     lastUpdated: "2024-12-15 18:30",
-    pricePerLiter: 32.49,
-    totalValue: 552330,
-    averageDailySales: 3400,
+    pricePerLiter: 38.49,
+    totalValue: 288675,
+    averageDailySales: 1500,
     daysRemaining: 5,
   },
   {
     id: "STK-005",
     branch: "ปั๊มไฮโซ",
     tankNumber: 5,
-    oilType: "Gasohol 91", // G91
-    currentStock: 19000,
-    minThreshold: 4000,
-    maxCapacity: 20000,
+    oilType: "E20", // อี 20
+    currentStock: 8500,
+    minThreshold: 2000,
+    maxCapacity: 10000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 36.90,
+    totalValue: 313650,
+    averageDailySales: 1700,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-006",
+    branch: "ปั๊มไฮโซ",
+    tankNumber: 6,
+    oilType: "Gasohol 95", // แก๊ส 95
+    currentStock: 8000,
+    minThreshold: 2000,
+    maxCapacity: 10000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 41.49,
+    totalValue: 331920,
+    averageDailySales: 1600,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-007",
+    branch: "ปั๊มไฮโซ",
+    tankNumber: 7,
+    oilType: "E85", // อี 85
+    currentStock: 6000,
+    minThreshold: 2000,
+    maxCapacity: 10000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 34.49,
+    totalValue: 206940,
+    averageDailySales: 1200,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-008",
+    branch: "ปั๊มไฮโซ",
+    tankNumber: 8,
+    oilType: "Gasohol 91", // แก๊ส 91
+    currentStock: 8000,
+    minThreshold: 2000,
+    maxCapacity: 10000,
     status: "normal",
     lastUpdated: "2024-12-15 18:30",
     pricePerLiter: 38.49,
-    totalValue: 731310,
-    averageDailySales: 3800,
+    totalValue: 307920,
+    averageDailySales: 1600,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-009",
+    branch: "ปั๊มไฮโซ",
+    tankNumber: 9,
+    oilType: "Premium Gasohol 95", // แก๊ส 95 พรีเมี่ยม
+    currentStock: 7500,
+    minThreshold: 2000,
+    maxCapacity: 10000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 46.49,
+    totalValue: 348675,
+    averageDailySales: 1500,
+    daysRemaining: 5,
+  },
+  {
+    id: "STK-010",
+    branch: "ปั๊มไฮโซ",
+    tankNumber: 10,
+    oilType: "E20", // อี 20
+    currentStock: 8000,
+    minThreshold: 2000,
+    maxCapacity: 10000,
+    status: "normal",
+    lastUpdated: "2024-12-15 18:30",
+    pricePerLiter: 36.90,
+    totalValue: 295200,
+    averageDailySales: 1600,
     daysRemaining: 5,
   },
 
@@ -574,9 +649,9 @@ export default function Stock() {
       return matchesSearch && matchesBranch && matchesOilType && matchesStatus;
     })
     .sort((a, b) => {
-      // เรียงตามสาขา (ไฮโซ -> ดินดำ -> หนองจิก -> ตาก -> บายพาส -> มายมาส) แล้วตามหลุม
+      // เรียงตามสาขา (ไฮโซ -> ดินดำ -> หนองจิก -> ตักสิลา -> บายพาส -> มายมาส) แล้วตามหลุม
       if (a.branch !== b.branch) {
-        const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตาก", "บายพาส", "มายมาส"];
+        const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส", "มายมาส"];
         return branchOrder.indexOf(a.branch) - branchOrder.indexOf(b.branch);
       }
       return a.tankNumber - b.tankNumber;
@@ -751,12 +826,12 @@ export default function Stock() {
           className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
         >
           <option>ทั้งหมด</option>
-          <option>ตาก</option>
-          <option>ดินดำ</option>
-          <option>มายมาส</option>
           <option>ปั๊มไฮโซ</option>
+          <option>ดินดำ</option>
           <option>หนองจิก</option>
+          <option>ตักสิลา</option>
           <option>บายพาส</option>
+          <option>มายมาส</option>
         </select>
         <select
           value={selectedOilType}
@@ -1094,7 +1169,7 @@ export default function Stock() {
                       <tbody>
                         {mockStockData
                           .sort((a, b) => {
-                            const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตาก", "บายพาส", "มายมาส"];
+                            const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส", "มายมาส"];
                             if (a.branch !== b.branch) {
                               return branchOrder.indexOf(a.branch) - branchOrder.indexOf(b.branch);
                             }

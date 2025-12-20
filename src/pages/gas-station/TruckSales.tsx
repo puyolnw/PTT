@@ -3,18 +3,19 @@ import { useState, useMemo } from "react";
 import {
   Truck,
   Search,
-  Droplet,
   Building2,
-  MapPin,
   DollarSign,
-  Calendar,
   AlertTriangle,
   X,
   Save,
-  Filter,
-  Download,
   TrendingUp,
+  FileText,
+  User,
+  MapPin,
+  Droplet,
 } from "lucide-react";
+import { useGasStation } from "@/contexts/GasStationContext";
+import type { DeliveryNote, Receipt, OilType } from "@/types/gasStation";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -26,146 +27,181 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
-// Mock data - สาขาทั้ง 5 แห่ง
-const branches = [
-  { id: 1, name: "ปั๊มไฮโซ", code: "HQ", address: "100 ถนนเพชรบุรี กรุงเทพมหานคร 10400" },
-  { id: 2, name: "สาขา 2", code: "B2", address: "456 ถนนพหลโยธิน กรุงเทพมหานคร 10400" },
-  { id: 3, name: "สาขา 3", code: "B3", address: "789 ถนนรัชดาภิเษก กรุงเทพมหานคร 10320" },
-  { id: 4, name: "สาขา 4", code: "B4", address: "123 ถนนสุขุมวิท กรุงเทพมหานคร 10110" },
-  { id: 5, name: "สาขา 5", code: "B5", address: "321 ถนนสีลม กรุงเทพมหานคร 10500" },
-];
+// const dateFormatter = new Intl.DateTimeFormat("th-TH", {
+//   year: "numeric",
+//   month: "short",
+//   day: "numeric",
+// });
 
-// ราคาต่อลิตรของแต่ละชนิดน้ำมัน
-const oilPrices: Record<string, number> = {
-  "Premium Diesel": 33.49,
-  "Premium Gasohol 95": 41.49,
-  "Diesel": 32.49,
-  "E85": 28.99,
-  "E20": 35.99,
-  "Gasohol 91": 38.99,
-  "Gasohol 95": 40.99,
-};
+// ราคาต่อลิตรของแต่ละชนิดน้ำมัน - ไม่ได้ใช้
+// const oilPrices: Record<OilType, number> = {
+//   "Premium Diesel": 33.49,
+//   "Premium Gasohol 95": 41.49,
+//   "Diesel": 32.49,
+//   "E85": 28.99,
+//   "E20": 35.99,
+//   "Gasohol 91": 38.99,
+//   "Gasohol 95": 40.99,
+//   "Gasohol E20": 35.99,
+// };
 
-// Interface สำหรับน้ำมันที่เหลือบนรถ
+// Interface สำหรับน้ำมันที่เหลือบนรถ (ดึงจาก Transport Orders)
 interface TruckOilItem {
   id: string;
-  branchId: number;
-  branchName: string;
-  oilType: string;
+  transportNo: string;
+  transportType: "internal" | "external"; // ภายในปั๊ม หรือ รับจาก PTT
+  fromBranchId: number;
+  fromBranchName: string;
+  oilType: OilType;
   quantityOnTruck: number; // จำนวนที่เหลือบนรถ (ลิตร)
-  orderNo: string;
+  originalQuantity: number; // จำนวนเดิมทั้งหมด
+  orderNo: string; // Internal Order No หรือ Purchase Order No
   orderDate: string;
-  expectedDeliveryDate: string;
+  truckPlateNumber: string;
+  trailerPlateNumber?: string;
+  driverName: string;
   daysOnTruck: number;
   status: "available" | "sold" | "partial";
+  pricePerLiter: number;
 }
 
-// Mock data - น้ำมันที่เหลือบนรถ
-const mockTruckOilItems: TruckOilItem[] = [
-  {
-    id: "TRUCK-001",
-    branchId: 1,
-    branchName: "ปั๊มไฮโซ",
+// Mock data - น้ำมันที่เหลือบนรถ (ในระบบจริงจะดึงจาก InternalTransport และ TruckOrders)
+// สมมติว่ามี transport orders ที่ยังไม่ส่งเสร็จ
+const generateTruckOilItems = (): TruckOilItem[] => {
+  // const today = new Date();
+  const items: TruckOilItem[] = [];
+
+  // ตัวอย่างข้อมูลจาก Internal Transport
+  items.push({
+    id: "TRUCK-INT-001",
+    transportNo: "IT-20241215-001",
+    transportType: "internal",
+    fromBranchId: 1,
+    fromBranchName: "ปั๊มไฮโซ",
     oilType: "Premium Diesel",
     quantityOnTruck: 5000,
-    orderNo: "SO-20241215-001",
+    originalQuantity: 10000,
+    orderNo: "IO-20241215-002",
     orderDate: "2024-12-15",
-    expectedDeliveryDate: "2024-12-16",
+    truckPlateNumber: "กก 1111",
+    trailerPlateNumber: "กข 1234",
+    driverName: "สมศักดิ์ ขับรถ",
     daysOnTruck: 1,
     status: "available",
-  },
-  {
-    id: "TRUCK-002",
-    branchId: 1,
-    branchName: "ปั๊มไฮโซ",
+    pricePerLiter: 33.49,
+  });
+
+  items.push({
+    id: "TRUCK-INT-002",
+    transportNo: "IT-20241215-001",
+    transportType: "internal",
+    fromBranchId: 1,
+    fromBranchName: "ปั๊มไฮโซ",
     oilType: "Gasohol 95",
     quantityOnTruck: 3000,
-    orderNo: "SO-20241215-001",
+    originalQuantity: 5000,
+    orderNo: "IO-20241215-002",
     orderDate: "2024-12-15",
-    expectedDeliveryDate: "2024-12-16",
+    truckPlateNumber: "กก 1111",
+    trailerPlateNumber: "กข 1234",
+    driverName: "สมศักดิ์ ขับรถ",
     daysOnTruck: 1,
     status: "available",
-  },
-  {
-    id: "TRUCK-003",
-    branchId: 2,
-    branchName: "สาขา 2",
+    pricePerLiter: 40.99,
+  });
+
+  // ตัวอย่างข้อมูลจาก External Transport (PTT)
+  items.push({
+    id: "TRUCK-EXT-001",
+    transportNo: "TP-20241214-002",
+    transportType: "external",
+    fromBranchId: 1,
+    fromBranchName: "ปั๊มไฮโซ",
     oilType: "Diesel",
     quantityOnTruck: 8000,
+    originalQuantity: 20000,
     orderNo: "SO-20241214-002",
     orderDate: "2024-12-14",
-    expectedDeliveryDate: "2024-12-15",
+    truckPlateNumber: "กก 2222",
+    trailerPlateNumber: "กข 5678",
+    driverName: "วิชัย รักงาน",
     daysOnTruck: 2,
     status: "available",
-  },
-  {
-    id: "TRUCK-004",
-    branchId: 3,
-    branchName: "สาขา 3",
-    oilType: "Premium Gasohol 95",
-    quantityOnTruck: 4500,
-    orderNo: "SO-20241213-003",
-    orderDate: "2024-12-13",
-    expectedDeliveryDate: "2024-12-14",
-    daysOnTruck: 3,
-    status: "available",
-  },
-  {
-    id: "TRUCK-005",
-    branchId: 4,
-    branchName: "สาขา 4",
-    oilType: "E20",
-    quantityOnTruck: 2000,
-    orderNo: "SO-20241212-004",
-    orderDate: "2024-12-12",
-    expectedDeliveryDate: "2024-12-13",
-    daysOnTruck: 4,
-    status: "partial",
-  },
-  {
-    id: "TRUCK-006",
-    branchId: 5,
-    branchName: "สาขา 5",
-    oilType: "Gasohol 91",
-    quantityOnTruck: 3500,
-    orderNo: "SO-20241211-005",
-    orderDate: "2024-12-11",
-    expectedDeliveryDate: "2024-12-12",
-    daysOnTruck: 5,
-    status: "available",
-  },
-];
+    pricePerLiter: 32.49,
+  });
+
+  return items;
+};
 
 export default function TruckSales() {
-  const [truckItems, setTruckItems] = useState<TruckOilItem[]>(mockTruckOilItems);
-  const [selectedBranch, setSelectedBranch] = useState<number | "all">("all");
+  const {
+    branches,
+    // deliveryNotes,
+    // receipts,
+    createDeliveryNote,
+    createReceipt,
+    getNextRunningNumber,
+    incrementRunningNumber,
+    getBranchById,
+  } = useGasStation();
+
+  const [truckItems, setTruckItems] = useState<TruckOilItem[]>(generateTruckOilItems());
+  const [filterBranch, setFilterBranch] = useState<number | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
+  const [filterTransportType, setFilterTransportType] = useState<"all" | "internal" | "external">("all");
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<TruckOilItem | null>(null);
   const [saleQuantity, setSaleQuantity] = useState("");
   const [salePrice, setSalePrice] = useState("");
   const [saleToBranch, setSaleToBranch] = useState<number | "">("");
 
-  // กรองข้อมูลตามสาขาและ search term
+  // Helper function to check if date is in range
+  const isDateInRange = (dateStr: string, from: string, to: string) => {
+    if (!from && !to) return true;
+    const date = new Date(dateStr);
+    const fromDate = from ? new Date(from) : null;
+    const toDate = to ? new Date(to) : null;
+
+    if (fromDate && toDate) {
+      fromDate.setHours(0, 0, 0, 0);
+      toDate.setHours(23, 59, 59, 999);
+      return date >= fromDate && date <= toDate;
+    } else if (fromDate) {
+      fromDate.setHours(0, 0, 0, 0);
+      return date >= fromDate;
+    } else if (toDate) {
+      toDate.setHours(23, 59, 59, 999);
+      return date <= toDate;
+    }
+    return true;
+  };
+
+  // กรองข้อมูล
   const filteredItems = useMemo(() => {
     return truckItems.filter((item) => {
-      const matchesBranch = selectedBranch === "all" || item.branchId === selectedBranch;
+      const matchesBranch = filterBranch === "all" || item.fromBranchId === filterBranch;
       const matchesSearch =
         item.oilType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.branchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.orderNo.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesBranch && matchesSearch;
+        item.fromBranchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.orderNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.transportNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.truckPlateNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesDate = isDateInRange(item.orderDate, filterDateFrom, filterDateTo);
+      const matchesTransportType = filterTransportType === "all" || item.transportType === filterTransportType;
+      return matchesBranch && matchesSearch && matchesDate && matchesTransportType;
     });
-  }, [truckItems, selectedBranch, searchTerm]);
+  }, [truckItems, filterBranch, searchTerm, filterDateFrom, filterDateTo, filterTransportType]);
 
   // คำนวณสรุปข้อมูล
   const summary = useMemo(() => {
     const totalQuantity = filteredItems.reduce((sum, item) => sum + item.quantityOnTruck, 0);
     const totalValue = filteredItems.reduce(
-      (sum, item) => sum + item.quantityOnTruck * (oilPrices[item.oilType] || 0),
+      (sum, item) => sum + item.quantityOnTruck * item.pricePerLiter,
       0
     );
-    const totalBranches = new Set(filteredItems.map((item) => item.branchId)).size;
+    const totalBranches = new Set(filteredItems.map((item) => item.fromBranchId)).size;
     const totalItems = filteredItems.length;
 
     return {
@@ -179,10 +215,22 @@ export default function TruckSales() {
   const handleOpenSaleModal = (item: TruckOilItem) => {
     setSelectedItem(item);
     setSaleQuantity("");
-    setSalePrice((oilPrices[item.oilType] || 0).toString());
+    setSalePrice(item.pricePerLiter.toString());
     setSaleToBranch("");
     setShowSaleModal(true);
   };
+
+  // คำนวณ VAT
+  const calculateVAT = (amount: number, vatRate: number = 7) => {
+    const beforeVat = amount / (1 + vatRate / 100);
+    const vat = amount - beforeVat;
+    return {
+      beforeVat: Math.round(beforeVat * 100) / 100,
+      vat: Math.round(vat * 100) / 100,
+      total: amount,
+    };
+  };
+
 
   const handleSale = () => {
     if (!selectedItem || !saleQuantity || !salePrice || !saleToBranch) {
@@ -208,11 +256,82 @@ export default function TruckSales() {
       return;
     }
 
-    const newQuantity = selectedItem.quantityOnTruck - quantity;
-    const totalAmount = quantity * price;
-    const targetBranch = branches.find((b) => b.id === saleToBranch);
+    const toBranch = getBranchById(saleToBranch);
+    if (!toBranch) {
+      alert("ไม่พบข้อมูลสาขาที่เลือก");
+      return;
+    }
 
-    // อัพเดตสถานะ
+    const totalAmount = quantity * price;
+    const { beforeVat, vat } = calculateVAT(totalAmount, 7);
+
+    // สร้าง Delivery Note (ใบส่งของ)
+    const deliveryNoteNo = getNextRunningNumber("delivery-note");
+    incrementRunningNumber("delivery-note");
+
+    const newDeliveryNote: DeliveryNote = {
+      id: `DN-${Date.now()}`,
+      deliveryNoteNo,
+      deliveryDate: new Date().toISOString().split("T")[0],
+      fromBranchId: selectedItem.fromBranchId,
+      fromBranchName: selectedItem.fromBranchName,
+      toBranchId: saleToBranch,
+      toBranchName: toBranch.name,
+      items: [
+        {
+          id: `item-${Date.now()}`,
+          oilType: selectedItem.oilType,
+          quantity: quantity,
+          pricePerLiter: price,
+          totalAmount: totalAmount,
+        },
+      ],
+      totalAmount: totalAmount,
+      truckPlateNumber: selectedItem.truckPlateNumber,
+      driverName: selectedItem.driverName,
+      status: "sent",
+      createdAt: new Date().toISOString(),
+      createdBy: "ระบบ",
+    };
+
+    createDeliveryNote(newDeliveryNote);
+
+    // สร้าง Receipt (ใบรับของ/ใบเสร็จ)
+    const receiptNo = getNextRunningNumber("receipt");
+    incrementRunningNumber("receipt");
+
+    const newReceipt: Receipt = {
+      id: `REC-${Date.now()}`,
+      receiptNo,
+      receiptDate: new Date().toISOString().split("T")[0],
+      deliveryNoteNo,
+      customerName: toBranch.name,
+      customerAddress: toBranch.address,
+      customerTaxId: "",
+      items: [
+        {
+          id: `item-${Date.now()}`,
+          oilType: selectedItem.oilType,
+          quantity: quantity,
+          pricePerLiter: price,
+          totalAmount: totalAmount,
+        },
+      ],
+      totalAmount: beforeVat,
+      vatAmount: vat,
+      grandTotal: totalAmount,
+      documentType: "ใบเสร็จรับเงิน",
+      status: "issued",
+      issuedAt: new Date().toISOString(),
+      issuedBy: "ระบบ",
+      createdAt: new Date().toISOString(),
+      createdBy: "ระบบ",
+    };
+
+    createReceipt(newReceipt);
+
+    // อัพเดตจำนวนน้ำมันที่เหลือบนรถ
+    const newQuantity = selectedItem.quantityOnTruck - quantity;
     setTruckItems((prev) =>
       prev.map((item) =>
         item.id === selectedItem.id
@@ -226,7 +345,7 @@ export default function TruckSales() {
     );
 
     alert(
-      `บันทึกการขายสำเร็จ!\n\nสาขาที่ขาย: ${selectedItem.branchName}\nขายให้สาขา: ${targetBranch?.name || "ไม่ระบุ"}\nประเภทน้ำมัน: ${selectedItem.oilType}\nจำนวน: ${numberFormatter.format(quantity)} ลิตร\nราคาต่อลิตร: ${price.toFixed(2)} บาท\nยอดรวม: ${currencyFormatter.format(totalAmount)}`
+      `บันทึกการขายสำเร็จ!\n\nใบส่งของ: ${deliveryNoteNo}\nใบเสร็จ: ${receiptNo}\n\nสาขาที่ขาย: ${selectedItem.fromBranchName}\nขายให้สาขา: ${toBranch.name}\nประเภทน้ำมัน: ${selectedItem.oilType}\nจำนวน: ${numberFormatter.format(quantity)} ลิตร\nราคาต่อลิตร: ${price.toFixed(2)} บาท\nยอดรวม: ${currencyFormatter.format(totalAmount)}`
     );
 
     setShowSaleModal(false);
@@ -252,7 +371,7 @@ export default function TruckSales() {
           <div>
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-1">ขายน้ำมันที่เหลือบนรถ</h1>
             <p className="text-gray-600 dark:text-gray-400">
-              บันทึกการขายน้ำมันที่เหลืออยู่บนรถของแต่ละสาขา
+              บันทึกการขายน้ำมันที่เหลืออยู่บนรถระหว่างสาขา พร้อมออกใบส่งของและใบรับของอัตโนมัติ
             </p>
           </div>
         </div>
@@ -307,12 +426,16 @@ export default function TruckSales() {
           >
             <div className="p-5">
               <div className="flex items-center justify-between mb-3">
-                <div className={`w-14 h-14 ${stat.iconColor} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                <div
+                  className={`w-14 h-14 ${stat.iconColor} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                >
                   <stat.icon className="w-7 h-7 text-white" />
                 </div>
               </div>
               <div>
-                <h6 className="text-gray-600 dark:text-gray-400 text-xs font-semibold mb-1 uppercase tracking-wide">{stat.title}</h6>
+                <h6 className="text-gray-600 dark:text-gray-400 text-xs font-semibold mb-1 uppercase tracking-wide">
+                  {stat.title}
+                </h6>
                 <h6 className="text-gray-800 dark:text-white text-3xl font-extrabold mb-1">{stat.value}</h6>
                 <p className="text-gray-500 dark:text-gray-500 text-xs">{stat.subtitle}</p>
               </div>
@@ -328,38 +451,83 @@ export default function TruckSales() {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 mb-6"
       >
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
+        <div className="space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="ค้นหาประเภทน้ำมัน, สาขา, เลขที่ใบสั่งซื้อ..."
+              placeholder="ค้นหาประเภทน้ำมัน, สาขา, เลขที่ใบสั่งซื้อ, เลขขนส่ง, ทะเบียนรถ..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
             />
           </div>
+
+          {/* Filter Options */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <select
-            value={selectedBranch}
-            onChange={(e) => setSelectedBranch(e.target.value === "all" ? "all" : parseInt(e.target.value))}
+              value={filterBranch}
+              onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : parseInt(e.target.value))}
             className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
           >
             <option value="all">ทุกสาขา</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
+            {branches
+              .sort((a, b) => {
+                const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
+              })
+              .map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
           </select>
-          <div className="flex items-center gap-3">
-            <button className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Filter className="w-4 h-4" />
-              กรอง
+
+            <select
+              value={filterTransportType}
+              onChange={(e) =>
+                setFilterTransportType(e.target.value as "all" | "internal" | "external")
+              }
+              className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
+            >
+              <option value="all">ทุกประเภท</option>
+              <option value="internal">ส่งภายในปั๊ม</option>
+              <option value="external">รับจากปั๊ม PTT ใหญ่</option>
+            </select>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => setFilterDateFrom(e.target.value)}
+                className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
+                title="วันที่เริ่มต้น"
+              />
+              <span className="text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">ถึง</span>
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => setFilterDateTo(e.target.value)}
+                className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
+                title="วันที่สิ้นสุด"
+              />
+            </div>
+
+            {(filterDateFrom || filterDateTo || searchTerm || filterBranch !== "all" || filterTransportType !== "all") && (
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  setFilterBranch("all");
+                  setFilterDateFrom("");
+                  setFilterDateTo("");
+                  setFilterTransportType("all");
+                }}
+                className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
+              >
+                ล้างตัวกรอง
             </button>
-            <button className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Download className="w-4 h-4" />
-              Export
-            </button>
+            )}
           </div>
         </div>
       </motion.div>
@@ -379,7 +547,7 @@ export default function TruckSales() {
                 รายการน้ำมันที่เหลือบนรถ
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                น้ำมันที่ยังไม่ได้ลงที่สาขาและสามารถขายได้
+                น้ำมันที่ยังไม่ได้ลงที่สาขาและสามารถขายให้สาขาอื่นได้
               </p>
             </div>
           </div>
@@ -400,32 +568,55 @@ export default function TruckSales() {
                     ประเภทน้ำมัน
                   </div>
                 </th>
-                <th className="text-right py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">เหลือบนรถ (ลิตร)</th>
-                <th className="text-right py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">ราคาต่อลิตร</th>
-                <th className="text-right py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">มูลค่า</th>
+                <th className="text-right py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  เหลือบนรถ (ลิตร)
+                </th>
+                <th className="text-right py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  ราคาต่อลิตร
+                </th>
+                <th className="text-right py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  มูลค่า
+                </th>
                 <th className="text-left py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    เลขที่ใบสั่งซื้อ
+                    <FileText className="w-4 h-4" />
+                    เลขขนส่ง
                   </div>
                 </th>
-                <th className="text-center py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">ค้าง (วัน)</th>
-                <th className="text-center py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">สถานะ</th>
-                <th className="text-center py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">จัดการ</th>
+                <th className="text-left py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-4 h-4" />
+                    ทะเบียนรถ
+                  </div>
+                </th>
+                <th className="text-left py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    คนขับ
+                  </div>
+                </th>
+                <th className="text-center py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  ค้าง (วัน)
+                </th>
+                <th className="text-center py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  สถานะ
+                </th>
+                <th className="text-center py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  จัดการ
+                </th>
               </tr>
             </thead>
             <tbody>
               {filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center">
+                  <td colSpan={11} className="py-12 text-center">
                     <Truck className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 dark:text-gray-400">ไม่พบข้อมูลน้ำมันที่เหลือบนรถ</p>
                   </td>
                 </tr>
               ) : (
                 filteredItems.map((item, index) => {
-                  const price = oilPrices[item.oilType] || 0;
-                  const totalValue = item.quantityOnTruck * price;
+                  const totalValue = item.quantityOnTruck * item.pricePerLiter;
                   const isOverdue = item.daysOnTruck > 3;
 
                   return (
@@ -443,7 +634,20 @@ export default function TruckSales() {
                           <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
                             <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           </div>
-                          <span className="text-sm font-semibold text-gray-800 dark:text-white">{item.branchName}</span>
+                          <div>
+                            <span className="text-sm font-semibold text-gray-800 dark:text-white block">
+                              {item.fromBranchName}
+                            </span>
+                            <span
+                              className={`text-xs ${
+                                item.transportType === "internal"
+                                  ? "text-purple-600 dark:text-purple-400"
+                                  : "text-blue-600 dark:text-blue-400"
+                              }`}
+                            >
+                              {item.transportType === "internal" ? "ส่งภายในปั๊ม" : "รับจาก PTT"}
+                            </span>
+                          </div>
                         </div>
                       </td>
                       <td className="py-4 px-6">
@@ -461,7 +665,7 @@ export default function TruckSales() {
                       </td>
                       <td className="py-4 px-6 text-sm text-right">
                         <span className="font-semibold text-gray-800 dark:text-white">
-                          {price.toFixed(2)}
+                          {item.pricePerLiter.toFixed(2)}
                         </span>
                       </td>
                       <td className="py-4 px-6 text-sm text-right">
@@ -471,26 +675,47 @@ export default function TruckSales() {
                       </td>
                       <td className="py-4 px-6 text-sm">
                         <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-700 dark:text-gray-300">{item.orderNo}</span>
+                          <FileText className="w-4 h-4 text-gray-400" />
+                          <span className="text-gray-700 dark:text-gray-300">{item.transportNo}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-gray-400" />
+                          <span className="text-gray-700 dark:text-gray-300">{item.truckPlateNumber}</span>
+                          {item.trailerPlateNumber && (
+                            <span className="text-gray-500 dark:text-gray-400">/ {item.trailerPlateNumber}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-sm">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-gray-400" />
+                          <span className="text-gray-700 dark:text-gray-300">{item.driverName}</span>
                         </div>
                       </td>
                       <td className="py-4 px-6 text-sm text-center">
                         <div className="flex items-center justify-center gap-1">
-                          <span className={`font-semibold ${isOverdue ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-400"}`}>
+                          <span
+                            className={`font-semibold ${
+                              isOverdue ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-400"
+                            }`}
+                          >
                             {item.daysOnTruck} วัน
                           </span>
                           {isOverdue && <AlertTriangle className="w-4 h-4 text-red-500" />}
                         </div>
                       </td>
                       <td className="py-4 px-6 text-center">
-                        <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                        <span
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
                           item.status === "sold"
                             ? "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600"
                             : item.status === "partial"
                             ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800"
                             : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800"
-                        }`}>
+                          }`}
+                        >
                           {item.status === "sold" ? "ขายหมดแล้ว" : item.status === "partial" ? "ขายบางส่วน" : "พร้อมขาย"}
                         </span>
                       </td>
@@ -541,7 +766,7 @@ export default function TruckSales() {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">ขายน้ำมันบนรถ</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{selectedItem.branchName}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{selectedItem.fromBranchName}</p>
                     </div>
                   </div>
                   <button
@@ -557,7 +782,9 @@ export default function TruckSales() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600 dark:text-gray-400">สาขาที่ขาย:</span>
-                        <span className="text-sm font-semibold text-gray-800 dark:text-white">{selectedItem.branchName}</span>
+                        <span className="text-sm font-semibold text-gray-800 dark:text-white">
+                          {selectedItem.fromBranchName}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600 dark:text-gray-400">ประเภทน้ำมัน:</span>
@@ -572,7 +799,13 @@ export default function TruckSales() {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600 dark:text-gray-400">ราคาต่อลิตร:</span>
                         <span className="text-sm font-semibold text-gray-800 dark:text-white">
-                          {oilPrices[selectedItem.oilType]?.toFixed(2) || "0.00"} บาท
+                          {selectedItem.pricePerLiter.toFixed(2)} บาท
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">เลขขนส่ง:</span>
+                        <span className="text-sm font-semibold text-gray-800 dark:text-white">
+                          {selectedItem.transportNo}
                         </span>
                       </div>
                     </div>
@@ -591,11 +824,17 @@ export default function TruckSales() {
                       className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
                     >
                       <option value="">เลือกสาขา</option>
-                      {branches.map((branch) => (
-                        <option key={branch.id} value={branch.id}>
-                          {branch.name}
-                        </option>
-                      ))}
+                      {branches
+                        .filter((b) => b.id !== selectedItem.fromBranchId)
+                        .sort((a, b) => {
+                          const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                          return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
+                        })
+                        .map((branch) => (
+                          <option key={branch.id} value={branch.id}>
+                            {branch.name}
+                          </option>
+                        ))}
                     </select>
                   </div>
 
@@ -647,6 +886,12 @@ export default function TruckSales() {
                     </div>
                   )}
 
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <strong>หมายเหตุ:</strong> ระบบจะสร้างใบส่งของและใบรับของอัตโนมัติเมื่อบันทึกการขาย
+                    </p>
+                  </div>
+
                   <div className="flex items-center gap-3 pt-4">
                     <button
                       onClick={() => setShowSaleModal(false)}
@@ -671,4 +916,3 @@ export default function TruckSales() {
     </div>
   );
 }
-

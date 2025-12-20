@@ -96,9 +96,11 @@ export default function Orders() {
   const navigate = useNavigate();
   const { orders, purchaseOrders, createPurchaseOrder, updateOrder } = useGasStation();
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("ทั้งหมด");
-  const [filterBranch, setFilterBranch] = useState("ทั้งหมด");
+
   const [showTruckModal, setShowTruckModal] = useState(false);
+  // Date filter state
+  const [filterDate, setFilterDate] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [selectedOrderDetail, setSelectedOrderDetail] = useState<typeof orders[0] | null>(null);
   const [selectedApprovedOrder, setSelectedApprovedOrder] = useState<typeof purchaseOrders[0] | null>(null);
   const [showConsolidateModal, setShowConsolidateModal] = useState(false);
@@ -169,21 +171,71 @@ export default function Orders() {
     mockTruckCapacity.afternoon.chambers.reduce((sum, c) => sum + c.capacity, 0);
 
 
-  const getStatusColor = (status: string) => {
+  // --- Date filter logic ---
+  // Helper to check if a date is in range (inclusive)
+  function isDateInRange(dateStr: string, from: string, to: string) {
+    if (!from && !to) return true;
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    if (from && !to) return d >= new Date(from);
+    if (!from && to) return d <= new Date(to);
+    if (from && to) return d >= new Date(from) && d <= new Date(to);
+    return true;
+  }
+
+  // Apply all filters to purchaseOrders
+  const filteredPurchaseOrders = purchaseOrders.filter(order => {
+    // Date filter (orderDate)
+    if (!isDateInRange(order.orderDate, filterDate, filterDateTo)) return false;
+
+    // Search term (branch, oil type, orderNo)
+    if (searchTerm.trim()) {
+      const t = searchTerm.trim().toLowerCase();
+      const found =
+        order.orderNo.toLowerCase().includes(t) ||
+        order.branches.some(b => b.branchName.toLowerCase().includes(t)) ||
+        order.items.some(i => i.oilType.toLowerCase().includes(t));
+      if (!found) return false;
+    }
+    return true;
+  });
+
+  // Helper to map Thai status to English if needed (for compatibility)
+  function mapStatus(status: string) {
     switch (status) {
-      case "รออนุมัติ":
+      case "รออนุมัติ": return "รอเริ่ม";
+      case "อนุมัติแล้ว": return "กำลังขนส่ง";
+      case "ส่งแล้ว": return "ขนส่งสำเร็จ";
+      default: return status;
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    // Map Thai status to English for PurchaseOrder status
+    const mappedStatus = mapStatus(status);
+    switch (mappedStatus) {
+      case "รอเริ่ม":
         return "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800";
-      case "อนุมัติแล้ว":
+      case "กำลังขนส่ง":
         return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800";
-      case "ส่งแล้ว":
+      case "ขนส่งสำเร็จ":
         return "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800";
       case "ยกเลิก":
         return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800";
       default:
+        // Handle Thai status directly
+        if (status === "รออนุมัติ") {
+          return "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800";
+        }
+        if (status === "อนุมัติแล้ว") {
+          return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800";
+        }
+        if (status === "ส่งแล้ว") {
+          return "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800";
+        }
         return "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700";
     }
   };
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -194,7 +246,7 @@ export default function Orders() {
             <div>
               <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
                 <ShoppingCart className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                บันทึกใบเสนอราคาจากปตท.
+                ใบสั่งซื้อจากปตท.
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
                 ปั๊มไฮโซ - สั่งน้ำมันให้ทุกสาขา
@@ -248,27 +300,23 @@ export default function Orders() {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
-              <select
-                value={filterBranch}
-                onChange={(e) => setFilterBranch(e.target.value)}
+            {/* Date filter: single date or range */}
+            <div className="flex gap-2 items-center">
+              <input
+                type="date"
+                value={filterDate}
+                onChange={e => setFilterDate(e.target.value)}
                 className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option>ทั้งหมด</option>
-                {branches.map((branch) => (
-                  <option key={branch.id}>{branch.name}</option>
-                ))}
-              </select>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                title="วันที่เริ่มต้น"
+              />
+              <span className="text-gray-500 dark:text-gray-400">-</span>
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={e => setFilterDateTo(e.target.value)}
                 className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option>ทั้งหมด</option>
-                <option>รออนุมัติ</option>
-                <option>อนุมัติแล้ว</option>
-                <option>ส่งแล้ว</option>
-              </select>
+                title="วันที่สิ้นสุด"
+              />
             </div>
             <button
               onClick={() => {
@@ -283,96 +331,135 @@ export default function Orders() {
           </div>
         </div>
 
-        {/* Purchase Orders List */}
-        {purchaseOrders.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
-              ใบสั่งซื้อที่อนุมัติแล้ว
-            </h2>
-            <div className="space-y-4">
-              {purchaseOrders.map((order) => (
-                <motion.div
-                  key={order.orderNo}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-white">
-                          เลขที่: {order.orderNo}
-                        </h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(order.status)}`}>
-                          {order.status}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div className="flex items-center gap-4">
-                          <div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">วันที่สั่ง</p>
-                            <p className="font-semibold text-gray-800 dark:text-white">{order.orderDate}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">วันที่ต้องการรับ</p>
-                            <p className="font-semibold text-gray-800 dark:text-white">{order.deliveryDate}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">เลขที่ออเดอร์ ปตท.</p>
-                            <p className="font-semibold text-gray-800 dark:text-white">{order.supplierOrderNo}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">มูลค่ารวม</p>
-                            <p className="font-semibold text-green-600 dark:text-green-400">
-                              {currencyFormatter.format(order.totalAmount)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      {order.billNo && (
-                        <div className="mb-4">
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">เลขที่บิล</p>
-                          <NavLink
-                            to="/app/gas-station/purchase-book"
-                            className="text-sm font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline transition-colors flex items-center gap-2"
-                          >
-                            <Receipt className="w-4 h-4" />
-                            {order.billNo}
-                          </NavLink>
-                        </div>
-                      )}
-                      <div className="flex flex-wrap gap-2">
-                        {order.items.map((item, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg text-sm"
-                          >
-                            <Droplet className="inline h-4 w-4 mr-1" />
-                            {item.oilType}: {numberFormatter.format(item.quantity)} ลิตร
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 ml-4">
-                      <button
-                        onClick={() => setSelectedApprovedOrder(order)}
-                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2"
-                      >
-                        <Eye className="w-4 h-4" />
-                        ดูรายละเอียด
-                      </button>
-                      <button className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
-                        <Download className="w-4 h-4" />
-                        Export
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+        {/* Purchase Orders Table */}
+        {filteredPurchaseOrders.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+          >
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                ใบสั่งซื้อที่อนุมัติแล้ว ({filteredPurchaseOrders.length} รายการ)
+              </h2>
             </div>
-          </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      เลขที่ใบสั่งซื้อ
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      วันที่สั่ง
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      วันที่ส่ง
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      จำนวนปั๊ม
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      ปริมาณรวม (ลิตร)
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      มูลค่ารวม
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      สถานะ
+                    </th>
+
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                  {filteredPurchaseOrders.map((order) => {
+                    const totalQuantity = order.items.reduce((sum, item) => sum + item.quantity, 0);
+                    const branchCount = order.branches.length;
+                    const branchNames = order.branches.map((b) => b.branchName).join(", ");
+
+                    return (
+                      <tr
+                        key={order.orderNo}
+                        className="hover:bg-blue-50/50 dark:hover:bg-gray-700/70 transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <div>
+                              <div className="text-sm font-semibold text-gray-900 dark:text-white">{order.orderNo}</div>
+                              {order.supplierOrderNo && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400">ปตท.: {order.supplierOrderNo}</div>
+                              )}
+                              {order.billNo && (
+                                <NavLink
+                                  to="/app/gas-station/purchase-book"
+                                  className="text-xs text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1 mt-1"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Receipt className="w-3 h-3" />
+                                  บิล: {order.billNo}
+                                </NavLink>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-900 dark:text-white">{order.orderDate}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-900 dark:text-white">{order.deliveryDate}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-gray-400" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">{branchCount} ปั๊ม</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]" title={branchNames}>
+                                {branchNames}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {numberFormatter.format(totalQuantity)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                            {currencyFormatter.format(order.totalAmount)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
+                              {order.status}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedApprovedOrder(order);
+                              }}
+                              className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                              title="ดูรายละเอียด"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
         )}
       </div>
 
@@ -1875,12 +1962,71 @@ export default function Orders() {
                       </div>
                     </div>
 
+                    {/* รายการน้ำมันรวม */}
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+                      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h4 className="text-sm font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                          <Droplet className="w-4 h-4" />
+                          รายการน้ำมันทั้งหมด
+                        </h4>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-100 dark:bg-gray-800">
+                            <tr>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">
+                                ประเภทน้ำมัน
+                              </th>
+                              <th className="py-3 px-4 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">
+                                จำนวน (ลิตร)
+                              </th>
+                              <th className="py-3 px-4 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">
+                                ราคาต่อลิตร
+                              </th>
+                              <th className="py-3 px-4 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">
+                                มูลค่ารวม
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {selectedApprovedOrder.items.map((item, idx) => (
+                              <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center gap-2">
+                                    <Droplet className="w-4 h-4 text-blue-500" />
+                                    <span className="font-medium text-gray-900 dark:text-white">{item.oilType}</span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4 text-sm text-right text-gray-900 dark:text-white">
+                                  {numberFormatter.format(item.quantity)}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-right text-gray-600 dark:text-gray-400">
+                                  {numberFormatter.format(item.pricePerLiter)}
+                                </td>
+                                <td className="py-3 px-4 text-sm font-semibold text-right text-gray-900 dark:text-white">
+                                  {currencyFormatter.format(item.totalAmount)}
+                                </td>
+                              </tr>
+                            ))}
+                            <tr className="bg-gray-100 dark:bg-gray-800 font-semibold">
+                              <td colSpan={3} className="py-3 px-4 text-right text-sm text-gray-700 dark:text-gray-300">
+                                รวมทั้งสิ้น:
+                              </td>
+                              <td className="py-3 px-4 text-right text-sm text-gray-900 dark:text-white">
+                                {currencyFormatter.format(selectedApprovedOrder.totalAmount)}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
                     {/* รายละเอียดแต่ละสาขา */}
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
                       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                         <h4 className="text-sm font-semibold text-gray-800 dark:text-white flex items-center gap-2">
                           <Building2 className="w-4 h-4" />
-                          รายละเอียดสาขาในบิลรวม (5 สาขา)
+                          รายละเอียดสาขาในบิลรวม ({selectedApprovedOrder.branches.length} สาขา)
                         </h4>
                       </div>
                       <div className="divide-y divide-gray-200 dark:divide-gray-700">

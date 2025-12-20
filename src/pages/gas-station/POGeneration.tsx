@@ -38,7 +38,7 @@ const mockPendingOrders = [
     },
     {
         branchId: 2,
-        branchName: "สาขา 2",
+        branchName: "ดินดำ",
         oilType: "Premium Diesel",
         quantity: 22000,
         estimatedPrice: 30.5,
@@ -46,7 +46,7 @@ const mockPendingOrders = [
     },
     {
         branchId: 2,
-        branchName: "สาขา 2",
+        branchName: "ดินดำ",
         oilType: "Gasohol 95",
         quantity: 18000,
         estimatedPrice: 35.0,

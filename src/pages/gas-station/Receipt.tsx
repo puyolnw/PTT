@@ -56,7 +56,7 @@ export default function ReceiptPage() {
 
   // Form state for creating/editing receipt
   const [formData, setFormData] = useState({
-    documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี" as Receipt["documentType"],
+    documentType: "ใบเสร็จรับเงิน" as Receipt["documentType"],
     purchaseOrderNo: "", // เลือกจาก PurchaseOrder
     selectedBranchId: "", // เลือกสาขาจาก PurchaseOrder
     deliveryNoteNo: "",
@@ -101,7 +101,7 @@ export default function ReceiptPage() {
       total: receipts.length,
       draft: receipts.filter((r) => r.status === "draft").length,
       issued: receipts.filter((r) => r.status === "issued").length,
-      paid: receipts.filter((r) => r.status === "paid").length,
+      cancelled: receipts.filter((r) => r.status === "cancelled").length,
       totalAmount: receipts.reduce((sum, r) => sum + r.totalAmount, 0),
       totalVat: receipts.reduce((sum, r) => sum + r.vatAmount, 0),
     };
@@ -129,7 +129,7 @@ export default function ReceiptPage() {
       }
     }
     setFormData({
-      documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+      documentType: "ใบเสร็จรับเงิน",
       purchaseOrderNo: deliveryNote.purchaseOrderNo || "",
       selectedBranchId,
       deliveryNoteNo,
@@ -183,8 +183,8 @@ export default function ReceiptPage() {
 
     const receiptNo = getNextRunningNumber("receipt");
     const totalAmount = formData.items.reduce((sum, item) => sum + item.totalAmount, 0);
-    const { beforeVat, vat } = calculateVAT(totalAmount, formData.vatRate);
-    const amountInWords = convertNumberToThaiWords(totalAmount);
+    const { vat } = calculateVAT(totalAmount, formData.vatRate);
+    // const amountInWords = convertNumberToThaiWords(totalAmount);
 
     const newReceipt: Receipt = {
       id: `REC-${Date.now()}`,
@@ -201,10 +201,9 @@ export default function ReceiptPage() {
         pricePerLiter: item.pricePerLiter,
         totalAmount: item.totalAmount,
       })),
-      amountBeforeVat: beforeVat,
       vatAmount: vat,
       totalAmount,
-      amountInWords,
+      grandTotal: totalAmount + vat,
       purchaseOrderNo: formData.purchaseOrderNo || undefined,
       deliveryNoteNo: formData.deliveryNoteNo || undefined,
       quotationNo: formData.quotationNo || undefined,
@@ -216,7 +215,7 @@ export default function ReceiptPage() {
     createReceipt(newReceipt);
     setShowCreateModal(false);
     setFormData({
-      documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+      documentType: "ใบเสร็จรับเงิน",
       purchaseOrderNo: "",
       selectedBranchId: "",
       deliveryNoteNo: "",
@@ -246,8 +245,6 @@ export default function ReceiptPage() {
     }
 
     updateReceipt(receiptId, {
-      receiverSignature: signature,
-      receiverSignedAt: new Date().toISOString(),
       receiverName: signature,
     });
     setShowSignModal(false);
@@ -284,7 +281,7 @@ export default function ReceiptPage() {
       quotationNo: receipt.quotationNo || "",
       customerName: receipt.customerName,
       customerAddress: receipt.customerAddress,
-      customerTaxId: receipt.customerTaxId,
+      customerTaxId: receipt.customerTaxId || "",
       items: receipt.items.map((item) => ({
         oilType: item.oilType,
         quantity: item.quantity,
@@ -318,8 +315,8 @@ export default function ReceiptPage() {
     }
 
     const totalAmount = formData.items.reduce((sum, item) => sum + item.totalAmount, 0);
-    const { beforeVat, vat } = calculateVAT(totalAmount, formData.vatRate);
-    const amountInWords = convertNumberToThaiWords(totalAmount);
+    const { vat } = calculateVAT(totalAmount, formData.vatRate);
+    // const amountInWords = convertNumberToThaiWords(totalAmount);
 
     updateReceipt(selectedReceipt.id, {
       documentType: formData.documentType,
@@ -333,10 +330,9 @@ export default function ReceiptPage() {
         pricePerLiter: item.pricePerLiter,
         totalAmount: item.totalAmount,
       })),
-      amountBeforeVat: beforeVat,
       vatAmount: vat,
       totalAmount,
-      amountInWords,
+      grandTotal: totalAmount + vat,
       purchaseOrderNo: formData.purchaseOrderNo, // ต้องมี PurchaseOrderNo
       deliveryNoteNo: formData.deliveryNoteNo || undefined,
       quotationNo: formData.quotationNo || undefined,
@@ -346,7 +342,7 @@ export default function ReceiptPage() {
     setIsEditing(false);
     setSelectedReceipt(null);
     setFormData({
-      documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+      documentType: "ใบเสร็จรับเงิน",
       purchaseOrderNo: "",
       selectedBranchId: "",
       deliveryNoteNo: "",
@@ -442,8 +438,6 @@ export default function ReceiptPage() {
         return "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700";
       case "issued":
         return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800";
-      case "paid":
-        return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800";
       case "cancelled":
         return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800";
       default:
@@ -457,8 +451,6 @@ export default function ReceiptPage() {
         return "ร่าง";
       case "issued":
         return "ออกแล้ว";
-      case "paid":
-        return "ชำระแล้ว";
       case "cancelled":
         return "ยกเลิก";
       default:
@@ -506,7 +498,7 @@ export default function ReceiptPage() {
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">ชำระแล้ว</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.paid}</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.cancelled}</p>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">มูลค่ารวม</p>
@@ -631,7 +623,7 @@ export default function ReceiptPage() {
                       <div className="flex items-center gap-1">
                         <DollarSign className="h-4 w-4 text-gray-400" />
                         <span className="text-gray-600 dark:text-gray-400">
-                          ก่อน VAT: {currencyFormatter.format(receipt.amountBeforeVat)}
+                          ก่อน VAT: {currencyFormatter.format(receipt.totalAmount)}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
@@ -640,10 +632,10 @@ export default function ReceiptPage() {
                           VAT: {currencyFormatter.format(receipt.vatAmount)}
                         </span>
                       </div>
-                      {receipt.receiverSignature ? (
+                      {receipt.status === "issued" ? (
                         <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                           <CheckCircle className="h-4 w-4" />
-                          <span>เซ็นรับเงินแล้ว</span>
+                          <span>ออกแล้ว</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1 text-gray-400">
@@ -686,7 +678,7 @@ export default function ReceiptPage() {
                         </button>
                       </>
                     )}
-                    {receipt.status === "issued" && !receipt.receiverSignature && (
+                    {receipt.status === "issued" && (
                       <button
                         onClick={() => {
                           setSelectedReceipt(receipt);
@@ -773,7 +765,7 @@ export default function ReceiptPage() {
                 setIsEditing(false);
                 setSelectedReceipt(null);
                 setFormData({
-                  documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+                  documentType: "ใบเสร็จรับเงิน",
                   purchaseOrderNo: "",
                   selectedBranchId: "",
                   deliveryNoteNo: "",
@@ -806,7 +798,7 @@ export default function ReceiptPage() {
                       setIsEditing(false);
                       setSelectedReceipt(null);
                       setFormData({
-                        documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+                        documentType: "ใบเสร็จรับเงิน",
                         purchaseOrderNo: "",
                         selectedBranchId: "",
                         deliveryNoteNo: "",
@@ -995,7 +987,7 @@ export default function ReceiptPage() {
                       setIsEditing(false);
                       setSelectedReceipt(null);
                       setFormData({
-                        documentType: "ใบเสร็จรับเงิน / ใบกำกับภาษี",
+                        documentType: "ใบเสร็จรับเงิน",
                         purchaseOrderNo: "",
                         selectedBranchId: "",
                         deliveryNoteNo: "",
@@ -1111,7 +1103,7 @@ export default function ReceiptPage() {
                       <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-lg">
                         <span className="text-gray-700 dark:text-gray-300">ราคาก่อน VAT</span>
                         <span className="font-semibold text-gray-800 dark:text-white">
-                          {currencyFormatter.format(selectedReceipt.amountBeforeVat)}
+                          {currencyFormatter.format(selectedReceipt.totalAmount)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
@@ -1129,31 +1121,18 @@ export default function ReceiptPage() {
                       <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">คำอ่านภาษาไทย</p>
                         <p className="font-semibold text-blue-800 dark:text-blue-300 text-lg">
-                          {selectedReceipt.amountInWords}
+                          {/* amountInWords not available in Receipt type */}
                         </p>
                       </div>
                     </div>
                     {/* Signature */}
                     <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                       <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        ลายเซ็นผู้รับเงิน
+                        สถานะ
                       </p>
-                      {selectedReceipt.receiverSignature ? (
-                        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                          <CheckCircle className="h-5 w-5" />
-                          <span>{selectedReceipt.receiverName || selectedReceipt.receiverSignature}</span>
-                          {selectedReceipt.receiverSignedAt && (
-                            <span className="text-xs text-gray-500">
-                              {new Date(selectedReceipt.receiverSignedAt).toLocaleString("th-TH")}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <PenTool className="h-5 w-5" />
-                          <span>รอเซ็นรับเงิน</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                        <span>สถานะ: {selectedReceipt.status === "issued" ? "ออกแล้ว" : selectedReceipt.status === "draft" ? "ร่าง" : "ยกเลิก"}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1198,7 +1177,7 @@ export default function ReceiptPage() {
                       </button>
                     </>
                   )}
-                  {selectedReceipt.status === "issued" && !selectedReceipt.receiverSignature && (
+                  {selectedReceipt.status === "issued" && (
                     <button
                       onClick={() => {
                         setShowSignModal(true);

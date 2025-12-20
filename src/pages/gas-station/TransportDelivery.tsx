@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useMemo } from "react";
 import { useGasStation } from "@/contexts/GasStationContext";
-import type { TransportDelivery as TransportDeliveryType, DriverJob } from "@/types/gasStation";
+import type { TransportDelivery as TransportDeliveryType, DriverJob, Compartment } from "@/types/gasStation";
 import {
   Truck,
   Plus,
@@ -40,15 +40,7 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
-// Interface สำหรับ Compartment (ช่อง/หลุมในหางรถ)
-interface Compartment {
-  chamber: number; // ช่องที่ (1-7)
-  capacity: number; // ความจุ (ลิตร)
-  oilType?: string; // ชนิดน้ำมันที่จะลง (1 หลุม = 1 ชนิด)
-  quantity?: number; // จำนวนลิตรที่จะลง
-  destinationBranchId?: number; // สาขาปลายทาง
-  destinationBranchName?: string;
-}
+// Use Compartment type from @/types/gasStation
 
 // Local types for mock data (will be converted to types from @/types/gasStation)
 type LocalDeliveryItem = {
@@ -117,12 +109,12 @@ const mockTransportDeliveries: LocalTransportDelivery[] = [
     sourceBranchId: 1,
     sourceBranchName: "ปั๊มไฮโซ",
     destinationBranchIds: [2, 3],
-    destinationBranchNames: ["สาขา 2", "สาขา 3"],
+    destinationBranchNames: ["ดินดำ", "หนองจิก"],
     deliveryItems: [
       {
         id: "DEL-001",
         branchId: 2,
-        branchName: "สาขา 2",
+        branchName: "ดินดำ",
         branchCode: "B2",
         address: "456 ถนนพหลโยธิน กรุงเทพมหานคร 10400",
         oilType: "Premium Diesel",
@@ -135,7 +127,7 @@ const mockTransportDeliveries: LocalTransportDelivery[] = [
       {
         id: "DEL-002",
         branchId: 3,
-        branchName: "สาขา 3",
+        branchName: "หนองจิก",
         branchCode: "B3",
         address: "789 ถนนรัชดาภิเษก กรุงเทพมหานคร 10320",
         oilType: "Diesel",
@@ -147,13 +139,13 @@ const mockTransportDeliveries: LocalTransportDelivery[] = [
       },
     ],
     compartments: [
-      { chamber: 1, capacity: 3000, oilType: "Premium Diesel", quantity: 3000, destinationBranchId: 2, destinationBranchName: "สาขา 2" },
-      { chamber: 2, capacity: 7000, oilType: "Premium Diesel", quantity: 7000, destinationBranchId: 2, destinationBranchName: "สาขา 2" },
-      { chamber: 3, capacity: 4000, oilType: "Premium Diesel", quantity: 4000, destinationBranchId: 2, destinationBranchName: "สาขา 2" },
-      { chamber: 4, capacity: 5000, oilType: "Premium Diesel", quantity: 5000, destinationBranchId: 2, destinationBranchName: "สาขา 2" },
-      { chamber: 5, capacity: 3000, oilType: "Premium Diesel", quantity: 3000, destinationBranchId: 2, destinationBranchName: "สาขา 2" },
-      { chamber: 6, capacity: 0, oilType: "Diesel", quantity: 0, destinationBranchId: 3, destinationBranchName: "สาขา 3" },
-      { chamber: 7, capacity: 0, oilType: "Diesel", quantity: 0, destinationBranchId: 3, destinationBranchName: "สาขา 3" },
+      { id: "1", compartmentNumber: 1, chamber: 1, capacity: 3000, oilType: "Premium Diesel", quantity: 3000, destinationBranchId: 2, destinationBranchName: "ดินดำ" },
+      { id: "2", compartmentNumber: 2, chamber: 2, capacity: 7000, oilType: "Premium Diesel", quantity: 7000, destinationBranchId: 2, destinationBranchName: "ดินดำ" },
+      { id: "3", compartmentNumber: 3, chamber: 3, capacity: 4000, oilType: "Premium Diesel", quantity: 4000, destinationBranchId: 2, destinationBranchName: "ดินดำ" },
+      { id: "4", compartmentNumber: 4, chamber: 4, capacity: 5000, oilType: "Premium Diesel", quantity: 5000, destinationBranchId: 2, destinationBranchName: "ดินดำ" },
+      { id: "5", compartmentNumber: 5, chamber: 5, capacity: 3000, oilType: "Premium Diesel", quantity: 3000, destinationBranchId: 2, destinationBranchName: "ดินดำ" },
+      { id: "6", compartmentNumber: 6, chamber: 6, capacity: 0, oilType: "Diesel", quantity: 0, destinationBranchId: 3, destinationBranchName: "หนองจิก" },
+      { id: "7", compartmentNumber: 7, chamber: 7, capacity: 0, oilType: "Diesel", quantity: 0, destinationBranchId: 3, destinationBranchName: "หนองจิก" },
     ],
     startOdometer: 125000,
     endOdometer: 125350,
@@ -178,12 +170,12 @@ const mockTransportDeliveries: LocalTransportDelivery[] = [
     sourceBranchId: 1,
     sourceBranchName: "ปั๊มไฮโซ",
     destinationBranchIds: [4],
-    destinationBranchNames: ["สาขา 4"],
+    destinationBranchNames: ["ตักสิลา"],
     deliveryItems: [
       {
         id: "DEL-003",
         branchId: 4,
-        branchName: "สาขา 4",
+        branchName: "ตักสิลา",
         branchCode: "B4",
         address: "123 ถนนสุขุมวิท กรุงเทพมหานคร 10110",
         oilType: "Premium Diesel",
@@ -195,11 +187,11 @@ const mockTransportDeliveries: LocalTransportDelivery[] = [
       },
     ],
     compartments: [
-      { chamber: 1, capacity: 3000, oilType: "Premium Diesel", quantity: 3000, destinationBranchId: 4, destinationBranchName: "สาขา 4" },
-      { chamber: 2, capacity: 7000, oilType: "Premium Diesel", quantity: 7000, destinationBranchId: 4, destinationBranchName: "สาขา 4" },
-      { chamber: 3, capacity: 4000, oilType: "Premium Diesel", quantity: 4000, destinationBranchId: 4, destinationBranchName: "สาขา 4" },
-      { chamber: 4, capacity: 5000, oilType: "Premium Diesel", quantity: 5000, destinationBranchId: 4, destinationBranchName: "สาขา 4" },
-      { chamber: 5, capacity: 5000, oilType: "Premium Diesel", quantity: 5000, destinationBranchId: 4, destinationBranchName: "สาขา 4" },
+      { id: "comp-1", compartmentNumber: 1, capacity: 3000, oilType: "Premium Diesel", quantity: 3000, destinationBranchId: 4, destinationBranchName: "ตักสิลา" },
+      { id: "comp-2", compartmentNumber: 2, capacity: 7000, oilType: "Premium Diesel", quantity: 7000, destinationBranchId: 4, destinationBranchName: "ตักสิลา" },
+      { id: "comp-3", compartmentNumber: 3, capacity: 4000, oilType: "Premium Diesel", quantity: 4000, destinationBranchId: 4, destinationBranchName: "ตักสิลา" },
+      { id: "comp-4", compartmentNumber: 4, capacity: 5000, oilType: "Premium Diesel", quantity: 5000, destinationBranchId: 4, destinationBranchName: "ตักสิลา" },
+      { id: "comp-5", compartmentNumber: 5, capacity: 5000, oilType: "Premium Diesel", quantity: 5000, destinationBranchId: 4, destinationBranchName: "ตักสิลา" },
     ],
     startOdometer: 98000,
     status: "กำลังขนส่ง",
@@ -383,7 +375,8 @@ export default function TransportDelivery() {
         const fillAmount = Math.min(remainingQuantity, chamberCapacity, remainingCapacity);
 
         compartments.push({
-          chamber: currentChamber,
+          id: `comp-${currentChamber}-${Date.now()}`,
+          compartmentNumber: currentChamber,
           capacity: chamberCapacity,
           oilType: item.oilType as TransportDeliveryType["compartments"][0]["oilType"],
           quantity: fillAmount,
@@ -418,10 +411,7 @@ export default function TransportDelivery() {
         ...item,
         oilType: item.oilType as TransportDeliveryType["deliveryItems"][0]["oilType"],
       })),
-      compartments: compartments.map((c) => ({
-        ...c,
-        oilType: c.oilType ? (c.oilType as TransportDeliveryType["compartments"][0]["oilType"]) : undefined,
-      })),
+      compartments: compartments,
       startOdometer: newTransport.startOdometer ? parseInt(newTransport.startOdometer) : undefined,
       status: "รอเริ่ม",
       notes: newTransport.notes,
@@ -450,15 +440,14 @@ export default function TransportDelivery() {
         quantity: item.quantity,
         status: "รอส่ง" as const,
       })),
-      compartments: compartments.map((c) => ({
-        ...c,
-        oilType: c.oilType ? (c.oilType as DriverJob["compartments"][0]["oilType"]) : undefined,
-      })),
+      compartments: compartments,
       truckPlateNumber: truck.plateNumber,
       trailerPlateNumber: trailer.plateNumber,
       driverId: newTransport.driverId,
       driverName: driver.name,
       status: "รอเริ่ม",
+      createdAt: new Date().toISOString(),
+      createdBy: "ผู้จัดการคลัง",
     };
     createDriverJob(driverJob);
 
@@ -805,12 +794,12 @@ export default function TransportDelivery() {
                             .filter((comp) => comp.quantity && comp.quantity > 0)
                             .map((comp) => (
                               <div
-                                key={comp.chamber}
+                                key={comp.id}
                                 className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700"
                               >
                                 <div className="flex items-center justify-between mb-2">
                                   <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                    ช่องที่ {comp.chamber}
+                                    ช่องที่ {comp.compartmentNumber}
                                   </span>
                                   <span className="text-xs text-gray-500">
                                     {numberFormatter.format(comp.quantity || 0)} / {numberFormatter.format(comp.capacity)} ลิตร
@@ -1158,11 +1147,16 @@ export default function TransportDelivery() {
                         onChange={(e) => setNewTransport({ ...newTransport, sourceBranchId: parseInt(e.target.value) })}
                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
                       >
-                        {branches.map((branch) => (
-                          <option key={branch.id} value={branch.id}>
-                            {branch.name} ({branch.code})
-                          </option>
-                        ))}
+                        {branches
+                          .sort((a, b) => {
+                            const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                            return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
+                          })
+                          .map((branch) => (
+                            <option key={branch.id} value={branch.id}>
+                              {branch.name} ({branch.code})
+                            </option>
+                          ))}
                       </select>
                     </div>
 
@@ -1325,11 +1319,11 @@ export default function TransportDelivery() {
                           .filter((comp) => comp.quantity && comp.quantity > 0)
                           .map((comp) => (
                             <div
-                              key={comp.chamber}
+                              key={comp.id}
                               className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700"
                             >
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">ช่องที่ {comp.chamber}</span>
+                                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">ช่องที่ {comp.compartmentNumber}</span>
                                 <span className="text-xs text-gray-500">
                                   {numberFormatter.format(comp.quantity || 0)} / {numberFormatter.format(comp.capacity)} ลิตร
                                 </span>

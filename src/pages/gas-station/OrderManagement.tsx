@@ -13,9 +13,10 @@ import {
   X,
   Truck,
   Receipt,
-  Package,
+  Search,
 } from "lucide-react";
 // Import shared data from gasStationOrders.ts (ข้อมูลเดียวกันกับหน้า "บันทึกใบเสนอราคาจากปตท")
+// import { branches } from "@/data/gasStationOrders";
 import type { PurchaseOrder } from "@/types/gasStation";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
@@ -36,6 +37,11 @@ export default function OrderManagement() {
   const { purchaseOrders } = useGasStation();
   const [filterOrderNo] = useState("ล่าสุด"); // Default: แสดงใบสั่งซื้อล่าสุด
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
+  const [filterBranch, setFilterBranch] = useState<string>("ทั้งหมด");
+  const [filterStatus, setFilterStatus] = useState<string>("ทั้งหมด");
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   // ใช้ข้อมูลจาก context โดยตรง (แสดงตามเลขที่ใบสั่งซื้อ)
   // เรียงตาม orderDate และ orderNo เพื่อหา "ล่าสุด"
@@ -63,15 +69,70 @@ export default function OrderManagement() {
   const inProgressCount = orders.filter((o) => o.status === "กำลังขนส่ง").length;
   const completedCount = orders.filter((o) => o.status === "ขนส่งสำเร็จ").length;
 
-  // กรองข้อมูล - แสดงเฉพาะใบสั่งซื้อล่าสุด
+  // Helper function to check if date is in range
+  const isDateInRange = (dateStr: string, from: string, to: string) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    if (from && !to) return d >= new Date(from);
+    if (!from && to) return d <= new Date(to);
+    if (from && to) return d >= new Date(from) && d <= new Date(to);
+    return true;
+  };
+
+  // Get unique branch names from orders
+  const availableBranches = useMemo(() => {
+    const branchSet = new Set<string>();
+    orders.forEach((order) => {
+      order.branches.forEach((branch) => {
+        branchSet.add(branch.branchName);
+      });
+    });
+    return Array.from(branchSet).sort();
+  }, [orders]);
+
+  // กรองข้อมูล - แสดงเฉพาะใบสั่งซื้อล่าสุด + filters
   const displayOrders = useMemo(() => {
+    let filtered = orders;
+    
+    // Filter by order number
     if (filterOrderNo === "ล่าสุด") {
-      return orders.filter((order) => order.orderNo === latestOrderNo);
+      filtered = filtered.filter((order) => order.orderNo === latestOrderNo);
     } else if (filterOrderNo !== "ทั้งหมด") {
-      return orders.filter((order) => order.orderNo === filterOrderNo);
+      filtered = filtered.filter((order) => order.orderNo === filterOrderNo);
     }
-    return orders;
-  }, [orders, filterOrderNo, latestOrderNo]);
+    
+    // Filter by date range
+    if (filterDateFrom || filterDateTo) {
+      filtered = filtered.filter((order) => 
+        isDateInRange(order.orderDate, filterDateFrom, filterDateTo)
+      );
+    }
+    
+    // Filter by branch
+    if (filterBranch !== "ทั้งหมด") {
+      filtered = filtered.filter((order) =>
+        order.branches.some((b) => b.branchName === filterBranch)
+      );
+    }
+    
+    // Filter by status
+    if (filterStatus !== "ทั้งหมด") {
+      filtered = filtered.filter((order) => order.status === filterStatus);
+    }
+    
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((order) =>
+        order.orderNo.toLowerCase().includes(term) ||
+        order.supplierOrderNo?.toLowerCase().includes(term) ||
+        order.branches.some((b) => b.branchName.toLowerCase().includes(term)) ||
+        order.items.some((i) => i.oilType.toLowerCase().includes(term))
+      );
+    }
+    
+    return filtered;
+  }, [orders, filterOrderNo, latestOrderNo, filterDateFrom, filterDateTo, filterBranch, filterStatus, searchTerm]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -214,102 +275,207 @@ export default function OrderManagement() {
         </div>
       </motion.div>
 
-      {/* Orders Grid - แสดงเป็นกล่อง/การ์ด */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {displayOrders.map((order, index) => {
+      {/* Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 mb-6"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="ค้นหาเลขที่, ปั๊ม, ประเภทน้ำมัน..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              title="วันที่เริ่มต้น"
+            />
+            <span className="text-gray-500 dark:text-gray-400">ถึง</span>
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              title="วันที่สิ้นสุด"
+            />
+          </div>
+          <select
+            value={filterBranch}
+            onChange={(e) => setFilterBranch(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="ทั้งหมด">ทุกปั๊ม</option>
+            {availableBranches.map((branch) => (
+              <option key={branch} value={branch}>
+                {branch}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="ทั้งหมด">ทุกสถานะ</option>
+            <option value="รอเริ่ม">รอเริ่ม</option>
+            <option value="กำลังขนส่ง">กำลังขนส่ง</option>
+            <option value="ขนส่งสำเร็จ">ขนส่งสำเร็จ</option>
+            <option value="ยกเลิก">ยกเลิก</option>
+          </select>
+        </div>
+      </motion.div>
+
+      {/* Orders Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  เลขที่ใบสั่งซื้อ
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  วันที่สั่ง
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  วันที่ส่ง
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  จำนวนปั๊ม
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  รายการน้ำมัน
+                </th>
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  ปริมาณรวม (ลิตร)
+                </th>
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  มูลค่ารวม
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  สถานะ
+                </th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  การดำเนินการ
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+              {displayOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                    ไม่พบข้อมูล
+                  </td>
+                </tr>
+              ) : (
+                displayOrders.map((order) => {
           const totalQuantity = order.items.reduce((sum, item) => sum + item.quantity, 0);
           const branchCount = order.branches.length;
+                  const branchNames = order.branches.map((b) => b.branchName).join(", ");
 
           return (
-            <motion.div
+                    <tr
               key={order.orderNo}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+                      className="hover:bg-blue-50/50 dark:hover:bg-gray-700/70 transition-colors cursor-pointer"
               onClick={() => setSelectedOrder(order)}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border-2 border-transparent hover:border-blue-500"
-            >
-              {/* Order Card Header */}
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">
-                <div className="flex items-center justify-between mb-3">
-                  <FileText className="w-8 h-8" />
-                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${order.status === "ขนส่งสำเร็จ"
-                    ? "bg-green-500/20 text-green-100"
-                    : order.status === "กำลังขนส่ง"
-                      ? "bg-yellow-500/20 text-yellow-100"
-                      : "bg-gray-500/20 text-gray-100"
-                    }`}>
-                    {order.status}
-                  </span>
-                </div>
-                <h3 className="text-2xl font-bold mb-1">{order.orderNo}</h3>
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900 dark:text-white">{order.orderNo}</div>
                 {order.supplierOrderNo && (
-                  <p className="text-sm text-blue-100">ปตท.: {order.supplierOrderNo}</p>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">ปตท.: {order.supplierOrderNo}</div>
                 )}
               </div>
-
-              {/* Order Card Body */}
-              <div className="p-6">
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                    <Calendar className="w-4 h-4" />
-                    <span>วันที่สั่ง: {order.orderDate}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-900 dark:text-white">{order.orderDate}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-900 dark:text-white">{order.deliveryDate}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-gray-400" />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">{branchCount} ปั๊ม</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]" title={branchNames}>
+                              {branchNames}
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                    <Truck className="w-4 h-4" />
-                    <span>วันที่ส่ง: {order.deliveryDate}</span>
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                      <Building2 className="w-4 h-4" />
-                      จำนวนปั๊ม
-                    </span>
-                    <span className="font-semibold text-gray-800 dark:text-white">{branchCount} ปั๊ม</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                      <Package className="w-4 h-4" />
-                      รายการ
-                    </span>
-                    <span className="font-semibold text-gray-800 dark:text-white">{order.items.length} รายการ</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                      <Droplet className="w-4 h-4" />
-                      ปริมาณรวม
-                    </span>
-                    <span className="font-semibold text-gray-800 dark:text-white">{numberFormatter.format(totalQuantity)} ลิตร</span>
                   </div>
                 </div>
-
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">มูลค่ารวม</span>
-                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 dark:text-white">
+                          {order.items.map((item, idx) => (
+                            <div key={idx} className="mb-1">
+                              <span className="font-medium">{item.oilType}:</span>
+                              <span className="text-gray-600 dark:text-gray-400 ml-1">
+                                {numberFormatter.format(item.quantity)} ลิตร
+                    </span>
+                  </div>
+                          ))}
+                  </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {numberFormatter.format(totalQuantity)}
+                    </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
                       {currencyFormatter.format(order.totalAmount)}
                     </span>
-                  </div>
-                </div>
-
-                <div className="mt-4 text-xs text-gray-500 dark:text-gray-500 text-center">
-                  อนุมัติโดย: {order.approvedBy} • {order.approvedAt}
-                </div>
-              </div>
-
-              {/* Click to view indicator */}
-              <div className="bg-gray-50 dark:bg-gray-900/50 px-6 py-3 text-center">
-                <span className="text-sm text-blue-600 dark:text-blue-400 font-medium flex items-center justify-center gap-2">
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedOrder(order);
+                          }}
+                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title="ดูรายละเอียด"
+                        >
                   <Eye className="w-4 h-4" />
-                  คลิกเพื่อดูรายละเอียด
-                </span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
               </div>
             </motion.div>
-          );
-        })}
-      </div>
 
       {/* Order Detail Modal */}
       <AnimatePresence>

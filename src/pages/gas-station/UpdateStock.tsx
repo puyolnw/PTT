@@ -49,17 +49,17 @@ type StockUpdateItem = {
 };
 
 // สาขาทั้งหมด (ตรงกับ Stock.tsx - ไม่รวมมายมาส)
-// ลำดับ: ไฮโซ -> ดินดำ -> หนองจิก -> ตาก -> บายพาส
+// ลำดับ: ไฮโซ -> ดินดำ -> หนองจิก -> ตักสิลา -> บายพาส
 const branches = [
   { id: 1, name: "ปั๊มไฮโซ", code: "HQ" },
   { id: 2, name: "ดินดำ", code: "DD" },
   { id: 3, name: "หนองจิก", code: "NJ" },
-  { id: 4, name: "ตาก", code: "TK" },
+  { id: 4, name: "ตักสิลา", code: "TK" },
   { id: 5, name: "บายพาส", code: "BP" },
 ];
 
 // Mock data จาก Stock.tsx - ใช้ข้อมูลเดียวกัน
-// เรียงตามลำดับ: ปั๊มไฮโซ -> ดินดำ -> หนองจิก -> ตาก -> บายพาส (ไม่รวมมายมาส)
+// เรียงตามลำดับ: ปั๊มไฮโซ -> ดินดำ -> หนองจิก -> ตักสิลา -> บายพาส (ไม่รวมมายมาส)
 const mockStockDataFromStock = [
   // ปั๊มไฮโซ - 5 หลุม
   { id: "STK-001", branch: "ปั๊มไฮโซ", tankNumber: 1, oilType: "Gasohol 95" as OilType, currentStock: 18000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 41.49, totalValue: 746820 },
@@ -79,14 +79,14 @@ const mockStockDataFromStock = [
   { id: "STK-203", branch: "หนองจิก", tankNumber: 3, oilType: "E20" as OilType, currentStock: 8300, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 36.90, totalValue: 306270 },
   { id: "STK-204", branch: "หนองจิก", tankNumber: 4, oilType: "Diesel" as OilType, currentStock: 17000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 32.49, totalValue: 552330 },
   { id: "STK-205", branch: "หนองจิก", tankNumber: 5, oilType: "Gasohol 91" as OilType, currentStock: 19000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 38.49, totalValue: 731310 },
-  // ตาก (ปตท. ตักสิดา) - 7 หลุม
-  { id: "STK-301", branch: "ตาก", tankNumber: 1, oilType: "Gasohol 95" as OilType, currentStock: 18000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 41.49, totalValue: 746820 },
-  { id: "STK-302", branch: "ตาก", tankNumber: 2, oilType: "Gasohol 91" as OilType, currentStock: 19000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 38.49, totalValue: 731310 },
-  { id: "STK-303", branch: "ตาก", tankNumber: 3, oilType: "Diesel" as OilType, currentStock: 17000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 32.49, totalValue: 552330 },
-  { id: "STK-304", branch: "ตาก", tankNumber: 4, oilType: "E85" as OilType, currentStock: 9000, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 28.49, totalValue: 256410 },
-  { id: "STK-305", branch: "ตาก", tankNumber: 5, oilType: "Premium Diesel" as OilType, currentStock: 7500, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 33.49, totalValue: 251175 },
-  { id: "STK-306", branch: "ตาก", tankNumber: 6, oilType: "E20" as OilType, currentStock: 17000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 36.90, totalValue: 627300 },
-  { id: "STK-307", branch: "ตาก", tankNumber: 7, oilType: "Premium Gasohol 95" as OilType, currentStock: 13000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 41.49, totalValue: 539370 },
+  // ตักสิลา (ปตท. ตักสิดา) - 7 หลุม
+  { id: "STK-301", branch: "ตักสิลา", tankNumber: 1, oilType: "Gasohol 95" as OilType, currentStock: 18000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 41.49, totalValue: 746820 },
+  { id: "STK-302", branch: "ตักสิลา", tankNumber: 2, oilType: "Gasohol 91" as OilType, currentStock: 19000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 38.49, totalValue: 731310 },
+  { id: "STK-303", branch: "ตักสิลา", tankNumber: 3, oilType: "Diesel" as OilType, currentStock: 17000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 32.49, totalValue: 552330 },
+  { id: "STK-304", branch: "ตักสิลา", tankNumber: 4, oilType: "E85" as OilType, currentStock: 9000, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 28.49, totalValue: 256410 },
+  { id: "STK-305", branch: "ตักสิลา", tankNumber: 5, oilType: "Premium Diesel" as OilType, currentStock: 7500, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 33.49, totalValue: 251175 },
+  { id: "STK-306", branch: "ตักสิลา", tankNumber: 6, oilType: "E20" as OilType, currentStock: 17000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 36.90, totalValue: 627300 },
+  { id: "STK-307", branch: "ตักสิลา", tankNumber: 7, oilType: "Premium Gasohol 95" as OilType, currentStock: 13000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 41.49, totalValue: 539370 },
   // บายพาส - 5 หลุม
   { id: "STK-401", branch: "บายพาส", tankNumber: 1, oilType: "Gasohol 95" as OilType, currentStock: 18000, minThreshold: 4000, maxCapacity: 20000, pricePerLiter: 41.49, totalValue: 746820 },
   { id: "STK-402", branch: "บายพาส", tankNumber: 2, oilType: "Premium Diesel" as OilType, currentStock: 7500, minThreshold: 2000, maxCapacity: 10000, pricePerLiter: 33.49, totalValue: 251175 },
@@ -151,10 +151,10 @@ export default function UpdateStock() {
       filtered = filtered.filter(item => item.branch === selectedBranch);
     }
     
-    // เรียงตามสาขา (ไฮโซ -> ดินดำ -> หนองจิก -> ตาก -> บายพาส) แล้วตามหลุม
+    // เรียงตามสาขา (ไฮโซ -> ดินดำ -> หนองจิก -> ตักสิลา -> บายพาส) แล้วตามหลุม
     return [...filtered].sort((a, b) => {
       if (a.branch !== b.branch) {
-        const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตาก", "บายพาส"];
+        const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
         return branchOrder.indexOf(a.branch) - branchOrder.indexOf(b.branch);
       }
       return a.tankNumber - b.tankNumber;
@@ -277,11 +277,16 @@ export default function UpdateStock() {
               className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
             >
               <option value="all">ทุกสาขา</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.name}>
-                  {branch.name}
-                </option>
-              ))}
+              {branches
+                .sort((a, b) => {
+                  const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                  return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
+                })
+                .map((branch) => (
+                  <option key={branch.id} value={branch.name}>
+                    {branch.name}
+                  </option>
+                ))}
             </select>
           </div>
           <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">

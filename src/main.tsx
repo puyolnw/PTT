@@ -229,6 +229,12 @@ import Quotation from "@/pages/gas-station/Quotation";
 import DeliveryNote from "@/pages/gas-station/DeliveryNote";
 import Receipt from "@/pages/gas-station/Receipt";
 import OilReceipt from "@/pages/gas-station/OilReceipt";
+import BranchOilReceipt from "@/pages/gas-station/BranchOilReceipt";
+import InternalOilOrder from "@/pages/gas-station/InternalOilOrder";
+import InternalOilOrderManagement from "@/pages/gas-station/InternalOilOrderManagement";
+import InternalTransport from "@/pages/gas-station/InternalTransport";
+import ReceiveOil from "@/pages/gas-station/ReceiveOil";
+import InterBranchTransfer from "@/pages/gas-station/InterBranchTransfer";
 
 import { isAuthenticated } from "@/lib/auth";
 
@@ -995,6 +1001,30 @@ const router = createBrowserRouter([
           {
             path: "oil-receipt",
             element: <OilReceipt />,
+          },
+          {
+            path: "branch-oil-receipt",
+            element: <BranchOilReceipt />,
+          },
+          {
+            path: "internal-oil-order",
+            element: <InternalOilOrder />,
+          },
+          {
+            path: "internal-oil-order-management",
+            element: <InternalOilOrderManagement />,
+          },
+          {
+            path: "internal-transport",
+            element: <InternalTransport />,
+          },
+          {
+            path: "receive-oil",
+            element: <ReceiveOil />,
+          },
+          {
+            path: "inter-branch-transfer",
+            element: <InterBranchTransfer />,
           },
           {
             path: "lubricants-dashboard",

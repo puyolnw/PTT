@@ -63,6 +63,11 @@ export const employees: Employee[] = [
   { id: 32, code: "EMP-0032", name: "สมศักดิ์ ขับรถ", dept: "ขับรถ", position: "คนขับรถ", status: "Active", startDate: "2023-11-20", email: "somsak2@ptt.co.th", phone: "022-345-6789", avatar: "https://ui-avatars.com/api/?name=สมศักดิ์+ขับรถ&background=19b7ff&color=fff", shiftId: 37, otRate: 220, category: "ขับรถ" }
 ];
 
+// Mock drivers for TruckOrders page (filtered from employees)
+export const mockDrivers = employees.filter(
+  (emp: Employee) => emp.position === "คนขับรถ" || emp.category === "ขับรถ"
+);
+
 // ========== 2) ATTENDANCE (บันทึกเวลา) ==========
 export interface AttendanceLog {
   id: number;
@@ -3417,9 +3422,9 @@ export const documents: Document[] = [
   {
     id: 6,
     documentNumber: "DOC-2025-006",
-    title: "ใบอนุญาตปั๊มน้ำมันสาขา 2",
+    title: "ใบอนุญาตปั๊มน้ำมันดินดำ",
     categoryId: 1,
-    description: "ใบอนุญาตประกอบกิจการปั๊มน้ำมันสาขา 2",
+    description: "ใบอนุญาตประกอบกิจการปั๊มน้ำมันดินดำ",
     fileUrl: "/documents/license-branch2.pdf",
     fileName: "license-branch2.pdf",
     fileType: "PDF",
@@ -3433,7 +3438,7 @@ export const documents: Document[] = [
     createdAt: "2025-01-20",
     approvedBy: "ผู้บริหาร",
     approvedAt: "2025-01-25",
-    tags: ["ใบอนุญาต", "ปั๊มน้ำมัน", "สาขา 2"]
+    tags: ["ใบอนุญาต", "ปั๊มน้ำมัน", "ดินดำ"]
   },
   {
     id: 7,
@@ -3483,7 +3488,7 @@ export const documents: Document[] = [
     documentNumber: "DOC-2025-009",
     title: "สัญญาเช่าพื้นที่ร้านกาแฟ",
     categoryId: 2,
-    description: "สัญญาเช่าพื้นที่ร้านกาแฟในปั๊มสาขา 2",
+    description: "สัญญาเช่าพื้นที่ร้านกาแฟในปั๊มดินดำ",
     fileUrl: "/documents/contract-coffee.pdf",
     fileName: "contract-coffee.pdf",
     fileType: "PDF",
@@ -3685,7 +3690,7 @@ export const documentNotifications: DocumentNotification[] = [
     id: 1,
     documentId: 6,
     type: "Expiring",
-    message: "ใบอนุญาตปั๊มน้ำมันสาขา 2 จะหมดอายุใน 30 วัน",
+    message: "ใบอนุญาตปั๊มน้ำมันดินดำ จะหมดอายุใน 30 วัน",
     daysUntilExpiry: 30,
     sentAt: "2025-11-15T08:00:00",
     sentTo: "EMP-0001",

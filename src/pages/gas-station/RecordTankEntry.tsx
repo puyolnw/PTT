@@ -3,6 +3,20 @@ import { useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useGasStation } from "@/contexts/GasStationContext";
 import type { TankEntryRecord as TankEntryRecordType, OilType } from "@/types/gasStation";
+
+// Helper function to map local source to base source type
+const mapSourceToBaseType = (source: "PTT" | "Branch" | "Other"): "รับจากปตท" | "รับจากสาขาอื่น" | "ย้ายจากหลุมอื่น" | "อื่นๆ" => {
+    switch (source) {
+        case "PTT":
+            return "รับจากปตท";
+        case "Branch":
+            return "รับจากสาขาอื่น";
+        case "Other":
+            return "อื่นๆ";
+        default:
+            return "อื่นๆ";
+    }
+};
 import {
     Droplet,
     Plus,
@@ -30,13 +44,13 @@ const mockTransportDeliveries = [
         transportNo: "TR-20241215-001",
         truckPlateNumber: "กก 1111",
         status: "กำลังขนส่ง" as const,
-        destinationBranchNames: ["สาขา 2", "สาขา 3"],
+        destinationBranchNames: ["ดินดำ", "หนองจิก"],
     },
     {
         transportNo: "TR-20241215-002",
         truckPlateNumber: "กก 2222",
         status: "กำลังขนส่ง" as const,
-        destinationBranchNames: ["สาขา 4"],
+        destinationBranchNames: ["ตักสิลา"],
     },
 ];
 
@@ -64,6 +78,9 @@ interface TankEntryRecordLocal {
     // ข้อมูลรถและคนขับ
     truckLicensePlate?: string;
     driverName?: string;
+    
+    // ข้อมูลคนเอาน้ำมันลงหลุม
+    operatorName?: string; // ชื่อคนที่เอาน้ำมันลงหลุม
     
     // ข้อมูลการลงหลุม
     oilType: string; // ประเภทน้ำมัน
@@ -139,7 +156,7 @@ const mockUndergroundTanks = [
 ];
 
 // Mock data - บันทึกน้ำมันลงหลุม
-const mockTankEntryRecords: TankEntryRecordType[] = [
+const mockTankEntryRecords: TankEntryRecordLocal[] = [
     {
         id: "TE-001",
         entryDate: new Date().toISOString().split("T")[0],
@@ -216,6 +233,9 @@ const mockIncorrectEntries: IncorrectTankEntry[] = [
         pumpCode: "P26",
         description: "B หนอง",
         status: "completed",
+        truckLicensePlate: "",
+        driverName: "",
+        operatorName: "นายประเสริฐ ดีใจ",
         recordedBy: "EMP-002",
         recordedByName: "นายประเสริฐ ดีใจ",
         createdAt: "2024-12-14 14:20",
@@ -253,7 +273,7 @@ export default function RecordTankEntry() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showIncorrectEntryModal, setShowIncorrectEntryModal] = useState(false);
-    const [selectedRecord, setSelectedRecord] = useState<TankEntryRecordType | IncorrectTankEntry | null>(null);
+    const [selectedRecord, setSelectedRecord] = useState<TankEntryRecordLocal | IncorrectTankEntry | null>(null);
 
     // Form state for creating new tank entry
     const [formData, setFormData] = useState({
@@ -266,6 +286,7 @@ export default function RecordTankEntry() {
         sourceBranchName: "",
         truckLicensePlate: "",
         driverName: "",
+        operatorName: "",
         oilType: "",
         tankNumber: 0,
         tankCode: "",
@@ -293,6 +314,7 @@ export default function RecordTankEntry() {
         sourceBranchName: "",
         truckLicensePlate: "",
         driverName: "",
+        operatorName: "",
         
         // ข้อมูลการลงหลุมผิด
         wrongTankNumber: 0,
@@ -315,9 +337,34 @@ export default function RecordTankEntry() {
         notes: "",
     });
 
-    // State for all records (normal + incorrect)
-    const [allRecords, setAllRecords] = useState<TankEntryRecordType[]>([
-        ...(tankEntries.length > 0 ? tankEntries : mockTankEntryRecords),
+    // State for all records (normal + incorrect) - using local type with extended properties
+    const [allRecords, setAllRecords] = useState<(TankEntryRecordLocal | IncorrectTankEntry)[]>([
+        ...(tankEntries.length > 0 ? tankEntries.map(te => ({
+            ...te,
+            receiptNo: te.oilReceiptNo,
+            purchaseOrderNo: undefined,
+            transportNo: te.deliveryNoteNo,
+            source: te.source === "รับจากปตท" ? "PTT" as const : te.source === "รับจากสาขาอื่น" ? "Branch" as const : "Other" as const,
+            truckLicensePlate: undefined,
+            driverName: undefined,
+            operatorName: undefined,
+            tankCode: "",
+            beforeDip: 0,
+            afterDip: 0,
+            quantityReceived: te.quantity,
+            pricePerLiter: 0,
+            totalAmount: 0,
+            pumpCode: undefined,
+            description: undefined,
+            status: "completed" as const,
+            recordedByName: te.recordedBy,
+            approvedBy: undefined,
+            approvedByName: undefined,
+            approvedAt: undefined,
+            createdAt: te.recordedAt,
+            updatedAt: te.recordedAt,
+            isIncorrect: false,
+        })) : mockTankEntryRecords),
         ...(mockIncorrectEntries.map((entry) => ({
             ...entry,
             oilType: entry.wrongOilType as OilType,
@@ -426,7 +473,7 @@ export default function RecordTankEntry() {
             setFormData((prev) => ({
                 ...prev,
                 receiptNo: receiptNo,
-                purchaseOrderNo: receipt.purchaseOrderNo,
+                purchaseOrderNo: receipt.purchaseOrderNo || "",
                 truckLicensePlate: receipt.truckLicensePlate,
                 driverName: receipt.driverName,
                 source: "PTT",
@@ -465,7 +512,7 @@ export default function RecordTankEntry() {
             setFormData((prev) => ({
                 ...prev,
                 receiptNo: receiptNo,
-                purchaseOrderNo: receipt.purchaseOrderNo,
+                purchaseOrderNo: receipt.purchaseOrderNo || "",
                 truckLicensePlate: receipt.truckLicensePlate,
                 driverName: receipt.driverName,
                 source: "PTT",
@@ -491,7 +538,7 @@ export default function RecordTankEntry() {
     };
 
     // ฟังก์ชันหา transport delivery ที่เกี่ยวข้องกับ record
-    const getTransportDelivery = (record: TankEntryRecordType) => {
+    const getTransportDelivery = (record: TankEntryRecordLocal | IncorrectTankEntry) => {
         if (!record.truckLicensePlate && !record.transportNo) return null;
         
         const allTransports = transportDeliveries.length > 0 ? transportDeliveries : mockTransportDeliveries;
@@ -613,19 +660,43 @@ export default function RecordTankEntry() {
         // Calculate total amount
         const totalAmount = formData.quantity * formData.pricePerLiter;
 
-        // สร้าง Tank Entry Record
+        // สร้าง Tank Entry Record (base type for context)
         const recordId = `TE-${new Date().toISOString().split("T")[0].replace(/-/g, "")}-${Date.now().toString().slice(-4)}`;
+        const entryNo = `ENTRY-${new Date().toISOString().split("T")[0].replace(/-/g, "")}-${Date.now().toString().slice(-4)}`;
         const newTankEntry: TankEntryRecordType = {
+            id: recordId,
+            entryNo: entryNo,
+            entryDate: formData.entryDate,
+            entryTime: formData.entryTime,
+            tankNumber: formData.tankNumber,
+            oilType: formData.oilType as OilType,
+            quantity: formData.quantity,
+            source: mapSourceToBaseType(formData.source),
+            sourceBranchName: formData.sourceBranchName || undefined,
+            sourceBranchId: undefined, // TODO: map from branch name if needed
+            oilReceiptNo: formData.receiptNo || undefined,
+            deliveryNoteNo: formData.transportNo || undefined,
+            notes: formData.notes || undefined,
+            recordedBy: "EMP-001", // TODO: ดึงจาก session
+            recordedAt: new Date().toISOString(),
+        };
+
+        // บันทึกใน context
+        createTankEntry(newTankEntry);
+
+        // Create local type record with extended properties for UI
+        const localRecord: TankEntryRecordLocal = {
             id: recordId,
             entryDate: formData.entryDate,
             entryTime: formData.entryTime,
             receiptNo: formData.receiptNo || undefined,
             purchaseOrderNo: formData.purchaseOrderNo || undefined,
             transportNo: formData.transportNo || undefined,
-            source: formData.source as "PTT" | "Branch" | "Other",
+            source: formData.source,
             sourceBranchName: formData.sourceBranchName || undefined,
             truckLicensePlate: formData.truckLicensePlate || undefined,
             driverName: formData.driverName || undefined,
+            operatorName: formData.operatorName || undefined,
             oilType: formData.oilType as OilType,
             tankNumber: formData.tankNumber,
             tankCode: formData.tankCode,
@@ -638,15 +709,16 @@ export default function RecordTankEntry() {
             pumpCode: formData.pumpCode || undefined,
             description: formData.description || undefined,
             status: "completed",
-            recordedBy: "EMP-001", // TODO: ดึงจาก session
-            recordedByName: "นายสมศักดิ์ ใจดี", // TODO: ดึงจาก session
+            recordedBy: "EMP-001",
+            recordedByName: "นายสมศักดิ์ ใจดี",
             notes: formData.notes || undefined,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
+            isIncorrect: false,
         };
 
-        // บันทึกใน context
-        createTankEntry(newTankEntry);
+        // Add to local records
+        setAllRecords((prev) => [...prev, localRecord]);
 
         // บันทึกประวัติการทำงาน
         logActivity({
@@ -707,6 +779,7 @@ export default function RecordTankEntry() {
             sourceBranchName: "",
             truckLicensePlate: "",
             driverName: "",
+            operatorName: "",
             oilType: "",
             tankNumber: 0,
             tankCode: "",
@@ -733,6 +806,7 @@ export default function RecordTankEntry() {
             sourceBranchName: "",
             truckLicensePlate: "",
             driverName: "",
+            operatorName: "",
             wrongTankNumber: 0,
             wrongTankCode: "",
             wrongOilType: "",
@@ -837,17 +911,31 @@ export default function RecordTankEntry() {
             estimatedLoss: estimatedLoss,
         };
 
-        // Convert to TankEntryRecordType for context
+        // Convert to TankEntryRecordType for context (only base properties)
+        const entryNo = `ENTRY-${new Date().toISOString().split("T")[0].replace(/-/g, "")}-${Date.now().toString().slice(-4)}`;
         const tankEntryRecord: TankEntryRecordType = {
-            ...newIncorrectEntry,
-            oilType: newIncorrectEntry.wrongOilType as OilType,
+            id: recordId,
+            entryNo: entryNo,
+            entryDate: incorrectEntryForm.entryDate,
+            entryTime: incorrectEntryForm.entryTime,
+            tankNumber: incorrectEntryForm.wrongTankNumber,
+            oilType: incorrectEntryForm.wrongOilType as OilType,
+            quantity: incorrectEntryForm.quantity,
+            source: mapSourceToBaseType(incorrectEntryForm.source),
+            sourceBranchName: incorrectEntryForm.sourceBranchName || undefined,
+            sourceBranchId: undefined,
+            oilReceiptNo: incorrectEntryForm.receiptNo || undefined,
+            deliveryNoteNo: incorrectEntryForm.transportNo || undefined,
+            notes: incorrectEntryForm.notes || undefined,
+            recordedBy: "EMP-001",
+            recordedAt: now,
         };
         
         // บันทึกใน context
         createTankEntry(tankEntryRecord);
         
-        // Add to records
-        setAllRecords((prev) => [...prev, tankEntryRecord]);
+        // Add to records (use the local type with extended properties)
+        setAllRecords((prev) => [...prev, newIncorrectEntry]);
 
         // บันทึกประวัติการทำงาน
         logActivity({
@@ -874,7 +962,7 @@ export default function RecordTankEntry() {
         resetIncorrectEntryForm();
     };
 
-    const handleViewDetail = (record: TankEntryRecordType) => {
+    const handleViewDetail = (record: TankEntryRecordLocal | IncorrectTankEntry) => {
         setSelectedRecord(record);
         setShowDetailModal(true);
     };
@@ -1450,7 +1538,7 @@ export default function RecordTankEntry() {
                                                         onChange={(e) =>
                                                             setFormData({ ...formData, sourceBranchName: e.target.value })
                                                         }
-                                                        placeholder="เช่น สาขา 2, สาขา 3"
+                                                        placeholder="เช่น ดินดำ, หนองจิก"
                                                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 text-gray-800 dark:text-white"
                                                     />
                                                 </div>
@@ -1603,6 +1691,21 @@ export default function RecordTankEntry() {
                                                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 text-gray-800 dark:text-white"
                                                     />
                                                 </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    คนเอาน้ำมันลงหลุม
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.operatorName}
+                                                    onChange={(e) =>
+                                                        setFormData({ ...formData, operatorName: e.target.value })
+                                                    }
+                                                    placeholder="นายสมศักดิ์ ใจดี"
+                                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 text-gray-800 dark:text-white"
+                                                />
                                             </div>
                                         </div>
 
@@ -2180,9 +2283,9 @@ export default function RecordTankEntry() {
                                         )}
 
                                         {/* Vehicle Info */}
-                                        {(selectedRecord.truckLicensePlate || selectedRecord.driverName) && (
+                                        {(selectedRecord.truckLicensePlate || selectedRecord.driverName || selectedRecord.operatorName) && (
                                             <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
-                                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 font-semibold">ข้อมูลรถ</p>
+                                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 font-semibold">ข้อมูลรถและผู้ปฏิบัติงาน</p>
                                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                                     {selectedRecord.truckLicensePlate && (
                                                         <div>
@@ -2197,6 +2300,14 @@ export default function RecordTankEntry() {
                                                             <span className="text-gray-600 dark:text-gray-400">คนขับ:</span>
                                                             <span className="ml-2 font-semibold text-gray-800 dark:text-white">
                                                                 {selectedRecord.driverName}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {selectedRecord.operatorName && (
+                                                        <div className="col-span-2">
+                                                            <span className="text-gray-600 dark:text-gray-400">คนเอาน้ำมันลงหลุม:</span>
+                                                            <span className="ml-2 font-semibold text-gray-800 dark:text-white">
+                                                                {selectedRecord.operatorName}
                                                             </span>
                                                         </div>
                                                     )}

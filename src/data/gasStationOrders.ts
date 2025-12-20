@@ -3,11 +3,11 @@
 
 // สาขาทั้ง 5 แห่ง
 export const branches = [
-  { id: 1, name: "ปั๊มไฮโซ", code: "HQ", address: "100 ถนนเพชรบุรี กรุงเทพมหานคร 10400", legalEntityName: "บริษัท A จำกัด" },
-  { id: 2, name: "สาขา 2", code: "B2", address: "456 ถนนพหลโยธิน กรุงเทพมหานคร 10400", legalEntityName: "บริษัท B จำกัด" },
-  { id: 3, name: "สาขา 3", code: "B3", address: "789 ถนนรัชดาภิเษก กรุงเทพมหานคร 10320", legalEntityName: "บริษัท C จำกัด" },
-  { id: 4, name: "สาขา 4", code: "B4", address: "123 ถนนสุขุมวิท กรุงเทพมหานคร 10110", legalEntityName: "บริษัท D จำกัด" },
-  { id: 5, name: "สาขา 5", code: "B5", address: "321 ถนนสีลม กรุงเทพมหานคร 10500", legalEntityName: "บริษัท E จำกัด" },
+  { id: 1, name: "ปั๊มไฮโซ", code: "HQ", address: "มหาสารคาม", legalEntityName: "บริษัท A จำกัด" },
+  { id: 2, name: "ดินดำ", code: "B2", address: "มหาสารคาม", legalEntityName: "บริษัท B จำกัด" },
+  { id: 3, name: "หนองจิก", code: "B3", address: "มหาสารคาม", legalEntityName: "บริษัท C จำกัด" },
+  { id: 4, name: "ตักสิลา", code: "B4", address: "มหาสารคาม", legalEntityName: "บริษัท D จำกัด" },
+  { id: 5, name: "บายพาส", code: "B5", address: "มหาสารคาม", legalEntityName: "บริษัท E จำกัด" },
 ];
 
 // นิติบุคคล
@@ -95,10 +95,10 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     requestedAt: "2024-12-15 09:00",
     requestedBy: "ผู้จัดการปั๊มไฮโซ",
   },
-  // สาขา 2
+  // ดินดำ
   {
     branchId: 2,
-    branchName: "สาขา 2",
+    branchName: "ดินดำ",
     oilType: "Premium Diesel",
     estimatedOrderAmount: 20000,
     systemRecommended: 22000,
@@ -109,11 +109,11 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     legalEntityName: "บริษัท B จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 10:30",
-    requestedBy: "ผู้จัดการสาขา 2",
+    requestedBy: "ผู้จัดการดินดำ",
   },
   {
     branchId: 2,
-    branchName: "สาขา 2",
+    branchName: "ดินดำ",
     oilType: "Gasohol 95",
     estimatedOrderAmount: 15000,
     systemRecommended: 18000,
@@ -124,7 +124,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     legalEntityName: "บริษัท B จำกัด",
     status: "อนุมัติแล้ว",
     requestedAt: "2024-12-15 10:30",
-    requestedBy: "ผู้จัดการสาขา 2",
+    requestedBy: "ผู้จัดการดินดำ",
     approvedBy: "คุณนิด",
     approvedAt: "2024-12-15 14:30",
     orderNo: "SO-20241215-002",
@@ -135,7 +135,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
   },
   {
     branchId: 2,
-    branchName: "สาขา 2",
+    branchName: "ดินดำ",
     oilType: "E85",
     estimatedOrderAmount: 8000,
     systemRecommended: 10000,
@@ -146,12 +146,12 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     legalEntityName: "บริษัท B จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 10:30",
-    requestedBy: "ผู้จัดการสาขา 2",
+    requestedBy: "ผู้จัดการดินดำ",
   },
-  // สาขา 3
+  // หนองจิก
   {
     branchId: 3,
-    branchName: "สาขา 3",
+    branchName: "หนองจิก",
     oilType: "Diesel",
     estimatedOrderAmount: 18000,
     systemRecommended: 20000,
@@ -162,7 +162,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     legalEntityName: "บริษัท C จำกัด",
     status: "ส่งแล้ว",
     requestedAt: "2024-12-15 11:00",
-    requestedBy: "ผู้จัดการสาขา 3",
+    requestedBy: "ผู้จัดการหนองจิก",
     approvedBy: "คุณนิด",
     approvedAt: "2024-12-15 14:00",
     orderNo: "SO-20241215-003",
@@ -173,7 +173,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
   },
   {
     branchId: 3,
-    branchName: "สาขา 3",
+    branchName: "หนองจิก",
     oilType: "Gasohol 91",
     estimatedOrderAmount: 12000,
     systemRecommended: 15000,
@@ -184,12 +184,12 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     legalEntityName: "บริษัท C จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 11:00",
-    requestedBy: "ผู้จัดการสาขา 3",
+    requestedBy: "ผู้จัดการหนองจิก",
   },
-  // สาขา 4
+  // ตักสิลา
   {
     branchId: 4,
-    branchName: "สาขา 4",
+    branchName: "ตักสิลา",
     oilType: "Premium Diesel",
     estimatedOrderAmount: 25000,
     systemRecommended: 24000,
@@ -200,7 +200,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     legalEntityName: "บริษัท D จำกัด",
     status: "ส่งแล้ว",
     requestedAt: "2024-12-15 09:45",
-    requestedBy: "ผู้จัดการสาขา 4",
+    requestedBy: "ผู้จัดการตักสิลา",
     approvedBy: "คุณนิด",
     approvedAt: "2024-12-15 14:30",
     orderNo: "SO-20241215-001",
@@ -214,7 +214,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
   },
   {
     branchId: 4,
-    branchName: "สาขา 4",
+    branchName: "ตักสิลา",
     oilType: "E20",
     estimatedOrderAmount: 15000,
     systemRecommended: 18000,
@@ -225,12 +225,12 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     legalEntityName: "บริษัท D จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 09:45",
-    requestedBy: "ผู้จัดการสาขา 4",
+    requestedBy: "ผู้จัดการตักสิลา",
   },
-  // สาขา 5
+  // บายพาส
   {
     branchId: 5,
-    branchName: "สาขา 5",
+    branchName: "บายพาส",
     oilType: "Gasohol 95",
     estimatedOrderAmount: 12000,
     systemRecommended: 15000,
@@ -241,11 +241,11 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     legalEntityName: "บริษัท E จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 11:30",
-    requestedBy: "ผู้จัดการสาขา 5",
+    requestedBy: "ผู้จัดการบายพาส",
   },
   {
     branchId: 5,
-    branchName: "สาขา 5",
+    branchName: "บายพาส",
     oilType: "Gasohol 91",
     estimatedOrderAmount: 10000,
     systemRecommended: 12000,
@@ -256,7 +256,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     legalEntityName: "บริษัท E จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 11:30",
-    requestedBy: "ผู้จัดการสาขา 5",
+    requestedBy: "ผู้จัดการบายพาส",
   },
 ];
 
@@ -379,6 +379,14 @@ export interface ApprovedOrder {
   status: "รอเริ่ม" | "กำลังขนส่ง" | "ขนส่งสำเร็จ" | "ยกเลิก";
   approvedBy: string;
   approvedAt: string;
+  // ข้อมูลรถและคนขับ (fix มากับใบสั่งซื้อ)
+  truckId?: string;
+  truckPlateNumber?: string;
+  trailerId?: string;
+  trailerPlateNumber?: string;
+  driverId?: string;
+  driverName?: string;
+  currentOdometer?: number; // เลขไมล์ปัจจุบัน
 }
 
 // Mock data - ใบสั่งซื้อที่อนุมัติแล้ว (บิลรวมการสั่งในแต่ละครั้ง)
@@ -415,7 +423,7 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 2,
-        branchName: "สาขา 2",
+        branchName: "ดินดำ",
         legalEntityName: "บริษัท B จำกัด",
         address: "456 ถนนพหลโยธิน กรุงเทพมหานคร 10400",
         items: [
@@ -427,7 +435,7 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 3,
-        branchName: "สาขา 3",
+        branchName: "หนองจิก",
         legalEntityName: "บริษัท C จำกัด",
         address: "789 ถนนรัชดาภิเษก กรุงเทพมหานคร 10320",
         items: [
@@ -438,7 +446,7 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 4,
-        branchName: "สาขา 4",
+        branchName: "ตักสิลา",
         legalEntityName: "บริษัท D จำกัด",
         address: "123 ถนนสุขุมวิท กรุงเทพมหานคร 10110",
         items: [
@@ -449,7 +457,7 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 5,
-        branchName: "สาขา 5",
+        branchName: "บายพาส",
         legalEntityName: "บริษัท E จำกัด",
         address: "321 ถนนสีลม กรุงเทพมหานคร 10500",
         items: [
@@ -462,6 +470,14 @@ export const mockApprovedOrders: ApprovedOrder[] = [
     status: "ขนส่งสำเร็จ",
     approvedBy: "คุณนิด",
     approvedAt: "2024-12-15 14:30",
+    // ข้อมูลรถและคนขับ (fix มากับใบสั่งซื้อ)
+    truckId: "TRUCK-001",
+    truckPlateNumber: "กก 1111",
+    trailerId: "TRAILER-001",
+    trailerPlateNumber: "กข 1234",
+    driverId: "32",
+    driverName: "สมศักดิ์ ขับรถ",
+    currentOdometer: 125500,
   },
   {
     orderNo: "SO-20241215-002",
@@ -492,7 +508,7 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 2,
-        branchName: "สาขา 2",
+        branchName: "ดินดำ",
         legalEntityName: "บริษัท B จำกัด",
         address: "456 ถนนพหลโยธิน กรุงเทพมหานคร 10400",
         items: [
@@ -503,7 +519,7 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 3,
-        branchName: "สาขา 3",
+        branchName: "หนองจิก",
         legalEntityName: "บริษัท C จำกัด",
         address: "789 ถนนรัชดาภิเษก กรุงเทพมหานคร 10320",
         items: [
@@ -514,7 +530,7 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 4,
-        branchName: "สาขา 4",
+        branchName: "ตักสิลา",
         legalEntityName: "บริษัท D จำกัด",
         address: "123 ถนนสุขุมวิท กรุงเทพมหานคร 10110",
         items: [
@@ -525,7 +541,7 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 5,
-        branchName: "สาขา 5",
+        branchName: "บายพาส",
         legalEntityName: "บริษัท E จำกัด",
         address: "321 ถนนสีลม กรุงเทพมหานคร 10500",
         items: [
@@ -538,6 +554,14 @@ export const mockApprovedOrders: ApprovedOrder[] = [
     status: "ขนส่งสำเร็จ",
     approvedBy: "คุณนิด",
     approvedAt: "2024-12-15 16:00",
+    // ข้อมูลรถและคนขับ (fix มากับใบสั่งซื้อ)
+    truckId: "TRUCK-002",
+    truckPlateNumber: "กก 2222",
+    trailerId: "TRAILER-002",
+    trailerPlateNumber: "กข 5678",
+    driverId: "32",
+    driverName: "สมศักดิ์ ขับรถ",
+    currentOdometer: 98000,
   },
   {
     orderNo: "SO-20241215-003",
@@ -567,7 +591,7 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 2,
-        branchName: "สาขา 2",
+        branchName: "ดินดำ",
         legalEntityName: "บริษัท B จำกัด",
         address: "456 ถนนพหลโยธิน กรุงเทพมหานคร 10400",
         items: [
@@ -578,7 +602,7 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 3,
-        branchName: "สาขา 3",
+        branchName: "หนองจิก",
         legalEntityName: "บริษัท C จำกัด",
         address: "789 ถนนรัชดาภิเษก กรุงเทพมหานคร 10320",
         items: [
@@ -589,7 +613,7 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 4,
-        branchName: "สาขา 4",
+        branchName: "ตักสิลา",
         legalEntityName: "บริษัท D จำกัด",
         address: "123 ถนนสุขุมวิท กรุงเทพมหานคร 10110",
         items: [
@@ -600,7 +624,7 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 5,
-        branchName: "สาขา 5",
+        branchName: "บายพาส",
         legalEntityName: "บริษัท E จำกัด",
         address: "321 ถนนสีลม กรุงเทพมหานคร 10500",
         items: [
@@ -613,6 +637,14 @@ export const mockApprovedOrders: ApprovedOrder[] = [
     status: "ขนส่งสำเร็จ",
     approvedBy: "คุณนิด",
     approvedAt: "2024-12-15 16:15",
+    // ข้อมูลรถและคนขับ (fix มากับใบสั่งซื้อ)
+    truckId: "TRUCK-001",
+    truckPlateNumber: "กก 1111",
+    trailerId: "TRAILER-003",
+    trailerPlateNumber: "กข 9012",
+    driverId: "32",
+    driverName: "สมศักดิ์ ขับรถ",
+    currentOdometer: 125800,
   },
 ];
 
