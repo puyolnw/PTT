@@ -83,6 +83,13 @@ interface DriverJob {
         odometerReading: number;
         notes?: string;
     };
+    warehouseConfirmation?: {
+        confirmedAt: string;
+        warehouseNo: string;
+        depotDocumentNo?: string;
+        photos: string[];
+        notes?: string;
+    };
     depotArrival?: {
         arrivedAt: string;
         endOdometer: number;
@@ -101,7 +108,7 @@ const mockDriverJobs: DriverJob[] = [
         transportDate: "2024-12-15",
         transportTime: "08:00",
         orderType: "external", // รับจาก PTT
-        purchaseOrderNo: "PO-20241215-001",
+        purchaseOrderNo: "SO-20241215-001",
         pttQuotationNo: "QT-20241215-001",
         sourceBranchId: 1,
         sourceBranchName: "ปั๊มไฮโซ",
@@ -207,10 +214,10 @@ const mockDriverJobs: DriverJob[] = [
     },
 ];
 
-type Step = "start-trip" | "pickup-oil" | "route-planning" | "delivery" | "arrive-depot" | "completed";
+type Step = "start-trip" | "warehouse-confirm" | "pickup-oil" | "route-planning" | "delivery" | "arrive-depot" | "completed";
 
 export default function DriverApp() {
-    const { driverJobs, updateDriverJob, createDriverJob, branches } = useGasStation();
+    const { driverJobs, updateDriverJob, createDriverJob, branches, purchaseOrders } = useGasStation();
     const [selectedJob, setSelectedJob] = useState<DriverJobType | null>(null);
     const [currentStep, setCurrentStep] = useState<Step>("start-trip");
     const [currentDeliveryIndex, setCurrentDeliveryIndex] = useState(0);
@@ -228,7 +235,12 @@ export default function DriverApp() {
     const [startOdometer, setStartOdometer] = useState("");
     const [startOdometerPhoto, setStartOdometerPhoto] = useState("");
 
-    // Form states for Step 2: Pickup Oil
+    // Form states for Step 2: Warehouse Confirm (confirm PO / warehouse no)
+    const [warehouseNo, setWarehouseNo] = useState("");
+    const [warehousePhotos, setWarehousePhotos] = useState<string[]>([]);
+    const [warehouseNotes, setWarehouseNotes] = useState("");
+
+    // Form states for Step 3: Pickup Oil
     const [pickupPhotos, setPickupPhotos] = useState<string[]>([]);
     const [pickupOdometer, setPickupOdometer] = useState("");
     const [pickupNotes, setPickupNotes] = useState("");
@@ -292,6 +304,24 @@ export default function DriverApp() {
 
     // Separate completed and active jobs - ใช้ข้อมูลจาก context หรือ mock data
     const allJobs = driverJobs.length > 0 ? driverJobs : mockDriverJobs;
+
+    // Lookup PO (PurchaseOrder) for an external job, then expose approveNo/contractNo/orderNo for display
+    const getPurchaseOrderMeta = (job: DriverJobType) => {
+        const poNo = job.purchaseOrderNo;
+        if (!poNo) return { approveNo: undefined as string | undefined, contractNo: undefined as string | undefined, orderNo: undefined as string | undefined };
+
+        const match = purchaseOrders.find((po) =>
+            po.orderNo === poNo ||
+            po.supplierOrderNo === poNo ||
+            po.billNo === poNo
+        );
+
+        return {
+            approveNo: match?.approveNo,
+            contractNo: match?.contractNo,
+            orderNo: match?.orderNo || poNo,
+        };
+    };
     
     // Filter jobs
     const filteredJobs = useMemo(() => {
@@ -342,7 +372,8 @@ export default function DriverApp() {
         if (job.status === "รอเริ่ม") {
             setCurrentStep("start-trip");
         } else if (job.status === "ออกเดินทางแล้ว") {
-            setCurrentStep("pickup-oil");
+            // New step before pickup oil
+            setCurrentStep(job.warehouseConfirmation ? "pickup-oil" : "warehouse-confirm");
         } else if (job.status === "รับน้ำมันแล้ว") {
             setCurrentStep("route-planning");
         } else if (job.status === "จัดเรียงเส้นทางแล้ว") {
@@ -372,6 +403,9 @@ export default function DriverApp() {
     const resetFormStates = () => {
         setStartOdometer("");
         setStartOdometerPhoto("");
+        setWarehouseNo("");
+        setWarehousePhotos([]);
+        setWarehouseNotes("");
         setPickupPhotos([]);
         setPickupOdometer("");
         setPickupNotes("");
@@ -405,24 +439,25 @@ export default function DriverApp() {
         if (!selectedJob) return;
         
         switch (currentStep) {
-            case "pickup-oil": {
+            case "warehouse-confirm": {
                 // Go back to start-trip
                 setCurrentStep("start-trip");
-                // Reset job status if needed
-                if (selectedJob.status === "ออกเดินทางแล้ว") {
-                    const updatedJob = {
-                        ...selectedJob,
-                        status: "รอเริ่ม" as const,
-                        startTrip: undefined,
-                    };
-                    setSelectedJob(updatedJob);
-                }
                 // Load existing data if available
                 if (selectedJob.startTrip) {
                     setStartOdometer(selectedJob.startTrip.startOdometer.toString());
                     if (selectedJob.startTrip.startOdometerPhoto) {
                         setStartOdometerPhoto(selectedJob.startTrip.startOdometerPhoto);
                     }
+                }
+                break;
+            }
+            case "pickup-oil": {
+                // Go back to warehouse-confirm
+                setCurrentStep("warehouse-confirm");
+                if (selectedJob.warehouseConfirmation) {
+                    setWarehouseNo(selectedJob.warehouseConfirmation.warehouseNo);
+                    setWarehousePhotos(selectedJob.warehouseConfirmation.photos);
+                    setWarehouseNotes(selectedJob.warehouseConfirmation.notes || "");
                 }
                 break;
             }
@@ -500,6 +535,46 @@ export default function DriverApp() {
             })),
         });
         setSelectedJob(updatedJob);
+        setCurrentStep("warehouse-confirm");
+        resetFormStates();
+    };
+
+    // Step 2: Warehouse Confirm (confirm PO / warehouse no)
+    const handleConfirmWarehouse = () => {
+        if (!selectedJob) return;
+        if (!warehouseNo.trim()) {
+            alert("กรุณากรอกเลขที่คลัง");
+            return;
+        }
+        if (warehousePhotos.length === 0) {
+            alert("กรุณาถ่ายรูปหลักฐานอย่างน้อย 1 รูป");
+            return;
+        }
+
+        const updatedJob = {
+            ...selectedJob,
+            // Keep status as 'ออกเดินทางแล้ว' (still en route) but record confirmation
+            status: "ออกเดินทางแล้ว" as const,
+            warehouseConfirmation: {
+                confirmedAt: new Date().toISOString(),
+                warehouseNo: warehouseNo.trim(),
+                photos: warehousePhotos,
+                notes: warehouseNotes || undefined,
+            },
+        };
+
+        updateDriverJob(selectedJob.id, {
+            ...updatedJob,
+            destinationBranches: updatedJob.destinationBranches.map((b) => ({
+                ...b,
+                oilType: b.oilType as DriverJobType["destinationBranches"][0]["oilType"],
+            })),
+            compartments: updatedJob.compartments?.map((c) => ({
+                ...c,
+                oilType: c.oilType ? (c.oilType as DriverJobType["compartments"][0]["oilType"]) : undefined,
+            })),
+        });
+        setSelectedJob(updatedJob);
         setCurrentStep("pickup-oil");
         resetFormStates();
     };
@@ -508,7 +583,7 @@ export default function DriverApp() {
     const handleConfirmPickup = () => {
         if (!selectedJob) return;
         if (pickupPhotos.length === 0) {
-            alert("กรุณาถ่ายรูปหลักฐานการรับน้ำมันอย่างน้อย 1 รูป");
+            alert("กรุณาถ่ายรูปบิลจากคลัง ปตท อย่างน้อย 1 รูป");
             return;
         }
         if (!pickupOdometer) {
@@ -722,7 +797,8 @@ export default function DriverApp() {
         if (!selectedJob) return [];
         const steps = [
             { id: "start-trip", label: "ออกเดินทาง", completed: selectedJob.status !== "รอเริ่ม" },
-            { id: "pickup-oil", label: "รับน้ำมัน", completed: selectedJob.status !== "รอเริ่ม" && selectedJob.status !== "ออกเดินทางแล้ว" },
+            { id: "warehouse-confirm", label: "ยืนยันออเดอร์", completed: !!selectedJob.warehouseConfirmation },
+            { id: "pickup-oil", label: "รับน้ำมัน", completed: selectedJob.status !== "รอเริ่ม" && selectedJob.status !== "ออกเดินทางแล้ว" && !!selectedJob.warehouseConfirmation },
             { id: "route-planning", label: "จัดเรียงเส้นทาง", completed: selectedJob.status !== "รอเริ่ม" && selectedJob.status !== "ออกเดินทางแล้ว" && selectedJob.status !== "รับน้ำมันแล้ว" },
             { id: "delivery", label: "ส่งน้ำมัน", completed: false },
             { id: "arrive-depot", label: "รถถึงโรงจอด", completed: (selectedJob as any).depotArrival ? true : false },
@@ -739,6 +815,7 @@ export default function DriverApp() {
     // Job Detail View
     if (viewingJobDetail) {
         const job = viewingJobDetail;
+        const poMeta = job.orderType === "external" ? getPurchaseOrderMeta(job) : null;
         const deliveredBranches = job.destinationBranches.filter((b) => b.status === "ส่งแล้ว");
         const undeliveredBranches = job.destinationBranches.filter((b) => b.status !== "ส่งแล้ว");
 
@@ -767,19 +844,29 @@ export default function DriverApp() {
                                     )}
                                 </div>
                                 <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                                    {(job as any).orderType === "internal" && (job as any).internalOrderNo && (
+                                    {job.orderType === "internal" && job.internalOrderNo && (
                                         <span>
-                                            <span className="font-medium">ออเดอร์ภายใน:</span> {(job as any).internalOrderNo}
+                                            <span className="font-medium">ออเดอร์ภายใน:</span> {job.internalOrderNo}
                                         </span>
                                     )}
-                                    {(job as any).orderType === "external" && (job as any).purchaseOrderNo && (
+                                    {job.orderType === "external" && job.purchaseOrderNo && (
                                         <span>
-                                            <span className="font-medium">ใบสั่งซื้อ:</span> {(job as any).purchaseOrderNo}
+                                            <span className="font-medium">ใบสั่งซื้อเลขที่:</span> {poMeta?.orderNo || job.purchaseOrderNo}
                                         </span>
                                     )}
-                                    {(job as any).orderType === "external" && (job as any).pttQuotationNo && (
+                                    {job.orderType === "external" && poMeta?.approveNo && (
                                         <span>
-                                            <span className="font-medium">ใบเสนอราคา PTT:</span> {(job as any).pttQuotationNo}
+                                            <span className="font-medium">ใบอนุมัติขายเลขที่:</span> {poMeta.approveNo}
+                                        </span>
+                                    )}
+                                    {job.orderType === "external" && poMeta?.contractNo && (
+                                        <span>
+                                            <span className="font-medium">Contract No.:</span> {poMeta.contractNo}
+                                        </span>
+                                    )}
+                                    {job.orderType === "external" && job.pttQuotationNo && (
+                                        <span>
+                                            <span className="font-medium">ใบเสนอราคา PTT:</span> {job.pttQuotationNo}
                                         </span>
                                     )}
                                 </div>
@@ -851,16 +938,28 @@ export default function DriverApp() {
                                         <p className="font-semibold text-purple-600 dark:text-purple-400">{(job as any).internalOrderNo}</p>
                                     </div>
                                 )}
-                                {(job as any).orderType === "external" && (job as any).purchaseOrderNo && (
+                                {job.orderType === "external" && job.purchaseOrderNo && (
                                     <div>
                                         <p className="text-gray-500 dark:text-gray-400 mb-1">เลขที่ใบสั่งซื้อ</p>
-                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{(job as any).purchaseOrderNo}</p>
+                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{poMeta?.orderNo || job.purchaseOrderNo}</p>
                                     </div>
                                 )}
-                                {(job as any).orderType === "external" && (job as any).pttQuotationNo && (
+                                {job.orderType === "external" && poMeta?.approveNo && (
+                                    <div>
+                                        <p className="text-gray-500 dark:text-gray-400 mb-1">ใบอนุมัติขายเลขที่</p>
+                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{poMeta.approveNo}</p>
+                                    </div>
+                                )}
+                                {job.orderType === "external" && poMeta?.contractNo && (
+                                    <div>
+                                        <p className="text-gray-500 dark:text-gray-400 mb-1">Contract No.</p>
+                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{poMeta.contractNo}</p>
+                                    </div>
+                                )}
+                                {job.orderType === "external" && job.pttQuotationNo && (
                                     <div>
                                         <p className="text-gray-500 dark:text-gray-400 mb-1">เลขที่ใบเสนอราคา PTT</p>
-                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{(job as any).pttQuotationNo}</p>
+                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{job.pttQuotationNo}</p>
                                     </div>
                                 )}
                             </div>
@@ -1116,8 +1215,10 @@ export default function DriverApp() {
                                     ) : (
                                         filteredJobs.map((job) => {
                                             const deliveredBranches = job.destinationBranches.filter((b) => b.status === "ส่งแล้ว");
-                                            const isInternal = (job as any).orderType === "internal";
-                                            const isExternal = (job as any).orderType === "external";
+                                            const typedJob = job as DriverJobType;
+                                            const isInternal = typedJob.orderType === "internal";
+                                            const isExternal = typedJob.orderType === "external";
+                                            const poMeta = isExternal ? getPurchaseOrderMeta(typedJob) : null;
                                             return (
                                                 <tr
                                                     key={job.id}
@@ -1126,6 +1227,13 @@ export default function DriverApp() {
                                                 >
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="text-sm font-semibold text-gray-900 dark:text-white">{job.transportNo}</div>
+                                                        {isExternal && typedJob.purchaseOrderNo && (
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5">
+                                                                <div>ใบสั่งซื้อเลขที่: {poMeta?.orderNo || typedJob.purchaseOrderNo}</div>
+                                                                <div>ใบอนุมัติขายเลขที่: {poMeta?.approveNo || "-"}</div>
+                                                                <div>Contract No.: {poMeta?.contractNo || "-"}</div>
+                                                            </div>
+                                                        )}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="text-sm text-gray-900 dark:text-white">
@@ -1378,6 +1486,7 @@ export default function DriverApp() {
     const completedHasUndelivered = completedUndeliveredBranches.length > 0;
 
     const currentBranch = currentStep === "delivery" && orderedBranches.length > 0 ? orderedBranches[currentDeliveryIndex] : null;
+    const selectedPoMeta = selectedJob && selectedJob.orderType === "external" ? getPurchaseOrderMeta(selectedJob) : null;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -1417,9 +1526,19 @@ export default function DriverApp() {
                                         <span className="font-medium">ออเดอร์:</span> {(selectedJob as any).internalOrderNo}
                                     </p>
                                 )}
-                                {(selectedJob as any).orderType === "external" && (selectedJob as any).purchaseOrderNo && (
+                                {selectedJob.orderType === "external" && selectedJob.purchaseOrderNo && (
                                     <p className="text-blue-600 dark:text-blue-400">
-                                        <span className="font-medium">PO:</span> {(selectedJob as any).purchaseOrderNo}
+                                        <span className="font-medium">ใบสั่งซื้อเลขที่:</span> {selectedPoMeta?.orderNo || selectedJob.purchaseOrderNo}
+                                    </p>
+                                )}
+                                {selectedJob.orderType === "external" && selectedPoMeta?.approveNo && (
+                                    <p className="text-blue-600 dark:text-blue-400">
+                                        <span className="font-medium">ใบอนุมัติขายเลขที่:</span> {selectedPoMeta.approveNo}
+                                    </p>
+                                )}
+                                {selectedJob.orderType === "external" && selectedPoMeta?.contractNo && (
+                                    <p className="text-blue-600 dark:text-blue-400">
+                                        <span className="font-medium">Contract No.:</span> {selectedPoMeta.contractNo}
                                     </p>
                                 )}
                             </div>
@@ -1630,7 +1749,120 @@ export default function DriverApp() {
                         </motion.div>
                     )}
 
-                    {/* Step 2: Pickup Oil */}
+                    {/* Step 2: Warehouse Confirm */}
+                    {currentStep === "warehouse-confirm" && (
+                        <motion.div
+                            key="warehouse-confirm"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                                <div className="flex items-center justify-between mb-6">
+                                    <button
+                                        onClick={handleGoBack}
+                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
+                                    >
+                                        <ChevronRight className="h-5 w-5 rotate-180" />
+                                        กลับ
+                                    </button>
+                                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                                        ขั้นตอนที่ 2: กรอกเลขที่คลัง (ยืนยันออเดอร์)
+                                    </h2>
+                                    <div className="w-24"></div>
+                                </div>
+
+                                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                    <div className="flex items-start gap-3">
+                                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                                                ยืนยันออเดอร์ก่อนเข้ารับน้ำมัน
+                                            </p>
+                                            <p className="text-xs text-blue-700 dark:text-blue-400">
+                                                กรุณากรอก “เลขที่คลัง” และถ่ายรูปหลักฐาน เพื่อยืนยันออเดอร์ที่จะไปรับ
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mb-6">
+                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                        🏷️ เลขที่คลัง *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={warehouseNo}
+                                        onChange={(e) => setWarehouseNo(e.target.value)}
+                                        placeholder="เช่น WH-001 / Depot-12"
+                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div className="mb-6">
+                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                        📷 ถ่ายรูปหลักฐาน * (อย่างน้อย 1 รูป)
+                                    </label>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                                        {warehousePhotos.map((photo, index) => (
+                                            <div key={index} className="relative group">
+                                                <img
+                                                    src={photo}
+                                                    alt={`หลักฐานคลัง ${index + 1}`}
+                                                    className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700"
+                                                />
+                                                <button
+                                                    onClick={() => handleRemovePhoto(index, warehousePhotos, setWarehousePhotos)}
+                                                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {warehousePhotos.length < 6 && (
+                                            <label className="cursor-pointer">
+                                                <div className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                                                    <Camera className="h-8 w-8 text-gray-400" />
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">เพิ่มรูป</span>
+                                                </div>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    multiple
+                                                    onChange={(e) => handlePhotoUpload(e, setWarehousePhotos)}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="mb-6">
+                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                        📝 หมายเหตุ (ถ้ามี)
+                                    </label>
+                                    <textarea
+                                        value={warehouseNotes}
+                                        onChange={(e) => setWarehouseNotes(e.target.value)}
+                                        placeholder="กรอกหมายเหตุเพิ่มเติม..."
+                                        rows={3}
+                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleConfirmWarehouse}
+                                    className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <CheckCircle className="h-6 w-6" />
+                                    ยืนยันออเดอร์และไปขั้นตอนรับน้ำมัน
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Step 3: Pickup Oil */}
                     {currentStep === "pickup-oil" && (
                         <motion.div
                             key="pickup-oil"
@@ -1649,7 +1881,7 @@ export default function DriverApp() {
                                         กลับ
                                     </button>
                                     <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                                        ขั้นตอนที่ 2: รับน้ำมัน
+                                        ขั้นตอนที่ 3: รับน้ำมัน
                                     </h2>
                                     <div className="w-24"></div>
                                 </div>
@@ -1700,9 +1932,14 @@ export default function DriverApp() {
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                                        📷 ถ่ายรูปหลักฐานการรับน้ำมัน * (อย่างน้อย 1 รูป)
+                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                        📷 {selectedJob?.orderType === "external" ? "ถ่ายรูปบิลจากคลัง ปตท" : "ถ่ายรูปบิล/เอกสารรับน้ำมัน"} * (ทุกหน้า)
                                     </label>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                                        {selectedJob?.orderType === "external"
+                                            ? "ใช้เป็นหลักฐานยืนยันออเดอร์และบิลที่ได้รับจากคลัง ปตท"
+                                            : "ใช้เป็นหลักฐานการรับน้ำมัน"}
+                                    </p>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                                         {pickupPhotos.map((photo, index) => (
                                             <div key={index} className="relative group">
@@ -1774,7 +2011,7 @@ export default function DriverApp() {
                         </motion.div>
                     )}
 
-                    {/* Step 3: Route Planning */}
+                    {/* Step 4: Route Planning */}
                     {currentStep === "route-planning" && (
                         <motion.div
                             key="route-planning"
@@ -1793,7 +2030,7 @@ export default function DriverApp() {
                                         กลับ
                                     </button>
                                     <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                                        ขั้นตอนที่ 3: จัดเรียงเส้นทางการส่งน้ำมัน
+                                        ขั้นตอนที่ 4: จัดเรียงเส้นทางการส่งน้ำมัน
                                     </h2>
                                     <div className="w-24"></div>
                                 </div>
@@ -1919,7 +2156,7 @@ export default function DriverApp() {
                         </motion.div>
                     )}
 
-                    {/* Step 4: Delivery */}
+                    {/* Step 5: Delivery */}
                     {currentStep === "delivery" && currentBranch && (
                         <motion.div
                             key={`delivery-${currentDeliveryIndex}`}
@@ -1938,7 +2175,7 @@ export default function DriverApp() {
                                         กลับ
                                     </button>
                                     <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                                        ขั้นตอนที่ 4: ส่งน้ำมัน
+                                        ขั้นตอนที่ 5: ส่งน้ำมัน
                                     </h2>
                                     <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-sm font-semibold">
                                         ปั๊มที่ {currentDeliveryIndex + 1} / {orderedBranches.length}
@@ -2062,7 +2299,7 @@ export default function DriverApp() {
                         </motion.div>
                     )}
 
-                    {/* Step 5: Arrive Depot */}
+                    {/* Step 6: Arrive Depot */}
                     {currentStep === "arrive-depot" && (
                         <motion.div
                             key="arrive-depot"
@@ -2081,7 +2318,7 @@ export default function DriverApp() {
                                         กลับ
                                     </button>
                                     <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                                        ขั้นตอนที่ 5: รถถึงโรงจอด
+                                        ขั้นตอนที่ 6: รถถึงโรงจอด
                                     </h2>
                                     <div className="w-24"></div>
                                 </div>

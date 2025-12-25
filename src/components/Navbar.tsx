@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { Users, PiggyBank, BarChart3, FileText, Bell, LogOut, Menu, Store, Building, Calculator, Fuel } from "lucide-react";
+import { Users, PiggyBank, BarChart3, FileText, Bell, LogOut, Menu, Store, Building, Calculator, Fuel, Truck } from "lucide-react";
 import { logout } from "@/lib/auth";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -12,6 +12,7 @@ const modules = [
   { name: "จัดการพื้นที่เช่า", path: "/app/rental", icon: Building },
   { name: "ระบบบัญชี", path: "/app/accounting", icon: Calculator },
   { name: "ระบบปั๊มน้ำมัน", path: "/app/gas-station", icon: Fuel },
+  { name: "ระบบ Delivery", path: "/app/delivery", icon: Truck },
 ];
 
 interface NavbarProps {

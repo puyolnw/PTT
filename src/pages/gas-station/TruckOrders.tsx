@@ -210,6 +210,19 @@ export default function TruckOrders() {
         }
     }, [selectedTruck, selectedPurchaseOrder]);
 
+    // Auto-fill start fuel when truck is selected (fallback from Truck Profile)
+    useEffect(() => {
+        if (!selectedTruck) return;
+        if (typeof selectedTruck.lastFuelReading !== "number") return;
+        // Only auto-fill when user hasn't entered anything yet
+        if (newOrder.startFuel && newOrder.startFuel > 0) return;
+        setNewOrder((prev) => ({
+            ...prev,
+            startFuel: selectedTruck.lastFuelReading ?? prev.startFuel,
+        }));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedTruck?.id]);
+
     // Generate transport number when modal opens
     useEffect(() => {
         if (showCreateOrderModal) {
@@ -931,6 +944,20 @@ export default function TruckOrders() {
                                             <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
                                                 📋 สรุปใบสั่งซื้อ: {selectedPurchaseOrder.orderNo}
                                             </p>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs mb-3">
+                                                <div className="bg-white/70 dark:bg-gray-800/40 border border-blue-100 dark:border-blue-900/40 rounded-lg p-2">
+                                                    <p className="text-gray-600 dark:text-gray-400">ใบอนุมัติขายเลขที่</p>
+                                                    <p className="font-semibold text-gray-900 dark:text-white">{selectedPurchaseOrder.approveNo || "-"}</p>
+                                                </div>
+                                                <div className="bg-white/70 dark:bg-gray-800/40 border border-blue-100 dark:border-blue-900/40 rounded-lg p-2">
+                                                    <p className="text-gray-600 dark:text-gray-400">ใบสั่งซื้อเลขที่</p>
+                                                    <p className="font-semibold text-gray-900 dark:text-white">{selectedPurchaseOrder.orderNo}</p>
+                                                </div>
+                                                <div className="bg-white/70 dark:bg-gray-800/40 border border-blue-100 dark:border-blue-900/40 rounded-lg p-2">
+                                                    <p className="text-gray-600 dark:text-gray-400">Contract No.</p>
+                                                    <p className="font-semibold text-gray-900 dark:text-white">{selectedPurchaseOrder.contractNo || "-"}</p>
+                                                </div>
+                                            </div>
                                             <div className="grid grid-cols-2 gap-2 text-xs">
                                                 <div>
                                                     <span className="text-gray-600 dark:text-gray-400">จำนวนน้ำมันรวม:</span>
@@ -988,6 +1015,26 @@ export default function TruckOrders() {
                                                     </div>
                                                 </div>
                                             )}
+                                            <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
+                                                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">เลขไมล์ / น้ำมัน (ดึงอัตโนมัติ):</p>
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div>
+                                                        <span className="text-gray-600 dark:text-gray-400">เลขไมล์ปัจจุบัน:</span>
+                                                        <span className="font-medium text-gray-900 dark:text-white ml-1">
+                                                            {newOrder.currentOdometer ? `${numberFormatter.format(newOrder.currentOdometer)} กม.` : "-"}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-gray-600 dark:text-gray-400">น้ำมันตอนเริ่มต้น:</span>
+                                                        <span className="font-medium text-gray-900 dark:text-white ml-1">
+                                                            {newOrder.startFuel ? `${numberFormatter.format(newOrder.startFuel)} ลิตร` : "-"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                                                    เลขไมล์: ดึงจากใบสั่งซื้อก่อน ถ้าไม่มีจะดึงจาก Profile รถ • น้ำมัน: ดึงจาก Profile รถ (ถ้ามี) และยังแก้ไขได้
+                                                </p>
+                                            </div>
                                         </div>
                                     )}
                                 </div>

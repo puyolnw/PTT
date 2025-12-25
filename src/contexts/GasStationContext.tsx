@@ -17,6 +17,7 @@ import type { TruckProfile, Trailer } from "@/pages/gas-station/TruckProfiles";
 import { branches, legalEntities, mockOrderSummary, mockApprovedOrders } from "@/data/gasStationOrders";
 import { mockOilReceipts } from "@/data/gasStationReceipts";
 import { mockTrucks, mockTrailers } from "@/pages/gas-station/TruckProfiles";
+import { mockDriverJobs } from "@/data/gasStationDriverJobs";
 
 interface GasStationContextType {
   // Data
@@ -251,7 +252,7 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
   ];
   const [receiptsState, setReceiptsState] = useState<Receipt[]>(mockReceipts);
   const [transportDeliveriesState, setTransportDeliveriesState] = useState<TransportDelivery[]>([]);
-  const [driverJobsState, setDriverJobsState] = useState<DriverJob[]>([]);
+  const [driverJobsState, setDriverJobsState] = useState<DriverJob[]>(mockDriverJobs);
   const [oilReceiptsState, setOilReceiptsState] = useState<OilReceipt[]>(
     mockOilReceipts.map((receipt) => ({
       id: receipt.id,

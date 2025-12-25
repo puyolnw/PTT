@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   PackageCheck,
   Search,
@@ -16,12 +16,17 @@ import {
   AlertCircle,
   Download,
 } from "lucide-react";
-import { mockApprovedOrders, mockPTTQuotations } from "../../data/gasStationOrders";
 import { useGasStation } from "@/contexts/GasStationContext";
-import type { QualityTest, DeliveryNote } from "@/types/gasStation";
+import type { DeliveryNote, DriverJob, PurchaseOrder, QualityTest, Receipt } from "@/types/gasStation";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
+});
+
+const currencyFormatter = new Intl.NumberFormat("th-TH", {
+  style: "currency",
+  currency: "THB",
+  maximumFractionDigits: 2,
 });
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", {
@@ -35,6 +40,8 @@ interface BranchOilReceipt {
   id: string;
   receiptNo: string; // เลขที่ใบรับน้ำมัน
   purchaseOrderNo: string; // เลขที่ใบสั่งซื้อ
+  approveNo?: string; // ใบอนุมัติขายเลขที่ (จาก PO)
+  contractNo?: string; // Contract No. (จาก PO)
   transportNo: string; // เลขที่ขนส่ง
   branchId: number; // ID ปั๊มย่อย
   branchName: string; // ชื่อปั๊มย่อย
@@ -66,30 +73,78 @@ interface BranchOilReceipt {
   createdBy: string;
 }
 
-// Helper function - ดึงข้อมูล Branch Receipts จาก Purchase Orders และ Truck Orders
-const generateBranchReceipts = (purchaseOrders: typeof mockApprovedOrders, truckOrders: any[]): BranchOilReceipt[] => {
+const BRANCH_RECEIPTS_STORAGE_KEY = "ptt.gasStation.branchOilReceipts.v1";
+const INTERNAL_SALES_STORAGE_KEY = "ptt.delivery.internalSales.v1";
+
+type SourceType = "จากคลังน้ำมัน" | "จากการดูด" | "จากน้ำมันที่เหลือบนรถ";
+type InternalSaleTxLite = { source: "truck-remaining" | "recovered"; deliveryNoteNo: string; receiptNo: string };
+
+function loadInternalSalesFromStorage(): InternalSaleTxLite[] {
+  try {
+    if (typeof window === "undefined") return [];
+    const raw = window.localStorage.getItem(INTERNAL_SALES_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((x) => x as Partial<InternalSaleTxLite>)
+      .filter((x) => !!x.deliveryNoteNo && !!x.receiptNo && (x.source === "truck-remaining" || x.source === "recovered"))
+      .map((x) => ({ source: x.source as InternalSaleTxLite["source"], deliveryNoteNo: x.deliveryNoteNo!, receiptNo: x.receiptNo! }));
+  } catch {
+    return [];
+  }
+}
+
+function loadBranchReceiptsFromStorage(): Partial<BranchOilReceipt>[] {
+  try {
+    if (typeof window === "undefined") return [];
+    const raw = window.localStorage.getItem(BRANCH_RECEIPTS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Partial<BranchOilReceipt>[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveBranchReceiptsToStorage(receipts: Partial<BranchOilReceipt>[]) {
+  try {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(BRANCH_RECEIPTS_STORAGE_KEY, JSON.stringify(receipts));
+  } catch {
+    // ignore
+  }
+}
+
+// Helper function - ดึงข้อมูล Branch Receipts จาก Purchase Orders และ Driver Jobs (รอบส่งจริง)
+const generateBranchReceipts = (purchaseOrders: PurchaseOrder[], driverJobs: DriverJob[]): BranchOilReceipt[] => {
   const receipts: BranchOilReceipt[] = [];
   
-  // ดึงข้อมูลจาก Purchase Orders และเชื่อมกับ Truck Orders
+  // ดึงข้อมูลจาก Purchase Orders และเชื่อมกับ Driver Jobs
   purchaseOrders.forEach((po) => {
-    // หา Truck Order ที่เชื่อมกับ Purchase Order นี้ (ผ่าน purchaseOrderNo)
-    const truckOrder = truckOrders.find((to: any) => to.purchaseOrderNo === po.orderNo);
-    const transportNo = truckOrder?.transportNo || `TP-${po.orderDate.replace(/-/g, '')}-001`;
+    const relatedJobs = driverJobs.filter((j) => j.orderType === "external" && j.purchaseOrderNo === po.orderNo);
     
     po.branches.forEach((branch) => {
+      const jobForBranch =
+        relatedJobs.find((j) => j.destinationBranches?.some((b) => b.branchId === branch.branchId)) || relatedJobs[0];
+      const transportNo =
+        jobForBranch?.transportNo || `TP-${po.orderDate.replace(/-/g, "")}-${po.orderNo.slice(-3)}`;
+
       // สร้าง Branch Receipt สำหรับแต่ละปั๊ม
       const receipt: BranchOilReceipt = {
         id: `BR-${po.orderNo}-${branch.branchId}`,
         receiptNo: `BR-${po.orderNo}-${branch.branchId}`,
         purchaseOrderNo: po.orderNo,
+        approveNo: po.approveNo,
+        contractNo: po.contractNo,
         transportNo: transportNo,
         branchId: branch.branchId,
         branchName: branch.branchName,
         receiveDate: po.deliveryDate,
         receiveTime: "09:00",
-        truckPlateNumber: truckOrder?.truckPlateNumber || po.truckPlateNumber || "-",
-        trailerPlateNumber: truckOrder?.trailerPlateNumber || po.trailerPlateNumber || "-",
-        driverName: truckOrder?.driver || po.driverName || "-",
+        truckPlateNumber: jobForBranch?.truckPlateNumber || "-",
+        trailerPlateNumber: jobForBranch?.trailerPlateNumber || "-",
+        driverName: jobForBranch?.driverName || "-",
         items: branch.items.map((item) => ({
           oilType: item.oilType,
           quantityOrdered: item.quantity,
@@ -98,10 +153,10 @@ const generateBranchReceipts = (purchaseOrders: typeof mockApprovedOrders, truck
           totalAmount: item.totalAmount,
         })),
         totalAmount: branch.totalAmount,
-        status: branch.deliveryStatus === "ส่งสำเร็จ" ? "รับแล้ว" : "รอรับ",
+        status: "รอรับ",
         receivedBy: "",
         receivedByName: "",
-        receivedAt: branch.deliveryStatus === "ส่งสำเร็จ" ? new Date().toISOString() : undefined,
+        receivedAt: undefined,
         createdAt: po.approvedAt,
         createdBy: po.approvedBy,
       };
@@ -114,37 +169,94 @@ const generateBranchReceipts = (purchaseOrders: typeof mockApprovedOrders, truck
 };
 
 export default function BranchOilReceipt() {
-  const { purchaseOrders, deliveryNotes } = useGasStation();
-  
-  // ดึงข้อมูล Truck Orders โดยการสร้างจาก mockApprovedOrders และ mockPTTQuotations
-  // ในระบบจริงจะดึงจาก context หรือ API ที่มี Truck Orders จริง
-  const mockTruckOrders = useMemo(() => {
-    return mockApprovedOrders.map((po) => {
-      // หา Quotation ที่เชื่อมกับ Purchase Order
-      const quotation = mockPTTQuotations.find((q) => q.purchaseOrderNo === po.orderNo);
-      
-      // สร้าง transport number จาก quotation หรือ order date
-      const transportNo = quotation?.pttQuotationNo 
-        ? `TP-${po.orderDate.replace(/-/g, '')}-${quotation.pttQuotationNo.slice(-3)}`
-        : `TP-${po.orderDate.replace(/-/g, '')}-${po.orderNo.slice(-3)}`;
-      
-      return {
-        id: po.orderNo,
-        purchaseOrderNo: po.orderNo,
-        transportNo: transportNo,
-        truckPlateNumber: po.truckPlateNumber || quotation?.truckPlateNumber || "-",
-        trailerPlateNumber: po.trailerPlateNumber || quotation?.trailerPlateNumber || "-",
-        driver: po.driverName || quotation?.driverName || "-",
-        status: po.status === "ขนส่งสำเร็จ" ? "completed" : po.status === "กำลังขนส่ง" ? "picking-up" : "ready-to-pickup",
-      };
+  const { purchaseOrders, deliveryNotes, driverJobs, receipts } = useGasStation();
+
+  const poByNo = useMemo(() => {
+    const m = new Map<string, PurchaseOrder>();
+    purchaseOrders.forEach((po) => m.set(po.orderNo, po));
+    return m;
+  }, [purchaseOrders]);
+
+  const internalSales = useMemo(() => loadInternalSalesFromStorage(), []);
+  const internalSaleByDeliveryNoteNo = useMemo(() => {
+    const m = new Map<string, InternalSaleTxLite>();
+    internalSales.forEach((t) => m.set(t.deliveryNoteNo, t));
+    return m;
+  }, [internalSales]);
+  const internalSaleByReceiptNo = useMemo(() => {
+    const m = new Map<string, InternalSaleTxLite>();
+    internalSales.forEach((t) => m.set(t.receiptNo, t));
+    return m;
+  }, [internalSales]);
+
+  // Generate base receipts from PO + driverJobs, then merge persisted overrides from localStorage
+  const baseReceipts = useMemo(() => {
+    return generateBranchReceipts(purchaseOrders, driverJobs);
+  }, [purchaseOrders, driverJobs]);
+
+  const buildReceipts = (base: BranchOilReceipt[], overrides: Partial<BranchOilReceipt>[]) => {
+    const byId = new Map<string, Partial<BranchOilReceipt>>();
+    overrides.forEach((o) => {
+      if (o.id) byId.set(o.id, o);
     });
-  }, []);
-  
-  // Generate branch receipts from purchase orders and truck orders
-  const branchReceipts = useMemo(() => {
-    const allPurchaseOrders = purchaseOrders.length > 0 ? purchaseOrders : (mockApprovedOrders as any);
-    return generateBranchReceipts(allPurchaseOrders, mockTruckOrders);
-  }, [purchaseOrders, mockTruckOrders]);
+
+    // Mock up: ถ้ายังไม่มี override เลย ให้โชว์อย่างน้อย 1 รายการเป็น “รับแล้ว” เพื่อเห็นสถานะรับเสร็จแล้ว
+    const hasOverrides = overrides.length > 0;
+    const now = new Date();
+    const mockReceivedAt = new Date(now.getTime() - 45 * 60 * 1000).toISOString(); // 45 นาทีที่แล้ว
+
+    return base.map((r, idx) => {
+      const merged = { ...r, ...(byId.get(r.id) || {}) } as BranchOilReceipt;
+      if (!hasOverrides && idx === 0) {
+        return {
+          ...merged,
+          status: "รับแล้ว",
+          receivedByName: merged.receivedByName || "ผู้รับตัวอย่าง",
+          receivedBy: merged.receivedBy || "ผู้รับตัวอย่าง",
+          receivedAt: merged.receivedAt || mockReceivedAt,
+          items: merged.items.map((it) => ({
+            ...it,
+            quantityReceived: it.quantityOrdered,
+            totalAmount: it.quantityOrdered * it.pricePerLiter,
+          })),
+          totalAmount: merged.items.reduce((sum, it) => sum + it.quantityOrdered * it.pricePerLiter, 0),
+        };
+      }
+      return merged;
+    }) as BranchOilReceipt[];
+  };
+
+  const [branchReceiptsState, setBranchReceiptsState] = useState<BranchOilReceipt[]>(() => {
+    const overrides = loadBranchReceiptsFromStorage();
+    return buildReceipts(baseReceipts, overrides);
+  });
+
+  useEffect(() => {
+    // Rebuild when base list changes (new PO/branches) but keep stored status/received info
+    const overrides = loadBranchReceiptsFromStorage();
+    setBranchReceiptsState(buildReceipts(baseReceipts, overrides));
+  }, [baseReceipts]);
+
+  const persistOverride = (receipt: BranchOilReceipt) => {
+    const overrides = loadBranchReceiptsFromStorage();
+    const next = [
+      // replace same id
+      ...overrides.filter((o) => o.id !== receipt.id),
+      {
+        id: receipt.id,
+        status: receipt.status,
+        receivedBy: receipt.receivedBy,
+        receivedByName: receipt.receivedByName,
+        receivedAt: receipt.receivedAt,
+        rejectReason: receipt.rejectReason,
+        rejectedBy: receipt.rejectedBy,
+        rejectedAt: receipt.rejectedAt,
+        notes: receipt.notes,
+        items: receipt.items,
+      } satisfies Partial<BranchOilReceipt>,
+    ];
+    saveBranchReceiptsToStorage(next);
+  };
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "รอรับ" | "รับแล้ว" | "ปฏิเสธ" | "ยกเลิก">("all");
   const [filterBranch, setFilterBranch] = useState<number | "all">("all");
@@ -156,6 +268,8 @@ export default function BranchOilReceipt() {
   const [showDeliveryNoteModal, setShowDeliveryNoteModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<BranchOilReceipt | null>(null);
   const [selectedDeliveryNote, setSelectedDeliveryNote] = useState<any>(null);
+  const [showTaxInvoiceModal, setShowTaxInvoiceModal] = useState(false);
+  const [selectedTaxInvoice, setSelectedTaxInvoice] = useState<Receipt | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   
   // Form state for receiving oil
@@ -191,13 +305,13 @@ export default function BranchOilReceipt() {
   // Get unique branches from receipts
   const availableBranches = useMemo(() => {
     const branchMap = new Map<number, string>();
-    branchReceipts.forEach((r) => {
+    branchReceiptsState.forEach((r) => {
       if (!branchMap.has(r.branchId)) {
         branchMap.set(r.branchId, r.branchName);
       }
     });
     return Array.from(branchMap.entries()).map(([id, name]) => ({ id, name }));
-  }, [branchReceipts]);
+  }, [branchReceiptsState]);
 
   // Helper function to check if date is in range
   const isDateInRange = (dateStr: string, from: string, to: string) => {
@@ -211,29 +325,34 @@ export default function BranchOilReceipt() {
 
   // Filter receipts
   const filteredReceipts = useMemo(() => {
-    return branchReceipts.filter((r) => {
+    return branchReceiptsState.filter((r) => {
+      const po = poByNo.get(r.purchaseOrderNo);
+      const approveNo = po?.approveNo || r.approveNo || "";
+      const contractNo = po?.contractNo || r.contractNo || "";
       const matchesSearch =
         r.receiptNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.purchaseOrderNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.transportNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.branchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.truckPlateNumber.toLowerCase().includes(searchTerm.toLowerCase());
+        r.truckPlateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        approveNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contractNo.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = filterStatus === "all" || r.status === filterStatus;
       const matchesBranch = filterBranch === "all" || r.branchId === filterBranch;
       const matchesDate = isDateInRange(r.receiveDate, filterDateFrom, filterDateTo);
       return matchesSearch && matchesStatus && matchesBranch && matchesDate;
     });
-  }, [branchReceipts, searchTerm, filterStatus, filterBranch, filterDateFrom, filterDateTo]);
+  }, [branchReceiptsState, poByNo, searchTerm, filterStatus, filterBranch, filterDateFrom, filterDateTo]);
 
   // Statistics
   const stats = useMemo(() => {
-    const total = branchReceipts.length;
-    const pending = branchReceipts.filter((r) => r.status === "รอรับ").length;
-    const received = branchReceipts.filter((r) => r.status === "รับแล้ว").length;
-    const rejected = branchReceipts.filter((r) => r.status === "ปฏิเสธ").length;
-    const cancelled = branchReceipts.filter((r) => r.status === "ยกเลิก").length;
+    const total = branchReceiptsState.length;
+    const pending = branchReceiptsState.filter((r) => r.status === "รอรับ").length;
+    const received = branchReceiptsState.filter((r) => r.status === "รับแล้ว").length;
+    const rejected = branchReceiptsState.filter((r) => r.status === "ปฏิเสธ").length;
+    const cancelled = branchReceiptsState.filter((r) => r.status === "ยกเลิก").length;
     return { total, pending, received, rejected, cancelled };
-  }, [branchReceipts]);
+  }, [branchReceiptsState]);
 
   const handleViewDetail = (receipt: BranchOilReceipt) => {
     setSelectedReceipt(receipt);
@@ -282,16 +401,43 @@ export default function BranchOilReceipt() {
     const relatedDeliveryNote = deliveryNotes.find(
       (dn) => dn.purchaseOrderNo === selectedReceipt.purchaseOrderNo && dn.toBranchId === selectedReceipt.branchId
     );
+    const deliveryNoteNo = relatedDeliveryNote?.deliveryNoteNo;
 
-    // In real app, this would call API
-    console.log("Receiving oil:", {
-      receiptId: selectedReceipt.id,
-      ...receiveFormData,
-      deliveryNoteNo: relatedDeliveryNote?.deliveryNoteNo,
-      qualityTest: receiveFormData.qualityTest,
-    });
+    const now = new Date().toISOString();
+    const updatedReceipt: BranchOilReceipt = {
+      ...selectedReceipt,
+      status: "รับแล้ว",
+      receiveDate: receiveFormData.receiveDate,
+      receiveTime: receiveFormData.receiveTime,
+      receivedByName: receiveFormData.receivedByName,
+      receivedBy: receiveFormData.receivedByName,
+      receivedAt: now,
+      notes: receiveFormData.notes || undefined,
+      items: selectedReceipt.items.map((it) => {
+        const matched = receiveFormData.items.find((x) => x.oilType === it.oilType);
+        const qtyReceived = matched ? matched.quantityReceived : it.quantityOrdered;
+        return {
+          ...it,
+          quantityReceived: qtyReceived,
+          totalAmount: qtyReceived * it.pricePerLiter,
+        };
+      }),
+      totalAmount: selectedReceipt.items.reduce((sum, it) => {
+        const matched = receiveFormData.items.find((x) => x.oilType === it.oilType);
+        const qtyReceived = matched ? matched.quantityReceived : it.quantityOrdered;
+        return sum + qtyReceived * it.pricePerLiter;
+      }, 0),
+    };
 
-    alert(`รับน้ำมันสำเร็จ!\n\nใบสั่งซื้อ: ${selectedReceipt.purchaseOrderNo}\nเลขขนส่ง: ${selectedReceipt.transportNo}\nปั๊ม: ${selectedReceipt.branchName}\nผลการทดสอบ: ${receiveFormData.qualityTest.testResult}`);
+    // Persist override + update UI state
+    setBranchReceiptsState((prev) => prev.map((r) => (r.id === updatedReceipt.id ? updatedReceipt : r)));
+    persistOverride(updatedReceipt);
+
+    alert(
+      `รับน้ำมันสำเร็จ!\n\nใบสั่งซื้อ: ${selectedReceipt.purchaseOrderNo}\nเลขขนส่ง: ${selectedReceipt.transportNo}\nใบส่งของ: ${
+        deliveryNoteNo || "-"
+      }\nปั๊ม: ${selectedReceipt.branchName}\nผลการทดสอบ: ${receiveFormData.qualityTest.testResult}`
+    );
     setShowReceiveModal(false);
     setSelectedReceipt(null);
   };
@@ -308,13 +454,17 @@ export default function BranchOilReceipt() {
       return;
     }
 
-    // In real app, this would call API
-    console.log("Rejecting receipt:", {
-      receiptId: selectedReceipt.id,
+    const now = new Date().toISOString();
+    const updatedReceipt: BranchOilReceipt = {
+      ...selectedReceipt,
+      status: "ปฏิเสธ",
       rejectReason: rejectReason,
-      rejectedBy: "ผู้ใช้", // In real app, get from auth context
-      rejectedAt: new Date().toISOString(),
-    });
+      rejectedBy: "ผู้ใช้",
+      rejectedAt: now,
+    };
+
+    setBranchReceiptsState((prev) => prev.map((r) => (r.id === updatedReceipt.id ? updatedReceipt : r)));
+    persistOverride(updatedReceipt);
 
     alert(`ปฏิเสธการรับน้ำมันสำเร็จ!\n\nใบสั่งซื้อ: ${selectedReceipt.purchaseOrderNo}\nเลขขนส่ง: ${selectedReceipt.transportNo}\nปั๊ม: ${selectedReceipt.branchName}`);
     setShowRejectModal(false);
@@ -342,7 +492,7 @@ export default function BranchOilReceipt() {
       case "รอรับ":
         return "รอรับ";
       case "รับแล้ว":
-        return "รับแล้ว";
+        return "รับเสร็จแล้ว";
       case "ปฏิเสธ":
         return "ปฏิเสธ";
       case "ยกเลิก":
@@ -350,6 +500,30 @@ export default function BranchOilReceipt() {
       default:
         return status;
     }
+  };
+
+  const getSourceType = (args: { po?: PurchaseOrder; deliveryNoteNo?: string; receiptNo?: string }): SourceType => {
+    if (args.po) return "จากคลังน้ำมัน";
+    const byDn = args.deliveryNoteNo ? internalSaleByDeliveryNoteNo.get(args.deliveryNoteNo) : undefined;
+    const byRcp = args.receiptNo ? internalSaleByReceiptNo.get(args.receiptNo) : undefined;
+    const tx = byDn || byRcp;
+    if (!tx) return "จากคลังน้ำมัน";
+    return tx.source === "recovered" ? "จากการดูด" : "จากน้ำมันที่เหลือบนรถ";
+  };
+
+  const findRelatedTaxInvoice = (args: { branchName: string; deliveryNoteNo?: string; purchaseOrderNo?: string }) => {
+    // 1) Exact link by Delivery Note No (preferred)
+    if (args.deliveryNoteNo) {
+      const exact = receipts.find((r) => r.deliveryNoteNo === args.deliveryNoteNo);
+      if (exact) return exact;
+    }
+    // 2) Fallback for legacy/mock data: match by customer name (branch) (and PO if present)
+    const byName = receipts.find((r) => {
+      if (r.customerName !== args.branchName) return false;
+      if (args.purchaseOrderNo && r.purchaseOrderNo && r.purchaseOrderNo !== args.purchaseOrderNo) return false;
+      return true;
+    });
+    return byName;
   };
 
   // ฟังก์ชันสำหรับดาวน์โหลดใบส่งของเป็น PDF
@@ -605,6 +779,90 @@ export default function BranchOilReceipt() {
     }
   };
 
+  // ฟังก์ชันสำหรับดาวน์โหลดใบกำกับภาษี/ใบเสร็จ (Receipt) เป็น PDF (พิมพ์จาก HTML)
+  const handleDownloadReceiptPDF = (receipt: Receipt) => {
+    const html = `
+      <!DOCTYPE html>
+      <html lang="th">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${receipt.documentType} - ${receipt.receiptNo}</title>
+        <style>
+          @page { size: A4; margin: 20mm; }
+          body { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; font-size: 14px; color: #000; }
+          .header { text-align: center; margin-bottom: 18px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+          .header h1 { font-size: 20px; margin: 0 0 6px 0; }
+          .row { display: flex; gap: 20px; margin-bottom: 8px; }
+          .label { width: 160px; font-weight: bold; }
+          .value { flex: 1; }
+          table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+          th, td { border: 1px solid #000; padding: 8px; }
+          th { background: #f0f0f0; text-align: center; }
+          td { text-align: right; }
+          td:first-child { text-align: left; }
+          .totals { margin-top: 12px; display: flex; justify-content: flex-end; }
+          .totals div { width: 320px; }
+          .totals .line { display: flex; justify-content: space-between; margin-top: 6px; }
+          .strong { font-weight: bold; }
+          @media print { .no-print { display:none; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>${receipt.documentType}</h1>
+          <div><strong>เลขที่:</strong> ${receipt.receiptNo}</div>
+        </div>
+        <div class="row"><div class="label">วันที่:</div><div class="value">${receipt.receiptDate}</div></div>
+        ${receipt.deliveryNoteNo ? `<div class="row"><div class="label">อ้างอิงใบส่งของ:</div><div class="value">${receipt.deliveryNoteNo}</div></div>` : ""}
+        <div class="row"><div class="label">ผู้ซื้อ/ผู้รับ:</div><div class="value">${receipt.customerName}</div></div>
+        <div class="row"><div class="label">ที่อยู่:</div><div class="value">${receipt.customerAddress}</div></div>
+        <table>
+          <thead>
+            <tr>
+              <th>รายการ</th>
+              <th>จำนวน (ลิตร)</th>
+              <th>ราคา/ลิตร</th>
+              <th>จำนวนเงิน</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${receipt.items
+              .map(
+                (it) => `
+                  <tr>
+                    <td>${it.oilType}</td>
+                    <td>${numberFormatter.format(it.quantity)}</td>
+                    <td>${it.pricePerLiter.toFixed(2)}</td>
+                    <td>${currencyFormatter.format(it.totalAmount)}</td>
+                  </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>
+        <div class="totals">
+          <div>
+            <div class="line"><span>มูลค่าก่อน VAT</span><span>${currencyFormatter.format(receipt.totalAmount)}</span></div>
+            <div class="line"><span>VAT</span><span>${currencyFormatter.format(receipt.vatAmount)}</span></div>
+            <div class="line strong"><span>รวมทั้งสิ้น</span><span>${currencyFormatter.format(receipt.grandTotal)}</span></div>
+          </div>
+        </div>
+        <div class="no-print" style="margin-top:16px; color:#666; font-size:12px;">* กดพิมพ์/บันทึกเป็น PDF จากหน้าต่างพิมพ์</div>
+        <script>window.print();</script>
+      </body>
+      </html>
+    `;
+
+    const w = window.open("", "_blank");
+    if (!w) {
+      alert("ไม่สามารถเปิดหน้าต่างพิมพ์ได้ (กรุณาอนุญาต pop-up)");
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -707,7 +965,7 @@ export default function BranchOilReceipt() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="ค้นหาเลขที่ใบสั่งซื้อ, เลขขนส่ง, ปั๊ม..."
+              placeholder="ค้นหาเลขที่ใบสั่งซื้อ, เลขขนส่ง, ปั๊ม, ใบอนุมัติขายเลขที่, Contract No...."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -842,7 +1100,12 @@ export default function BranchOilReceipt() {
                       <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
                         <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       </div>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{receipt.purchaseOrderNo}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">{receipt.purchaseOrderNo}</span>
+                        <span className="mt-1 inline-flex w-fit items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                          {getSourceType({ po: poByNo.get(receipt.purchaseOrderNo) })}
+                        </span>
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -992,6 +1255,24 @@ export default function BranchOilReceipt() {
                     </p>
                     <p className="font-semibold text-gray-900 dark:text-white">{selectedReceipt.purchaseOrderNo}</p>
                   </div>
+                  {(() => {
+                    const po = poByNo.get(selectedReceipt.purchaseOrderNo);
+                    const approveNo = po?.approveNo || selectedReceipt.approveNo;
+                    const contractNo = po?.contractNo || selectedReceipt.contractNo;
+                    return (
+                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                          <FileText className="w-3 h-3" />
+                          ใบอนุมัติขายเลขที่ / Contract No.
+                        </p>
+                        <p className="font-semibold text-gray-900 dark:text-white">
+                          {approveNo || "-"}{" "}
+                          <span className="text-gray-500 dark:text-gray-400 font-medium">•</span>{" "}
+                          {contractNo || "-"}
+                        </p>
+                      </div>
+                    );
+                  })()}
                   <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
                       <Truck className="w-3 h-3" />
@@ -1004,6 +1285,17 @@ export default function BranchOilReceipt() {
                     const relatedDeliveryNote = deliveryNotes.find(
                       (dn) => dn.purchaseOrderNo === selectedReceipt.purchaseOrderNo && dn.toBranchId === selectedReceipt.branchId
                     );
+                    const relatedTaxInvoice = findRelatedTaxInvoice({
+                      branchName: selectedReceipt.branchName,
+                      deliveryNoteNo: relatedDeliveryNote?.deliveryNoteNo,
+                      purchaseOrderNo: selectedReceipt.purchaseOrderNo,
+                    });
+                    const po = poByNo.get(selectedReceipt.purchaseOrderNo);
+                    const sourceType = getSourceType({
+                      po,
+                      deliveryNoteNo: relatedDeliveryNote?.deliveryNoteNo,
+                      receiptNo: relatedTaxInvoice?.receiptNo,
+                    });
                     return relatedDeliveryNote ? (
                       <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 col-span-2">
                         <div className="flex items-center justify-between mb-3">
@@ -1012,6 +1304,9 @@ export default function BranchOilReceipt() {
                             <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">ใบส่งของ (Delivery Note)</p>
                             <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">
                               {relatedDeliveryNote.deliveryNoteNo}
+                            </span>
+                            <span className="text-xs text-gray-700 dark:text-gray-200 bg-white/70 dark:bg-gray-800/40 px-2 py-0.5 rounded border border-blue-200/60 dark:border-blue-800/40">
+                              {sourceType}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1046,6 +1341,52 @@ export default function BranchOilReceipt() {
                           <div>
                             <span className="text-blue-700 dark:text-blue-400">จาก:</span>
                             <span className="font-semibold text-blue-900 dark:text-blue-200 ml-2">{relatedDeliveryNote.fromBranchName}</span>
+                          </div>
+                          <div className="col-span-2 mt-2 pt-2 border-t border-blue-200/60 dark:border-blue-800/40">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 text-sm">
+                                <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                <span className="font-semibold text-blue-800 dark:text-blue-300">ใบกำกับภาษี/ใบเสร็จ</span>
+                                <span className="text-xs text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">
+                                  {relatedTaxInvoice ? relatedTaxInvoice.receiptNo : "-"}
+                                </span>
+                                {relatedTaxInvoice?.documentType && (
+                                  <span className="text-xs text-gray-700 dark:text-gray-200 bg-white/70 dark:bg-gray-800/40 px-2 py-0.5 rounded border border-blue-200/60 dark:border-blue-800/40">
+                                    {relatedTaxInvoice.documentType}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  disabled={!relatedTaxInvoice}
+                                  onClick={() => {
+                                    if (!relatedTaxInvoice) return;
+                                    setSelectedTaxInvoice(relatedTaxInvoice);
+                                    setShowTaxInvoiceModal(true);
+                                  }}
+                                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  ดูใบกำกับภาษี
+                                </button>
+                                <button
+                                  disabled={!relatedTaxInvoice}
+                                  onClick={() => {
+                                    if (!relatedTaxInvoice) return;
+                                    handleDownloadReceiptPDF(relatedTaxInvoice);
+                                  }}
+                                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                  ดาวน์โหลด PDF
+                                </button>
+                              </div>
+                            </div>
+                            {!relatedTaxInvoice && (
+                              <div className="mt-2 text-xs text-blue-700 dark:text-blue-400">
+                                ยังไม่มีใบกำกับภาษี/ใบเสร็จผูกกับใบส่งของนี้
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1292,6 +1633,11 @@ export default function BranchOilReceipt() {
                   const relatedDeliveryNote = deliveryNotes.find(
                     (dn) => dn.purchaseOrderNo === selectedReceipt.purchaseOrderNo && dn.toBranchId === selectedReceipt.branchId
                   );
+                  const relatedTaxInvoice = findRelatedTaxInvoice({
+                    branchName: selectedReceipt.branchName,
+                    deliveryNoteNo: relatedDeliveryNote?.deliveryNoteNo,
+                    purchaseOrderNo: selectedReceipt.purchaseOrderNo,
+                  });
                   return relatedDeliveryNote ? (
                     <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
                       <div className="flex items-center justify-between mb-3">
@@ -1315,9 +1661,7 @@ export default function BranchOilReceipt() {
                           </button>
                           <button
                             onClick={() => {
-                              // In real app, this would generate/download PDF
-                              alert(`ดาวน์โหลดใบส่งของ: ${relatedDeliveryNote.deliveryNoteNo}`);
-                              // window.open(`/api/delivery-notes/${relatedDeliveryNote.id}/pdf`, '_blank');
+                              handleDownloadDeliveryNotePDF(relatedDeliveryNote);
                             }}
                             className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
                           >
@@ -1336,6 +1680,52 @@ export default function BranchOilReceipt() {
                         <div>
                           <span className="text-indigo-700 dark:text-indigo-400">จาก:</span>
                           <span className="font-semibold text-indigo-900 dark:text-indigo-200 ml-2">{relatedDeliveryNote.fromBranchName}</span>
+                        </div>
+                        <div className="col-span-2 mt-2 pt-2 border-t border-indigo-200/60 dark:border-indigo-800/40">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 text-sm">
+                              <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                              <span className="font-semibold text-indigo-800 dark:text-indigo-300">ใบกำกับภาษี/ใบเสร็จ</span>
+                              <span className="text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 rounded">
+                                {relatedTaxInvoice ? relatedTaxInvoice.receiptNo : "-"}
+                              </span>
+                              {relatedTaxInvoice?.documentType && (
+                                <span className="text-xs text-gray-700 dark:text-gray-200 bg-white/70 dark:bg-gray-800/40 px-2 py-0.5 rounded border border-indigo-200/60 dark:border-indigo-800/40">
+                                  {relatedTaxInvoice.documentType}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                disabled={!relatedTaxInvoice}
+                                onClick={() => {
+                                  if (!relatedTaxInvoice) return;
+                                  setSelectedTaxInvoice(relatedTaxInvoice);
+                                  setShowTaxInvoiceModal(true);
+                                }}
+                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                ดูใบกำกับภาษี
+                              </button>
+                              <button
+                                disabled={!relatedTaxInvoice}
+                                onClick={() => {
+                                  if (!relatedTaxInvoice) return;
+                                  handleDownloadReceiptPDF(relatedTaxInvoice);
+                                }}
+                                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                ดาวน์โหลด PDF
+                              </button>
+                            </div>
+                          </div>
+                          {!relatedTaxInvoice && (
+                            <div className="mt-2 text-xs text-indigo-700 dark:text-indigo-400">
+                              ยังไม่มีใบกำกับภาษี/ใบเสร็จสำหรับรายการนี้
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2010,6 +2400,121 @@ export default function BranchOilReceipt() {
                       </div>
                     </div>
                   )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Tax Invoice / Receipt View Modal */}
+        <AnimatePresence>
+          {showTaxInvoiceModal && selectedTaxInvoice && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+              onClick={() => setShowTaxInvoiceModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                      <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                        ใบกำกับภาษี/ใบเสร็จ
+                      </h2>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {selectedTaxInvoice.documentType} • {selectedTaxInvoice.receiptNo}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleDownloadReceiptPDF(selectedTaxInvoice)}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      ดาวน์โหลด PDF
+                    </button>
+                    <button
+                      onClick={() => setShowTaxInvoiceModal(false)}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5 text-gray-500" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">เลขที่</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{selectedTaxInvoice.receiptNo}</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">วันที่</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{selectedTaxInvoice.receiptDate}</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">อ้างอิงใบส่งของ</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{selectedTaxInvoice.deliveryNoteNo || "-"}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">ผู้ซื้อ/ผู้รับ</p>
+                    <div className="text-sm text-gray-900 dark:text-white font-semibold">{selectedTaxInvoice.customerName}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">{selectedTaxInvoice.customerAddress}</div>
+                  </div>
+
+                  <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <table className="w-full">
+                      <thead className="bg-gray-100 dark:bg-gray-700">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">รายการ</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300">จำนวน (ลิตร)</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300">ราคา/ลิตร</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300">จำนวนเงิน</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                        {selectedTaxInvoice.items.map((it, idx) => (
+                          <tr key={idx}>
+                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{it.oilType}</td>
+                            <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">{numberFormatter.format(it.quantity)}</td>
+                            <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">{it.pricePerLiter.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">{currencyFormatter.format(it.totalAmount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <div className="w-full max-w-sm bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">มูลค่าก่อน VAT</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{currencyFormatter.format(selectedTaxInvoice.totalAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm mt-1">
+                        <span className="text-gray-600 dark:text-gray-400">VAT</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{currencyFormatter.format(selectedTaxInvoice.vatAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <span className="text-gray-700 dark:text-gray-300 font-semibold">รวมทั้งสิ้น</span>
+                        <span className="font-bold text-gray-900 dark:text-white">{currencyFormatter.format(selectedTaxInvoice.grandTotal)}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             </motion.div>

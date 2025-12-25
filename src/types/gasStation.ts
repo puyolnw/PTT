@@ -73,6 +73,9 @@ export interface Attachment {
 }
 
 export interface PurchaseOrder {
+  // เลขอ้างอิงจากเอกสารจริง (optional)
+  approveNo?: string; // ใบอนุมัติขายเลขที่
+  contractNo?: string; // Contract No.
   orderNo: string;
   supplierOrderNo?: string;
   billNo?: string;
@@ -390,6 +393,14 @@ export interface DriverJob {
     notes?: string;
     senderSignature?: string; // Added
     senderSignedAt?: string; // Added
+  };
+  // ขั้นตอนยืนยันออเดอร์ก่อนรับน้ำมัน (กรอกเลขที่คลัง + ถ่ายรูปหลักฐาน)
+  warehouseConfirmation?: {
+    confirmedAt: string;
+    warehouseNo: string; // เลขที่คลัง
+    depotDocumentNo?: string; // เลขเอกสารจากคลัง (เช่น เลขบิล/ใบส่งของ)
+    photos: string[];
+    notes?: string;
   };
   endOdometer?: number; // Added
   notes?: string; // Added
