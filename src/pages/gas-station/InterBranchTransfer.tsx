@@ -84,7 +84,6 @@ export default function InterBranchTransfer() {
   }, [deliveryNotes, selectedBranchId, searchTerm, filterDateFrom, filterDateTo]);
 
   // กรองใบเสร็จรับเงินที่เกี่ยวข้อง (ถ้ามี) - ไม่ได้ใช้ตอนนี้
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   // const _relatedReceipts = useMemo(() => {
   /*
     if (activeTab === "outgoing") {
