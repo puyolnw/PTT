@@ -13,6 +13,7 @@ import LayoutShops from "@/layouts/LayoutShops";
 import LayoutRental from "@/layouts/LayoutRental";
 import LayoutAccounting from "@/layouts/LayoutAccounting";
 import LayoutGasStation from "@/layouts/LayoutGasStation";
+import LayoutDelivery from "@/layouts/LayoutDelivery";
 
 // ========== HR Pages ==========
 import HRDashboard from "@/pages/hr/Dashboard";
@@ -235,6 +236,29 @@ import InternalOilOrderManagement from "@/pages/gas-station/InternalOilOrderMana
 import InternalTransport from "@/pages/gas-station/InternalTransport";
 import ReceiveOil from "@/pages/gas-station/ReceiveOil";
 import InterBranchTransfer from "@/pages/gas-station/InterBranchTransfer";
+
+// ========== Delivery Pages ==========
+import DeliveryDashboard from "@/pages/delivery/Dashboard";
+import PurchaseOrders from "@/pages/delivery/PurchaseOrders";
+import DeliveryPTTOrders from "@/pages/delivery/PTTOrders";
+import Allocation from "@/pages/delivery/Allocation";
+import DriverAppDelivery from "@/pages/delivery/DriverApp";
+import FuelEfficiency from "@/pages/delivery/FuelEfficiency";
+import DeliveryAlerts from "@/pages/delivery/Alerts";
+import DeliverySettings from "@/pages/delivery/Settings";
+
+// ========== Delivery (reuse Gas Station pages) ==========
+import DeliveryReceiveOil from "@/pages/delivery/gs/ReceiveOil";
+import DeliveryInternalOilOrder from "@/pages/delivery/gs/InternalOilOrder";
+import DeliveryRecordTankEntry from "@/pages/delivery/gs/RecordTankEntry";
+import DeliveryTruckOrders from "@/pages/delivery/gs/TruckOrders";
+import DeliveryDriverAppGasStation from "@/pages/delivery/gs/DriverApp";
+import DeliveryTruckProfiles from "@/pages/delivery/gs/TruckProfiles";
+import DeliveryTrailerProfiles from "@/pages/delivery/gs/TrailerProfiles";
+import DeliveryManageTrips from "@/pages/delivery/gs/ManageTrips";
+import DeliveryRemainingOnTruck from "@/pages/delivery/gs/RemainingOnTruck";
+import DeliveryInternalPumpSales from "@/pages/delivery/gs/InternalPumpSales";
+import DeliveryRecordSuctionOil from "@/pages/delivery/gs/RecordSuctionOil";
 
 import { isAuthenticated } from "@/lib/auth";
 import Forbidden from "@/components/Forbidden";
@@ -1181,6 +1205,100 @@ const router = createBrowserRouter([
           {
             path: "settings",
             element: <GasStationSettings />,
+          },
+        ],
+      },
+
+      // ========== DELIVERY MODULE ==========
+      {
+        path: "delivery",
+        element: <LayoutDelivery />,
+        children: [
+          {
+            index: true,
+            element: <DeliveryDashboard />,
+          },
+          {
+            path: "purchase-orders",
+            element: <DeliveryPTTOrders />,
+          },
+          {
+            path: "purchase-orders-simple",
+            element: <PurchaseOrders />,
+          },
+          {
+            path: "deliveries",
+            element: <Navigate to="/app/delivery/manage-trips" replace />,
+          },
+          {
+            path: "deliveries/new",
+            element: <Navigate to="/app/delivery/manage-trips" replace />,
+          },
+          {
+            path: "manage-trips",
+            element: <DeliveryManageTrips />,
+          },
+          {
+            path: "remaining-on-truck",
+            element: <DeliveryRemainingOnTruck />,
+          },
+          {
+            path: "internal-pump-sales",
+            element: <DeliveryInternalPumpSales />,
+          },
+          {
+            path: "record-suction-oil",
+            element: <DeliveryRecordSuctionOil />,
+          },
+          {
+            path: "allocation",
+            element: <Allocation />,
+          },
+          {
+            path: "driver-app",
+            element: <DriverAppDelivery />,
+          },
+
+          // ---- Reused Gas Station pages inside Delivery ----
+          {
+            path: "receive-oil",
+            element: <DeliveryReceiveOil />,
+          },
+          {
+            path: "internal-oil-order",
+            element: <DeliveryInternalOilOrder />,
+          },
+          {
+            path: "record-tank-entry",
+            element: <DeliveryRecordTankEntry />,
+          },
+          {
+            path: "truck-orders",
+            element: <DeliveryTruckOrders />,
+          },
+          {
+            path: "driver-app-gasstation",
+            element: <DeliveryDriverAppGasStation />,
+          },
+          {
+            path: "truck-profiles",
+            element: <DeliveryTruckProfiles />,
+          },
+          {
+            path: "trailer-profiles",
+            element: <DeliveryTrailerProfiles />,
+          },
+          {
+            path: "fuel-efficiency",
+            element: <FuelEfficiency />,
+          },
+          {
+            path: "alerts",
+            element: <DeliveryAlerts />,
+          },
+          {
+            path: "settings",
+            element: <DeliverySettings />,
           },
         ],
       },

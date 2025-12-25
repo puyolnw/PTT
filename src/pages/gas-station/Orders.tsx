@@ -114,6 +114,10 @@ export default function Orders() {
     legalEntityId: number;
     legalEntityName: string;
   }>>([]);
+  // เลขอ้างอิงจากเอกสารใบสั่งซื้อ (กรอกในหน้า "สร้างใบสั่งซื้อใหม่ - ทุกสาขา")
+  const [approveNoInput, setApproveNoInput] = useState<string>("");
+  const [purchaseOrderNoInput, setPurchaseOrderNoInput] = useState<string>(""); // ใบสั่งซื้อเลขที่
+  const [contractNoInput, setContractNoInput] = useState<string>(""); // Contract No.
   const [selectedTruckOrders, setSelectedTruckOrders] = useState<TruckOrder[]>([]);
   const [showTruckOrderModal, setShowTruckOrderModal] = useState(false);
   const [selectedTrucksAndDrivers, setSelectedTrucksAndDrivers] = useState<Array<{
@@ -687,7 +691,7 @@ export default function Orders() {
                       </div>
 
                       {/* ยอดวิเคราะห์จากระบบ */}
-                      <div className="bg-white dark:bg-gray-800 border-l-4 border-blue-500 border-t border-b border-r border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
+                      <div className="bg-white dark:bg-gray-800 border-l-4 border-l-blue-500 border-t border-b border-r border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
                         <div className="flex items-center gap-2 mb-2">
                           <BarChart3 className="w-4 h-4 text-blue-500" />
                           <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">ยอดวิเคราะห์จากระบบ</span>
@@ -734,7 +738,7 @@ export default function Orders() {
                       </div>
 
                       {/* ยอดสั่งจริง */}
-                      <div className="bg-white dark:bg-gray-800 border-l-4 border-orange-500 border-t border-b border-r border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
+                      <div className="bg-white dark:bg-gray-800 border-l-4 border-l-orange-500 border-t border-b border-r border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
                         <div className="flex items-center gap-2 mb-2">
                           <CheckCircle className="w-4 h-4 text-orange-500" />
                           <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">ยอดสั่งจริง</span>
@@ -942,7 +946,7 @@ export default function Orders() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.05 }}
-                          className="bg-white dark:bg-gray-800 border-l-4 border-orange-500 border-t border-b border-r border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-sm"
+                          className="bg-white dark:bg-gray-800 border-l-4 border-l-orange-500 border-t border-b border-r border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-sm"
                         >
                           {/* Header Card */}
                           <div className="flex items-start justify-between mb-4">
@@ -1266,7 +1270,7 @@ export default function Orders() {
                   </div>
 
                   {/* Summary Section */}
-                  <div className="mt-6 bg-white dark:bg-gray-800 border-l-4 border-orange-500 border-t border-b border-r border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-sm bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-900/20 dark:to-red-900/20">
+                  <div className="mt-6 bg-white dark:bg-gray-800 border-l-4 border-l-orange-500 border-t border-b border-r border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-sm bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-900/20 dark:to-red-900/20">
                     <h4 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                       <BarChart3 className="w-5 h-5" />
                       สรุปยอดรวมทุกสาขา
@@ -1346,7 +1350,8 @@ export default function Orders() {
                         const deliveryDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // วันถัดไป
 
                         // สร้าง orderNo และ supplierOrderNo
-                        const orderNo = `SO-${orderDate.replace(/-/g, '')}-${String(purchaseOrders.length + 1).padStart(3, '0')}`;
+                        const autoOrderNo = `SO-${orderDate.replace(/-/g, '')}-${String(purchaseOrders.length + 1).padStart(3, '0')}`;
+                        const orderNo = purchaseOrderNoInput.trim() ? purchaseOrderNoInput.trim() : autoOrderNo;
                         const supplierOrderNo = `PTT-${orderDate.replace(/-/g, '')}-${String(purchaseOrders.length + 1).padStart(3, '0')}`;
                         const billNo = `BILL-${orderDate.replace(/-/g, '')}-${String(purchaseOrders.length + 1).padStart(3, '0')}`;
 
@@ -1426,6 +1431,8 @@ export default function Orders() {
 
                         // สร้างข้อมูลบิล
                         const billData = {
+                          approveNo: approveNoInput.trim() ? approveNoInput.trim() : undefined,
+                          contractNo: contractNoInput.trim() ? contractNoInput.trim() : undefined,
                           orderNo,
                           supplierOrderNo,
                           billNo,
@@ -1474,6 +1481,11 @@ export default function Orders() {
                           })),
                           attachments: billData.attachments,
                         });
+
+                        // reset header inputs for next order
+                        setApproveNoInput("");
+                        setPurchaseOrderNoInput("");
+                        setContractNoInput("");
 
                         // อัปเดตสถานะ Order ทั้งหมดเป็น "อนุมัติแล้ว"
                         editingOrders.forEach((order) => {
@@ -1714,6 +1726,51 @@ export default function Orders() {
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
                   <div className="space-y-6">
+                    {/* Document Numbers (from Purchase Order) */}
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                      <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">
+                        เลขอ้างอิงจากใบสั่งซื้อ (กรอกตามเอกสาร)
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
+                            ใบอนุมัติขายเลขที่
+                          </label>
+                          <input
+                            value={approveNoInput}
+                            onChange={(e) => setApproveNoInput(e.target.value)}
+                            placeholder="เช่น 1234567890"
+                            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
+                            ใบสั่งซื้อเลขที่
+                          </label>
+                          <input
+                            value={purchaseOrderNoInput}
+                            onChange={(e) => setPurchaseOrderNoInput(e.target.value)}
+                            placeholder="เช่น SO-20241215-001"
+                            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
+                          />
+                          <p className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">
+                            ถ้ากรอก ระบบจะใช้เลขนี้แทนเลขที่ใบสั่งซื้อที่สร้างอัตโนมัติ
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
+                            Contract No.
+                          </label>
+                          <input
+                            value={contractNoInput}
+                            onChange={(e) => setContractNoInput(e.target.value)}
+                            placeholder="เช่น CN-xxxx"
+                            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
                     {/* New Order Form */}
                     <NewOrderForm
                       branches={branches}
@@ -1931,6 +1988,17 @@ export default function Orders() {
                         <p className="text-lg font-bold text-gray-800 dark:text-white">{selectedApprovedOrder.orderNo}</p>
                       </div>
 
+                      {/* ใบอนุมัติขายเลขที่ */}
+                      {selectedApprovedOrder.approveNo && (
+                        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FileText className="w-4 h-4 text-gray-400" />
+                            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">ใบอนุมัติขายเลขที่</span>
+                          </div>
+                          <p className="text-lg font-bold text-gray-800 dark:text-white">{selectedApprovedOrder.approveNo}</p>
+                        </div>
+                      )}
+
                       {/* เลขที่บิล */}
                       {selectedApprovedOrder.billNo && (
                         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
@@ -1950,6 +2018,17 @@ export default function Orders() {
                         </div>
                         <p className="text-lg font-bold text-gray-800 dark:text-white">{selectedApprovedOrder.supplierOrderNo}</p>
                       </div>
+
+                      {/* Contract No. */}
+                      {selectedApprovedOrder.contractNo && (
+                        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FileText className="w-4 h-4 text-gray-400" />
+                            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Contract No.</span>
+                          </div>
+                          <p className="text-lg font-bold text-gray-800 dark:text-white">{selectedApprovedOrder.contractNo}</p>
+                        </div>
+                      )}
 
                       {/* วันที่สั่ง */}
                       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">

@@ -104,6 +104,9 @@ export interface TruckProfile {
   // Odometer tracking
   lastOdometerReading?: number; // เลขไมล์ล่าสุด (กม.)
   lastOdometerDate?: string; // วันที่บันทึกไมล์ล่าสุด
+  // Fuel tracking (optional)
+  lastFuelReading?: number; // ปริมาณน้ำมันล่าสุด (ลิตร)
+  lastFuelDate?: string; // วันที่บันทึกน้ำมันล่าสุด
   // เอกสารประจำรถหัวลาก
   compulsoryInsuranceExpiry?: string; // พ.ร.บ.
   vehicleTaxExpiry?: string; // ทะเบียนรถ/ป้ายวงกลม
@@ -337,6 +340,9 @@ export const mockTrucks: TruckProfile[] = [
     // Odometer
     lastOdometerReading: 125500,
     lastOdometerDate: "2024-12-15",
+    // Fuel (mock)
+    lastFuelReading: 450,
+    lastFuelDate: "2024-12-15",
     // เอกสาร
     compulsoryInsuranceExpiry: "2025-07-15",
     vehicleTaxExpiry: "2025-06-30",
@@ -380,6 +386,9 @@ export const mockTrucks: TruckProfile[] = [
     // Odometer
     lastOdometerReading: 98350,
     lastOdometerDate: "2024-12-14",
+    // Fuel (mock)
+    lastFuelReading: 380,
+    lastFuelDate: "2024-12-14",
     // เอกสาร
     compulsoryInsuranceExpiry: "2025-01-10",
     vehicleTaxExpiry: "2025-05-25",
