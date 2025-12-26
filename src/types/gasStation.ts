@@ -409,6 +409,45 @@ export interface DriverJob {
   updatedAt?: string; // Added
 }
 
+// ==================== Branch Oil Receipt (รับน้ำมันของปั๊มย่อย) ====================
+export interface BranchOilReceipt {
+  id: string;
+  receiptNo: string; // เลขที่ใบรับน้ำมัน
+  purchaseOrderNo: string; // เลขที่ใบสั่งซื้อ
+  approveNo?: string; // ใบอนุมัติขายเลขที่ (จาก PO)
+  contractNo?: string; // Contract No. (จาก PO)
+  transportNo: string; // เลขที่ขนส่ง
+  branchId: number; // ID ปั๊มย่อย
+  branchName: string; // ชื่อปั๊มย่อย
+  receiveDate: string;
+  receiveTime: string;
+  // ข้อมูลรถและคนขับ
+  truckPlateNumber: string;
+  trailerPlateNumber: string;
+  driverName: string;
+  // รายการน้ำมันที่รับ
+  items: Array<{
+    oilType: string;
+    quantityOrdered: number; // จำนวนที่สั่ง
+    quantityReceived: number; // จำนวนที่รับจริง
+    pricePerLiter: number;
+    totalAmount: number;
+  }>;
+  totalAmount: number;
+  // สถานะ
+  status: "รอรับ" | "รับแล้ว" | "ปฏิเสธ" | "ยกเลิก";
+  receivedBy: string;
+  receivedByName: string;
+  receivedAt?: string;
+  qualityTest?: QualityTest;
+  rejectReason?: string; // เหตุผลในการปฏิเสธ
+  rejectedBy?: string; // ผู้ปฏิเสธ
+  rejectedAt?: string; // วันที่ปฏิเสธ
+  notes?: string;
+  createdAt: string;
+  createdBy: string;
+}
+
 // ==================== Running Number ====================
 export interface RunningNumber {
   id: string;

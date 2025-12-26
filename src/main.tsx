@@ -246,6 +246,7 @@ import DriverAppDelivery from "@/pages/delivery/DriverApp";
 import FuelEfficiency from "@/pages/delivery/FuelEfficiency";
 import DeliveryAlerts from "@/pages/delivery/Alerts";
 import DeliverySettings from "@/pages/delivery/Settings";
+import DeliveryOilSales from "@/pages/delivery/gs/OilSales";
 
 // ========== Delivery (reuse Gas Station pages) ==========
 import DeliveryReceiveOil from "@/pages/delivery/gs/ReceiveOil";
@@ -1249,6 +1250,10 @@ const router = createBrowserRouter([
           {
             path: "record-suction-oil",
             element: <DeliveryRecordSuctionOil />,
+          },
+          {
+            path: "oil-sales",
+            element: <DeliveryOilSales />,
           },
           {
             path: "allocation",

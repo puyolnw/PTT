@@ -30,8 +30,8 @@ const menuGroups: MenuGroup[] = [
     id: "orders",
     label: "การสั่งซื้อและรับน้ำมัน",
     items: [
+      { to: "/app/delivery/receive-oil", icon: PackageCheck, label: "บันทึกการรับน้ำมัน", end: false },
       { to: "/app/delivery/purchase-orders", icon: FileText, label: "ใบสั่งซื้อจากปตท.", end: false },
-      { to: "/app/delivery/receive-oil", icon: PackageCheck, label: "รับน้ำมัน", end: false },
       { to: "/app/delivery/internal-oil-order", icon: ShoppingCart, label: "สั่งซื้อน้ำมันภายในปั๊ม", end: false },
       { to: "/app/delivery/record-tank-entry", icon: Droplet, label: "บันทึกน้ำมันลงหลุม", end: false },
     ],
@@ -54,6 +54,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { to: "/app/delivery/remaining-on-truck", icon: Droplet, label: "น้ำมันที่เหลือบนรถ", end: false },
       { to: "/app/delivery/internal-pump-sales", icon: DollarSign, label: "ขายน้ำมันภายในปั๊ม", end: false },
+      { to: "/app/delivery/oil-sales", icon: FileText, label: "บันทึกการขายน้ำมัน", end: false },
       { to: "/app/delivery/record-suction-oil", icon: ClipboardList, label: "บันทึกการดูดน้ำมัน", end: false },
     ],
   },
