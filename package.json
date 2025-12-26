@@ -1,7 +1,7 @@
 {
   "name": "my-ptt-app",
   "private": true,
-  "version": "0.70",
+  "version": "0.71",
   "type": "module",
   "scripts": {
     "dev": "vite",
