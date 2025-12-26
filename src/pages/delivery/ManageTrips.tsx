@@ -220,7 +220,7 @@ export default function ManageTrips() {
       </div>
 
       <ChartCard
-        title="รายการรอบจัดส่ง (จาก DriverApp)"
+        title="รายการรอบจัดส่ง"
         subtitle={`กำลังดำเนินอยู่: ${activeJobs.length} • เสร็จแล้ว: ${completedJobs.length} • กด “แก้ไข” เพื่อจัดการรอบ`}
         icon={Route}
       >

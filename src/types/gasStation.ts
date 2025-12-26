@@ -402,11 +402,29 @@ export interface DriverJob {
     photos: string[];
     notes?: string;
   };
+  fuelingRecords?: FuelingRecord[];
   endOdometer?: number; // Added
   notes?: string; // Added
   createdAt?: string; // Made optional
   createdBy?: string; // Made optional
   updatedAt?: string; // Added
+}
+
+// ==================== Fueling Record (เติมน้ำมันรถระหว่างทาง) ====================
+export interface FuelingRecord {
+  id: string;
+  transportNo: string;
+  fuelingDate: string;
+  fuelingTime: string;
+  stationName: string;
+  oilType: OilType;
+  quantity: number; // ลิตร
+  amount: number; // บาท
+  odometerReading: number;
+  photoUrl?: string; // รูปใบเสร็จ
+  notes?: string;
+  recordedBy: string;
+  recordedAt: string;
 }
 
 // ==================== Branch Oil Receipt (รับน้ำมันของปั๊มย่อย) ====================

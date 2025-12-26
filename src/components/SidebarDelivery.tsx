@@ -42,7 +42,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { to: "/app/delivery/truck-orders", icon: FileText, label: "ระบบส่งน้ำมัน(รับ)", end: false },
       { to: "/app/delivery/manage-trips", icon: Monitor, label: "จัดการรอบจัดส่ง", end: false },
-      { to: "/app/delivery/driver-app", icon: Truck, label: "แอปคนขับ", end: false },
+      { to: "/app/delivery/record-fueling", icon: Gauge, label: "บันทึกเติมน้ำมันรถ", end: false },
       { to: "/app/delivery/driver-app-gasstation", icon: User, label: "แอปคนขับ (เดิม)", end: false },
       { to: "/app/delivery/truck-profiles", icon: Truck, label: "โปรไฟล์รถส่งน้ำมัน", end: false },
       { to: "/app/delivery/trailer-profiles", icon: Droplet, label: "โปรไฟล์หางรถน้ำมัน", end: false },

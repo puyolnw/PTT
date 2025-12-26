@@ -11,6 +11,7 @@ import type {
   DriverJob,
   OilReceipt,
   TankEntryRecord,
+  FuelingRecord,
   RunningNumber,
 } from "@/types/gasStation";
 import type { TruckProfile, Trailer } from "@/pages/gas-station/TruckProfiles";
@@ -72,6 +73,7 @@ interface GasStationContextType {
   createDriverJob: (job: DriverJob) => void;
   updateDriverJob: (jobId: string, updates: Partial<DriverJob>) => void;
   updateDriverJobStatus: (jobId: string, status: DriverJob["status"]) => void;
+  addFuelingRecord: (jobId: string, record: FuelingRecord) => void;
 
   // Actions - Oil Receipts
   createOilReceipt: (receipt: OilReceipt) => void;
@@ -486,6 +488,20 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     },
     [updateDriverJob]
   );
+  
+  const addFuelingRecord = useCallback((jobId: string, record: FuelingRecord) => {
+    setDriverJobsState((prev) =>
+      prev.map((job) => {
+        if (job.id === jobId) {
+          return {
+            ...job,
+            fuelingRecords: [...(job.fuelingRecords || []), record],
+          };
+        }
+        return job;
+      })
+    );
+  }, []);
 
   // Oil Receipts
   const createOilReceipt = useCallback((receipt: OilReceipt) => {
@@ -607,6 +623,7 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     createDriverJob,
     updateDriverJob,
     updateDriverJobStatus,
+    addFuelingRecord,
     createOilReceipt,
     updateOilReceipt,
     deleteOilReceipt,
