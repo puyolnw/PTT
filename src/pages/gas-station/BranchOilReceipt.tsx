@@ -69,6 +69,7 @@ interface BranchOilReceipt {
   rejectedBy?: string; // ผู้ปฏิเสธ
   rejectedAt?: string; // วันที่ปฏิเสธ
   notes?: string;
+  qualityTest?: QualityTest;
   createdAt: string;
   createdBy: string;
 }
@@ -526,342 +527,201 @@ export default function BranchOilReceipt() {
     return byName;
   };
 
-  // ฟังก์ชันสำหรับดาวน์โหลดใบส่งของเป็น PDF
-  const handleDownloadDeliveryNotePDF = (deliveryNote: DeliveryNote & { transportNo?: string; trailerPlateNumber?: string; senderSignature?: string; senderSignedAt?: string; receiverSignature?: string; receiverSignedAt?: string }) => {
-    // สร้าง HTML สำหรับใบส่งของ
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="th">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ใบส่งของ - ${deliveryNote.deliveryNoteNo}</title>
-        <style>
-          @page {
-            size: A4;
-            margin: 20mm;
-          }
-          body {
-            font-family: 'Sarabun', 'TH Sarabun New', 'THSarabunNew', sans-serif;
-            font-size: 14px;
-            line-height: 1.6;
-            color: #000;
-            background: #fff;
-          }
-          .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 20px;
-          }
-          .header h1 {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 0;
-            margin-bottom: 10px;
-          }
-          .header h2 {
-            font-size: 20px;
-            font-weight: bold;
-            margin: 0;
-          }
-          .info-section {
-            margin-bottom: 20px;
-          }
-          .info-row {
-            display: flex;
-            margin-bottom: 10px;
-          }
-          .info-label {
-            width: 150px;
-            font-weight: bold;
-          }
-          .info-value {
-            flex: 1;
-          }
-          .two-columns {
-            display: flex;
-            gap: 40px;
-            margin-bottom: 20px;
-          }
-          .column {
-            flex: 1;
-          }
-          .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-          }
-          .table th,
-          .table td {
-            border: 1px solid #000;
-            padding: 10px;
-            text-align: left;
-          }
-          .table th {
-            background-color: #f0f0f0;
-            font-weight: bold;
-            text-align: center;
-          }
-          .table td {
-            text-align: right;
-          }
-          .table td:first-child {
-            text-align: left;
-          }
-          .total-row {
-            font-weight: bold;
-            font-size: 16px;
-          }
-          .footer {
-            margin-top: 40px;
-            display: flex;
-            justify-content: space-between;
-          }
-          .signature-box {
-            width: 200px;
-            text-align: center;
-          }
-          .signature-line {
-            border-top: 1px solid #000;
-            margin-top: 60px;
-            padding-top: 5px;
-          }
-          @media print {
-            body {
-              margin: 0;
-            }
-            .no-print {
-              display: none;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>ใบส่งของ (Delivery Note)</h1>
-          <h2>เลขที่: ${deliveryNote.deliveryNoteNo}</h2>
-        </div>
+  // ฟังก์ชันสำหรับดาวน์โหลดเอกสารเป็น PDF (Unified)
+  const handleDownload = (
+    type: "delivery-note" | "tax-invoice" | "branch-oil-receipt",
+    data: any // Keeping any for now as data can have varying extended properties in some contexts, but internal casts are added.
+  ) => {
+    let htmlContent = "";
+    let fileName = "";
 
-        <div class="info-section">
-          <div class="info-row">
-            <div class="info-label">วันที่ส่ง:</div>
-            <div class="info-value">${dateFormatter.format(new Date(deliveryNote.deliveryDate))}</div>
+    if (type === "delivery-note") {
+      const dn = data as DeliveryNote & { transportNo?: string; trailerPlateNumber?: string; senderSignature?: string; senderSignedAt?: string; receiverSignature?: string; receiverSignedAt?: string };
+      fileName = `ใบส่งของ_${dn.deliveryNoteNo}.html`;
+      htmlContent = `
+        <!DOCTYPE html>
+        <html lang="th">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>ใบส่งของ - ${dn.deliveryNoteNo}</title>
+          <style>
+            @page { size: A4; margin: 20mm; }
+            body { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; font-size: 14px; line-height: 1.6; color: #000; background: #fff; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
+            .header h1 { font-size: 24px; font-weight: bold; margin: 0 0 10px 0; }
+            .header h2 { font-size: 20px; font-weight: bold; margin: 0; }
+            .info-section { margin-bottom: 20px; }
+            .info-row { display: flex; margin-bottom: 10px; }
+            .info-label { width: 150px; font-weight: bold; }
+            .info-value { flex: 1; }
+            .two-columns { display: flex; gap: 40px; margin-bottom: 20px; }
+            .column { flex: 1; }
+            .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            .table th, .table td { border: 1px solid #000; padding: 10px; text-align: left; }
+            .table th { background-color: #f0f0f0; font-weight: bold; text-align: center; }
+            .table td { text-align: right; }
+            .table td:first-child { text-align: left; }
+            .total-row { font-weight: bold; font-size: 16px; }
+            .footer { margin-top: 40px; display: flex; justify-content: space-between; }
+            .signature-box { width: 200px; text-align: center; }
+            .signature-line { border-top: 1px solid #000; margin-top: 60px; padding-top: 5px; }
+            @media print { body { margin: 0; } .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>ใบส่งของ (Delivery Note)</h1>
+            <h2>เลขที่: ${dn.deliveryNoteNo}</h2>
           </div>
-          ${deliveryNote.purchaseOrderNo ? `
-          <div class="info-row">
-            <div class="info-label">เลขที่ใบสั่งซื้อ:</div>
-            <div class="info-value">${deliveryNote.purchaseOrderNo}</div>
+          <div class="info-section">
+            <div class="info-row"><div class="info-label">วันที่ส่ง:</div><div class="info-value">${dateFormatter.format(new Date(dn.deliveryDate))}</div></div>
+            ${dn.purchaseOrderNo ? `<div class="info-row"><div class="info-label">เลขที่ใบสั่งซื้อ:</div><div class="info-value">${dn.purchaseOrderNo}</div></div>` : ""}
+            ${dn.transportNo ? `<div class="info-row"><div class="info-label">เลขที่ขนส่ง:</div><div class="info-value">${dn.transportNo}</div></div>` : ""}
           </div>
-          ` : ''}
-          ${deliveryNote.quotationNo ? `
-          <div class="info-row">
-            <div class="info-label">เลขที่ใบเสนอราคา:</div>
-            <div class="info-value">${deliveryNote.quotationNo}</div>
-          </div>
-          ` : ''}
-          ${(deliveryNote as any).transportNo ? `
-          <div class="info-row">
-            <div class="info-label">เลขที่ขนส่ง:</div>
-            <div class="info-value">${(deliveryNote as any).transportNo}</div>
-          </div>
-          ` : ''}
-        </div>
-
-        <div class="two-columns">
-          <div class="column">
-            <div class="info-section">
-              <div class="info-label" style="font-weight: bold; margin-bottom: 10px;">จาก (ผู้ส่ง):</div>
-              <div class="info-value">${deliveryNote.fromBranchName}</div>
+          <div class="two-columns">
+            <div class="column">
+              <div class="info-label">จาก (ผู้ส่ง):</div>
+              <div class="info-value">${dn.fromBranchName}</div>
+            </div>
+            <div class="column">
+              <div class="info-label">ไป (ผู้รับ):</div>
+              <div class="info-value">${dn.toBranchName}</div>
             </div>
           </div>
-          <div class="column">
-            <div class="info-section">
-              <div class="info-label" style="font-weight: bold; margin-bottom: 10px;">ไป (ผู้รับ):</div>
-              <div class="info-value">${deliveryNote.toBranchName}</div>
+          <table class="table">
+            <thead><tr><th>รายการ</th><th>จำนวน (ลิต)</th><th>ราคา/ลิตร</th><th>รวม</th></tr></thead>
+            <tbody>
+              ${dn.items.map((it: any) => `<tr><td>${it.oilType}</td><td>${numberFormatter.format(it.quantity)}</td><td>${numberFormatter.format(it.pricePerLiter)}</td><td>${numberFormatter.format(it.totalAmount)}</td></tr>`).join("")}
+              <tr class="total-row"><td colspan="3" style="text-align:right">รวมทั้งสิ้น:</td><td>${numberFormatter.format(dn.totalAmount)}</td></tr>
+            </tbody>
+          </table>
+          <script>window.print();</script>
+        </body>
+        </html>
+      `;
+    } else if (type === "tax-invoice") {
+      const receipt = data as Receipt;
+      fileName = `ใบกำกับภาษี_${receipt.receiptNo}.html`;
+      htmlContent = `
+        <!DOCTYPE html>
+        <html lang="th">
+        <head>
+          <meta charset="UTF-8">
+          <title>${receipt.documentType} - ${receipt.receiptNo}</title>
+          <style>
+            @page { size: A4; margin: 20mm; }
+            body { font-family: 'Sarabun', sans-serif; font-size: 14px; color: #000; }
+            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+            .header h1 { font-size: 20px; margin: 0 0 5px 0; }
+            .row { display: flex; gap: 20px; margin-bottom: 8px; }
+            .label { width: 160px; font-weight: bold; }
+            .value { flex: 1; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th, td { border: 1px solid #000; padding: 8px; }
+            th { background: #f0f0f0; text-align: center; }
+            td { text-align: right; }
+            td:first-child { text-align: left; }
+            .totals { margin-top: 10px; display: flex; justify-content: flex-end; }
+            .totals div { width: 300px; }
+            .totals .line { display: flex; justify-content: space-between; margin-top: 5px; }
+            .strong { font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header"><h1>${receipt.documentType}</h1><div><strong>เลขที่:</strong> ${receipt.receiptNo}</div></div>
+          <div class="row"><div class="label">วันที่:</div><div class="value">${receipt.receiptDate}</div></div>
+          <div class="row"><div class="label">ผู้ซื้อ/ผู้รับ:</div><div class="value">${receipt.customerName}</div></div>
+          <table>
+            <thead><tr><th>รายการ</th><th>จำนวน (ลิตร)</th><th>ราคา/ลิตร</th><th>รวม</th></tr></thead>
+            <tbody>
+              ${receipt.items.map((it: any) => `<tr><td>${it.oilType}</td><td>${numberFormatter.format(it.quantity)}</td><td>${it.pricePerLiter.toFixed(2)}</td><td>${currencyFormatter.format(it.totalAmount)}</td></tr>`).join("")}
+            </tbody>
+          </table>
+          <div class="totals">
+            <div>
+              <div class="line"><span>มูลค่าก่อน VAT</span><span>${currencyFormatter.format(receipt.totalAmount)}</span></div>
+              <div class="line"><span>VAT (7%)</span><span>${currencyFormatter.format(receipt.vatAmount)}</span></div>
+              <div class="line strong"><span>รวมทั้งสิ้น</span><span>${currencyFormatter.format(receipt.grandTotal)}</span></div>
             </div>
           </div>
-        </div>
-
-        ${(deliveryNote.truckPlateNumber || deliveryNote.driverName) ? `
-        <div class="info-section">
-          <div class="info-label" style="font-weight: bold; margin-bottom: 10px;">ข้อมูลรถและคนขับ:</div>
-          ${deliveryNote.truckPlateNumber ? `
-          <div class="info-row">
-            <div class="info-label">รถหัวลาก:</div>
-            <div class="info-value">${deliveryNote.truckPlateNumber}</div>
+          <script>window.print();</script>
+        </body>
+        </html>
+      `;
+    } else if (type === "branch-oil-receipt") {
+      const br = data as BranchOilReceipt;
+      fileName = `ใบรับน้ำมัน_${br.receiptNo}.html`;
+      htmlContent = `
+        <!DOCTYPE html>
+        <html lang="th">
+        <head>
+          <meta charset="UTF-8">
+          <title>ใบรับน้ำมัน - ${br.receiptNo}</title>
+          <style>
+            @page { size: A4; margin: 20mm; }
+            body { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; font-size: 14px; line-height: 1.6; color: #000; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
+            .header h1 { font-size: 24px; font-weight: bold; margin: 0 0 10px 0; }
+            .info-section { margin-bottom: 20px; }
+            .info-row { display: flex; margin-bottom: 8px; }
+            .info-label { width: 140px; font-weight: bold; }
+            .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            .table th, .table td { border: 1px solid #000; padding: 10px; }
+            .table th { background: #f0f0f0; text-align: center; }
+            .table td { text-align: right; }
+            .table td:first-child { text-align: left; }
+            .footer { margin-top: 40px; display: flex; justify-content: space-around; }
+            .sig { text-align: center; width: 200px; }
+            .sig-line { border-top: 1px solid #000; margin-top: 50px; }
+          </style>
+        </head>
+        <body>
+          <div class="header"><h1>ใบรับน้ำมัน (Branch Oil Receipt)</h1><h2>เลขที่: ${br.receiptNo}</h2></div>
+          <div class="info-section">
+            <div class="info-row"><div class="info-label">เลขที่ใบสั่งซื้อ:</div><div>${br.purchaseOrderNo}</div></div>
+            <div class="info-row"><div class="info-label">วันที่รับ:</div><div>${dateFormatter.format(new Date(br.receiveDate))} ${br.receiveTime}</div></div>
+            <div class="info-row"><div class="info-label">ปั๊มที่รับ:</div><div>${br.branchName}</div></div>
+            <div class="info-row"><div class="info-label">รถ/หาง:</div><div>${br.truckPlateNumber} / ${br.trailerPlateNumber}</div></div>
+            <div class="info-row"><div class="info-label">คนขับ:</div><div>${br.driverName}</div></div>
           </div>
-          ` : ''}
-          ${(deliveryNote as any).trailerPlateNumber ? `
-          <div class="info-row">
-            <div class="info-label">หางบรรทุก:</div>
-            <div class="info-value">${(deliveryNote as any).trailerPlateNumber}</div>
+          <table class="table">
+            <thead><tr><th>รายการ</th><th>สั่ง (ลิตร)</th><th>รับจริง (ลิตร)</th><th>ราคา/ลิตร</th><th>รวม</th></tr></thead>
+            <tbody>
+              ${br.items.map(it => `<tr><td>${it.oilType}</td><td>${numberFormatter.format(it.quantityOrdered)}</td><td>${numberFormatter.format(it.quantityReceived)}</td><td>${numberFormatter.format(it.pricePerLiter)}</td><td>${numberFormatter.format(it.totalAmount)}</td></tr>`).join("")}
+              <tr style="font-weight:bold"><td colspan="4" style="text-align:right">รวมทั้งสิ้น:</td><td>${numberFormatter.format(br.totalAmount)}</td></tr>
+            </tbody>
+          </table>
+          <div class="footer">
+            <div class="sig"><div class="sig-line">ผู้ส่งน้ำมัน</div></div>
+            <div class="sig"><div class="sig-line">ผู้รับน้ำมัน (${br.receivedByName || "...................."})</div></div>
           </div>
-          ` : ''}
-          ${deliveryNote.driverName ? `
-          <div class="info-row">
-            <div class="info-label">คนขับ:</div>
-            <div class="info-value">${deliveryNote.driverName}</div>
-          </div>
-          ` : ''}
-        </div>
-        ` : ''}
+          <script>window.print();</script>
+        </body>
+        </html>
+      `;
+    }
 
-        <table class="table">
-          <thead>
-            <tr>
-              <th style="width: 40%;">รายการ</th>
-              <th style="width: 20%;">จำนวน (ลิตร)</th>
-              <th style="width: 20%;">ราคาต่อลิตร (บาท)</th>
-              <th style="width: 20%;">มูลค่ารวม (บาท)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${deliveryNote.items.map((item: any) => `
-              <tr>
-                <td>${item.oilType}</td>
-                <td>${numberFormatter.format(item.quantity)}</td>
-                <td>${numberFormatter.format(item.pricePerLiter)}</td>
-                <td>${numberFormatter.format(item.totalAmount)}</td>
-              </tr>
-            `).join('')}
-            <tr class="total-row">
-              <td colspan="3" style="text-align: right;">รวมทั้งสิ้น:</td>
-              <td>${numberFormatter.format(deliveryNote.totalAmount)}</td>
-            </tr>
-          </tbody>
-        </table>
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    } else {
+      alert("ไม่สามารถเปิดหน้าต่างพิมพ์ได้ (กรุณาอนุญาต pop-up)");
+    }
 
-        <div class="footer">
-          <div class="signature-box">
-            <div class="signature-line">
-              <div>ผู้ส่ง</div>
-              ${(deliveryNote as any).senderSignature ? `<div style="margin-top: 5px;">${(deliveryNote as any).senderSignature}</div>` : ''}
-            </div>
-          </div>
-          <div class="signature-box">
-            <div class="signature-line">
-              <div>ผู้รับ</div>
-              ${deliveryNote.receiverName ? `<div style="margin-top: 5px;">${deliveryNote.receiverName}</div>` : ''}
-              ${deliveryNote.signedAt ? `<div style="margin-top: 5px; font-size: 12px;">วันที่: ${dateFormatter.format(new Date(deliveryNote.signedAt))}</div>` : ''}
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-          <p>เอกสารนี้เป็นเอกสารอิเล็กทรอนิกส์ที่สร้างโดยระบบ</p>
-          <p>สร้างเมื่อ: ${dateFormatter.format(new Date(deliveryNote.createdAt))} โดย ${deliveryNote.createdBy}</p>
-        </div>
-      </body>
-      </html>
-    `;
-
-    // สร้าง Blob และดาวน์โหลด
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    // Optional: Trigger download as HTML
+    const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `ใบส่งของ_${deliveryNote.deliveryNoteNo}.html`;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-
-    // เปิดหน้าต่างใหม่สำหรับพิมพ์/บันทึกเป็น PDF
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-      // รอให้โหลดเสร็จแล้วแสดง dialog พิมพ์
-      setTimeout(() => {
-        printWindow.print();
-      }, 250);
-    }
   };
 
-  // ฟังก์ชันสำหรับดาวน์โหลดใบกำกับภาษี/ใบเสร็จ (Receipt) เป็น PDF (พิมพ์จาก HTML)
-  const handleDownloadReceiptPDF = (receipt: Receipt) => {
-    const html = `
-      <!DOCTYPE html>
-      <html lang="th">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${receipt.documentType} - ${receipt.receiptNo}</title>
-        <style>
-          @page { size: A4; margin: 20mm; }
-          body { font-family: 'Sarabun', 'TH Sarabun New', sans-serif; font-size: 14px; color: #000; }
-          .header { text-align: center; margin-bottom: 18px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-          .header h1 { font-size: 20px; margin: 0 0 6px 0; }
-          .row { display: flex; gap: 20px; margin-bottom: 8px; }
-          .label { width: 160px; font-weight: bold; }
-          .value { flex: 1; }
-          table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-          th, td { border: 1px solid #000; padding: 8px; }
-          th { background: #f0f0f0; text-align: center; }
-          td { text-align: right; }
-          td:first-child { text-align: left; }
-          .totals { margin-top: 12px; display: flex; justify-content: flex-end; }
-          .totals div { width: 320px; }
-          .totals .line { display: flex; justify-content: space-between; margin-top: 6px; }
-          .strong { font-weight: bold; }
-          @media print { .no-print { display:none; } }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>${receipt.documentType}</h1>
-          <div><strong>เลขที่:</strong> ${receipt.receiptNo}</div>
-        </div>
-        <div class="row"><div class="label">วันที่:</div><div class="value">${receipt.receiptDate}</div></div>
-        ${receipt.deliveryNoteNo ? `<div class="row"><div class="label">อ้างอิงใบส่งของ:</div><div class="value">${receipt.deliveryNoteNo}</div></div>` : ""}
-        <div class="row"><div class="label">ผู้ซื้อ/ผู้รับ:</div><div class="value">${receipt.customerName}</div></div>
-        <div class="row"><div class="label">ที่อยู่:</div><div class="value">${receipt.customerAddress}</div></div>
-        <table>
-          <thead>
-            <tr>
-              <th>รายการ</th>
-              <th>จำนวน (ลิตร)</th>
-              <th>ราคา/ลิตร</th>
-              <th>จำนวนเงิน</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${receipt.items
-              .map(
-                (it) => `
-                  <tr>
-                    <td>${it.oilType}</td>
-                    <td>${numberFormatter.format(it.quantity)}</td>
-                    <td>${it.pricePerLiter.toFixed(2)}</td>
-                    <td>${currencyFormatter.format(it.totalAmount)}</td>
-                  </tr>`
-              )
-              .join("")}
-          </tbody>
-        </table>
-        <div class="totals">
-          <div>
-            <div class="line"><span>มูลค่าก่อน VAT</span><span>${currencyFormatter.format(receipt.totalAmount)}</span></div>
-            <div class="line"><span>VAT</span><span>${currencyFormatter.format(receipt.vatAmount)}</span></div>
-            <div class="line strong"><span>รวมทั้งสิ้น</span><span>${currencyFormatter.format(receipt.grandTotal)}</span></div>
-          </div>
-        </div>
-        <div class="no-print" style="margin-top:16px; color:#666; font-size:12px;">* กดพิมพ์/บันทึกเป็น PDF จากหน้าต่างพิมพ์</div>
-        <script>window.print();</script>
-      </body>
-      </html>
-    `;
-
-    const w = window.open("", "_blank");
-    if (!w) {
-      alert("ไม่สามารถเปิดหน้าต่างพิมพ์ได้ (กรุณาอนุญาต pop-up)");
-      return;
-    }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-  };
 
   return (
     <div className="space-y-6 p-6">
@@ -1182,6 +1042,15 @@ export default function BranchOilReceipt() {
                           </button>
                         </>
                       )}
+                      {receipt.status === "รับแล้ว" && (
+                        <button
+                          onClick={() => handleDownload("branch-oil-receipt", receipt)}
+                          className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                          title="ดาวน์โหลดใบรับน้ำมัน"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleViewDetail(receipt)}
                         className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -1227,12 +1096,23 @@ export default function BranchOilReceipt() {
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                   รายละเอียดการรับน้ำมัน - {selectedReceipt.branchName}
                 </h2>
-                <button
-                  onClick={() => setShowDetailModal(false)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {selectedReceipt.status === "รับแล้ว" && (
+                    <button
+                      onClick={() => handleDownload("branch-oil-receipt", selectedReceipt)}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      ดาวน์โหลด PDF
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
               </div>
 
               <div className="p-6 space-y-6">
@@ -1322,7 +1202,7 @@ export default function BranchOilReceipt() {
                             </button>
                             <button
                               onClick={() => {
-                                handleDownloadDeliveryNotePDF(relatedDeliveryNote);
+                                handleDownload("delivery-note", relatedDeliveryNote);
                               }}
                               className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
                             >
@@ -1373,7 +1253,7 @@ export default function BranchOilReceipt() {
                                   disabled={!relatedTaxInvoice}
                                   onClick={() => {
                                     if (!relatedTaxInvoice) return;
-                                    handleDownloadReceiptPDF(relatedTaxInvoice);
+                                    handleDownload("tax-invoice", relatedTaxInvoice);
                                   }}
                                   className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
                                 >
@@ -1445,22 +1325,22 @@ export default function BranchOilReceipt() {
                       <p className="font-semibold text-gray-900 dark:text-white">{selectedReceipt.receivedByName}</p>
                     </div>
                   )}
-                  {(selectedReceipt as any).rejectReason && (
+                  {selectedReceipt.rejectReason && (
                     <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800 col-span-2">
                       <div className="flex items-center gap-2 mb-2">
                         <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                         <p className="text-xs font-semibold text-orange-800 dark:text-orange-300">เหตุผลในการปฏิเสธ</p>
                       </div>
-                      <p className="text-sm text-orange-700 dark:text-orange-400">{(selectedReceipt as any).rejectReason}</p>
-                      {(selectedReceipt as any).rejectedBy && (
+                      <p className="text-sm text-orange-700 dark:text-orange-400">{selectedReceipt.rejectReason}</p>
+                      {selectedReceipt.rejectedBy && (
                         <p className="text-xs text-orange-600 dark:text-orange-500 mt-2">
-                          โดย: {(selectedReceipt as any).rejectedBy} 
-                          {(selectedReceipt as any).rejectedAt && ` - ${dateFormatter.format(new Date((selectedReceipt as any).rejectedAt))}`}
+                          โดย: {selectedReceipt.rejectedBy} 
+                          {selectedReceipt.rejectedAt && ` - ${dateFormatter.format(new Date(selectedReceipt.rejectedAt))}`}
                         </p>
                       )}
                     </div>
                   )}
-                  {(selectedReceipt as any).qualityTest && (
+                  {selectedReceipt.qualityTest && (
                     <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800 col-span-2">
                       <div className="flex items-center gap-2 mb-3">
                         <AlertCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -1469,38 +1349,38 @@ export default function BranchOilReceipt() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                         <div>
                           <span className="text-green-700 dark:text-green-400">API Gravity:</span>
-                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{(selectedReceipt as any).qualityTest.apiGravity}</span>
+                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{selectedReceipt.qualityTest.apiGravity}</span>
                         </div>
                         <div>
                           <span className="text-green-700 dark:text-green-400">Water Content:</span>
-                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{(selectedReceipt as any).qualityTest.waterContent}%</span>
+                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{selectedReceipt.qualityTest.waterContent}%</span>
                         </div>
                         <div>
                           <span className="text-green-700 dark:text-green-400">Temperature:</span>
-                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{(selectedReceipt as any).qualityTest.temperature}°C</span>
+                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{selectedReceipt.qualityTest.temperature}°C</span>
                         </div>
                         <div>
                           <span className="text-green-700 dark:text-green-400">สี:</span>
-                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{(selectedReceipt as any).qualityTest.color || "-"}</span>
+                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{selectedReceipt.qualityTest.color || "-"}</span>
                         </div>
                         <div>
                           <span className="text-green-700 dark:text-green-400">ผลการตรวจสอบ:</span>
                           <span className={`font-semibold ml-2 ${
-                            (selectedReceipt as any).qualityTest.testResult === "ผ่าน"
+                            selectedReceipt.qualityTest.testResult === "ผ่าน"
                               ? "text-green-600 dark:text-green-400"
                               : "text-red-600 dark:text-red-400"
                           }`}>
-                            {(selectedReceipt as any).qualityTest.testResult}
+                            {selectedReceipt.qualityTest.testResult}
                           </span>
                         </div>
                         <div>
                           <span className="text-green-700 dark:text-green-400">ผู้ตรวจสอบ:</span>
-                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{(selectedReceipt as any).qualityTest.testedBy || "-"}</span>
+                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{selectedReceipt.qualityTest.testedBy || "-"}</span>
                         </div>
                       </div>
-                      {(selectedReceipt as any).qualityTest.notes && (
+                      {selectedReceipt.qualityTest.notes && (
                         <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
-                          <p className="text-xs text-green-700 dark:text-green-400">หมายเหตุ: {(selectedReceipt as any).qualityTest.notes}</p>
+                          <p className="text-xs text-green-700 dark:text-green-400">หมายเหตุ: {selectedReceipt.qualityTest.notes}</p>
                         </div>
                       )}
                     </div>
@@ -1661,7 +1541,7 @@ export default function BranchOilReceipt() {
                           </button>
                           <button
                             onClick={() => {
-                              handleDownloadDeliveryNotePDF(relatedDeliveryNote);
+                              handleDownload("delivery-note", relatedDeliveryNote);
                             }}
                             className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
                           >
@@ -1712,7 +1592,7 @@ export default function BranchOilReceipt() {
                                 disabled={!relatedTaxInvoice}
                                 onClick={() => {
                                   if (!relatedTaxInvoice) return;
-                                  handleDownloadReceiptPDF(relatedTaxInvoice);
+                                  handleDownload("tax-invoice", relatedTaxInvoice);
                                 }}
                                 className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
                               >
@@ -2072,7 +1952,7 @@ export default function BranchOilReceipt() {
                             </button>
                             <button
                               onClick={() => {
-                                handleDownloadDeliveryNotePDF(relatedDeliveryNote);
+                                handleDownload("delivery-note", relatedDeliveryNote);
                               }}
                               className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
                             >
@@ -2185,7 +2065,7 @@ export default function BranchOilReceipt() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => {
-                        handleDownloadDeliveryNotePDF(selectedDeliveryNote);
+                        handleDownload("delivery-note", selectedDeliveryNote);
                       }}
                       className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                     >
@@ -2439,7 +2319,7 @@ export default function BranchOilReceipt() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleDownloadReceiptPDF(selectedTaxInvoice)}
+                      onClick={() => handleDownload("tax-invoice", selectedTaxInvoice)}
                       className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                     >
                       <Download className="w-4 h-4" />

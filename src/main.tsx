@@ -242,11 +242,11 @@ import DeliveryDashboard from "@/pages/delivery/Dashboard";
 import PurchaseOrders from "@/pages/delivery/PurchaseOrders";
 import DeliveryPTTOrders from "@/pages/delivery/PTTOrders";
 import Allocation from "@/pages/delivery/Allocation";
-import DriverAppDelivery from "@/pages/delivery/DriverApp";
 import FuelEfficiency from "@/pages/delivery/FuelEfficiency";
 import DeliveryAlerts from "@/pages/delivery/Alerts";
 import DeliverySettings from "@/pages/delivery/Settings";
 import DeliveryOilSales from "@/pages/delivery/gs/OilSales";
+import DeliveryRecordFueling from "@/pages/delivery/gs/RecordFueling";
 
 // ========== Delivery (reuse Gas Station pages) ==========
 import DeliveryReceiveOil from "@/pages/delivery/gs/ReceiveOil";
@@ -1232,12 +1232,12 @@ const router = createBrowserRouter([
             element: <DeliveryOilSales />,
           },
           {
-            path: "allocation",
-            element: <Allocation />,
+            path: "record-fueling",
+            element: <DeliveryRecordFueling />,
           },
           {
-            path: "driver-app",
-            element: <DriverAppDelivery />,
+            path: "allocation",
+            element: <Allocation />,
           },
 
           // ---- Reused Gas Station pages inside Delivery ----
