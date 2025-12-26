@@ -1,10 +1,10 @@
 import GasStationWrap from "@/pages/delivery/gs/_GasStationWrap";
-import BranchOilReceipt from "@/pages/gas-station/BranchOilReceipt";
+import ReceiveOil from "@/pages/delivery/ReceiveOil";
 
 export default function DeliveryReceiveOil() {
   return (
     <GasStationWrap>
-      <BranchOilReceipt />
+      <ReceiveOil />
     </GasStationWrap>
   );
 }
