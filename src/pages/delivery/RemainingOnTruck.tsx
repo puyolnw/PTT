@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Droplet, Search, Truck } from "lucide-react";
-import ChartCard from "@/components/ChartCard";
+import { Droplet, Search, Truck, MoreHorizontal } from "lucide-react";
+
 import { useGasStation } from "@/contexts/GasStationContext";
 import type { DriverJob, PurchaseOrder } from "@/types/gasStation";
 
@@ -10,10 +10,10 @@ type StatusFilter = "all" | "active" | "completed";
 function TypeBadge({ orderType }: { orderType: "internal" | "external" }) {
   const isExternal = orderType === "external";
   const cls = isExternal
-    ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
-    : "bg-purple-500/15 text-purple-300 border-purple-500/30";
+    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+    : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400";
   return (
-    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${cls}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
       {isExternal ? "รับจากคลังน้ำมัน" : "ภายในปั๊ม"}
     </span>
   );
@@ -22,16 +22,16 @@ function TypeBadge({ orderType }: { orderType: "internal" | "external" }) {
 function JobStatusBadge({ status }: { status: DriverJob["status"] }) {
   const cls =
     status === "ส่งเสร็จ"
-      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
       : status === "กำลังส่ง"
-        ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
+        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
         : status === "จัดเรียงเส้นทางแล้ว"
-          ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+          ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
           : status === "รับน้ำมันแล้ว"
-            ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
-            : "bg-white/5 text-muted border-app";
+            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+            : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
   return (
-    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${cls}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
       {status}
     </span>
   );
@@ -40,12 +40,12 @@ function JobStatusBadge({ status }: { status: DriverJob["status"] }) {
 function BranchStatusBadge({ status }: { status: DriverJob["destinationBranches"][0]["status"] }) {
   const cls =
     status === "ส่งแล้ว"
-      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
       : status === "กำลังส่ง"
-        ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
-        : "bg-white/5 text-muted border-app";
+        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+        : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
   return (
-    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${cls}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
       {status}
     </span>
   );
@@ -186,44 +186,56 @@ export default function RemainingOnTruck() {
   }, [filtered]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-app text-2xl font-bold">น้ำมันที่เหลือบนรถ</div>
-          <div className="text-sm text-muted">
-            แสดงตาม รถ/หาง/รอบส่ง/ใบสั่งซื้อ/ประเภท/สาขา • คงเหลือรวม:{" "}
-            <span className="text-app font-semibold">{summary.totalRemaining.toLocaleString()} ลิตร</span>
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+              <Droplet className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                น้ำมันที่เหลือบนรถ
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">
+                แสดงตาม รถ/หาง/รอบส่ง/ใบสั่งซื้อ/ประเภท/สาขา
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-sm text-gray-500 dark:text-gray-400">คงเหลือรวม</p>
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{summary.totalRemaining.toLocaleString()} ลิตร</p>
+            </div>
             {statusFilter !== "completed" && (
-              <>
-                {" "}
-                • รถที่มีงานคงเหลือ: <span className="text-app font-semibold">{summary.activeJobsCount}</span>
-              </>
+              <div className="text-right px-4 border-l border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-500 dark:text-gray-400">รถที่มีงาน</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">{summary.activeJobsCount}</p>
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      <ChartCard
-        title="รายการน้ำมันคงเหลือ (ต่อสาขาปลายทาง)"
-        subtitle="คำนวณจากสาขาที่ยังไม่ส่งแล้ว (อิงปริมาณตามแผนในหลุมรถ/สาขา)"
-        icon={Droplet}
-      >
-        <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-4">
+      {/* Filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ค้นหา: รอบส่ง / ทะเบียนรถ / สาขา / PO / เลขอนุมัติ / Contract / Bill"
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+              placeholder="ค้นหา: รอบส่ง / ทะเบียนรถ / สาขา / PO / เลขอนุมัติ..."
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
-              className="px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">ทุกประเภท</option>
               <option value="external">รับจากคลังน้ำมัน</option>
@@ -233,101 +245,115 @@ export default function RemainingOnTruck() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              className="px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">ทุกสถานะรอบ</option>
               <option value="active">กำลังดำเนินการ</option>
               <option value="completed">ส่งเสร็จ</option>
             </select>
 
-            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-app text-sm text-app select-none">
+            <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 select-none cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
               <input
                 type="checkbox"
                 checked={showZero}
                 onChange={(e) => setShowZero(e.target.checked)}
-                className="accent-[var(--accent)]"
+                className="rounded text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-500"
               />
-              แสดงรายการคงเหลือ 0
+              แสดงคงเหลือ 0
             </label>
           </div>
         </div>
+      </div>
 
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {filtered.length === 0 ? (
-          <div className="text-sm text-muted">ไม่พบรายการ</div>
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full mb-3">
+              <Search className="w-6 h-6 text-gray-400" />
+            </div>
+            <p>ไม่พบรายการที่ค้นหา</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-xs text-muted">
-                <tr className="border-b border-app">
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">รถ / หาง</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">รอบส่ง</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">บิลสั่งซื้อ</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">ประเภท</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">สาขาปลายทาง</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">ชนิดน้ำมัน</th>
-                  <th className="text-right py-2 pr-3 whitespace-nowrap">ปริมาณแผน (ลิตร)</th>
-                  <th className="text-right py-2 pr-3 whitespace-nowrap">คงเหลือ (ลิตร)</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">สถานะรอบ</th>
-                  <th className="text-left py-2 whitespace-nowrap">สถานะสาขา</th>
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">รถ / หาง</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">รอบส่ง</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">บิลสั่งซื้อ</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">ประเภท</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">สาขาปลายทาง</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">ชนิดน้ำมัน</th>
+                  <th className="px-6 py-4 text-right font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">ปริมาณแผน (ลิตร)</th>
+                  <th className="px-6 py-4 text-right font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">คงเหลือ (ลิตร)</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">สถานะรอบ</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">สถานะสาขา</th>
+                  <th className="px-6 py-4 text-center font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">จัดการ</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-app">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
                 {filtered.map((r) => (
-                  <tr key={`${r.jobId}-${r.branchId}-${r.oilType}`} className="hover:bg-white/5 transition">
-                    <td className="py-2 pr-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-app font-semibold">
-                        <Truck className="w-4 h-4 text-muted" />
+                  <tr key={`${r.jobId}-${r.branchId}-${r.oilType}`} className="hover:bg-blue-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2 font-medium text-gray-900 dark:text-white">
+                        <Truck className="w-4 h-4 text-gray-400" />
                         <span>{r.truckPlateNumber}</span>
-                        <span className="text-muted">/</span>
+                        <span className="text-gray-400">/</span>
                         <span>{r.trailerPlateNumber}</span>
                       </div>
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap">
-                      <div className="text-app font-semibold">{r.transportNo}</div>
-                      <div className="text-xs text-muted">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="font-medium text-gray-900 dark:text-white">{r.transportNo}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
                         {r.transportDate} • {r.transportTime}
                       </div>
                     </td>
-                    <td className="py-2 pr-3 min-w-[240px]">
+                    <td className="px-6 py-4 min-w-[240px]">
                       {r.orderType === "external" ? (
                         <div className="space-y-0.5">
-                          <div className="text-app font-semibold">
+                          <div className="font-medium text-gray-900 dark:text-white">
                             PO: {r.poMeta?.orderNo || r.purchaseOrderNo || "-"}
                           </div>
-                          <div className="text-xs text-muted">
-                            ใบอนุมัติขายเลขที่: {r.poMeta?.approveNo || "-"} • Contract No.:{" "}
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            ใบอนุมัติ: {r.poMeta?.approveNo || "-"} • Contract:{" "}
                             {r.poMeta?.contractNo || "-"}
                           </div>
-                          {r.poMeta?.billNo && <div className="text-xs text-muted">Bill: {r.poMeta.billNo}</div>}
+                          {r.poMeta?.billNo && <div className="text-xs text-gray-500 dark:text-gray-400">Bill: {r.poMeta.billNo}</div>}
                         </div>
                       ) : (
                         <div className="space-y-0.5">
-                          <div className="text-app font-semibold">ออเดอร์ภายใน: {r.internalOrderNo || "-"}</div>
-                          <div className="text-xs text-muted">—</div>
+                          <div className="font-medium text-gray-900 dark:text-white">ออเดอร์ภายใน: {r.internalOrderNo || "-"}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">—</div>
                         </div>
                       )}
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <TypeBadge orderType={r.orderType} />
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap">
-                      <div className="text-app font-semibold">{r.branchName}</div>
-                      <div className="text-xs text-muted">ID: {r.branchId}</div>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="font-medium text-gray-900 dark:text-white">{r.branchName}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">ID: {r.branchId}</div>
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap text-app">{r.oilType}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap text-right text-app">
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{r.oilType}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">
                       {r.plannedQty.toLocaleString()}
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap text-right">
-                      <span className={r.remainingQty > 0 ? "text-app font-semibold" : "text-muted"}>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <span className={r.remainingQty > 0 ? "text-blue-600 dark:text-blue-400 font-bold" : "text-gray-400"}>
                         {r.remainingQty.toLocaleString()}
                       </span>
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <JobStatusBadge status={r.jobStatus} />
                     </td>
-                    <td className="py-2 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <BranchStatusBadge status={r.branchStatus} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-500 dark:text-gray-400">
+                        <MoreHorizontal className="w-5 h-5" />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -335,7 +361,7 @@ export default function RemainingOnTruck() {
             </table>
           </div>
         )}
-      </ChartCard>
+      </div>
     </div>
   );
 }

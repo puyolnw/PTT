@@ -120,11 +120,11 @@ function saveBranchReceiptsToStorage(receipts: Partial<BranchOilReceipt>[]) {
 // Helper function - ดึงข้อมูล Branch Receipts จาก Purchase Orders และ Driver Jobs (รอบส่งจริง)
 const generateBranchReceipts = (purchaseOrders: PurchaseOrder[], driverJobs: DriverJob[]): BranchOilReceipt[] => {
   const receipts: BranchOilReceipt[] = [];
-  
+
   // ดึงข้อมูลจาก Purchase Orders และเชื่อมกับ Driver Jobs
   purchaseOrders.forEach((po) => {
     const relatedJobs = driverJobs.filter((j) => j.orderType === "external" && j.purchaseOrderNo === po.orderNo);
-    
+
     po.branches.forEach((branch) => {
       const jobForBranch =
         relatedJobs.find((j) => j.destinationBranches?.some((b) => b.branchId === branch.branchId)) || relatedJobs[0];
@@ -161,11 +161,11 @@ const generateBranchReceipts = (purchaseOrders: PurchaseOrder[], driverJobs: Dri
         createdAt: po.approvedAt,
         createdBy: po.approvedBy,
       };
-      
+
       receipts.push(receipt);
     });
   });
-  
+
   return receipts;
 };
 
@@ -272,7 +272,7 @@ export default function BranchOilReceipt() {
   const [showTaxInvoiceModal, setShowTaxInvoiceModal] = useState(false);
   const [selectedTaxInvoice, setSelectedTaxInvoice] = useState<Receipt | null>(null);
   const [rejectReason, setRejectReason] = useState("");
-  
+
   // Form state for receiving oil
   const [receiveFormData, setReceiveFormData] = useState<{
     receiveDate: string;
@@ -435,8 +435,7 @@ export default function BranchOilReceipt() {
     persistOverride(updatedReceipt);
 
     alert(
-      `รับน้ำมันสำเร็จ!\n\nใบสั่งซื้อ: ${selectedReceipt.purchaseOrderNo}\nเลขขนส่ง: ${selectedReceipt.transportNo}\nใบส่งของ: ${
-        deliveryNoteNo || "-"
+      `รับน้ำมันสำเร็จ!\n\nใบสั่งซื้อ: ${selectedReceipt.purchaseOrderNo}\nเลขขนส่ง: ${selectedReceipt.transportNo}\nใบส่งของ: ${deliveryNoteNo || "-"
       }\nปั๊ม: ${selectedReceipt.branchName}\nผลการทดสอบ: ${receiveFormData.qualityTest.testResult}`
     );
     setShowReceiveModal(false);
@@ -725,132 +724,140 @@ export default function BranchOilReceipt() {
 
   return (
     <div className="space-y-6 p-6">
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <PackageCheck className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            </div>
-            รับน้ำมัน
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            รับน้ำมันจากตามใบสั่งซื้อและเลขขนส่ง
-          </p>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+            <PackageCheck className="w-6 h-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 font-display">รับน้ำมัน (Branch Receipt)</h1>
+            <p className="text-sm text-gray-500 mt-1">รับน้ำมันตามใบสั่งซื้อและเลขใบขนส่ง</p>
+          </div>
         </div>
       </motion.div>
 
-      {/* Statistics */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">ทั้งหมด</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.total}</p>
-            </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
+          <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+            <FileText className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">ทั้งหมด</div>
+            <div className="text-xl font-bold text-gray-800">{stats.total} รายการ</div>
           </div>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">รอรับ</p>
-              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{stats.pending}</p>
-            </div>
-            <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-              <Clock className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-            </div>
+          <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center shrink-0">
+            <Clock className="h-6 w-6 text-yellow-600" />
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">รอรับ</div>
+            <div className="text-xl font-bold text-gray-800">{stats.pending} รายการ</div>
           </div>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">รับแล้ว</p>
-              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{stats.received}</p>
-            </div>
-            <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            </div>
+          <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+            <CheckCircle className="h-6 w-6 text-emerald-600" />
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">รับแล้ว</div>
+            <div className="text-xl font-bold text-gray-800">{stats.received} รายการ</div>
           </div>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">ยกเลิก</p>
-              <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{stats.cancelled}</p>
-            </div>
-            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
-              <X className="w-6 h-6 text-red-600 dark:text-red-400" />
-            </div>
+          <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+            <X className="h-6 w-6 text-orange-600" />
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">ปฏิเสธ</div>
+            <div className="text-xl font-bold text-gray-800">{stats.rejected} รายการ</div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4"
+        >
+          <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+            <X className="h-6 w-6 text-red-600" />
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">ยกเลิก</div>
+            <div className="text-xl font-bold text-gray-800">{stats.cancelled} รายการ</div>
           </div>
         </motion.div>
       </div>
 
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4"
-      >
-        <div className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+      {/* Filters and Table Container */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Filter Header */}
+        <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+          <div className="flex-1 w-full md:w-auto relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="ค้นหาเลขที่ใบสั่งซื้อ, เลขขนส่ง, ปั๊ม, ใบอนุมัติขายเลขที่, Contract No...."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="ค้นหาเลขที่ใบสั่งซื้อ, เลขขนส่ง, ปั๊ม..."
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2">
+
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            {/* Date Filter */}
+            <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
               <input
                 type="date"
                 value={filterDateFrom}
                 onChange={(e) => setFilterDateFrom(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                title="วันที่เริ่มต้น"
+                className="bg-transparent text-sm border-none focus:ring-0 p-1 text-gray-600 w-32 outline-none"
               />
-              <span className="text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">ถึง</span>
+              <span className="text-gray-400 text-xs">-</span>
               <input
                 type="date"
                 value={filterDateTo}
                 onChange={(e) => setFilterDateTo(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                title="วันที่สิ้นสุด"
+                className="bg-transparent text-sm border-none focus:ring-0 p-1 text-gray-600 w-32 outline-none"
               />
             </div>
+
+            {/* Status Filter */}
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none"
             >
               <option value="all">สถานะทั้งหมด</option>
               <option value="รอรับ">รอรับ</option>
@@ -858,10 +865,12 @@ export default function BranchOilReceipt() {
               <option value="ปฏิเสธ">ปฏิเสธ</option>
               <option value="ยกเลิก">ยกเลิก</option>
             </select>
+
+            {/* Branch Filter */}
             <select
               value={filterBranch}
               onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none"
             >
               <option value="all">ปั๊มทั้งหมด</option>
               {availableBranches
@@ -875,6 +884,7 @@ export default function BranchOilReceipt() {
                   </option>
                 ))}
             </select>
+
             {(filterDateFrom || filterDateTo || searchTerm || filterStatus !== "all" || filterBranch !== "all") && (
               <button
                 onClick={() => {
@@ -884,159 +894,100 @@ export default function BranchOilReceipt() {
                   setFilterDateFrom("");
                   setFilterDateTo("");
                 }}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-300 dark:border-gray-600 whitespace-nowrap"
+                className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium whitespace-nowrap"
               >
                 ล้างตัวกรอง
               </button>
             )}
           </div>
         </div>
-      </motion.div>
 
-      {/* Receipts Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
-      >
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    เลขที่ใบสั่งซื้อ
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <Truck className="w-4 h-4" />
-                    เลขขนส่ง
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4" />
-                    ปั๊มย่อย
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    วันที่รับ
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <Truck className="w-4 h-4" />
-                    รถ / หาง
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    คนขับ
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <Droplet className="w-4 h-4" />
-                    รายการน้ำมัน
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">สถานะ</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">การดำเนินการ</th>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider border-b border-gray-200">
+                <th className="px-6 py-4 font-medium">ใบสั่งซื้อ / ขนส่ง</th>
+                <th className="px-6 py-4 font-medium">สาขา / วันที่</th>
+                <th className="px-6 py-4 font-medium">ข้อมูลรถ</th>
+                <th className="px-6 py-4 font-medium">รายการน้ำมัน</th>
+                <th className="px-6 py-4 font-medium text-center">สถานะ</th>
+                <th className="px-6 py-4 font-medium text-right">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+            <tbody className="divide-y divide-gray-100 text-sm">
               {filteredReceipts.map((receipt) => (
                 <tr
                   key={receipt.id}
-                  className="hover:bg-blue-50/50 dark:hover:bg-gray-700/70 cursor-pointer transition-all duration-200 group"
+                  className="hover:bg-blue-50/10 transition-colors group"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
-                        <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-gray-900 dark:text-white">{receipt.purchaseOrderNo}</span>
-                        <span className="mt-1 inline-flex w-fit items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-800">{receipt.purchaseOrderNo}</span>
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600 border border-gray-200">
                           {getSourceType({ po: poByNo.get(receipt.purchaseOrderNo) })}
                         </span>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                      {receipt.transportNo}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{receipt.branchName}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900 dark:text-white">
-                      {dateFormatter.format(new Date(receipt.receiveDate))}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1.5">
-                        <Truck className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{receipt.truckPlateNumber}</span>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <Truck className="w-3 h-3" />
+                        <span>{receipt.transportNo}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-gray-800 mb-1">{receipt.branchName}</div>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                      <Calendar className="w-3 h-3" />
+                      {dateFormatter.format(new Date(receipt.receiveDate))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
+                        <Truck className="w-3.5 h-3.5 text-gray-400" />
+                        {receipt.truckPlateNumber}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
                         <span className="ml-5">{receipt.trailerPlateNumber}</span>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1 bg-gray-100 dark:bg-gray-700 rounded-full">
-                        <User className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" />
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
+                        <User className="w-3.5 h-3.5 text-gray-400" />
+                        {receipt.driverName}
                       </div>
-                      <span className="text-sm text-gray-900 dark:text-white">{receipt.driverName}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm">
+                  <td className="px-6 py-4">
+                    <div className="space-y-1">
                       {receipt.items.map((item, idx) => (
-                        <div key={idx} className="mb-1">
-                          <span className="font-medium text-gray-900 dark:text-white">{item.oilType}:</span>
-                          <span className="text-gray-600 dark:text-gray-400 ml-1">
-                            {numberFormatter.format(item.quantityOrdered)} ลิตร
-                          </span>
+                        <div key={idx} className="flex items-center justify-between text-xs gap-4">
+                          <span className="font-medium text-gray-700">{item.oilType}</span>
+                          <span className="text-gray-500">{numberFormatter.format(item.quantityOrdered)} ล.</span>
                         </div>
                       ))}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium shadow-sm ${getStatusColor(receipt.status)}`}>
-                      {receipt.status === "รับแล้ว" && <CheckCircle className="w-3.5 h-3.5" />}
-                      {receipt.status === "รอรับ" && <Clock className="w-3.5 h-3.5" />}
-                      {receipt.status === "ปฏิเสธ" && <X className="w-3.5 h-3.5" />}
-                      {receipt.status === "ยกเลิก" && <X className="w-3.5 h-3.5" />}
-                      {getStatusText(receipt.status)}
+                  <td className="px-6 py-4 text-center">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${receipt.status === "รับแล้ว" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                        receipt.status === "รอรับ" ? "bg-yellow-100 text-yellow-700 border-yellow-200" :
+                          receipt.status === "ปฏิเสธ" ? "bg-orange-100 text-orange-700 border-orange-200" :
+                            "bg-gray-100 text-gray-700 border-gray-200"
+                      }`}>
+                      {receipt.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center gap-2 justify-center">
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
                       {receipt.status === "รอรับ" && (
                         <>
                           <button
-                            onClick={() => handleReceive(receipt)}
-                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
+                            onClick={(e) => { e.stopPropagation(); handleReceive(receipt); }}
+                            className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-xs font-bold shadow-sm"
                           >
                             รับน้ำมัน
                           </button>
                           <button
-                            onClick={() => handleReject(receipt)}
-                            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
+                            onClick={(e) => { e.stopPropagation(); handleReject(receipt); }}
+                            className="px-3 py-1.5 bg-white text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-50 transition-colors text-xs font-bold"
                           >
                             ปฏิเสธ
                           </button>
@@ -1044,16 +995,16 @@ export default function BranchOilReceipt() {
                       )}
                       {receipt.status === "รับแล้ว" && (
                         <button
-                          onClick={() => handleDownload("branch-oil-receipt", receipt)}
-                          className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                          title="ดาวน์โหลดใบรับน้ำมัน"
+                          onClick={(e) => { e.stopPropagation(); handleDownload("branch-oil-receipt", receipt); }}
+                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-200"
+                          title="ดาวน์โหลด PDF"
                         >
                           <Download className="w-4 h-4" />
                         </button>
                       )}
                       <button
-                        onClick={() => handleViewDetail(receipt)}
-                        className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        onClick={(e) => { e.stopPropagation(); handleViewDetail(receipt); }}
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200"
                         title="ดูรายละเอียด"
                       >
                         <Eye className="w-4 h-4" />
@@ -1064,16 +1015,16 @@ export default function BranchOilReceipt() {
               ))}
             </tbody>
           </table>
-        </div>
-        {filteredReceipts.length === 0 && (
-          <div className="text-center py-16">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
-              <PackageCheck className="w-8 h-8 text-gray-400" />
+          {filteredReceipts.length === 0 && (
+            <div className="py-20 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-500">ไม่พบรายการที่ค้นหา</p>
             </div>
-            <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">ไม่พบรายการรับน้ำมัน</p>
-          </div>
-        )}
-      </motion.div>
+          )}
+        </div>
+      </div>
 
       {/* Detail Modal */}
       <AnimatePresence>
@@ -1334,7 +1285,7 @@ export default function BranchOilReceipt() {
                       <p className="text-sm text-orange-700 dark:text-orange-400">{selectedReceipt.rejectReason}</p>
                       {selectedReceipt.rejectedBy && (
                         <p className="text-xs text-orange-600 dark:text-orange-500 mt-2">
-                          โดย: {selectedReceipt.rejectedBy} 
+                          โดย: {selectedReceipt.rejectedBy}
                           {selectedReceipt.rejectedAt && ` - ${dateFormatter.format(new Date(selectedReceipt.rejectedAt))}`}
                         </p>
                       )}
@@ -1365,11 +1316,10 @@ export default function BranchOilReceipt() {
                         </div>
                         <div>
                           <span className="text-green-700 dark:text-green-400">ผลการตรวจสอบ:</span>
-                          <span className={`font-semibold ml-2 ${
-                            selectedReceipt.qualityTest.testResult === "ผ่าน"
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400"
-                          }`}>
+                          <span className={`font-semibold ml-2 ${selectedReceipt.qualityTest.testResult === "ผ่าน"
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400"
+                            }`}>
                             {selectedReceipt.qualityTest.testResult}
                           </span>
                         </div>
@@ -1411,13 +1361,12 @@ export default function BranchOilReceipt() {
                               </div>
                               <div>
                                 <span className="text-gray-600 dark:text-gray-400">จำนวนที่รับ:</span>
-                                <span className={`font-semibold ml-2 ${
-                                  item.quantityReceived > 0 
-                                    ? "text-emerald-600 dark:text-emerald-400" 
-                                    : "text-gray-500 dark:text-gray-400"
-                                }`}>
-                                  {item.quantityReceived > 0 
-                                    ? `${numberFormatter.format(item.quantityReceived)} ลิตร` 
+                                <span className={`font-semibold ml-2 ${item.quantityReceived > 0
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-gray-500 dark:text-gray-400"
+                                  }`}>
+                                  {item.quantityReceived > 0
+                                    ? `${numberFormatter.format(item.quantityReceived)} ลิตร`
                                     : "ยังไม่รับ"}
                                 </span>
                               </div>
@@ -2214,13 +2163,12 @@ export default function BranchOilReceipt() {
                   {/* Status */}
                   <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 rounded-lg">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">สถานะ</span>
-                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${
-                      selectedDeliveryNote.status === "delivered" 
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : selectedDeliveryNote.status === "sent"
+                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${selectedDeliveryNote.status === "delivered"
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : selectedDeliveryNote.status === "sent"
                         ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                         : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                    }`}>
+                      }`}>
                       {selectedDeliveryNote.status === "delivered" && <CheckCircle className="w-4 h-4" />}
                       {selectedDeliveryNote.status === "sent" && <Clock className="w-4 h-4" />}
                       {selectedDeliveryNote.status === "draft" && "ร่าง"}

@@ -230,7 +230,7 @@ import Quotation from "@/pages/gas-station/Quotation";
 import DeliveryNote from "@/pages/gas-station/DeliveryNote";
 import Receipt from "@/pages/gas-station/Receipt";
 import OilReceipt from "@/pages/gas-station/OilReceipt";
-import BranchOilReceipt from "@/pages/gas-station/BranchOilReceipt";
+
 import InternalOilOrder from "@/pages/gas-station/InternalOilOrder";
 import InternalOilOrderManagement from "@/pages/gas-station/InternalOilOrderManagement";
 import InternalTransport from "@/pages/gas-station/InternalTransport";
@@ -238,6 +238,7 @@ import ReceiveOil from "@/pages/gas-station/ReceiveOil";
 import InterBranchTransfer from "@/pages/gas-station/InterBranchTransfer";
 
 // ========== Delivery Pages ==========
+import BranchOilReceipt from "@/pages/delivery/BranchOilReceipt";
 import DeliveryDashboard from "@/pages/delivery/Dashboard";
 import PurchaseOrders from "@/pages/delivery/PurchaseOrders";
 import DeliveryPTTOrders from "@/pages/delivery/PTTOrders";
@@ -1051,10 +1052,7 @@ const router = createBrowserRouter([
             path: "oil-receipt",
             element: <OilReceipt />,
           },
-          {
-            path: "branch-oil-receipt",
-            element: <BranchOilReceipt />,
-          },
+
           {
             path: "internal-oil-order",
             element: <InternalOilOrder />,
@@ -1238,6 +1236,10 @@ const router = createBrowserRouter([
           {
             path: "manage-trips",
             element: <DeliveryManageTrips />,
+          },
+          {
+            path: "branch-oil-receipt",
+            element: <BranchOilReceipt />,
           },
           {
             path: "remaining-on-truck",

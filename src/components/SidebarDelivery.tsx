@@ -33,6 +33,7 @@ const menuGroups: MenuGroup[] = [
       { to: "/app/delivery/receive-oil", icon: PackageCheck, label: "บันทึกการรับน้ำมัน", end: false },
       { to: "/app/delivery/purchase-orders", icon: FileText, label: "ใบสั่งซื้อจากปตท.", end: false },
       { to: "/app/delivery/internal-oil-order", icon: ShoppingCart, label: "สั่งซื้อน้ำมันภายในปั๊ม", end: false },
+      { to: "/app/delivery/branch-oil-receipt", icon: ClipboardList, label: "ใบรับน้ำมัน (Branch Receipt)", end: false },
       { to: "/app/delivery/record-tank-entry", icon: Droplet, label: "บันทึกน้ำมันลงหลุม", end: false },
     ],
   },
@@ -104,11 +105,10 @@ export default function SidebarDelivery({
     >
       {/* Header */}
       <div
-        className={`mb-6 ${
-          showText
+        className={`mb-6 ${showText
             ? "w-full flex items-center justify-between"
             : "w-full flex items-center justify-center"
-        }`}
+          }`}
       >
         <div className={`flex items-center gap-3 ${showText ? "flex-1" : ""}`}>
           <div className="w-10 h-10 bg-gradient-to-br from-ptt-blue to-ptt-cyan rounded-xl flex items-center justify-center shadow-lg shadow-ptt-blue/20 flex-shrink-0">
@@ -159,8 +159,7 @@ export default function SidebarDelivery({
                   aria-label={label}
                   onClick={isMobile ? onClose : undefined}
                   className={({ isActive }) =>
-                    `p-3 rounded-xl hover:panel relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-ptt-blue/30 ${
-                      isActive ? "panel shadow-md" : ""
+                    `p-3 rounded-xl hover:panel relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-ptt-blue/30 ${isActive ? "panel shadow-md" : ""
                     } ${showText ? "flex items-center gap-3 w-full" : "justify-center"}`
                   }
                   style={{ transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}
@@ -171,17 +170,15 @@ export default function SidebarDelivery({
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-ptt-blue rounded-r-full shadow-[0_0_8px_rgba(40,103,224,0.6)]" />
                       )}
                       <Icon
-                        className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${
-                          isActive ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
-                        }`}
+                        className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${isActive ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
+                          }`}
                         strokeWidth={1.5}
                         style={{ transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
                       />
                       {showText && (
                         <span
-                          className={`text-sm font-medium whitespace-nowrap overflow-hidden ${
-                            isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
-                          }`}
+                          className={`text-sm font-medium whitespace-nowrap overflow-hidden ${isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
+                            }`}
                           style={{ transition: "color 0.2s ease" }}
                         >
                           {label}

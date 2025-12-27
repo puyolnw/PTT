@@ -10,7 +10,6 @@ import {
   Save,
   Building2,
   FileText,
-  AlertCircle,
 } from "lucide-react";
 import { branches } from "../../data/gasStationOrders";
 import type { InternalOilOrder, OilType } from "@/types/gasStation";
@@ -195,156 +194,153 @@ export default function InternalOilOrder() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 pb-20">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between"
       >
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <ShoppingCart className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            </div>
-            สั่งซื้อน้ำมันภายในปั๊ม
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            สั่งซื้อน้ำมันจากปั๊มอื่นในเครือข่าย
-          </p>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shadow-sm">
+            <ShoppingCart className="w-6 h-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white font-display">
+              สั่งซื้อน้ำมันภายในปั๊ม
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              สั่งซื้อน้ำมันจากปั๊มอื่นในเครือข่าย
+            </p>
+          </div>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-        >
-          <Plus className="w-5 h-5" />
-          สร้างออเดอร์ใหม่
-        </button>
       </motion.div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">ทั้งหมด</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.total}</p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <FileText className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
+            <p className="text-xs font-medium text-gray-500">ทั้งหมด</p>
           </div>
+          <p className="text-2xl font-bold text-gray-800 dark:text-white">
+            {stats.total}
+          </p>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">รออนุมัติ</p>
-              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{stats.pending}</p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <Clock className="w-4 h-4 text-yellow-600" />
             </div>
-            <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-              <Clock className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-            </div>
+            <p className="text-xs font-medium text-gray-500">รออนุมัติ</p>
           </div>
+          <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+            {stats.pending}
+          </p>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">อนุมัติแล้ว</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{stats.approved}</p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <CheckCircle className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
+            <p className="text-xs font-medium text-gray-500">อนุมัติแล้ว</p>
           </div>
+          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            {stats.approved}
+          </p>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">กำลังจัดส่ง</p>
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{stats.delivering}</p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <ShoppingCart className="w-4 h-4 text-purple-600" />
             </div>
-            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <ShoppingCart className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-            </div>
+            <p className="text-xs font-medium text-gray-500">กำลังจัดส่ง</p>
           </div>
+          <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+            {stats.delivering}
+          </p>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">ส่งแล้ว</p>
-              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{stats.completed}</p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <CheckCircle className="w-4 h-4 text-emerald-600" />
             </div>
-            <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            </div>
+            <p className="text-xs font-medium text-gray-500">ส่งแล้ว</p>
           </div>
+          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            {stats.completed}
+          </p>
         </motion.div>
       </div>
 
-      {/* Filters */}
+      {/* Main Content Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden text-sm"
       >
-        <div className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        {/* Filters & Actions Header */}
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col items-center gap-4 lg:flex-row">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
+              placeholder="ค้นหาเลขที่ออเดอร์, ปั๊ม..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="ค้นหาเลขที่ออเดอร์, ปั๊ม..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={filterDateFrom}
-                onChange={(e) => setFilterDateFrom(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                title="วันที่เริ่มต้น"
-              />
-              <span className="text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">ถึง</span>
-              <input
-                type="date"
-                value={filterDateTo}
-                onChange={(e) => setFilterDateTo(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                title="วันที่สิ้นสุด"
-              />
-            </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full lg:w-auto">
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              className="px-3 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            />
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="px-3 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            />
+
             <select
               value={filterBranch}
               onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             >
               <option value="all">ทุกปั๊ม</option>
               {branches
@@ -358,10 +354,11 @@ export default function InternalOilOrder() {
                   </option>
                 ))}
             </select>
+
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             >
               <option value="all">สถานะทั้งหมด</option>
               <option value="รออนุมัติ">รออนุมัติ</option>
@@ -370,6 +367,9 @@ export default function InternalOilOrder() {
               <option value="ส่งแล้ว">ส่งแล้ว</option>
               <option value="ยกเลิก">ยกเลิก</option>
             </select>
+          </div>
+
+          <div className="flex items-center gap-2 w-full lg:w-auto">
             {(filterDateFrom || filterDateTo || searchTerm || filterStatus !== "all" || filterBranch !== "all") && (
               <button
                 onClick={() => {
@@ -379,103 +379,87 @@ export default function InternalOilOrder() {
                   setFilterDateFrom("");
                   setFilterDateTo("");
                 }}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-300 dark:border-gray-600 whitespace-nowrap"
+                className="px-4 py-2.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors whitespace-nowrap"
               >
                 ล้างตัวกรอง
               </button>
             )}
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap w-full justify-center lg:w-auto"
+            >
+              <Plus className="w-4 h-4" />
+              สร้างออเดอร์ใหม่
+            </button>
           </div>
         </div>
-      </motion.div>
 
-      {/* Orders Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  เลขที่ออเดอร์
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  ปั๊มที่สั่ง
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  วันที่สั่ง
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  วันที่ต้องการ
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  รายการน้ำมัน
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  มูลค่ารวม
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  สถานะ
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-              {filteredOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-blue-50/50 dark:hover:bg-gray-700/70 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{order.orderNo}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-900 dark:text-white">{order.fromBranchName}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900 dark:text-white">
-                      {dateFormatter.format(new Date(order.orderDate))}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900 dark:text-white">
-                      {dateFormatter.format(new Date(order.requestedDate))}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm">
-                      {order.items.map((item, idx) => (
-                        <div key={idx} className="mb-1">
-                          <span className="font-medium text-gray-900 dark:text-white">{item.oilType}:</span>
-                          <span className="text-gray-600 dark:text-gray-400 ml-1">
-                            {numberFormatter.format(item.quantity)} ลิตร
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                      {numberFormatter.format(order.totalAmount)} บาท
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium shadow-sm ${getStatusColor(order.status)}`}>
-                      {getStatusText(order.status)}
-                    </span>
-                  </td>
+        {/* Table */}
+        {filteredOrders.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-medium">
+                <tr>
+                  <th className="px-6 py-4 text-left">เลขที่ออเดอร์</th>
+                  <th className="px-6 py-4 text-left">ปั๊มที่สั่ง</th>
+                  <th className="px-6 py-4 text-left">วันที่สั่ง</th>
+                  <th className="px-6 py-4 text-left">วันที่ต้องการ</th>
+                  <th className="px-6 py-4 text-left">รายการน้ำมัน</th>
+                  <th className="px-6 py-4 text-left">มูลค่ารวม</th>
+                  <th className="px-6 py-4 text-center">สถานะ</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {filteredOrders.length === 0 && (
-          <div className="text-center py-16">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
-              <ShoppingCart className="w-8 h-8 text-gray-400" />
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {filteredOrders.map((order) => (
+                  <tr
+                    key={order.id}
+                    className="hover:bg-blue-50/30 dark:hover:bg-gray-700/30 transition-colors"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900 dark:text-white">
+                      {order.orderNo}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                        <Building2 className="w-4 h-4 text-gray-400" />
+                        {order.fromBranchName}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-600 dark:text-gray-300">
+                      {dateFormatter.format(new Date(order.orderDate))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-600 dark:text-gray-300">
+                      {dateFormatter.format(new Date(order.requestedDate))}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        {order.items.map((item, idx) => (
+                          <div key={idx} className="text-sm flex items-center justify-between min-w-[150px]">
+                            <span className="text-gray-700 dark:text-gray-300">{item.oilType}</span>
+                            <span className="text-gray-500 dark:text-gray-400">{numberFormatter.format(item.quantity)} ลิตร</span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap font-bold text-blue-600 dark:text-blue-400">
+                      {numberFormatter.format(order.totalAmount)} บาท
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
+                        {getStatusText(order.status)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-gray-400" />
             </div>
-            <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">ไม่พบรายการสั่งซื้อ</p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">ไม่พบรายการสั่งซื้อ</h3>
+            <p className="text-gray-500">ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p>
           </div>
         )}
       </motion.div>
@@ -483,178 +467,191 @@ export default function InternalOilOrder() {
       {/* Create Order Modal */}
       <AnimatePresence>
         {showCreateModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowCreateModal(false)}
-          >
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setShowCreateModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">สร้างออเดอร์ใหม่</h2>
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-blue-600" />
+                    สร้างออเดอร์ใหม่
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">กรอกข้อมูลการสั่งซื้อน้ำมันภายใน</p>
+                </div>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-500"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    ปั๊มที่สั่งซื้อ *
-                  </label>
-                  <select
-                    value={selectedBranchId}
-                    onChange={(e) => setSelectedBranchId(Number(e.target.value))}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    required
-                  >
-                    {branches.map((branch) => (
-                      <option key={branch.id} value={branch.id}>
-                        {branch.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    วันที่ต้องการรับ *
-                  </label>
-                  <input
-                    type="date"
-                    value={requestedDate}
-                    onChange={(e) => setRequestedDate(e.target.value)}
-                    min={new Date().toISOString().split("T")[0]}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      รายการน้ำมัน *
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto space-y-6">
+                {/* Form Fields */}
+                <div className="grid gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      ปั๊มที่สั่งซื้อ <span className="text-red-500">*</span>
                     </label>
-                    <button
-                      type="button"
-                      onClick={handleAddItem}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                    <select
+                      value={selectedBranchId}
+                      onChange={(e) => setSelectedBranchId(Number(e.target.value))}
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                      required
                     >
-                      <Plus className="w-4 h-4" />
-                      เพิ่มรายการ
-                    </button>
+                      {branches.map((branch) => (
+                        <option key={branch.id} value={branch.id}>
+                          {branch.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="space-y-3">
-                    {orderItems.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600"
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      วันที่ต้องการรับ <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={requestedDate}
+                      onChange={(e) => setRequestedDate(e.target.value)}
+                      min={new Date().toISOString().split("T")[0]}
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                      required
+                    />
+                  </div>
+
+                  {/* Order Items */}
+                  <div className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-4">
+                      <label className="block text-sm font-bold text-gray-800 dark:text-white">
+                        รายการน้ำมัน <span className="text-red-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleAddItem}
+                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:underline flex items-center gap-1"
                       >
-                        <div className="flex-1">
-                          <select
-                            value={item.oilType}
-                            onChange={(e) => handleItemChange(index, "oilType", e.target.value as OilType)}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                          >
-                            {Object.keys(oilPrices).map((type) => (
-                              <option key={type} value={type}>
-                                {type}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="w-32">
-                          <input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => handleItemChange(index, "quantity", Number(e.target.value))}
-                            placeholder="จำนวนลิตร"
-                            min="0"
-                            step="100"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                          />
-                        </div>
-                        <div className="w-24 text-sm text-gray-600 dark:text-gray-400">
-                          {item.quantity > 0 && (
-                            <span>
-                              {numberFormatter.format(item.quantity * oilPrices[item.oilType])} บาท
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(index)}
-                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        <Plus className="w-4 h-4" />
+                        เพิ่มรายการ
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {orderItems.map((item, index) => (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          key={index}
+                          className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm"
                         >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                    {orderItems.length === 0 && (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                        <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">ยังไม่มีรายการน้ำมัน</p>
-                        <p className="text-xs mt-1">คลิกปุ่ม "เพิ่มรายการ" เพื่อเพิ่มน้ำมัน</p>
+                          <div className="flex-1 w-full sm:w-auto">
+                            <select
+                              value={item.oilType}
+                              onChange={(e) => handleItemChange(index, "oilType", e.target.value as OilType)}
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500/20 outline-none"
+                            >
+                              {Object.keys(oilPrices).map((type) => (
+                                <option key={type} value={type}>
+                                  {type}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="w-full sm:w-32">
+                            <input
+                              type="number"
+                              value={item.quantity}
+                              onChange={(e) => handleItemChange(index, "quantity", Number(e.target.value))}
+                              placeholder="จำนวนลิตร"
+                              min="0"
+                              step="100"
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500/20 outline-none"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between w-full sm:w-auto gap-4">
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[80px] text-right">
+                              {item.quantity > 0 ? `${numberFormatter.format(item.quantity * oilPrices[item.oilType])} บ.` : '0 บ.'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(index)}
+                              className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </motion.div>
+                      ))}
+
+                      {orderItems.length === 0 && (
+                        <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">ยังไม่มีรายการน้ำมัน</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {orderItems.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 flex justify-end">
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">ราคารวมโดยประมาณ</p>
+                          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            {numberFormatter.format(
+                              orderItems.reduce((sum, item) => sum + item.quantity * oilPrices[item.oilType], 0)
+                            )} บาท
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
-                  {orderItems.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-                      <div className="flex items-center justify-between">
-                        <span className="text-lg font-semibold text-gray-900 dark:text-white">มูลค่ารวมทั้งหมด:</span>
-                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                          {numberFormatter.format(
-                            orderItems.reduce((sum, item) => sum + item.quantity * oilPrices[item.oilType], 0)
-                          )} บาท
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    หมายเหตุ
-                  </label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="ระบุหมายเหตุ (ถ้ามี)"
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      หมายเหตุ
+                    </label>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"
+                      rows={3}
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-end gap-3 rounded-b-xl">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg transition-colors font-medium shadow-sm"
                 >
                   ยกเลิก
                 </button>
                 <button
                   onClick={handleSaveOrder}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2"
                 >
-                  <div className="flex items-center gap-2">
-                    <Save className="w-4 h-4" />
-                    บันทึกออเดอร์
-                  </div>
+                  <Save className="w-4 h-4" />
+                  บันทึกออเดอร์
                 </button>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

@@ -18,6 +18,7 @@ import {
     Route,
     ArrowRight,
     GripVertical,
+    MoreHorizontal,
     FileText,
     ShoppingCart,
     Search,
@@ -287,7 +288,7 @@ export default function DriverApp() {
         const date = new Date(dateStr);
         const fromDate = from ? new Date(from) : null;
         const toDate = to ? new Date(to) : null;
-        
+
         if (fromDate && toDate) {
             fromDate.setHours(0, 0, 0, 0);
             toDate.setHours(23, 59, 59, 999);
@@ -322,7 +323,7 @@ export default function DriverApp() {
             orderNo: match?.orderNo || poNo,
         };
     };
-    
+
     // Filter jobs
     const filteredJobs = useMemo(() => {
         return allJobs.filter((job) => {
@@ -332,21 +333,21 @@ export default function DriverApp() {
                 job.driverName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 job.sourceBranchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 job.destinationBranches.some(b => b.branchName.toLowerCase().includes(searchTerm.toLowerCase()));
-            
+
             const matchesDate = isDateInRange(job.transportDate, filterDateFrom, filterDateTo);
-            
-            const matchesBranch = filterBranch === "all" || 
+
+            const matchesBranch = filterBranch === "all" ||
                 job.sourceBranchId === filterBranch ||
                 job.destinationBranches.some(b => b.branchId === filterBranch);
-            
-            const matchesOrderType = filterOrderType === "all" || 
+
+            const matchesOrderType = filterOrderType === "all" ||
                 (filterOrderType === "internal" && (job as any).orderType === "internal") ||
                 (filterOrderType === "external" && (job as any).orderType === "external");
-            
+
             const matchesStatus = filterStatus === "all" ||
                 (filterStatus === "active" && job.status !== "ส่งเสร็จ") ||
                 (filterStatus === "completed" && job.status === "ส่งเสร็จ");
-            
+
             return matchesSearch && matchesDate && matchesBranch && matchesOrderType && matchesStatus;
         });
     }, [allJobs, searchTerm, filterDateFrom, filterDateTo, filterBranch, filterOrderType, filterStatus]);
@@ -437,7 +438,7 @@ export default function DriverApp() {
     // Function to go back to previous step
     const handleGoBack = () => {
         if (!selectedJob) return;
-        
+
         switch (currentStep) {
             case "warehouse-confirm": {
                 // Go back to start-trip
@@ -685,20 +686,20 @@ export default function DriverApp() {
 
         const orderedBranches = getOrderedBranches(selectedJob);
         const currentBranch = orderedBranches[currentDeliveryIndex];
-        
+
         // Update the branch in the original array
         const updatedBranches = selectedJob.destinationBranches.map((b) =>
             b.branchId === currentBranch.branchId
                 ? {
-                      ...b,
-                      status: "ส่งแล้ว" as const,
-                      deliveryConfirmation: {
-                          confirmedAt: new Date().toISOString(),
-                          photos: deliveryPhotos,
-                          odometerReading: parseFloat(deliveryOdometer),
-                          notes: deliveryNotes || undefined,
-                      },
-                  }
+                    ...b,
+                    status: "ส่งแล้ว" as const,
+                    deliveryConfirmation: {
+                        confirmedAt: new Date().toISOString(),
+                        photos: deliveryPhotos,
+                        odometerReading: parseFloat(deliveryOdometer),
+                        notes: deliveryNotes || undefined,
+                    },
+                }
                 : b
         );
 
@@ -820,16 +821,20 @@ export default function DriverApp() {
         const undeliveredBranches = job.destinationBranches.filter((b) => b.status !== "ส่งแล้ว");
 
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-                <div className="max-w-4xl mx-auto px-4 py-6">
+            <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900">
+                <div className="max-w-4xl mx-auto px-4 py-8">
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                        <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center justify-between mb-8">
                             <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                                        <Truck className="h-7 w-7 text-blue-600 dark:text-blue-400" />
-                                        รายละเอียดรอบส่ง
-                                    </h1>
+                                <div className="flex items-center gap-4 mb-3">
+                                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                                        <Truck className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white leading-none">
+                                            รายละเอียดรอบส่ง
+                                        </h1>
+                                    </div>
                                     {(job as any).orderType === "internal" && (
                                         <span className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-sm font-semibold flex items-center gap-1.5">
                                             <ShoppingCart className="w-4 h-4" />
@@ -880,11 +885,10 @@ export default function DriverApp() {
                         </div>
 
                         {/* Job Info */}
-                        <div className={`mb-6 p-4 border rounded-lg ${
-                            (job as any).orderType === "internal"
-                                ? "bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800"
-                                : "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        }`}>
+                        <div className={`mb-6 p-4 border rounded-lg ${(job as any).orderType === "internal"
+                            ? "bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800"
+                            : "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                            }`}>
                             <div className="flex items-center gap-2 mb-3">
                                 <h2 className="text-lg font-bold text-gray-800 dark:text-white">{job.transportNo}</h2>
                                 {(job as any).orderType === "internal" && (
@@ -1078,14 +1082,25 @@ export default function DriverApp() {
 
     if (!selectedJob) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-cyan-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex flex-col">
-                <header className="sticky top-0 z-20 bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg px-4 py-5 flex items-center gap-3">
-                    <Truck className="h-7 w-7 text-white" />
-                    <span className="text-xl font-bold tracking-tight">เลือกงานขนส่ง</span>
+            <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900 flex flex-col">
+                <header className="sticky top-0 z-20 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                    <div className="max-w-7xl mx-auto flex items-center gap-3">
+                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <Truck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-none">
+                                เลือกงานขนส่ง
+                            </h1>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                จัดการงานขนส่งและสถานะ
+                            </p>
+                        </div>
+                    </div>
                 </header>
                 <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 space-y-6">
                     {/* Filters */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
                         <div className="space-y-4">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -1107,7 +1122,7 @@ export default function DriverApp() {
                                     <option value="active">ยังไม่เสร็จ</option>
                                     <option value="completed">เสร็จแล้ว</option>
                                 </select>
-                                
+
                                 <select
                                     value={filterOrderType}
                                     onChange={(e) => setFilterOrderType(e.target.value as "all" | "internal" | "external")}
@@ -1117,7 +1132,7 @@ export default function DriverApp() {
                                     <option value="internal">ส่งภายในปั๊ม</option>
                                     <option value="external">รับจาก PTT</option>
                                 </select>
-                                
+
                                 <select
                                     value={filterBranch === "all" ? "all" : filterBranch}
                                     onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
@@ -1125,17 +1140,17 @@ export default function DriverApp() {
                                 >
                                     <option value="all">ทุกปั๊ม</option>
                                     {branches
-                                      .sort((a, b) => {
-                                        const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
-                                        return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
-                                      })
-                                      .map((branch) => (
-                                        <option key={branch.id} value={branch.id}>
-                                          {branch.name}
-                                        </option>
-                                      ))}
+                                        .sort((a, b) => {
+                                            const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                                            return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
+                                        })
+                                        .map((branch) => (
+                                            <option key={branch.id} value={branch.id}>
+                                                {branch.name}
+                                            </option>
+                                        ))}
                                 </select>
-                                
+
                                 <div className="flex items-center gap-2">
                                     <input
                                         type="date"
@@ -1153,7 +1168,7 @@ export default function DriverApp() {
                                         title="วันที่สิ้นสุด"
                                     />
                                 </div>
-                                
+
                                 {(filterDateFrom || filterDateTo || searchTerm || filterStatus !== "all" || filterBranch !== "all" || filterOrderType !== "all") && (
                                     <button
                                         onClick={() => {
@@ -1172,36 +1187,36 @@ export default function DriverApp() {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Jobs Table */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800">
+                                <thead className="bg-gray-50 dark:bg-gray-700/50">
                                     <tr>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             เลขขนส่ง
                                         </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             วันที่/เวลา
                                         </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             ประเภท
                                         </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             รถ/คนขับ
                                         </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             จาก/ไป
                                         </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             จำนวนปั๊ม
                                         </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             สถานะ
                                         </th>
-                                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                            การดำเนินการ
+                                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            จัดการ
                                         </th>
                                     </tr>
                                 </thead>
@@ -1291,6 +1306,9 @@ export default function DriverApp() {
                                                             title="ดูรายละเอียด"
                                                         >
                                                             <Eye className="w-4 h-4" />
+                                                        </button>
+                                                        <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-500 dark:text-gray-400">
+                                                            <MoreHorizontal className="w-5 h-5" />
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -1489,16 +1507,21 @@ export default function DriverApp() {
     const selectedPoMeta = selectedJob && selectedJob.orderType === "external" ? getPurchaseOrderMeta(selectedJob) : null;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900">
             {/* Header */}
-            <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 transition-all duration-200">
                 <div className="max-w-4xl mx-auto px-4 py-4">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                                <h1 className="text-xl font-bold text-gray-800 dark:text-white">
-                                    {selectedJob.transportNo}
-                                </h1>
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                    <Truck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-none">
+                                        {selectedJob.transportNo}
+                                    </h1>
+                                </div>
                                 {(selectedJob as any).orderType === "internal" && (
                                     <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-semibold flex items-center gap-1.5">
                                         <ShoppingCart className="w-3.5 h-3.5" />
@@ -1560,13 +1583,12 @@ export default function DriverApp() {
                             <div key={step.id} className="flex items-center flex-1">
                                 <div className="flex flex-col items-center flex-1">
                                     <div
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
-                                            step.completed
-                                                ? "bg-green-500 text-white"
-                                                : index === currentStepIndex
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${step.completed
+                                            ? "bg-green-500 text-white"
+                                            : index === currentStepIndex
                                                 ? "bg-blue-500 text-white ring-4 ring-blue-200 dark:ring-blue-800"
                                                 : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
-                                        }`}
+                                            }`}
                                     >
                                         {step.completed ? (
                                             <CheckCircle className="h-6 w-6" />
@@ -1575,22 +1597,20 @@ export default function DriverApp() {
                                         )}
                                     </div>
                                     <p
-                                        className={`text-xs mt-2 text-center font-medium ${
-                                            index === currentStepIndex
-                                                ? "text-blue-600 dark:text-blue-400"
-                                                : step.completed
+                                        className={`text-xs mt-2 text-center font-medium ${index === currentStepIndex
+                                            ? "text-blue-600 dark:text-blue-400"
+                                            : step.completed
                                                 ? "text-green-600 dark:text-green-400"
                                                 : "text-gray-500 dark:text-gray-400"
-                                        }`}
+                                            }`}
                                     >
                                         {step.label}
                                     </p>
                                 </div>
                                 {index < steps.length - 1 && (
                                     <div
-                                        className={`flex-1 h-1 mx-2 ${
-                                            step.completed ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"
-                                        }`}
+                                        className={`flex-1 h-1 mx-2 ${step.completed ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"
+                                            }`}
                                     />
                                 )}
                             </div>
@@ -1615,11 +1635,10 @@ export default function DriverApp() {
                                     ขั้นตอนที่ 1: ออกเดินทาง
                                 </h2>
 
-                                <div className={`mb-6 p-4 border rounded-lg ${
-                                    (selectedJob as any).orderType === "internal"
-                                        ? "bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800"
-                                        : "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                                }`}>
+                                <div className={`mb-6 p-4 border rounded-lg ${(selectedJob as any).orderType === "internal"
+                                    ? "bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800"
+                                    : "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                                    }`}>
                                     <div className="flex items-center gap-2 mb-3">
                                         {(selectedJob as any).orderType === "internal" && (
                                             <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-semibold">
@@ -1643,24 +1662,21 @@ export default function DriverApp() {
                                         )}
                                     </div>
                                     <div className="flex items-center gap-3 mb-3">
-                                        <MapPin className={`h-5 w-5 ${
-                                            (selectedJob as any).orderType === "internal"
-                                                ? "text-purple-600 dark:text-purple-400"
-                                                : "text-blue-600 dark:text-blue-400"
-                                        }`} />
+                                        <MapPin className={`h-5 w-5 ${(selectedJob as any).orderType === "internal"
+                                            ? "text-purple-600 dark:text-purple-400"
+                                            : "text-blue-600 dark:text-blue-400"
+                                            }`} />
                                         <div>
-                                            <p className={`font-semibold ${
-                                                (selectedJob as any).orderType === "internal"
-                                                    ? "text-purple-800 dark:text-purple-300"
-                                                    : "text-blue-800 dark:text-blue-300"
-                                            }`}>
+                                            <p className={`font-semibold ${(selectedJob as any).orderType === "internal"
+                                                ? "text-purple-800 dark:text-purple-300"
+                                                : "text-blue-800 dark:text-blue-300"
+                                                }`}>
                                                 ต้นทาง: {selectedJob.sourceBranchName}
                                             </p>
-                                            <p className={`text-sm ${
-                                                (selectedJob as any).orderType === "internal"
-                                                    ? "text-purple-700 dark:text-purple-400"
-                                                    : "text-blue-700 dark:text-blue-400"
-                                            }`}>
+                                            <p className={`text-sm ${(selectedJob as any).orderType === "internal"
+                                                ? "text-purple-700 dark:text-purple-400"
+                                                : "text-blue-700 dark:text-blue-400"
+                                                }`}>
                                                 {selectedJob.sourceAddress}
                                             </p>
                                         </div>
@@ -2072,11 +2088,10 @@ export default function DriverApp() {
                                                     onDragStart={() => handleDragStart(index)}
                                                     onDragOver={(e) => handleDragOver(e, index)}
                                                     onDragEnd={handleDragEnd}
-                                                    className={`p-4 border-2 rounded-lg transition-all cursor-move ${
-                                                        draggedIndex === index
-                                                            ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 opacity-50"
-                                                            : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 hover:border-blue-500 dark:hover:border-blue-400"
-                                                    }`}
+                                                    className={`p-4 border-2 rounded-lg transition-all cursor-move ${draggedIndex === index
+                                                        ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 opacity-50"
+                                                        : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 hover:border-blue-500 dark:hover:border-blue-400"
+                                                        }`}
                                                 >
                                                     <div className="flex items-center gap-4">
                                                         <div className="flex-shrink-0 cursor-grab active:cursor-grabbing">
@@ -2143,11 +2158,10 @@ export default function DriverApp() {
                                 <button
                                     onClick={handleConfirmRoutePlanning}
                                     disabled={routeOrder.length === 0}
-                                    className={`w-full px-6 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2 ${
-                                        routeOrder.length === 0
-                                            ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                                            : "bg-purple-600 hover:bg-purple-700 text-white"
-                                    }`}
+                                    className={`w-full px-6 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2 ${routeOrder.length === 0
+                                        ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                                        : "bg-purple-600 hover:bg-purple-700 text-white"
+                                        }`}
                                 >
                                     <CheckCircle className="h-6 w-6" />
                                     ยืนยันเส้นทางและเริ่มส่ง
@@ -2605,9 +2619,8 @@ export default function DriverApp() {
                                             setSelectedJob(null);
                                             resetFormStates();
                                         }}
-                                        className={`px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors ${
-                                            completedHasUndelivered ? "flex-1" : "w-full"
-                                        }`}
+                                        className={`px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors ${completedHasUndelivered ? "flex-1" : "w-full"
+                                            }`}
                                     >
                                         {completedHasUndelivered ? "เสร็จสิ้นเลย" : "กลับไปเลือกงานใหม่"}
                                     </button>

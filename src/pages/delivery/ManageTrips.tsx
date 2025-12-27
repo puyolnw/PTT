@@ -2,38 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { FileText, Route, Save, Search, Image as ImageIcon, Pencil, X } from "lucide-react";
+import { FileText, Route, Save, Search, Image as ImageIcon, Pencil, X, Truck, Calendar, MapPin, ChevronRight, AlertCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import ChartCard from "@/components/ChartCard";
 import { useGasStation } from "@/contexts/GasStationContext";
 import type { DriverJob, PurchaseOrder } from "@/types/gasStation";
+import StatusTag from "@/components/StatusTag";
 
 function TypeBadge({ job }: { job: DriverJob }) {
   const isExternal = job.orderType === "external";
-  const cls = isExternal
-    ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
-    : "bg-purple-500/15 text-purple-300 border-purple-500/30";
+  // Using StatusTag logic but custom colors for Type
   return (
-    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${cls}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isExternal
+      ? "bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
+      : "bg-purple-50 text-purple-600 border border-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800"
+      }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${isExternal ? "bg-blue-500" : "bg-purple-500"}`} />
       {isExternal ? "รับจากคลังน้ำมัน" : "ภายในปั๊ม"}
-    </span>
-  );
-}
-
-function StatusBadge({ status }: { status: DriverJob["status"] }) {
-  const cls =
-    status === "ส่งเสร็จ"
-      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-      : status === "กำลังส่ง"
-        ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
-        : status === "จัดเรียงเส้นทางแล้ว"
-          ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
-          : status === "รับน้ำมันแล้ว"
-            ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
-            : "bg-white/5 text-muted border-app";
-
-  return (
-    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${cls}`}>
-      {status}
     </span>
   );
 }
@@ -52,33 +37,45 @@ function SortableBranchRow({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 50 : "auto",
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="p-3 rounded-xl border border-app bg-white/5 flex items-center justify-between gap-3"
+      className={`p-4 rounded-xl border flex items-center justify-between gap-3 bg-white dark:bg-gray-800 ${isDragging ? "shadow-xl border-blue-400 dark:border-blue-500 rotate-1" : "border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-800"
+        } transition-all duration-200 group`}
     >
-      <div className="min-w-0">
-        <div className="text-app font-semibold truncate">{label}</div>
-        {meta && <div className="text-xs text-muted truncate">{meta}</div>}
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+          <MapPin className="w-4 h-4" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-gray-900 dark:text-white font-semibold truncate">{label}</div>
+          {meta && <div className="text-xs text-gray-500 truncate">{meta}</div>}
+        </div>
       </div>
       <button
         type="button"
         {...attributes}
         {...listeners}
-        className="px-3 py-2 rounded-xl border border-app hover:border-ptt-blue/40 text-muted hover:text-app transition"
+        className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-grab active:cursor-grabbing"
         title="ลากเพื่อจัดเรียง"
       >
-        <Route className="w-4 h-4" />
+        <Route className="w-5 h-5" />
       </button>
     </div>
   );
 }
 
 function PhotoGrid({ photos }: { photos: string[] }) {
-  if (!photos || photos.length === 0) return <div className="text-sm text-muted">ไม่มีรูป</div>;
+  if (!photos || photos.length === 0) return (
+    <div className="flex flex-col items-center justify-center p-8 rounded-xl border-2 border-dashed border-gray-100 dark:border-gray-700 text-gray-400">
+      <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
+      <span className="text-xs">ไม่มีรูปภาพ</span>
+    </div>
+  );
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
       {photos.map((src, idx) => (
@@ -87,10 +84,13 @@ function PhotoGrid({ photos }: { photos: string[] }) {
           href={src}
           target="_blank"
           rel="noreferrer"
-          className="block rounded-xl overflow-hidden border border-app bg-white/5 hover:border-ptt-blue/40 transition"
+          className="group block rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 hover:shadow-lg transition-all duration-300 relative aspect-video"
           title="คลิกเพื่อดูรูปเต็ม"
         >
-          <img src={src} alt={`photo-${idx + 1}`} className="w-full h-28 object-cover" />
+          <img src={src} alt={`photo-${idx + 1}`} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <Search className="w-6 h-6 text-white drop-shadow-md" />
+          </div>
         </a>
       ))}
     </div>
@@ -210,108 +210,147 @@ export default function ManageTrips() {
 
   const isReadOnly = modalMode !== "edit";
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-app font-display">จัดการรอบจัดส่ง</h1>
-          <p className="text-muted mt-1">พี่นิดสามารถจัดเรียงเส้นทาง และกรอกเลขเอกสารจากคลัง (อ้างอิงรูปที่คนขับถ่าย)</p>
-        </div>
-      </div>
+  const getStatusVariantForJob = (status: DriverJob["status"]) => {
+    switch (status) {
+      case "ส่งเสร็จ": return "success";
+      case "รับน้ำมันแล้ว": return "info";
+      case "กำลังส่ง": return "warning";
+      case "จัดเรียงเส้นทางแล้ว": return "primary";
+      default: return "neutral";
+    }
+  };
 
+  return (
+    <div className="space-y-6 pb-20">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
+            <Route className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white font-display">
+              จัดการรอบจัดส่ง
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              จัดเรียงเส้นทาง ตรวจสอบสถานะ และจัดการเอกสารขนส่ง
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Main List */}
       <ChartCard
-        title="รายการรอบจัดส่ง"
-        subtitle={`กำลังดำเนินอยู่: ${activeJobs.length} • เสร็จแล้ว: ${completedJobs.length} • กด “แก้ไข” เพื่อจัดการรอบ`}
+        title="รายการรอบจัดส่ง (Trips)"
+        subtitle={`กำลังดำเนินอยู่: ${activeJobs.length} • เสร็จแล้ว: ${completedJobs.length}`}
         icon={Route}
       >
-        <div className="mb-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-          <div className="relative">
-            <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+        <div className="mb-6 flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="ค้นหาเลขขนส่ง / คนขับ / PO / ทะเบียนรถ..."
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/5 border border-app text-app placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium text-sm"
             />
           </div>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "completed")}
-            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-          >
-            <option value="all">แสดงทั้งหมด (กำลังดำเนินอยู่ + เสร็จแล้ว)</option>
-            <option value="active">เฉพาะกำลังดำเนินอยู่</option>
-            <option value="completed">เฉพาะเสร็จแล้ว</option>
-          </select>
+          <div className="w-full md:w-64">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "completed")}
+              className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium text-sm text-gray-600 dark:text-gray-300"
+            >
+              <option value="all">ทั้งหมด (All Trips)</option>
+              <option value="active">กำลังดำเนินอยู่ (Active)</option>
+              <option value="completed">เสร็จแล้ว (Completed)</option>
+            </select>
+          </div>
         </div>
 
         {jobsToShow.length === 0 ? (
-          <div className="text-sm text-muted">ไม่พบรายการ</div>
+          <div className="flex flex-col items-center justify-center py-12 text-muted">
+            <Route className="w-12 h-12 mb-3 text-gray-300" />
+            <p>ไม่พบรายการที่ค้นหา</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-xs text-muted">
-                <tr className="border-b border-app">
-                  <th className="text-left py-2 pr-2 whitespace-nowrap">เลขขนส่ง / เลขสั่งซื้อ</th>
-                  <th className="text-left py-2 pr-2 whitespace-nowrap">ประเภท</th>
-                  <th className="text-left py-2 pr-2 whitespace-nowrap">วันที่/เวลา</th>
-                  <th className="text-left py-2 pr-2 whitespace-nowrap">คนขับ</th>
-                  <th className="text-left py-2 pr-2 whitespace-nowrap">รถ</th>
-                  <th className="text-left py-2 pr-2 whitespace-nowrap">สถานะ</th>
-                  <th className="text-right py-2 whitespace-nowrap">จัดการ</th>
+            <table className="w-full">
+              <thead className="bg-gray-50/50 dark:bg-gray-900/50">
+                <tr>
+                  <th className="py-4 px-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">เลขขนส่ง / เลขสั่งซื้อ</th>
+                  <th className="py-4 px-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ประเภท</th>
+                  <th className="py-4 px-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">คนขับ / รถ</th>
+                  <th className="py-4 px-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">วันที่</th>
+                  <th className="py-4 px-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">สถานะ</th>
+                  <th className="py-4 px-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">จัดการ</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-app">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {jobsToShow.map((j) => (
-                  <tr key={j.id} className="hover:bg-white/5 transition">
-                    <td className="py-2 pr-2">
-                      <div className="text-app font-semibold whitespace-nowrap">{j.transportNo}</div>
-                      <div className="text-xs text-muted whitespace-nowrap">
+                  <tr key={j.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="py-4 px-4">
+                      <div className="font-semibold text-gray-900 dark:text-white">{j.transportNo}</div>
+                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                        <FileText className="w-3 h-3" />
                         {j.orderType === "external"
-                          ? `PO: ${j.purchaseOrderNo || "-"}`
-                          : `ออเดอร์ภายใน: ${j.internalOrderNo || "-"}`}
+                          ? j.purchaseOrderNo || "-"
+                          : j.internalOrderNo || "-"}
                       </div>
                     </td>
-                    <td className="py-2 pr-2 whitespace-nowrap">
+                    <td className="py-4 px-4">
                       <TypeBadge job={j} />
                     </td>
-                    <td className="py-2 pr-2 whitespace-nowrap text-muted">
-                      {j.transportDate} {j.transportTime}
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500">
+                          <Truck className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-800 dark:text-white">{j.driverName || "-"}</div>
+                          <div className="text-xs text-gray-500">{j.truckPlateNumber}</div>
+                        </div>
+                      </div>
                     </td>
-                    <td className="py-2 pr-2 whitespace-nowrap text-app">{j.driverName || "-"}</td>
-                    <td className="py-2 pr-2 whitespace-nowrap text-muted">
-                      {j.truckPlateNumber || "-"} / {j.trailerPlateNumber || "-"}
+                    <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-300">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                        {j.transportDate}
+                      </span>
                     </td>
-                    <td className="py-2 pr-2 whitespace-nowrap">
-                      <StatusBadge status={j.status} />
+                    <td className="py-4 px-4">
+                      <StatusTag variant={getStatusVariantForJob(j.status)}>
+                        {j.status}
+                      </StatusTag>
                     </td>
-                    <td className="py-2 whitespace-nowrap text-right">
+                    <td className="py-4 px-4 text-right">
                       <div className="inline-flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedId(j.id);
-                            setModalMode("view");
-                          }}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-app hover:border-ptt-blue/40 text-app transition"
-                          title="ดูรายละเอียด"
-                        >
-                          <FileText className="w-4 h-4" />
-                          ดู
-                        </button>
-                        {j.status !== "ส่งเสร็จ" && (
+                        {j.status !== "ส่งเสร็จ" ? (
                           <button
-                            type="button"
                             onClick={() => {
                               setSelectedId(j.id);
                               setModalMode("edit");
                             }}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-ptt-blue text-white hover:brightness-110 transition"
-                            title="แก้ไข"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30 transition-colors font-medium"
                           >
-                            <Pencil className="w-4 h-4" />
-                            แก้ไข
+                            <Pencil className="w-3.5 h-3.5" />
+                            จัดการ
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setSelectedId(j.id);
+                              setModalMode("view");
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                            ดูรายละเอียด
                           </button>
                         )}
                       </div>
@@ -324,206 +363,243 @@ export default function ManageTrips() {
         )}
       </ChartCard>
 
-      {modalMode && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 md:p-8 overflow-y-auto"
-          onClick={() => setModalMode(null)}
-        >
-          <div
-            className="w-full max-w-5xl rounded-2xl border border-app bg-[var(--bg)] shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between gap-3 p-4 md:p-6 border-b border-app">
-              <div className="min-w-0">
-                <div className="text-app font-bold text-lg truncate">
-                  {modalMode === "edit" ? "แก้ไขรอบ" : "ดูรอบ"}: {selected?.transportNo || "-"} •{" "}
-                  {selected?.orderType === "external"
-                    ? `PO: ${selected?.purchaseOrderNo || "-"}`
-                    : `ออเดอร์ภายใน: ${selected?.internalOrderNo || "-"}`}
-                </div>
-                <div className="text-xs text-muted">
-                  {modalMode === "edit"
-                    ? "กรอกเลขเอกสารจากคลัง + ดูรูปหลักฐาน + จัดเรียงเส้นทาง"
-                    : "ดูข้อมูลจากแอปคนขับ (อ่านอย่างเดียว)"}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setModalMode(null)}
-                className="p-2 rounded-xl border border-app hover:border-red-500/40 text-muted hover:text-app transition"
-                title="ปิด"
+      {/* Modal */}
+      <AnimatePresence>
+        {modalMode && selected && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setModalMode(null)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+            />
+            <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none`}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] pointer-events-auto border border-gray-100 dark:border-gray-700"
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {!selected ? (
-              <div className="p-6 text-sm text-muted">ไม่พบข้อมูลรอบ</div>
-            ) : (
-              <div className="p-4 md:p-6 space-y-6">
-                <ChartCard title={`รอบ: ${selected.transportNo}`} icon={FileText}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-2xl border border-app bg-white/5">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-xs text-muted">ประเภท</div>
-                        <TypeBadge job={selected} />
-                      </div>
-                      {selected.orderType === "external" ? (
-                        <>
-                          <div className="text-xs text-muted mt-3">PO (อ้างอิง)</div>
-                          <div className="text-app font-semibold">{poMeta?.orderNo || selected.purchaseOrderNo || "-"}</div>
-                          <div className="text-sm text-muted mt-1">
-                            ใบอนุมัติขายเลขที่: {poMeta?.approveNo || "-"} • Contract No.: {poMeta?.contractNo || "-"}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="text-xs text-muted mt-3">ออเดอร์ภายใน</div>
-                          <div className="text-app font-semibold">{selected.internalOrderNo || "-"}</div>
-                          <div className="text-sm text-muted mt-1">
-                            เที่ยวภายในปั๊มจะไม่มีเอกสารจากคลังน้ำมัน (PTT)
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    <div className="p-4 rounded-2xl border border-app bg-white/5">
-                      <div className="text-xs text-muted">รถ/คนขับ</div>
-                      <div className="text-app font-semibold">
-                        {selected.truckPlateNumber || "-"} / {selected.trailerPlateNumber || "-"}
-                      </div>
-                      <div className="text-sm text-muted mt-1">คนขับ: {selected.driverName || "-"}</div>
-                    </div>
+                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 sticky top-0 z-10">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                      {modalMode === "edit" ? <Pencil className="w-5 h-5 text-blue-500" /> : <FileText className="w-5 h-5 text-gray-500" />}
+                      {modalMode === "edit" ? "จัดการรอบจัดส่ง" : "รายละเอียดรอบจัดส่ง"}
+                      <span className="text-lg font-normal text-gray-400">|</span>
+                      <span className="text-lg text-gray-600 dark:text-gray-300 font-mono">{selected.transportNo}</span>
+                    </h3>
                   </div>
-                </ChartCard>
+                  <button onClick={() => setModalMode(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-400 hover:text-gray-600">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
 
-                {selected.orderType === "external" && (
-                  <ChartCard
-                    title="เลขเอกสารจากคลัง (จากรูปคนขับ)"
-                    icon={FileText}
-                    subtitle="พี่นิดกรอกเลขตามบิล/เอกสารจากคลัง ปตท ที่คนขับถ่ายไว้"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                      <div>
-                        <label className="text-xs text-muted">เลขที่คลัง</label>
-                        <input
-                          value={warehouseNo}
-                          onChange={(e) => setWarehouseNo(e.target.value)}
-                          disabled={isReadOnly}
-                          className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-                          placeholder="เช่น WH-001"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-muted">เลขเอกสารจากคลัง (เพิ่มเติม)</label>
-                        <input
-                          value={depotDocumentNo}
-                          onChange={(e) => setDepotDocumentNo(e.target.value)}
-                          disabled={isReadOnly}
-                          className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-                          placeholder="เช่น เลขบิล/เลขใบส่งของ"
-                        />
-                      </div>
-                      <div className="md:col-span-1">
-                        <label className="text-xs text-muted">หมายเหตุ</label>
-                        <input
-                          value={warehouseNotes}
-                          onChange={(e) => setWarehouseNotes(e.target.value)}
-                          disabled={isReadOnly}
-                          className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-                          placeholder="ถ้ามี"
-                        />
-                      </div>
-                    </div>
+                <div className="p-6 overflow-y-auto custom-scrollbar bg-gray-50/50 dark:bg-black/20">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                    <div className="flex items-center justify-between gap-3 mb-4">
-                      <div className="text-xs text-muted">
-                        ยืนยันโดยคนขับ:{" "}
-                        {selected.warehouseConfirmation?.confirmedAt
-                          ? new Date(selected.warehouseConfirmation.confirmedAt).toLocaleString("th-TH")
-                          : "-"}
-                      </div>
-                      {modalMode === "edit" && (
-                        <button
-                          type="button"
-                          onClick={saveWarehouseDocs}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-ptt-blue text-white hover:brightness-110 transition"
-                        >
-                          <Save className="w-4 h-4" />
-                          บันทึกเลขเอกสาร
-                        </button>
-                      )}
-                    </div>
+                    {/* Left Column: Info */}
+                    <div className="lg:col-span-1 space-y-6">
+                      <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                        <h4 className="font-bold text-gray-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-wide">
+                          <Truck className="w-4 h-4 text-blue-500" /> ข้อมูลการขนส่ง
+                        </h4>
 
-                    <div className="flex items-center gap-2 mb-2 text-app">
-                      <ImageIcon className="w-4 h-4 text-muted" />
-                      <span className="text-sm font-semibold">รูปหลักฐาน (คลัง)</span>
-                    </div>
-                    <PhotoGrid photos={selected.warehouseConfirmation?.photos || []} />
-
-                    <div className="mt-6 flex items-center gap-2 mb-2 text-app">
-                      <ImageIcon className="w-4 h-4 text-muted" />
-                      <span className="text-sm font-semibold">รูปบิลรับน้ำมัน (ขั้นตอนรับน้ำมัน)</span>
-                    </div>
-                    <PhotoGrid photos={selected.pickupConfirmation?.photos || []} />
-                  </ChartCard>
-                )}
-
-                <ChartCard title="จัดเรียงเส้นทางการส่ง (Route Order)" icon={Route} subtitle="ลากเพื่อจัดเรียงลำดับการส่ง แล้วกดบันทึก">
-                  {orderedBranches.length === 0 ? (
-                    <div className="text-sm text-muted">ไม่มีปลายทาง</div>
-                  ) : (
-                    <div className="space-y-3">
-                      {modalMode === "edit" ? (
-                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                          <SortableContext items={routeIds} strategy={verticalListSortingStrategy}>
-                            <div className="space-y-2">
-                              {orderedBranches.map((b) => (
-                                <SortableBranchRow
-                                  key={b.branchId}
-                                  id={b.branchId}
-                                  label={b.branchName}
-                                  meta={`${b.oilType} • ${b.quantity.toLocaleString()} ลิตร • สถานะ: ${b.status}`}
-                                />
-                              ))}
+                        <div className="space-y-4">
+                          <div>
+                            <div className="text-xs text-gray-400 mb-1">สถานะ</div>
+                            <StatusTag variant={getStatusVariantForJob(selected.status)}>{selected.status}</StatusTag>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-400 mb-1">ประเภท</div>
+                            <TypeBadge job={selected} />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <div className="text-xs text-gray-400 mb-1">ทะเบียนรถ</div>
+                              <div className="font-medium text-gray-800 dark:text-gray-200">{selected.truckPlateNumber || "-"}</div>
                             </div>
-                          </SortableContext>
-                        </DndContext>
-                      ) : (
-                        <div className="space-y-2">
-                          {orderedBranches.map((b) => (
-                            <div
-                              key={b.branchId}
-                              className="p-3 rounded-xl border border-app bg-white/5"
-                            >
-                              <div className="text-app font-semibold">{b.branchName}</div>
-                              <div className="text-xs text-muted">
-                                {b.oilType} • {b.quantity.toLocaleString()} ลิตร • สถานะ: {b.status}
+                            <div>
+                              <div className="text-xs text-gray-400 mb-1">คนขับ</div>
+                              <div className="font-medium text-gray-800 dark:text-gray-200">{selected.driverName || "-"}</div>
+                            </div>
+                          </div>
+
+                          <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                            <div className="text-xs text-gray-400 mb-2">เอกสารอ้างอิง</div>
+                            {selected.orderType === "external" ? (
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500">PO No.</span>
+                                  <span className="font-mono font-medium">{selected.purchaseOrderNo || "-"}</span>
+                                </div>
+                                {poMeta && (
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500">Approve No.</span>
+                                    <span className="font-mono text-gray-600 dark:text-gray-400">{poMeta.approveNo || "-"}</span>
+                                  </div>
+                                )}
                               </div>
+                            ) : (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-500">Internal Order</span>
+                                <span className="font-mono font-medium">{selected.internalOrderNo || "-"}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {selected.orderType === "external" && (
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                          <h4 className="font-bold text-gray-800 dark:text-white flex items-center gap-2 text-sm uppercase tracking-wide">
+                            <AlertCircle className="w-4 h-4 text-orange-500" /> ข้อมูลจากคลัง (Warehouse)
+                          </h4>
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-xs text-gray-500 mb-1 block">เลขที่คลัง (Warehouse No.)</label>
+                              <input
+                                value={warehouseNo}
+                                onChange={(e) => setWarehouseNo(e.target.value)}
+                                disabled={isReadOnly}
+                                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60"
+                                placeholder="ยังไม่ได้ระบุ"
+                              />
                             </div>
-                          ))}
+                            <div>
+                              <label className="text-xs text-gray-500 mb-1 block">เลขเอกสาร (Document No.)</label>
+                              <input
+                                value={depotDocumentNo}
+                                onChange={(e) => setDepotDocumentNo(e.target.value)}
+                                disabled={isReadOnly}
+                                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60"
+                                placeholder="เช่น เลขบิล"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-gray-500 mb-1 block">หมายเหตุ</label>
+                              <textarea
+                                value={warehouseNotes}
+                                onChange={(e) => setWarehouseNotes(e.target.value)}
+                                disabled={isReadOnly}
+                                rows={2}
+                                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 resize-none"
+                                placeholder="-"
+                              />
+                            </div>
+
+                            {modalMode === "edit" && (
+                              <button
+                                onClick={saveWarehouseDocs}
+                                className="w-full py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition active:scale-[0.98]"
+                              >
+                                บันทึกข้อมูลคลัง
+                              </button>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
-                  )}
 
-                  {modalMode === "edit" && (
-                    <div className="mt-4 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={saveRoute}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-app hover:border-ptt-blue/40 text-app transition"
-                      >
-                        <Save className="w-4 h-4" />
-                        บันทึกลำดับเส้นทาง
-                      </button>
+                    {/* Right Column: Route & Photos */}
+                    <div className="lg:col-span-2 space-y-6">
+
+                      {/* Photos */}
+                      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                        <h4 className="font-bold text-gray-800 dark:text-white flex items-center gap-2 mb-4">
+                          <ImageIcon className="w-5 h-5 text-purple-500" /> หลักฐานรูปภาพ
+                        </h4>
+                        <div className="space-y-6">
+                          <div>
+                            <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3 flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                              จากคลังสินค้า (Warehouse)
+                            </div>
+                            <PhotoGrid photos={selected.warehouseConfirmation?.photos || []} />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3 flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                              ขณะรับน้ำมัน (Pickup)
+                            </div>
+                            <PhotoGrid photos={selected.pickupConfirmation?.photos || []} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Route Order */}
+                      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                            <Route className="w-5 h-5 text-indigo-500" /> ลำดับการส่ง (Route Order)
+                          </h4>
+                          {modalMode === "edit" && (
+                            <button
+                              onClick={saveRoute}
+                              className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                              <Save className="w-4 h-4" /> บันทึกลำดับ
+                            </button>
+                          )}
+                        </div>
+
+                        {orderedBranches.length === 0 ? (
+                          <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                            <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            ไม่มีข้อมูลปลายทาง
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {modalMode === "edit" ? (
+                              <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+                                <div className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" /> ลากเพื่อจัดเรียงลำดับการส่ง
+                                </div>
+                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                                  <SortableContext items={routeIds} strategy={verticalListSortingStrategy}>
+                                    <div className="space-y-2">
+                                      {orderedBranches.map((b) => (
+                                        <SortableBranchRow
+                                          key={b.branchId}
+                                          id={b.branchId}
+                                          label={b.branchName}
+                                          meta={`${b.oilType} • ${b.quantity.toLocaleString()} ลิตร • สถานะ: ${b.status}`}
+                                        />
+                                      ))}
+                                    </div>
+                                  </SortableContext>
+                                </DndContext>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {orderedBranches.map((b, idx) => (
+                                  <div key={b.branchId} className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center font-bold text-gray-500 text-sm">
+                                      {idx + 1}
+                                    </div>
+                                    <div>
+                                      <div className="font-semibold text-gray-900 dark:text-white">{b.branchName}</div>
+                                      <div className="text-sm text-gray-500">{b.oilType} • {b.quantity.toLocaleString()} ลิตร</div>
+                                    </div>
+                                    <div className="ml-auto">
+                                      <StatusTag variant={b.status === "ส่งแล้ว" ? "success" : "neutral"}>{b.status}</StatusTag>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
                     </div>
-                  )}
-                </ChartCard>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

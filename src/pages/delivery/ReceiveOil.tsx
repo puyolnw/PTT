@@ -44,7 +44,7 @@ const generateBranchReceipts = (purchaseOrders: PurchaseOrder[], driverJobs: Dri
     po.branches.forEach((branch) => {
       const jobForBranch = relatedJobs.find((j) => j.destinationBranches?.some((b) => b.branchId === branch.branchId)) || relatedJobs[0];
       const transportNo = jobForBranch?.transportNo || "TP-" + po.orderDate.replace(/-/g, "") + "-" + po.orderNo.slice(-3);
-      
+
       receipts.push({
         id: "BR-" + po.orderNo + "-" + branch.branchId,
         receiptNo: "BR-" + po.orderNo + "-" + branch.branchId,
@@ -130,13 +130,13 @@ const SAMPLE_COMPLETED_RECEIPTS: Partial<BranchOilReceipt>[] = [
 const buildReceipts = (base: BranchOilReceipt[], overrides: Partial<BranchOilReceipt>[]) => {
   const byId = new Map<string, Partial<BranchOilReceipt>>();
   overrides.forEach((o) => { if (o.id) byId.set(o.id, o); });
-  
+
   const merged = base.map((r) => ({ ...r, ...(byId.get(r.id) || {}) }));
-  
+
   // Also add samples if they are not in base but we have them in overrides
   overrides.forEach(o => {
     if (o.id && !base.find(b => b.id === o.id)) {
-        merged.push(o as BranchOilReceipt);
+      merged.push(o as BranchOilReceipt);
     }
   });
 
@@ -147,7 +147,7 @@ const buildReceipts = (base: BranchOilReceipt[], overrides: Partial<BranchOilRec
 
 export default function ReceiveOil() {
   const { purchaseOrders, driverJobs, branches, deliveryNotes, receipts: allReceipts } = useGasStation();
-  
+
   const baseReceipts = useMemo(() => generateBranchReceipts(purchaseOrders, driverJobs), [purchaseOrders, driverJobs]);
   const [receipts, setReceipts] = useState<BranchOilReceipt[]>([]);
 
@@ -160,7 +160,7 @@ export default function ReceiveOil() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranchFilterId, setSelectedBranchFilterId] = useState<number | "all">("all");
-  
+
   // Document Viewing State
   const [selectedDoc, setSelectedDoc] = useState<DeliveryNote | Receipt | BranchOilReceipt | PurchaseOrder | null>(null);
   const [activeReceipt, setActiveReceipt] = useState<BranchOilReceipt | null>(null);
@@ -423,8 +423,8 @@ export default function ReceiveOil() {
 
   const getRelatedTaxInvoice = (r: BranchOilReceipt) => {
     const dn = getRelatedDN(r);
-    return allReceipts.find(rec => 
-      (rec.purchaseOrderNo === r.purchaseOrderNo || (dn && rec.deliveryNoteNo === dn.deliveryNoteNo)) && 
+    return allReceipts.find(rec =>
+      (rec.purchaseOrderNo === r.purchaseOrderNo || (dn && rec.deliveryNoteNo === dn.deliveryNoteNo)) &&
       rec.documentType === "ใบกำกับภาษี"
     );
   };
@@ -439,9 +439,9 @@ export default function ReceiveOil() {
         r.purchaseOrderNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.branchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.truckPlateNumber.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchBranch = selectedBranchFilterId === "all" || r.branchId === selectedBranchFilterId;
-      
+
       return matchSearch && matchBranch;
     }).sort((a, b) => new Date(b.receiveDate).getTime() - new Date(a.receiveDate).getTime());
   }, [receipts, searchTerm, selectedBranchFilterId]);
@@ -462,226 +462,231 @@ export default function ReceiveOil() {
 
   const numberFormatter = new Intl.NumberFormat("th-TH");
 
-  const getStatusColor = (status: BranchOilReceipt["status"]) => {
-    switch (status) {
-      case "รอรับ": return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800";
-      case "รับแล้ว": return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800";
-      case "ปฏิเสธ": return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800";
-      default: return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700";
-    }
-  };
+
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl shadow-lg shadow-orange-200 dark:shadow-none">
-                <History className="w-6 h-6 text-white" />
-              </div>
-              ประวัติการรับน้ำมัน (รายสาขา)
-            </h1>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
-              <p className="text-gray-600 dark:text-gray-400">
-                ตรวจสอบประวัติการรับและลงสมุดของทุกลูกน้ำมันแต่ละปั๊ม
-              </p>
-              <div className="h-4 w-px bg-gray-300 dark:bg-gray-700 hidden md:block" />
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-gray-500 dark:text-gray-400">เลือกสาขา:</span>
-                <select
-                  value={selectedBranchFilterId}
-                  onChange={(e) => setSelectedBranchFilterId(e.target.value === "all" ? "all" : Number(e.target.value))}
-                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1 text-sm font-bold text-orange-600 dark:text-orange-400 outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="all">ทุกสาขา</option>
-                  {branches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-              </div>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center shrink-0">
+              <History className="w-6 h-6 text-orange-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800 font-display">ประวัติการรับน้ำมัน (รายสาขา)</h1>
+              <p className="text-sm text-gray-500 mt-1">ตรวจสอบประวัติการรับและลงสมุดของทุกลูกน้ำมันแต่ละปั๊ม</p>
             </div>
           </div>
-        </div>
+
+          <div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
+            <span className="text-sm font-medium text-gray-500 px-2">สาขา:</span>
+            <select
+              value={selectedBranchFilterId}
+              onChange={(e) => setSelectedBranchFilterId(e.target.value === "all" ? "all" : Number(e.target.value))}
+              className="bg-transparent text-sm font-bold text-orange-600 outline-none cursor-pointer pr-2"
+            >
+              <option value="all">ทุกสาขา</option>
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+        </motion.div>
 
         {/* Info Alerts */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-800 dark:text-blue-300">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3"
+        >
+          <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-800">
             <p className="font-semibold mb-1">คำแนะนำการใช้งาน</p>
             <ul className="list-disc list-inside space-y-1 opacity-90">
               <li>แสดงเฉพาะรายการที่ได้รับน้ำมันเข้าคลังสาขาสำเร็จแล้ว</li>
               <li>สามารถตรวจสอบเอกสาร ใบส่งของ, ใบกำกับภาษี และใบรับของได้ที่ปุ่มในตาราง</li>
-              <li>ใช้ตัวกรองสาขาด้านบนเพื่อดูข้อมูลแยกตามแต่ละสถานี</li>
             </ul>
           </div>
-        </div>
+        </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <SummaryCard 
-            title="รายการรับสำเร็จ" 
-            value={stats.received.toString()} 
-            unit="รายการ" 
-            icon={CheckCircle} 
-            color="bg-emerald-500" 
-          />
-          <SummaryCard 
-            title="ปริมาณรวม" 
-            value={numberFormatter.format(filteredReceipts.reduce((sum, r) => sum + r.items.reduce((s, i) => s + (i.quantityReceived || i.quantityOrdered), 0), 0))} 
-            unit="ลิตร" 
-            icon={Droplet} 
-            color="bg-blue-500" 
-          />
-          <SummaryCard 
-            title="มูลค่ารวม" 
-            value={currencyFormatter.format(stats.totalAmount)} 
-            unit="" 
-            icon={FileText} 
-            color="bg-orange-500" 
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4"
+          >
+            <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+              <CheckCircle className="h-6 w-6 text-emerald-600" />
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">รายการรับสำเร็จ</div>
+              <div className="text-xl font-bold text-gray-800">{stats.received} รายการ</div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4"
+          >
+            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+              <Droplet className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">ปริมาณรวม</div>
+              <div className="text-xl font-bold text-gray-800">
+                {numberFormatter.format(filteredReceipts.reduce((sum, r) => sum + r.items.reduce((s, i) => s + (i.quantityReceived || i.quantityOrdered), 0), 0))} ลิตร
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4"
+          >
+            <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+              <FileText className="h-6 w-6 text-orange-600" />
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">มูลค่ารวม</div>
+              <div className="text-xl font-bold text-gray-800">{currencyFormatter.format(stats.totalAmount)}</div>
+            </div>
+          </motion.div>
         </div>
 
         {/* History Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">ประวัติการรับน้ำมัน</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h2 className="text-lg font-bold text-gray-800">รายการรับน้ำมัน</h2>
             <div className="relative w-full md:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input 
+              <input
                 type="text"
                 placeholder="ค้นหา PO, ทะเบียนรถ, เลขที่รับ..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm transition-all focus:ring-2 focus:ring-orange-500"
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-800"
               />
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700/50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">รายการ / สาขา</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">วันที่รับน้ำมัน</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">ข้อมูลรถบรรทุก</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">เอกสารอ้างอิง</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">ปริมาณรวม</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">สถานะการตรวจสอบ</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">ดูเอกสาร</th>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider border-b border-gray-200">
+                  <th className="px-6 py-4 font-medium">รายการ / สาขา</th>
+                  <th className="px-6 py-4 font-medium">วันที่รับน้ำมัน</th>
+                  <th className="px-6 py-4 font-medium">ข้อมูลรถบรรทุก</th>
+                  <th className="px-6 py-4 font-medium">เอกสารอ้างอิง</th>
+                  <th className="px-6 py-4 font-medium">ปริมาณรวม</th>
+                  <th className="px-6 py-4 font-medium text-center">สถานะ</th>
+                  <th className="px-6 py-4 font-medium text-right">ดูเอกสาร</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+              <tbody className="divide-y divide-gray-100 text-sm">
                 {filteredReceipts.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <tr key={r.id} className="hover:bg-orange-50/10 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-bold text-gray-900 dark:text-white">{r.receiptNo}</div>
+                      <div className="font-bold text-gray-800">{r.receiptNo}</div>
                       <div className="flex items-center gap-1.5 mt-1">
                         <Building2 className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-xs font-bold text-orange-600 dark:text-orange-400">{r.branchName}</span>
+                        <span className="text-xs font-bold text-orange-600">{r.branchName}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                      <div className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-gray-400" />
                         {r.receiveDate}
                       </div>
                       {r.receivedAt && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-1">
+                        <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
                           <Clock className="w-3.5 h-3.5 text-gray-400" />
                           {new Date(r.receivedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                      <div className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
                         <Truck className="w-3.5 h-3.5 text-gray-400" />
                         {r.truckPlateNumber} {r.trailerPlateNumber !== "-" ? "/ " + r.trailerPlateNumber : ""}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-1">
+                      <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
                         <User className="w-3.5 h-3.5 text-gray-400" />
                         {r.driverName}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">PO: <span className="font-bold text-gray-700 dark:text-gray-300">{r.purchaseOrderNo}</span></div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">TP: <span className="font-bold text-gray-700 dark:text-gray-300">{r.transportNo}</span></div>
+                      <div className="text-xs text-gray-500 mb-1">PO: <span className="font-bold text-gray-700">{r.purchaseOrderNo}</span></div>
+                      <div className="text-xs text-gray-500">TP: <span className="font-bold text-gray-700">{r.transportNo}</span></div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-bold text-gray-900 dark:text-white">
+                      <div className="text-sm font-bold text-gray-800">
                         {numberFormatter.format(r.items.reduce((s: number, i) => s + (i.quantityReceived || i.quantityOrdered), 0))} ลิตร
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                      <div className="text-xs text-gray-500">
                         {currencyFormatter.format(r.totalAmount)}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-col items-center">
-                         <span className={"px-2.5 py-1 rounded-lg text-xs font-bold border " + getStatusColor(r.status)}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${r.status === "รับแล้ว" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                          r.status === "รอรับ" ? "bg-yellow-100 text-yellow-700 border-yellow-200" :
+                            "bg-gray-100 text-gray-700 border-gray-200"
+                          }`}>
                           {r.status === "รับแล้ว" ? "รับเสร็จเพิ่มสต็อกแล้ว" : r.status}
                         </span>
                         {r.qualityTest?.testResult && (
-                          <span className={"text-xs mt-1 font-bold " + (r.qualityTest.testResult === 'ผ่าน' ? 'text-emerald-600' : 'text-red-600')}>
+                          <span className={`text-[10px] mt-1 font-bold ${r.qualityTest.testResult === 'ผ่าน' ? 'text-emerald-600' : 'text-red-600'}`}>
                             ผลทดสอบ: {r.qualityTest.testResult}
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-1">
-                        <div className="flex flex-col items-center">
-                          <button 
+                      <div className="flex justify-end gap-2">
+                        <div className="flex flex-col items-center gap-1">
+                          <button
                             onClick={() => {
                               setSelectedDoc(getRelatedPO(r) || null);
                               setActiveReceipt(r);
                               setDocType('po');
                               setShowModal(true);
                             }}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors flex items-center gap-1.5"
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200"
                             title="ดูใบสั่งซื้อ"
                           >
                             <ShoppingCart className="w-4 h-4" />
-                            <span className="text-[10px] font-bold">ใบสั่งซื้อ</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              const po = getRelatedPO(r);
-                              if (po) handleDownload('po', po);
-                            }}
-                            className="text-[10px] text-gray-400 hover:text-blue-600 font-medium"
-                          >
-                            ดาวน์โหลด
                           </button>
                         </div>
-                        
-                        <div className="flex flex-col items-center">
-                          <button 
+
+                        <div className="flex flex-col items-center gap-1">
+                          <button
                             onClick={() => {
                               setSelectedDoc(getRelatedDN(r) || null);
                               setActiveReceipt(r);
                               setDocType('dn');
                               setShowModal(true);
                             }}
-                            className="p-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors flex items-center gap-1.5"
+                            className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-200"
                             title="ดูใบส่งของ"
                           >
                             <FileText className="w-4 h-4" />
-                            <span className="text-[10px] font-bold">ใบส่งของ</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              const dn = getRelatedDN(r);
-                              if (dn) handleDownload('dn', dn);
-                            }}
-                            className="text-[10px] text-gray-400 hover:text-indigo-600 font-medium"
-                          >
-                            ดาวน์โหลด
                           </button>
                         </div>
 
-                        <div className="flex flex-col items-center">
-                          <button 
+                        <div className="flex flex-col items-center gap-1">
+                          <button
                             onClick={() => {
                               const rec = getRelatedTaxInvoice(r);
                               setSelectedDoc(rec || null);
@@ -689,42 +694,25 @@ export default function ReceiveOil() {
                               setDocType('tax-invoice');
                               setShowModal(true);
                             }}
-                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors flex items-center gap-1.5"
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-200"
                             title="ดูใบภาษี"
                           >
                             <FileText className="w-4 h-4" />
-                            <span className="text-[10px] font-bold">ใบภาษี</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              const rcp = getRelatedTaxInvoice(r);
-                              if (rcp) handleDownload('tax-invoice', rcp);
-                            }}
-                            className="text-[10px] text-gray-400 hover:text-emerald-600 font-medium"
-                          >
-                            ดาวน์โหลด
                           </button>
                         </div>
 
-                        <div className="flex flex-col items-center">
-                          <button 
+                        <div className="flex flex-col items-center gap-1">
+                          <button
                             onClick={() => {
                               setSelectedDoc(r);
                               setActiveReceipt(r);
                               setDocType('receipt');
                               setShowModal(true);
                             }}
-                            className="p-1.5 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-lg transition-colors flex items-center gap-1.5"
+                            className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors border border-transparent hover:border-orange-200"
                             title="ดูใบรับของ"
                           >
                             <PackageCheck className="w-4 h-4" />
-                            <span className="text-[10px] font-bold">ใบรับของ</span>
-                          </button>
-                          <button
-                            onClick={() => handleDownload('receipt', r)}
-                            className="text-[10px] text-gray-400 hover:text-orange-600 font-medium"
-                          >
-                            ดาวน์โหลด
                           </button>
                         </div>
                       </div>
@@ -735,10 +723,10 @@ export default function ReceiveOil() {
             </table>
             {filteredReceipts.length === 0 && (
               <div className="py-20 text-center">
-                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-10 h-10 text-gray-300" />
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-8 h-8 text-gray-400" />
                 </div>
-                <p className="text-gray-500 dark:text-gray-400">ไม่พบรายการบันทึกรับน้ำมัน</p>
+                <p className="text-gray-500">ไม่พบรายการบันทึกรับน้ำมัน</p>
               </div>
             )}
           </div>
@@ -748,7 +736,7 @@ export default function ReceiveOil() {
       <AnimatePresence>
         {showModal && selectedDoc && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -776,9 +764,9 @@ export default function ReceiveOil() {
                     )}
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    เลขที่: {docType === 'dn' ? (selectedDoc as DeliveryNote).deliveryNoteNo : 
-                          docType === 'tax-invoice' ? (selectedDoc as Receipt).receiptNo : 
-                          docType === 'po' ? (selectedDoc as PurchaseOrder).orderNo :
+                    เลขที่: {docType === 'dn' ? (selectedDoc as DeliveryNote).deliveryNoteNo :
+                      docType === 'tax-invoice' ? (selectedDoc as Receipt).receiptNo :
+                        docType === 'po' ? (selectedDoc as PurchaseOrder).orderNo :
                           (selectedDoc as BranchOilReceipt).receiptNo}
                   </p>
                 </div>
@@ -800,14 +788,14 @@ export default function ReceiveOil() {
                 </div>
               </div>
 
-               {/* Modal Content */}
+              {/* Modal Content */}
               <div className="p-6 overflow-y-auto">
                 {/* Navigation between documents using activeReceipt */}
                 {activeReceipt && (
                   <div className="no-print mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-700">
                     <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">เอกสารที่เกี่ยวข้อง</p>
                     <div className="flex flex-wrap gap-2">
-                      <button 
+                      <button
                         onClick={() => {
                           setSelectedDoc(getRelatedPO(activeReceipt) || null);
                           setDocType('po');
@@ -816,7 +804,7 @@ export default function ReceiveOil() {
                       >
                         <Eye className="w-3.5 h-3.5" /> ใบสั่งซื้อ
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           setSelectedDoc(getRelatedDN(activeReceipt) || null);
                           setDocType('dn');
@@ -825,7 +813,7 @@ export default function ReceiveOil() {
                       >
                         <Eye className="w-3.5 h-3.5" /> ใบส่งของ
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           const rec = getRelatedTaxInvoice(activeReceipt);
                           setSelectedDoc(rec || null);
@@ -835,7 +823,7 @@ export default function ReceiveOil() {
                       >
                         <Eye className="w-3.5 h-3.5" /> ใบภาษี
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           setSelectedDoc(activeReceipt);
                           setDocType('receipt');
@@ -846,7 +834,7 @@ export default function ReceiveOil() {
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-2">
-                       <button 
+                      <button
                         onClick={() => {
                           const po = getRelatedPO(activeReceipt);
                           if (po) handleDownload('po', po);
@@ -855,7 +843,7 @@ export default function ReceiveOil() {
                       >
                         <Download className="w-3 h-3" /> รับไฟล์ PO
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           const dn = getRelatedDN(activeReceipt);
                           if (dn) handleDownload('dn', dn);
@@ -864,7 +852,7 @@ export default function ReceiveOil() {
                       >
                         <Download className="w-3 h-3" /> รับไฟล์ DN
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           const rec = getRelatedTaxInvoice(activeReceipt);
                           if (rec) handleDownload('tax-invoice', rec);
@@ -877,7 +865,7 @@ export default function ReceiveOil() {
                   </div>
                 )}
                 {docType === 'po' && selectedDoc && (
-                   <div className="space-y-6">
+                  <div className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       <div className="p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-800/50">
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> วันที่สั่ง</p>
@@ -996,7 +984,7 @@ export default function ReceiveOil() {
                     </div>
 
                     <div>
-                       <h4 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2 text-sm">
+                      <h4 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2 text-sm">
                         <FileText className="w-4 h-4 text-emerald-500" /> รายการภาษี
                       </h4>
                       <table className="w-full text-sm">
@@ -1036,7 +1024,7 @@ export default function ReceiveOil() {
                 {docType === 'receipt' && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                       <div className="p-3 bg-orange-50/50 dark:bg-orange-900/10 rounded-lg border border-orange-100 dark:border-orange-800/50">
+                      <div className="p-3 bg-orange-50/50 dark:bg-orange-900/10 rounded-lg border border-orange-100 dark:border-orange-800/50">
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1"><Building2 className="w-3 h-3" /> สาขาที่รับ</p>
                         <p className="font-bold text-gray-900 dark:text-white">{(selectedDoc as BranchOilReceipt).branchName}</p>
                       </div>
@@ -1069,11 +1057,11 @@ export default function ReceiveOil() {
                             <span className="text-gray-600 dark:text-gray-400">Temp:</span>
                             <span className="font-bold text-gray-900 dark:text-white ml-2">{(selectedDoc as BranchOilReceipt).qualityTest?.temperature}°C</span>
                           </div>
-                           <div>
+                          <div>
                             <span className="text-gray-600 dark:text-gray-400">น้ำเจือปน:</span>
                             <span className="font-bold text-gray-900 dark:text-white ml-2">{(selectedDoc as BranchOilReceipt).qualityTest?.waterContent}%</span>
                           </div>
-                           <div>
+                          <div>
                             <span className="text-gray-600 dark:text-gray-400">ผลทดสอบ:</span>
                             <span className={"font-black ml-2 uppercase tracking-tight " + ((selectedDoc as BranchOilReceipt).qualityTest?.testResult === 'ผ่าน' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500')}>
                               {(selectedDoc as BranchOilReceipt).qualityTest?.testResult}
@@ -1113,11 +1101,11 @@ export default function ReceiveOil() {
 
               {/* Modal Footer */}
               <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-700/50">
-                <button 
+                <button
                   onClick={() => {
-                setShowModal(false);
-                setActiveReceipt(null);
-               }}
+                    setShowModal(false);
+                    setActiveReceipt(null);
+                  }}
                   className="px-6 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all font-bold shadow-sm"
                 >
                   ปิดหน้าต่าง
@@ -1133,20 +1121,4 @@ export default function ReceiveOil() {
 
 // --- Sub-components ---
 
-function SummaryCard({ title, value, unit, icon: Icon, color }: { title: string; value: string; unit: string; icon: React.ElementType; color: string }) {
-  const textColor = color.replace('bg-', 'text-');
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex items-center gap-5 transition-all hover:shadow-md">
-      <div className={"p-4 rounded-2xl bg-opacity-10 " + color}>
-        <Icon className={"w-8 h-8 " + textColor} />
-      </div>
-      <div>
-        <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{title}</p>
-        <div className="flex items-baseline gap-1">
-          <p className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">{value}</p>
-          {unit && <span className="text-xs font-bold text-gray-400">{unit}</span>}
-        </div>
-      </div>
-    </div>
-  );
-}
+
