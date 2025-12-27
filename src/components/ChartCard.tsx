@@ -8,15 +8,16 @@ interface ChartCardProps {
   icon?: LucideIcon;
   children: ReactNode;
   actions?: ReactNode;
+  className?: string;
 }
 
-export default function ChartCard({ title, subtitle, icon: Icon, children, actions }: ChartCardProps) {
+export default function ChartCard({ title, subtitle, icon: Icon, children, actions, className = "" }: ChartCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white/5 border border-app rounded-2xl p-6 shadow-xl 
-                 hover:border-ptt-blue/30 transition-all duration-200"
+      className={`bg-white/5 border border-app rounded-2xl p-6 shadow-xl 
+                 hover:border-ptt-blue/30 transition-all duration-200 ${className}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
@@ -37,7 +38,7 @@ export default function ChartCard({ title, subtitle, icon: Icon, children, actio
             )}
           </div>
         </div>
-        
+
         {actions && (
           <div className="flex items-center gap-2">
             {actions}

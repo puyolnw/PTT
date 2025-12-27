@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { DollarSign, Plus, Search, X } from "lucide-react";
-import ChartCard from "@/components/ChartCard";
+import { DollarSign, Plus, Search, X, MoreHorizontal } from "lucide-react";
+
 import { useGasStation } from "@/contexts/GasStationContext";
 import type { DeliveryNote, DriverJob, OilType, PurchaseOrder, Receipt } from "@/types/gasStation";
 
@@ -557,101 +557,130 @@ export default function InternalPumpSales() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-app text-2xl font-bold">ขายน้ำมันภายในปั๊ม</div>
-          <div className="text-sm text-muted">
-            ขายได้ทั้ง “น้ำมันที่เหลืออยู่บนรถ” และ “น้ำมันที่ดูดขึ้นมา” พร้อมออกใบส่งของ/ใบเสร็จ
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+              <DollarSign className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                ขายน้ำมันภายในปั๊ม
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">
+                ขาย "น้ำมันที่เหลือบนรถ" หรือ "น้ำมันที่ดูดขึ้นมา" พร้อมออกใบส่งของ/ใบเสร็จ
+              </p>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={openAddSale}
+            disabled={inventoryRows.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Plus className="w-5 h-5" />
+            เพิ่มรายการขาย
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={openAddSale}
-          disabled={inventoryRows.length === 0}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-ptt-blue text-white hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          title={inventoryRows.length === 0 ? "ไม่มีน้ำมันพร้อมขาย" : "เพิ่มรายการขาย"}
-        >
-          <Plus className="w-4 h-4" />
-          เพิ่มรายการขาย
-        </button>
       </div>
 
-      <ChartCard title="ค้นหา" subtitle="ค้นหาในรายการขาย + รายการที่พร้อมขาย" icon={Search}>
+      {/* Search */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
         <div className="relative">
-          <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="ค้นหา: รอบส่ง / ทะเบียนรถ / สาขา / ชนิดน้ำมัน / PO / เลขอนุมัติ / Contract / หมายเหตุ"
-            className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+            placeholder="ค้นหา: รอบส่ง / ทะเบียนรถ / สาขา / ชนิดน้ำมัน / PO / เลขอนุมัติ..."
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
-      </ChartCard>
+      </div>
 
-      <ChartCard
-        title="รายการขาย (ที่บันทึกแล้ว)"
-        subtitle={`ทั้งหมด: ${salesSummary.count} รายการ • รวม ${numberFormatter.format(salesSummary.totalLiters)} ลิตร • ยอดรวม ${currencyFormatter.format(
-          salesSummary.totalAmount
-        )}`}
-        icon={DollarSign}
-      >
+      {/* Sales Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">รายการขาย (ที่บันทึกแล้ว)</h2>
+            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              ทั้งหมด: {salesSummary.count} รายการ • รวม {numberFormatter.format(salesSummary.totalLiters)} ลิตร
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-sm text-gray-500 dark:text-gray-400">ยอดรวมทั้งหมด</div>
+            <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{currencyFormatter.format(salesSummary.totalAmount)}</div>
+          </div>
+        </div>
+
         {filteredSales.length === 0 ? (
-          <div className="text-sm text-muted">ยังไม่มีรายการขาย (กด “ขาย” จากรายการด้านล่างเพื่อสร้างรายการ)</div>
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full mb-3">
+              <DollarSign className="w-6 h-6 text-gray-400" />
+            </div>
+            <p>ยังไม่มีรายการขาย</p>
+            <p className="text-sm mt-1">กดปุ่ม "เพิ่มรายการขาย" เพื่อเริ่มบันทึกการขาย</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-xs text-muted">
-                <tr className="border-b border-app">
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">เวลา</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">แหล่ง</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">DN / RCP</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">สาขา (ขาย → รับ)</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">อ้างอิง</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">ชนิดน้ำมัน</th>
-                  <th className="text-right py-2 pr-3 whitespace-nowrap">จำนวน</th>
-                  <th className="text-right py-2 pr-3 whitespace-nowrap">ราคา/ลิตร</th>
-                  <th className="text-right py-2 whitespace-nowrap">ยอดรวม</th>
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">เวลา</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">แหล่ง</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">DN / RCP</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">สาขา (ขาย → รับ)</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">อ้างอิง</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">ชนิดน้ำมัน</th>
+                  <th className="px-6 py-4 text-right font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">จำนวน</th>
+                  <th className="px-6 py-4 text-right font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">ราคา/ลิตร</th>
+                  <th className="px-6 py-4 text-right font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">ยอดรวม</th>
+                  <th className="px-6 py-4 text-center font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">จัดการ</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-app">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
                 {filteredSales.map((t) => (
-                  <tr key={t.id} className="hover:bg-white/5 transition">
-                    <td className="py-2 pr-3 whitespace-nowrap text-muted">
+                  <tr key={t.id} className="hover:bg-blue-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
                       {new Date(t.createdAt).toLocaleString("th-TH")}
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${
-                          t.source === "truck-remaining"
-                            ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
-                            : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                        }`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${t.source === "truck-remaining"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          }`}
                       >
                         {t.source === "truck-remaining" ? "คงเหลือบนรถ" : "ดูดขึ้นมา"}
                       </span>
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap">
-                      <div className="text-app font-semibold">{t.deliveryNoteNo}</div>
-                      <div className="text-xs text-muted">{t.receiptNo}</div>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="font-medium text-gray-900 dark:text-white">{t.deliveryNoteNo}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{t.receiptNo}</div>
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap">
-                      <div className="text-app font-semibold">{t.fromBranchName}</div>
-                      <div className="text-xs text-muted">→ {t.toBranchName}</div>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="font-medium text-gray-900 dark:text-white">{t.fromBranchName}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">→ {t.toBranchName}</div>
                     </td>
-                    <td className="py-2 pr-3 min-w-[260px]">
-                      {t.transportNo && <div className="text-xs text-muted">รอบส่ง: {t.transportNo}</div>}
-                      {t.purchaseOrderNo && <div className="text-xs text-muted">PO: {t.purchaseOrderNo}</div>}
-                      {t.internalOrderNo && <div className="text-xs text-muted">ออเดอร์ภายใน: {t.internalOrderNo}</div>}
-                      {!t.transportNo && !t.purchaseOrderNo && !t.internalOrderNo && <div className="text-xs text-muted">—</div>}
+                    <td className="px-6 py-4 min-w-[260px]">
+                      {t.transportNo && <div className="text-xs text-gray-500 dark:text-gray-400">รอบส่ง: {t.transportNo}</div>}
+                      {t.purchaseOrderNo && <div className="text-xs text-gray-500 dark:text-gray-400">PO: {t.purchaseOrderNo}</div>}
+                      {t.internalOrderNo && <div className="text-xs text-gray-500 dark:text-gray-400">ออเดอร์ภายใน: {t.internalOrderNo}</div>}
+                      {!t.transportNo && !t.purchaseOrderNo && !t.internalOrderNo && <div className="text-xs text-gray-500 dark:text-gray-400">—</div>}
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap text-app">{t.oilType}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap text-right text-app font-semibold">
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">{t.oilType}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right font-medium text-gray-900 dark:text-white">
                       {numberFormatter.format(t.quantity)}
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap text-right text-app">{t.pricePerLiter.toFixed(2)}</td>
-                    <td className="py-2 whitespace-nowrap text-right text-app font-semibold">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-gray-500 dark:text-gray-400">{t.pricePerLiter.toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-gray-900 dark:text-white">
                       {currencyFormatter.format(t.totalAmount)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-500 dark:text-gray-400">
+                        <MoreHorizontal className="w-5 h-5" />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -659,43 +688,43 @@ export default function InternalPumpSales() {
             </table>
           </div>
         )}
-      </ChartCard>
+      </div>
 
       {/* Sale modal */}
       {saleOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 md:p-8 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-start justify-center p-4 md:p-8 overflow-y-auto"
           onClick={closeSale}
         >
           <div
-            className="w-full max-w-2xl rounded-2xl border border-app bg-[var(--bg)] shadow-2xl"
+            className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-3 p-4 md:p-6 border-b border-app">
+            <div className="flex items-center justify-between gap-3 p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="min-w-0">
-                <div className="text-app font-bold text-lg truncate">
+                <div className="text-gray-900 dark:text-white font-bold text-lg truncate">
                   ขายน้ำมัน:{" "}
                   {saleSource === "truck-remaining"
                     ? "คงเหลือบนรถ"
                     : "ดูดขึ้นมา"}
                 </div>
-                <div className="text-xs text-muted">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   ระบบจะออกใบส่งของ (DN) และใบเสร็จ (RCP) ให้อัตโนมัติ
                 </div>
               </div>
               <button
                 type="button"
                 onClick={closeSale}
-                className="p-2 rounded-xl border border-app hover:border-red-500/40 text-muted hover:text-app transition"
+                className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 title="ปิด"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-4 md:p-6 space-y-4">
+            <div className="p-6 space-y-4">
               <div>
-                <label className="text-xs text-muted">ประเภทการขาย (เลือกก่อน)</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">ประเภทการขาย (เลือกก่อน)</label>
                 <select
                   value={saleSource}
                   onChange={(e) => {
@@ -717,7 +746,7 @@ export default function InternalPumpSales() {
                       setSaleTruckRow(firstRow);
                     }
                   }}
-                  className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 >
                   <option value="">-- เลือกประเภทการขาย --</option>
                   <option value="recovered">ขายน้ำมันที่ดูดขึ้นมา</option>
@@ -728,7 +757,7 @@ export default function InternalPumpSales() {
               {saleSource === "truck-remaining" && (
                 <>
                   <div>
-                    <label className="text-xs text-muted">เลขที่ขนส่ง</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">เลขที่ขนส่ง</label>
                     <select
                       value={selectedTransportNo}
                       onChange={(e) => {
@@ -738,7 +767,7 @@ export default function InternalPumpSales() {
                         setSelectedTruckInventoryId(firstRow?.id || "");
                         setSaleTruckRow(firstRow);
                       }}
-                      className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     >
                       <option value="">-- เลือกเลขที่ขนส่ง --</option>
                       {availableTransportNos.map((tp) => (
@@ -750,7 +779,7 @@ export default function InternalPumpSales() {
                   </div>
 
                   <div>
-                    <label className="text-xs text-muted">น้ำมันของสาขาไหนบ้างที่เหลืออยู่บนรถ (เลือก)</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">น้ำมันของสาขาไหนบ้างที่เหลืออยู่บนรถ (เลือก)</label>
                     <select
                       value={selectedTruckInventoryId}
                       onChange={(e) => {
@@ -760,7 +789,7 @@ export default function InternalPumpSales() {
                         setSaleTruckRow(found);
                       }}
                       disabled={!selectedTransportNo}
-                      className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30 disabled:opacity-60"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-60"
                     >
                       <option value="">-- เลือกสาขา/ชนิดน้ำมัน --</option>
                       {truckRowsForSelectedTransport.map((r) => (
@@ -770,9 +799,9 @@ export default function InternalPumpSales() {
                       ))}
                     </select>
                     {saleTruckRow && (
-                      <div className="mt-2 text-xs text-muted">
-                        รถ/หาง: {saleTruckRow.truckPlateNumber} / {saleTruckRow.trailerPlateNumber} • ต้นทาง:{" "}
-                        {saleTruckRow.fromBranchName}
+                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        รถ/หาง: <span className="font-medium text-gray-900 dark:text-white">{saleTruckRow.truckPlateNumber} / {saleTruckRow.trailerPlateNumber}</span> • ต้นทาง:{" "}
+                        <span className="font-medium text-gray-900 dark:text-white">{saleTruckRow.fromBranchName}</span>
                       </div>
                     )}
                   </div>
@@ -781,7 +810,7 @@ export default function InternalPumpSales() {
 
               {saleSource === "recovered" && (
                 <div>
-                  <label className="text-xs text-muted">เลือกรายการน้ำมันที่ดูดขึ้นมา</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">เลือกรายการน้ำมันที่ดูดขึ้นมา</label>
                   <select
                     value={saleRecovered?.id || ""}
                     onChange={(e) => {
@@ -789,7 +818,7 @@ export default function InternalPumpSales() {
                       const found = recoveredItems.find((x) => x.id === rid) || null;
                       setSaleRecovered(found);
                     }}
-                    className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
                     <option value="">-- เลือกรายการ --</option>
                     {recoveredItems
@@ -805,82 +834,77 @@ export default function InternalPumpSales() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted">สาขาที่ขาย</label>
-                  <div className="mt-1 px-3 py-2 rounded-xl bg-white/5 border border-app text-app">
-                    {saleSource === "truck-remaining" ? saleTruckRow?.fromBranchName : saleSource === "recovered" ? saleRecovered?.fromBranchName : "-"}
-                  </div>
+              <hr className="border-gray-200 dark:border-gray-700" />
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">ขายให้สาขา (ปลายทาง)</label>
+                <select
+                  value={saleToBranchId}
+                  onChange={(e) => setSaleToBranchId(Number(e.target.value))}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                >
+                  <option value="">-- เลือกสาขา --</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  เช่น บจก. ปุ๋ยน้ำมัน (ดินดำ) หรือ บจก. ปุ๋ยน้ำมัน (หนองจิก)
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-muted">ขายให้สาขา</label>
-                  <select
-                    value={saleToBranchId}
-                    onChange={(e) => setSaleToBranchId(parseInt(e.target.value, 10))}
-                    className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-                  >
-                    <option value="">-- เลือกสาขา --</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted">ชนิดน้ำมัน</label>
-                  <div className="mt-1 px-3 py-2 rounded-xl bg-white/5 border border-app text-app">
-                    {saleSource === "truck-remaining" ? saleTruckRow?.oilType : saleSource === "recovered" ? saleRecovered?.oilType : "-"}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-muted">คงเหลือ (ลิตร)</label>
-                  <div className="mt-1 px-3 py-2 rounded-xl bg-white/5 border border-app text-app font-semibold">
-                    {numberFormatter.format(
-                      saleSource === "truck-remaining"
-                        ? saleTruckRow?.remainingOnTruck || 0
-                        : saleSource === "recovered"
-                          ? saleRecovered?.quantityAvailable || 0
-                          : 0
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-muted">จำนวนที่ขาย (ลิตร)</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">จำนวน (ลิตร)</label>
                   <input
+                    type="number"
                     value={saleQty}
                     onChange={(e) => setSaleQty(e.target.value)}
-                    className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-                    placeholder="เช่น 500"
+                    placeholder="เช่น 1000"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted">ราคาต่อลิตร (บาท)</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">ราคาขายต่อลิตร (บาท)</label>
                   <input
+                    type="number"
                     value={salePrice}
                     onChange={(e) => setSalePrice(e.target.value)}
-                    className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-                    placeholder="เช่น 32.50"
+                    placeholder="เช่น 30.50"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={closeSale}
-                  className="px-4 py-2 rounded-xl bg-white/5 border border-app hover:border-ptt-blue/40 text-app transition"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSale}
-                  className="px-4 py-2 rounded-xl bg-ptt-blue text-white hover:brightness-110 transition"
-                >
-                  ยืนยันการขาย
-                </button>
-              </div>
+              {(saleQty && salePrice) ? (
+                <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-300">ยอดรวมทั้งสิ้น (รวมภาษี)</span>
+                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                      {currencyFormatter.format(Number(saleQty) * Number(salePrice))}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeSale}
+                className="px-5 py-2.5 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleSale}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-medium shadow-sm transition-colors"
+              >
+                บันทึกการขาย
+              </button>
             </div>
           </div>
         </div>
@@ -888,5 +912,6 @@ export default function InternalPumpSales() {
     </div>
   );
 }
+
 
 
