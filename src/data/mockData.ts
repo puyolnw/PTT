@@ -16,51 +16,54 @@ export interface Employee {
   shiftId?: number; // Reference to shift
   otRate?: number; // OT Rate (บาท/ชั่วโมง)
   category?: string; // หมวดหมู่พนักงาน (ปั๊ม, เซเว่น, ปึงหงี่เชียง, ฯลฯ)
+  branchId?: number; // สาขา (1=Bangkok, 2=Chiang Mai)
 }
 
 export const employees: Employee[] = [
-  // หน้าลาน (น้ำมัน) - กลางวัน
-  { id: 1, code: "EMP-0001", name: "สมชาย ใจดี", dept: "หน้าลาน (เติมน้ำมัน)", position: "หัวหน้าปั๊ม", status: "Active", startDate: "2023-06-01", email: "somchai@ptt.co.th", phone: "081-234-5678", avatar: "https://ui-avatars.com/api/?name=สมชาย+ใจดี&background=2867e0&color=fff", shiftId: 1, otRate: 250, category: "หน้าลาน (เติมน้ำมัน)" },
-  { id: 2, code: "EMP-0002", name: "สมหญิง รักงาน", dept: "หน้าลาน (เติมน้ำมัน)", position: "แคชเชียร์", status: "Active", startDate: "2022-11-15", email: "somying@ptt.co.th", phone: "082-345-6789", avatar: "https://ui-avatars.com/api/?name=สมหญิง+รักงาน&background=19b7ff&color=fff", shiftId: 38, otRate: 200, category: "หน้าลาน (เติมน้ำมัน)" },
-  { id: 3, code: "EMP-0003", name: "วรพล ตั้งใจ", dept: "หน้าลาน (เติมน้ำมัน)", position: "พนักงานปั๊ม", status: "Active", startDate: "2024-01-10", email: "worapol@ptt.co.th", phone: "083-456-7890", avatar: "https://ui-avatars.com/api/?name=วรพล+ตั้งใจ&background=e41f2b&color=fff", shiftId: 39, otRate: 220, category: "หน้าลาน (เติมน้ำมัน)" },
-  // หน้าลาน (น้ำมัน) - กลางคืน
-  { id: 13, code: "EMP-0013", name: "ประยุทธ์ กลางคืน", dept: "หน้าลาน (เติมน้ำมัน)", position: "พนักงานปั๊ม", status: "Active", startDate: "2023-05-01", email: "prayut@ptt.co.th", phone: "093-456-7890", avatar: "https://ui-avatars.com/api/?name=ประยุทธ์+กลางคืน&background=2867e0&color=fff", shiftId: 43, otRate: 230, category: "หน้าลาน (เติมน้ำมัน)" },
-  { id: 14, code: "EMP-0014", name: "สุรชัย ดึก", dept: "หน้าลาน (เติมน้ำมัน)", position: "พนักงานปั๊ม", status: "Active", startDate: "2023-08-15", email: "surachai@ptt.co.th", phone: "094-567-8901", avatar: "https://ui-avatars.com/api/?name=สุรชัย+ดึก&background=19b7ff&color=fff", shiftId: 44, otRate: 240, category: "หน้าลาน (เติมน้ำมัน)" },
-  // 7-Eleven
-  { id: 4, code: "EMP-0004", name: "กิตติคุณ ใฝ่รู้", dept: "เซเว่น", position: "พนักงานร้าน", status: "Active", startDate: "2024-03-20", email: "kittikun@ptt.co.th", phone: "084-567-8901", avatar: "https://ui-avatars.com/api/?name=กิตติคุณ+ใฝ่รู้&background=2867e0&color=fff", shiftId: 27, otRate: 180, category: "เซเว่น" },
-  { id: 15, code: "EMP-0015", name: "นันทนา เซเว่น", dept: "เซเว่น", position: "พนักงานร้าน", status: "Active", startDate: "2024-04-10", email: "nantana@ptt.co.th", phone: "095-678-9012", avatar: "https://ui-avatars.com/api/?name=นันทนา+เซเว่น&background=19b7ff&color=fff", shiftId: 28, otRate: 190, category: "เซเว่น" },
-  { id: 16, code: "EMP-0016", name: "วิชัย ดึก", dept: "เซเว่น", position: "พนักงานร้าน", status: "Active", startDate: "2023-12-01", email: "wichai@ptt.co.th", phone: "096-789-0123", avatar: "https://ui-avatars.com/api/?name=วิชัย+ดึก&background=e41f2b&color=fff", shiftId: 29, otRate: 200, category: "เซเว่น" },
-  // ร้านของฝาก (ปึงหงี่เซียง)
-  { id: 5, code: "EMP-0005", name: "พิมพ์ชนก สมใจ", dept: "ปึงหงี่เซียง", position: "หัวหน้าร้าน", status: "Active", startDate: "2021-08-05", email: "pimchanok@ptt.co.th", phone: "085-678-9012", avatar: "https://ui-avatars.com/api/?name=พิมพ์ชนก+สมใจ&background=19b7ff&color=fff", shiftId: 16, otRate: 300, category: "ปึงหงี่เซียง" },
-  { id: 17, code: "EMP-0017", name: "รัตนา ปึงหงี่", dept: "ปึงหงี่เซียง", position: "พนักงานร้าน", status: "Active", startDate: "2024-02-20", email: "rattana@ptt.co.th", phone: "097-890-1234", avatar: "https://ui-avatars.com/api/?name=รัตนา+ปึงหงี่&background=19b7ff&color=fff", shiftId: 18, otRate: 200, category: "ปึงหงี่เซียง" },
-  { id: 6, code: "EMP-0006", name: "ธีรภัทร แข็งแรง", dept: "เจ้าสัว", position: "พนักงานร้าน", status: "Active", startDate: "2023-02-14", email: "teerabhat@ptt.co.th", phone: "086-789-0123", avatar: "https://ui-avatars.com/api/?name=ธีรภัทร+แข็งแรง&background=2867e0&color=fff", shiftId: 33, otRate: 190, category: "เจ้าสัว" },
-  { id: 7, code: "EMP-0007", name: "ประเสริฐ ดีงาม", dept: "ร้านเจียง", position: "พนักงานร้าน", status: "Active", startDate: "2024-05-01", email: "prasert@ptt.co.th", phone: "087-890-1234", avatar: "https://ui-avatars.com/api/?name=ประเสริฐ+ดีงาม&background=e41f2b&color=fff", shiftId: 30, otRate: 200, category: "ร้านเจียง" },
-  { id: 18, code: "EMP-0018", name: "สมศักดิ์ เจียง", dept: "ร้านเจียง", position: "พนักงานร้าน", status: "Active", startDate: "2024-03-15", email: "somsak@ptt.co.th", phone: "098-901-2345", avatar: "https://ui-avatars.com/api/?name=สมศักดิ์+เจียง&background=2867e0&color=fff", shiftId: 31, otRate: 195, category: "ร้านเจียง" },
-  // Chester's
-  { id: 8, code: "EMP-0008", name: "อัญชลี มีชัย", dept: "ร้านเชสเตอร์", position: "พนักงานร้าน", status: "Active", startDate: "2023-09-10", email: "anchalee@ptt.co.th", phone: "088-901-2345", avatar: "https://ui-avatars.com/api/?name=อัญชลี+มีชัย&background=19b7ff&color=fff", shiftId: 19, otRate: 250, category: "ร้านเชสเตอร์" },
-  { id: 19, code: "EMP-0019", name: "สุภาพ เชสเตอร์", dept: "ร้านเชสเตอร์", position: "พนักงานร้าน", status: "Active", startDate: "2024-01-20", email: "supap@ptt.co.th", phone: "099-012-3456", avatar: "https://ui-avatars.com/api/?name=สุภาพ+เชสเตอร์&background=19b7ff&color=fff", shiftId: 20, otRate: 240, category: "ร้านเชสเตอร์" },
-  // Amazon
-  { id: 20, code: "EMP-0020", name: "อภิชัย อเมซอน", dept: "Amazon", position: "พนักงาน", status: "Active", startDate: "2024-06-01", email: "apichai@ptt.co.th", phone: "010-123-4567", avatar: "https://ui-avatars.com/api/?name=อภิชัย+อเมซอน&background=2867e0&color=fff", shiftId: 21, otRate: 220, category: "Amazon" },
-  { id: 21, code: "EMP-0021", name: "วิไล อเมซอน", dept: "Amazon", position: "พนักงาน", status: "Active", startDate: "2024-07-10", email: "wilai@ptt.co.th", phone: "011-234-5678", avatar: "https://ui-avatars.com/api/?name=วิไล+อเมซอน&background=19b7ff&color=fff", shiftId: 23, otRate: 210, category: "Amazon" },
-  { id: 22, code: "EMP-0022", name: "สมบูรณ์ อเมซอน", dept: "Amazon", position: "พนักงาน", status: "Active", startDate: "2024-05-15", email: "sombun@ptt.co.th", phone: "012-345-6789", avatar: "https://ui-avatars.com/api/?name=สมบูรณ์+อเมซอน&background=e41f2b&color=fff", shiftId: 25, otRate: 215, category: "Amazon" },
-  // FIT AUTO (ช่าง)
-  { id: 23, code: "EMP-0023", name: "ประเสริฐ ช่าง", dept: "ช่าง", position: "ช่างซ่อม", status: "Active", startDate: "2023-10-01", email: "prasert2@ptt.co.th", phone: "013-456-7890", avatar: "https://ui-avatars.com/api/?name=ประเสริฐ+ช่าง&background=2867e0&color=fff", shiftId: 7, otRate: 280, category: "ช่าง" },
-  { id: 24, code: "EMP-0024", name: "สมชาย ช่าง", dept: "ช่าง", position: "ช่างซ่อม", status: "Active", startDate: "2024-01-05", email: "somchai2@ptt.co.th", phone: "014-567-8901", avatar: "https://ui-avatars.com/api/?name=สมชาย+ช่าง&background=e41f2b&color=fff", shiftId: 7, otRate: 270, category: "ช่าง" },
-  // แม่บ้าน
-  { id: 9, code: "EMP-0009", name: "วิภา รักษ์สุข", dept: "แม่บ้าน", position: "หัวหน้าแม่บ้าน", status: "Active", startDate: "2022-03-01", email: "wipa@ptt.co.th", phone: "089-012-3456", avatar: "https://ui-avatars.com/api/?name=วิภา+รักษ์สุข&background=19b7ff&color=fff", shiftId: 8, otRate: 180, category: "แม่บ้าน" },
-  { id: 12, code: "EMP-0012", name: "กมลชนก ใสสะอาด", dept: "แม่บ้าน", position: "แม่บ้าน", status: "Active", startDate: "2023-08-10", email: "kamolchanok@ptt.co.th", phone: "092-345-6789", avatar: "https://ui-avatars.com/api/?name=กมลชนก+ใสสะอาด&background=19b7ff&color=fff", shiftId: 9, otRate: 170, category: "แม่บ้าน" },
-  { id: 25, code: "EMP-0025", name: "สมศรี แม่บ้าน", dept: "แม่บ้าน", position: "แม่บ้าน", status: "Active", startDate: "2024-03-01", email: "somsri@ptt.co.th", phone: "015-678-9012", avatar: "https://ui-avatars.com/api/?name=สมศรี+แม่บ้าน&background=19b7ff&color=fff", shiftId: 10, otRate: 175, category: "แม่บ้าน" },
-  // บัญชี (Office)
-  { id: 26, code: "EMP-0026", name: "นิดา ออฟฟิศ", dept: "บัญชี", position: "พนักงานออฟฟิศ", status: "Active", startDate: "2022-01-10", email: "nida@ptt.co.th", phone: "016-789-0123", avatar: "https://ui-avatars.com/api/?name=นิดา+ออฟฟิศ&background=2867e0&color=fff", shiftId: 13, otRate: 250, category: "บัญชี" },
-  { id: 27, code: "EMP-0027", name: "ทา ออฟฟิศ", dept: "บัญชี", position: "พนักงานออฟฟิศ", status: "Active", startDate: "2021-12-15", email: "ta@ptt.co.th", phone: "017-890-1234", avatar: "https://ui-avatars.com/api/?name=ทา+ออฟฟิศ&background=19b7ff&color=fff", shiftId: 14, otRate: 260, category: "บัญชี" },
-  { id: 28, code: "EMP-0028", name: "สมเกียรติ ออฟฟิศ", dept: "บัญชี", position: "พนักงานออฟฟิศ", status: "Active", startDate: "2023-04-20", email: "somkiat2@ptt.co.th", phone: "018-901-2345", avatar: "https://ui-avatars.com/api/?name=สมเกียรติ+ออฟฟิศ&background=e41f2b&color=fff", shiftId: 15, otRate: 240, category: "บัญชี" },
-  // รปภ.
-  { id: 29, code: "EMP-0029", name: "ประยุทธ์ รปภ", dept: "รปภ.", position: "รปภ", status: "Active", startDate: "2023-07-01", email: "prayut2@ptt.co.th", phone: "019-012-3456", avatar: "https://ui-avatars.com/api/?name=ประยุทธ์+รปภ&background=2867e0&color=fff", shiftId: 11, otRate: 200, category: "รปภ." },
-  { id: 30, code: "EMP-0030", name: "สมชาย รปภ", dept: "รปภ.", position: "รปภ", status: "Active", startDate: "2024-02-10", email: "somchai3@ptt.co.th", phone: "020-123-4567", avatar: "https://ui-avatars.com/api/?name=สมชาย+รปภ&background=e41f2b&color=fff", shiftId: 12, otRate: 210, category: "รปภ." },
-  // คนสวน
-  { id: 31, code: "EMP-0031", name: "ประเสริฐ คนสวน", dept: "คนสวน", position: "คนสวน", status: "Active", startDate: "2023-09-15", email: "prasert3@ptt.co.th", phone: "021-234-5678", avatar: "https://ui-avatars.com/api/?name=ประเสริฐ+คนสวน&background=2867e0&color=fff", shiftId: 36, otRate: 180, category: "คนสวน" },
-  // ขับรถ
-  { id: 32, code: "EMP-0032", name: "สมศักดิ์ ขับรถ", dept: "ขับรถ", position: "คนขับรถ", status: "Active", startDate: "2023-11-20", email: "somsak2@ptt.co.th", phone: "022-345-6789", avatar: "https://ui-avatars.com/api/?name=สมศักดิ์+ขับรถ&background=19b7ff&color=fff", shiftId: 37, otRate: 220, category: "ขับรถ" }
+  // หน้าลาน (น้ำมัน) - กลางวัน (Branch 1)
+  { id: 1, code: "EMP-0001", name: "สมชาย ใจดี", dept: "หน้าลาน (เติมน้ำมัน)", position: "หัวหน้าปั๊ม", status: "Active", startDate: "2023-06-01", email: "somchai@ptt.co.th", phone: "081-234-5678", avatar: "https://ui-avatars.com/api/?name=สมชาย+ใจดี&background=2867e0&color=fff", shiftId: 1, otRate: 250, category: "หน้าลาน (เติมน้ำมัน)", branchId: 1 },
+  { id: 2, code: "EMP-0002", name: "สมหญิง รักงาน", dept: "หน้าลาน (เติมน้ำมัน)", position: "แคชเชียร์", status: "Active", startDate: "2022-11-15", email: "somying@ptt.co.th", phone: "082-345-6789", avatar: "https://ui-avatars.com/api/?name=สมหญิง+รักงาน&background=19b7ff&color=fff", shiftId: 38, otRate: 200, category: "หน้าลาน (เติมน้ำมัน)", branchId: 1 },
+  { id: 3, code: "EMP-0003", name: "วรพล ตั้งใจ", dept: "หน้าลาน (เติมน้ำมัน)", position: "พนักงานปั๊ม", status: "Active", startDate: "2024-01-10", email: "worapol@ptt.co.th", phone: "083-456-7890", avatar: "https://ui-avatars.com/api/?name=วรพล+ตั้งใจ&background=e41f2b&color=fff", shiftId: 39, otRate: 220, category: "หน้าลาน (เติมน้ำมัน)", branchId: 1 },
+  // หน้าลาน (น้ำมัน) - กลางคืน (Branch 2)
+  { id: 13, code: "EMP-0013", name: "ประยุทธ์ กลางคืน", dept: "หน้าลาน (เติมน้ำมัน)", position: "พนักงานปั๊ม", status: "Active", startDate: "2023-05-01", email: "prayut@ptt.co.th", phone: "093-456-7890", avatar: "https://ui-avatars.com/api/?name=ประยุทธ์+กลางคืน&background=2867e0&color=fff", shiftId: 43, otRate: 230, category: "หน้าลาน (เติมน้ำมัน)", branchId: 2 },
+  { id: 14, code: "EMP-0014", name: "สุรชัย ดึก", dept: "หน้าลาน (เติมน้ำมัน)", position: "พนักงานปั๊ม", status: "Active", startDate: "2023-08-15", email: "surachai@ptt.co.th", phone: "094-567-8901", avatar: "https://ui-avatars.com/api/?name=สุรชัย+ดึก&background=19b7ff&color=fff", shiftId: 44, otRate: 240, category: "หน้าลาน (เติมน้ำมัน)", branchId: 2 },
+  // 7-Eleven (Branch 1 & 2 Mixed)
+  { id: 4, code: "EMP-0004", name: "กิตติคุณ ใฝ่รู้", dept: "เซเว่น", position: "พนักงานร้าน", status: "Active", startDate: "2024-03-20", email: "kittikun@ptt.co.th", phone: "084-567-8901", avatar: "https://ui-avatars.com/api/?name=กิตติคุณ+ใฝ่รู้&background=2867e0&color=fff", shiftId: 27, otRate: 180, category: "เซเว่น", branchId: 1 },
+  { id: 15, code: "EMP-0015", name: "นันทนา เซเว่น", dept: "เซเว่น", position: "พนักงานร้าน", status: "Active", startDate: "2024-04-10", email: "nantana@ptt.co.th", phone: "095-678-9012", avatar: "https://ui-avatars.com/api/?name=นันทนา+เซเว่น&background=19b7ff&color=fff", shiftId: 28, otRate: 190, category: "เซเว่น", branchId: 2 },
+  { id: 16, code: "EMP-0016", name: "วิชัย ดึก", dept: "เซเว่น", position: "พนักงานร้าน", status: "Active", startDate: "2023-12-01", email: "wichai@ptt.co.th", phone: "096-789-0123", avatar: "https://ui-avatars.com/api/?name=วิชัย+ดึก&background=e41f2b&color=fff", shiftId: 29, otRate: 200, category: "เซเว่น", branchId: 1 },
+  // ร้านของฝาก (ปึงหงี่เซียง) (Branch 1)
+  { id: 5, code: "EMP-0005", name: "พิมพ์ชนก สมใจ", dept: "ปึงหงี่เซียง", position: "หัวหน้าร้าน", status: "Active", startDate: "2021-08-05", email: "pimchanok@ptt.co.th", phone: "085-678-9012", avatar: "https://ui-avatars.com/api/?name=พิมพ์ชนก+สมใจ&background=19b7ff&color=fff", shiftId: 16, otRate: 300, category: "ปึงหงี่เซียง", branchId: 1 },
+  { id: 17, code: "EMP-0017", name: "รัตนา ปึงหงี่", dept: "ปึงหงี่เซียง", position: "พนักงานร้าน", status: "Active", startDate: "2024-02-20", email: "rattana@ptt.co.th", phone: "097-890-1234", avatar: "https://ui-avatars.com/api/?name=รัตนา+ปึงหงี่&background=19b7ff&color=fff", shiftId: 18, otRate: 200, category: "ปึงหงี่เซียง", branchId: 1 },
+  // เจ้าสัว (Branch 2)
+  { id: 6, code: "EMP-0006", name: "ธีรภัทร แข็งแรง", dept: "เจ้าสัว", position: "พนักงานร้าน", status: "Active", startDate: "2023-02-14", email: "teerabhat@ptt.co.th", phone: "086-789-0123", avatar: "https://ui-avatars.com/api/?name=ธีรภัทร+แข็งแรง&background=2867e0&color=fff", shiftId: 33, otRate: 190, category: "เจ้าสัว", branchId: 2 },
+  // ร้านเจียง (Branch 1)
+  { id: 7, code: "EMP-0007", name: "ประเสริฐ ดีงาม", dept: "ร้านเจียง", position: "พนักงานร้าน", status: "Active", startDate: "2024-05-01", email: "prasert@ptt.co.th", phone: "087-890-1234", avatar: "https://ui-avatars.com/api/?name=ประเสริฐ+ดีงาม&background=e41f2b&color=fff", shiftId: 30, otRate: 200, category: "ร้านเจียง", branchId: 1 },
+  { id: 18, code: "EMP-0018", name: "สมศักดิ์ เจียง", dept: "ร้านเจียง", position: "พนักงานร้าน", status: "Active", startDate: "2024-03-15", email: "somsak@ptt.co.th", phone: "098-901-2345", avatar: "https://ui-avatars.com/api/?name=สมศักดิ์+เจียง&background=2867e0&color=fff", shiftId: 31, otRate: 195, category: "ร้านเจียง", branchId: 1 },
+  // Chester's (Branch 2)
+  { id: 8, code: "EMP-0008", name: "อัญชลี มีชัย", dept: "ร้านเชสเตอร์", position: "พนักงานร้าน", status: "Active", startDate: "2023-09-10", email: "anchalee@ptt.co.th", phone: "088-901-2345", avatar: "https://ui-avatars.com/api/?name=อัญชลี+มีชัย&background=19b7ff&color=fff", shiftId: 19, otRate: 250, category: "ร้านเชสเตอร์", branchId: 2 },
+  { id: 19, code: "EMP-0019", name: "สุภาพ เชสเตอร์", dept: "ร้านเชสเตอร์", position: "พนักงานร้าน", status: "Active", startDate: "2024-01-20", email: "supap@ptt.co.th", phone: "099-012-3456", avatar: "https://ui-avatars.com/api/?name=สุภาพ+เชสเตอร์&background=19b7ff&color=fff", shiftId: 20, otRate: 240, category: "ร้านเชสเตอร์", branchId: 2 },
+  // Amazon (Mixed)
+  { id: 20, code: "EMP-0020", name: "อภิชัย อเมซอน", dept: "Amazon", position: "พนักงาน", status: "Active", startDate: "2024-06-01", email: "apichai@ptt.co.th", phone: "010-123-4567", avatar: "https://ui-avatars.com/api/?name=อภิชัย+อเมซอน&background=2867e0&color=fff", shiftId: 21, otRate: 220, category: "Amazon", branchId: 1 },
+  { id: 21, code: "EMP-0021", name: "วิไล อเมซอน", dept: "Amazon", position: "พนักงาน", status: "Active", startDate: "2024-07-10", email: "wilai@ptt.co.th", phone: "011-234-5678", avatar: "https://ui-avatars.com/api/?name=วิไล+อเมซอน&background=19b7ff&color=fff", shiftId: 23, otRate: 210, category: "Amazon", branchId: 2 },
+  { id: 22, code: "EMP-0022", name: "สมบูรณ์ อเมซอน", dept: "Amazon", position: "พนักงาน", status: "Active", startDate: "2024-05-15", email: "sombun@ptt.co.th", phone: "012-345-6789", avatar: "https://ui-avatars.com/api/?name=สมบูรณ์+อเมซอน&background=e41f2b&color=fff", shiftId: 25, otRate: 215, category: "Amazon", branchId: 1 },
+  // FIT AUTO (Branch 2)
+  { id: 23, code: "EMP-0023", name: "ประเสริฐ ช่าง", dept: "ช่าง", position: "ช่างซ่อม", status: "Active", startDate: "2023-10-01", email: "prasert2@ptt.co.th", phone: "013-456-7890", avatar: "https://ui-avatars.com/api/?name=ประเสริฐ+ช่าง&background=2867e0&color=fff", shiftId: 7, otRate: 280, category: "ช่าง", branchId: 2 },
+  { id: 24, code: "EMP-0024", name: "สมชาย ช่าง", dept: "ช่าง", position: "ช่างซ่อม", status: "Active", startDate: "2024-01-05", email: "somchai2@ptt.co.th", phone: "014-567-8901", avatar: "https://ui-avatars.com/api/?name=สมชาย+ช่าง&background=e41f2b&color=fff", shiftId: 7, otRate: 270, category: "ช่าง", branchId: 2 },
+  // แม่บ้าน (Mixed)
+  { id: 9, code: "EMP-0009", name: "วิภา รักษ์สุข", dept: "แม่บ้าน", position: "หัวหน้าแม่บ้าน", status: "Active", startDate: "2022-03-01", email: "wipa@ptt.co.th", phone: "089-012-3456", avatar: "https://ui-avatars.com/api/?name=วิภา+รักษ์สุข&background=19b7ff&color=fff", shiftId: 8, otRate: 180, category: "แม่บ้าน", branchId: 1 },
+  { id: 12, code: "EMP-0012", name: "กมลชนก ใสสะอาด", dept: "แม่บ้าน", position: "แม่บ้าน", status: "Active", startDate: "2023-08-10", email: "kamolchanok@ptt.co.th", phone: "092-345-6789", avatar: "https://ui-avatars.com/api/?name=กมลชนก+ใสสะอาด&background=19b7ff&color=fff", shiftId: 9, otRate: 170, category: "แม่บ้าน", branchId: 2 },
+  { id: 25, code: "EMP-0025", name: "สมศรี แม่บ้าน", dept: "แม่บ้าน", position: "แม่บ้าน", status: "Active", startDate: "2024-03-01", email: "somsri@ptt.co.th", phone: "015-678-9012", avatar: "https://ui-avatars.com/api/?name=สมศรี+แม่บ้าน&background=19b7ff&color=fff", shiftId: 10, otRate: 175, category: "แม่บ้าน", branchId: 1 },
+  // บัญชี (Mixed)
+  { id: 26, code: "EMP-0026", name: "นิดา ออฟฟิศ", dept: "บัญชี", position: "พนักงานออฟฟิศ", status: "Active", startDate: "2022-01-10", email: "nida@ptt.co.th", phone: "016-789-0123", avatar: "https://ui-avatars.com/api/?name=นิดา+ออฟฟิศ&background=2867e0&color=fff", shiftId: 13, otRate: 250, category: "บัญชี", branchId: 1 },
+  { id: 27, code: "EMP-0027", name: "ทา ออฟฟิศ", dept: "บัญชี", position: "พนักงานออฟฟิศ", status: "Active", startDate: "2021-12-15", email: "ta@ptt.co.th", phone: "017-890-1234", avatar: "https://ui-avatars.com/api/?name=ทา+ออฟฟิศ&background=19b7ff&color=fff", shiftId: 14, otRate: 260, category: "บัญชี", branchId: 2 },
+  { id: 28, code: "EMP-0028", name: "สมเกียรติ ออฟฟิศ", dept: "บัญชี", position: "พนักงานออฟฟิศ", status: "Active", startDate: "2023-04-20", email: "somkiat2@ptt.co.th", phone: "018-901-2345", avatar: "https://ui-avatars.com/api/?name=สมเกียรติ+ออฟฟิศ&background=e41f2b&color=fff", shiftId: 15, otRate: 240, category: "บัญชี", branchId: 1 },
+  // รปภ. (Branch 2)
+  { id: 29, code: "EMP-0029", name: "ประยุทธ์ รปภ", dept: "รปภ.", position: "รปภ", status: "Active", startDate: "2023-07-01", email: "prayut2@ptt.co.th", phone: "019-012-3456", avatar: "https://ui-avatars.com/api/?name=ประยุทธ์+รปภ&background=2867e0&color=fff", shiftId: 11, otRate: 200, category: "รปภ.", branchId: 2 },
+  { id: 30, code: "EMP-0030", name: "สมชาย รปภ", dept: "รปภ.", position: "รปภ", status: "Active", startDate: "2024-02-10", email: "somchai3@ptt.co.th", phone: "020-123-4567", avatar: "https://ui-avatars.com/api/?name=สมชาย+รปภ&background=e41f2b&color=fff", shiftId: 12, otRate: 210, category: "รปภ.", branchId: 2 },
+  // คนสวน (Branch 1)
+  { id: 31, code: "EMP-0031", name: "ประเสริฐ คนสวน", dept: "คนสวน", position: "คนสวน", status: "Active", startDate: "2023-09-15", email: "prasert3@ptt.co.th", phone: "021-234-5678", avatar: "https://ui-avatars.com/api/?name=ประเสริฐ+คนสวน&background=2867e0&color=fff", shiftId: 36, otRate: 180, category: "คนสวน", branchId: 1 },
+  // ขับรถ (Branch 2)
+  { id: 32, code: "EMP-0032", name: "สมศักดิ์ ขับรถ", dept: "ขับรถ", position: "คนขับรถ", status: "Active", startDate: "2023-11-20", email: "somsak2@ptt.co.th", phone: "022-345-6789", avatar: "https://ui-avatars.com/api/?name=สมศักดิ์+ขับรถ&background=19b7ff&color=fff", shiftId: 37, otRate: 220, category: "ขับรถ", branchId: 2 }
 ];
 
 // Mock drivers for TruckOrders page (filtered from employees)
@@ -210,7 +213,7 @@ const generateAttendanceLogs = (empCode: string, empName: string, shiftId: numbe
       else if (lateMins <= 5) status = "สาย 5 นาที";
       else status = "สาย 15 นาที";
       lateMinutes = lateMins;
-      
+
       // เพิ่มเวลา checkout เล็กน้อยถ้ามาสาย
       if (checkOut !== "-") {
         const [outHour, outMin] = checkOut.split(':').map(Number);
@@ -223,13 +226,13 @@ const generateAttendanceLogs = (empCode: string, empName: string, shiftId: numbe
       // On time - เพิ่มความหลากหลายของเวลาเข้า-ออก
       const [inHour, inMin] = shift.startTime.split(':').map(Number);
       const [outHour, outMin] = shift.endTime.split(':').map(Number);
-      
+
       // เพิ่มความหลากหลายของเวลาเข้า (อาจมาเร็วหรือช้าเล็กน้อย)
       const inVariation = Math.floor(Math.random() * 10) - 5; // -5 ถึง +5 นาที
       const newInMin = inMin + inVariation;
       const newInHour = inHour + Math.floor(newInMin / 60);
       checkIn = `${String((newInHour % 24 + 24) % 24).padStart(2, '0')}:${String((newInMin % 60 + 60) % 60).padStart(2, '0')}`;
-      
+
       // เพิ่มความหลากหลายของเวลาออก (อาจออกเร็วหรือช้าเล็กน้อย)
       const outVariation = Math.floor(Math.random() * 20) - 10; // -10 ถึง +10 นาที
       const newOutMin = outMin + outVariation;

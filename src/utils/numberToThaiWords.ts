@@ -1,5 +1,6 @@
 // Utility function: แปลงตัวเลขเป็นคำอ่านภาษาไทย
 // ใช้สำหรับใบเสร็จรับเงิน/ใบกำกับภาษี
+/* eslint-disable security/detect-object-injection */
 
 export function convertNumberToThaiWords(amount: number): string {
   const baht = Math.floor(amount);

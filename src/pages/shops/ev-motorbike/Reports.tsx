@@ -80,8 +80,7 @@ const profitLossDataByBranch: Record<string, {
 };
 
 // Calculate totals across all branches
-const totalProfitLoss = branches.reduce((acc, branch) => {
-  const data = profitLossDataByBranch[branch];
+const totalProfitLoss = Object.values(profitLossDataByBranch).reduce((acc, data) => {
   acc.revenue += data.revenue;
   acc.cost += data.cost;
   acc.profit += data.profit;
@@ -101,24 +100,23 @@ const topSellingItems = [
 export default function Reports() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "ร้านมอเตอร์ไซค์ไฟฟ้า (EV Motorbike Shop)";
-  
+
   const [selectedBranch, setSelectedBranch] = useState<string>("ทั้งหมด");
   const [reportPeriod, setReportPeriod] = useState<string>("เดือนนี้");
 
-  const displayData = selectedBranch === "ทั้งหมด" 
-    ? totalProfitLoss 
-    : profitLossDataByBranch[selectedBranch];
+  const displayData = selectedBranch === "ทั้งหมด"
+    ? totalProfitLoss
+    : Object.entries(profitLossDataByBranch).find(([key]) => key === selectedBranch)?.[1] || totalProfitLoss;
 
   const displayByProduct = selectedBranch === "ทั้งหมด"
-    ? branches.reduce((acc, branch) => {
-        const data = profitLossDataByBranch[branch];
-        acc.scooter += data.byProduct.scooter;
-        acc.motorbike += data.byProduct.motorbike;
-        acc.bicycle += data.byProduct.bicycle;
-        acc.parts += data.byProduct.parts;
-        return acc;
-      }, { scooter: 0, motorbike: 0, bicycle: 0, parts: 0 })
-    : profitLossDataByBranch[selectedBranch].byProduct;
+    ? Object.values(profitLossDataByBranch).reduce((acc, data) => {
+      acc.scooter += data.byProduct.scooter;
+      acc.motorbike += data.byProduct.motorbike;
+      acc.bicycle += data.byProduct.bicycle;
+      acc.parts += data.byProduct.parts;
+      return acc;
+    }, { scooter: 0, motorbike: 0, bicycle: 0, parts: 0 })
+    : Object.entries(profitLossDataByBranch).find(([key]) => key === selectedBranch)?.[1]?.byProduct || { scooter: 0, motorbike: 0, bicycle: 0, parts: 0 };
 
   return (
     <div className="space-y-6">
@@ -137,8 +135,9 @@ export default function Reports() {
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="flex gap-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">สาขา</label>
+            <label htmlFor="branch-select" className="block text-sm font-medium text-app mb-2">สาขา</label>
             <select
+              id="branch-select"
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
               className="px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -152,8 +151,9 @@ export default function Reports() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ช่วงเวลา</label>
+            <label htmlFor="period-select" className="block text-sm font-medium text-app mb-2">ช่วงเวลา</label>
             <select
+              id="period-select"
               value={reportPeriod}
               onChange={(e) => setReportPeriod(e.target.value)}
               className="px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -287,8 +287,8 @@ export default function Reports() {
         </div>
         <div className="space-y-3">
           {branches.map((branch) => {
-            const data = profitLossDataByBranch[branch];
-            const maxRevenue = Math.max(...branches.map((b) => profitLossDataByBranch[b].revenue));
+            const data = Object.entries(profitLossDataByBranch).find(([key]) => key === branch)?.[1] || profitLossDataByBranch["สาขา A"];
+            const maxRevenue = Math.max(...Object.values(profitLossDataByBranch).map(d => d.revenue));
             const percentage = (data.revenue / maxRevenue) * 100;
             return (
               <div key={branch} className="space-y-2">
@@ -332,11 +332,10 @@ export default function Reports() {
               className="flex items-center justify-between p-4 bg-soft rounded-xl border border-app"
             >
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  index === 0 ? "bg-ptt-blue/20 text-ptt-cyan" :
-                  index === 1 ? "bg-emerald-500/20 text-emerald-400" :
-                  "bg-muted/20 text-muted"
-                }`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${index === 0 ? "bg-ptt-blue/20 text-ptt-cyan" :
+                    index === 1 ? "bg-emerald-500/20 text-emerald-400" :
+                      "bg-muted/20 text-muted"
+                  }`}>
                   <span className="text-sm font-bold">{index + 1}</span>
                 </div>
                 <div>

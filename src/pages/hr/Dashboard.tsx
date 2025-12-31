@@ -50,20 +50,48 @@ const formatMonthLabel = (month: string) => {
   });
 };
 
-export default function Dashboard() {
-  const totalEmployees = employees.length;
-  const activeEmployees = employees.filter((emp) => emp.status === "Active").length;
-  const leaveEmployees = employees.filter((emp) => emp.status === "Leave").length;
-  const resignedEmployees = employees.filter((emp) => emp.status === "Resigned").length;
-  const departments = Array.from(new Set(employees.map((emp) => emp.dept)));
+import { useBranch } from "@/contexts/BranchContext";
 
-  const latestAttendanceDate = attendanceLogs.reduce((latest, log) => {
+// ... (other codes)
+
+export default function Dashboard() {
+  const { selectedBranches } = useBranch();
+
+  // Filter Data based on Branch
+  const filteredEmployees = employees.filter((emp) =>
+    selectedBranches.includes(String(emp.branchId))
+  );
+  const filteredEmployeeCodes = new Set(filteredEmployees.map((e) => e.code));
+
+  const filteredAttendanceLogs = attendanceLogs.filter((log) =>
+    filteredEmployeeCodes.has(log.empCode)
+  );
+
+  const filteredLeaves = leaves.filter((leave) =>
+    filteredEmployeeCodes.has(leave.empCode)
+  );
+
+  const filteredPayroll = payroll.filter((slip) =>
+    filteredEmployeeCodes.has(slip.empCode)
+  );
+
+  const filteredEvaluations = evaluations.filter((ev) =>
+    filteredEmployeeCodes.has(ev.empCode)
+  );
+
+  const totalEmployees = filteredEmployees.length;
+  const activeEmployees = filteredEmployees.filter((emp) => emp.status === "Active").length;
+  const leaveEmployees = filteredEmployees.filter((emp) => emp.status === "Leave").length;
+  const resignedEmployees = filteredEmployees.filter((emp) => emp.status === "Resigned").length;
+  const departments = Array.from(new Set(filteredEmployees.map((emp) => emp.dept)));
+
+  const latestAttendanceDate = filteredAttendanceLogs.reduce((latest, log) => {
     if (!latest) return log.date;
     return log.date > latest ? log.date : latest;
   }, "");
   const referenceDate = latestAttendanceDate ? new Date(latestAttendanceDate) : new Date();
 
-  const attendanceToday = attendanceLogs.filter((log) => log.date === latestAttendanceDate);
+  const attendanceToday = filteredAttendanceLogs.filter((log) => log.date === latestAttendanceDate);
   const lateEmployees = attendanceToday.filter((log) => log.status.includes("สาย"));
   const absentEmployees = attendanceToday.filter(
     (log) => log.status === "ลา" || log.status === "ขาดงาน",
@@ -71,24 +99,24 @@ export default function Dashboard() {
   const totalOtHours = attendanceToday.reduce((sum, log) => sum + (log.otHours ?? 0), 0);
   const totalOtAmount = attendanceToday.reduce((sum, log) => sum + (log.otAmount ?? 0), 0);
 
-  const pendingLeaves = leaves.filter((leave) => leave.status === "รอผู้จัดการ" || leave.status === "รอ HR" || leave.status === "รอหัวหน้าสถานี");
-  const upcomingLeaves = leaves
+  const pendingLeaves = filteredLeaves.filter((leave) => leave.status === "รอผู้จัดการ" || leave.status === "รอ HR" || leave.status === "รอหัวหน้าสถานี");
+  const upcomingLeaves = filteredLeaves
     .filter((leave) => new Date(leave.fromDate) >= referenceDate)
     .sort((a, b) => (a.fromDate > b.fromDate ? 1 : -1));
 
-  const latestPayrollMonth = payroll.reduce((latest, slip) => {
+  const latestPayrollMonth = filteredPayroll.reduce((latest, slip) => {
     if (!latest) return slip.month;
     return slip.month > latest ? slip.month : latest;
   }, "");
 
-  const payrollLatest = payroll.filter((slip) => slip.month === latestPayrollMonth);
+  const payrollLatest = filteredPayroll.filter((slip) => slip.month === latestPayrollMonth);
   const netPayroll = payrollLatest.reduce((sum, slip) => sum + slip.net, 0);
   const averageSalary = payrollLatest.reduce((sum, slip) => sum + slip.salary, 0) /
     (payrollLatest.length || 1);
 
   const departmentDistribution = departments
     .map((dept) => {
-      const count = employees.filter((emp) => emp.dept === dept).length;
+      const count = filteredEmployees.filter((emp) => emp.dept === dept).length;
       return {
         dept,
         count,
@@ -97,7 +125,7 @@ export default function Dashboard() {
     })
     .sort((a, b) => b.count - a.count);
 
-  const topEvaluations = evaluations
+  const topEvaluations = filteredEvaluations
     .slice()
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
@@ -202,7 +230,7 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="rounded-xl bg-soft border-app p-4">
-              <p className="text-sm text-muted">เข้า "ตรงเวลา"</p>
+              <p className="text-sm text-muted">เข้า &quot;ตรงเวลา&quot;</p>
               <p className="text-lg font-semibold text-app">
                 {numberFormatter.format(attendanceToday.length - lateEmployees.length - absentEmployees.length)} คน
               </p>
@@ -234,9 +262,8 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <span
-                  className={`px-4 py-1 text-xs font-medium rounded-full ${
-                    statusStyles[log.status] ?? "bg-muted/10 text-muted border border-muted/20"
-                  }`}
+                  className={`px-4 py-1 text-xs font-medium rounded-full ${statusStyles[log.status] ?? "bg-muted/10 text-muted border border-muted/20"
+                    }`}
                 >
                   {log.status}
                 </span>

@@ -1,10 +1,25 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Clock, CheckCircle, AlertCircle, Users, Plus, FileText, ChevronLeft, ChevronRight, ArrowRightLeft, BarChart3, XCircle, Trash2 } from "lucide-react";
-import { attendanceLogs as initialAttendanceLogs, employees, shifts, shiftAssignments, type AttendanceLog } from "@/data/mockData";
+import { attendanceLogs as initialAttendanceLogs, employees as initialEmployees, shifts, shiftAssignments, type AttendanceLog } from "@/data/mockData";
+import { useBranch } from "@/contexts/BranchContext";
 
 export default function Attendance() {
-  const [attendanceLogs] = useState<AttendanceLog[]>(initialAttendanceLogs);
+  const { selectedBranches } = useBranch();
+
+  // Filter core data based on branch first
+  const employees = useMemo(() =>
+    initialEmployees.filter(emp => selectedBranches.includes(String(emp.branchId))),
+    [selectedBranches]
+  );
+
+  const empCodes = useMemo(() => new Set(employees.map(e => e.code)), [employees]);
+
+  const attendanceLogs = useMemo(() =>
+    initialAttendanceLogs.filter(log => empCodes.has(log.empCode)),
+    [empCodes]
+  );
+
   const [_filteredLogs, setFilteredLogs] = useState<AttendanceLog[]>(attendanceLogs);
   const [searchQuery] = useState("");
   const [statusFilter] = useState("");
@@ -18,7 +33,7 @@ export default function Attendance() {
     date: Date;
     log: AttendanceLog | null;
   } | null>(null);
-  
+
   // Calendar view states
   const [viewMode, setViewMode] = useState<"list" | "calendar">("calendar");
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
@@ -47,14 +62,14 @@ export default function Attendance() {
     otHours: "",
     reason: ""
   });
-  
+
   // Shift plan modal states
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [selectedShiftDate, setSelectedShiftDate] = useState<{ date: Date; shift: typeof shifts[0] } | null>(null);
   const [assignEmployeeForm, setAssignEmployeeForm] = useState({
     empCode: ""
   });
-  
+
   // Holiday management states
   const [isHolidayModalOpen, setIsHolidayModalOpen] = useState(false);
   const [holidays, setHolidays] = useState<Array<{ id: number; date: string; name: string; type: "holiday" | "special" }>>(() => {
@@ -76,7 +91,7 @@ export default function Attendance() {
     name: "",
     type: "holiday" as "holiday" | "special"
   });
-  
+
   // Employee-specific holiday states
   const [selectedHolidayDate, setSelectedHolidayDate] = useState<string>("");
   const [selectedHolidayCategory, setSelectedHolidayCategory] = useState<string>("");
@@ -89,14 +104,12 @@ export default function Attendance() {
     category: string;
     reason?: string;
   }>>([]);
-  
+
   const shiftPlanRef = useRef<HTMLDivElement | null>(null);
   const shiftColorPalette = ["bg-green-500/20", "bg-blue-500/20", "bg-purple-500/20", "bg-orange-500/20", "bg-ptt-cyan/20"];
-  
+
   // Track edited cells (empCode-date string)
   const [editedCells, setEditedCells] = useState<Set<string>>(new Set());
-
-
 
   const handleFilter = () => {
     let filtered = attendanceLogs;
@@ -130,6 +143,7 @@ export default function Attendance() {
     setFilteredLogs(filtered);
   };
 
+
   useEffect(() => {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -143,12 +157,12 @@ export default function Attendance() {
     const days: Date[] = [];
     // Get the last day of the current month
     const lastDay = new Date(year, month + 1, 0).getDate();
-    
+
     // Days from 1st to last day of current month
     for (let day = 1; day <= lastDay; day++) {
       days.push(new Date(year, month, day));
     }
-    
+
     return days;
   };
 
@@ -156,7 +170,7 @@ export default function Attendance() {
   const getCalendarData = () => {
     const [year, month] = selectedMonth.split('-').map(Number);
     const days = getDaysInMonth(year, month - 1);
-    
+
     // Filter employees by category and shift
     let filteredEmployees = employees.filter(emp => emp.status === "Active");
     if (selectedCategory) {
@@ -165,7 +179,7 @@ export default function Attendance() {
     if (selectedShift !== "") {
       filteredEmployees = filteredEmployees.filter(emp => emp.shiftId === selectedShift);
     }
-    
+
     // Get attendance for each employee for each day
     const calendarData = filteredEmployees.map(emp => {
       const empShift = emp.shiftId ? shifts.find(s => s.id === emp.shiftId) : null;
@@ -174,7 +188,7 @@ export default function Attendance() {
         const log = attendanceLogs.find(
           l => l.empCode === emp.code && l.date === dateStr
         );
-        
+
         return {
           date: dateStr,
           day: day.getDate(),
@@ -184,14 +198,14 @@ export default function Attendance() {
           checkOut: log?.checkOut || null
         };
       });
-      
+
       return {
         employee: emp,
         shift: empShift,
         attendance: empAttendance
       };
     });
-    
+
     return { days, calendarData };
   };
 
@@ -201,19 +215,19 @@ export default function Attendance() {
     const { days, calendarData } = getCalendarData();
     const categoryName = selectedCategory || "ทั้งหมด";
     const monthName = new Date(selectedMonth + '-01').toLocaleDateString('th-TH', { year: 'numeric', month: 'long' });
-    
+
     // Create report data
     let reportText = `รายงานการลงเวลา - แผนก${categoryName}\n`;
     reportText += `เดือน: ${monthName}\n`;
     reportText += `วันที่พิมพ์: ${new Date().toLocaleDateString('th-TH')}\n\n`;
     reportText += `="NO","ชื่อ-สกุล","แผนก"`;
-    
+
     // Add date headers
     days.forEach(day => {
       reportText += `,"${day.getDate()}"`;
     });
     reportText += `\n`;
-    
+
     // Add employee rows
     calendarData.forEach((data, index) => {
       reportText += `${index + 1},"${data.employee.name}","${data.employee.category || ''}"`;
@@ -236,7 +250,7 @@ export default function Attendance() {
       });
       reportText += `\n`;
     });
-    
+
     // Create and download file
     const blob = new Blob([reportText], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -277,8 +291,8 @@ export default function Attendance() {
     }));
 
   const totalWorkingHours = workingHoursData.reduce((sum, log) => sum + log.hours, 0);
-  const avgWorkingHours = workingHoursData.length > 0 
-    ? totalWorkingHours / workingHoursData.length 
+  const avgWorkingHours = workingHoursData.length > 0
+    ? totalWorkingHours / workingHoursData.length
     : 0;
 
   // Calculate late statistics
@@ -305,7 +319,7 @@ export default function Attendance() {
     const categoryEmployees = employees.filter(
       emp => emp.status === "Active" && emp.category === shift.category
     );
-    
+
     // Get employees who are assigned to this shift (from shiftAssignments)
     const assignedEmployees = shiftAssignments
       .filter(
@@ -317,7 +331,7 @@ export default function Attendance() {
       )
       .map(assignment => employees.find(emp => emp.code === assignment.empCode))
       .filter(Boolean) as typeof employees;
-    
+
     return {
       assigned: assignedEmployees,
       available: categoryEmployees.filter(emp => !assignedEmployees.find(ae => ae.code === emp.code))
@@ -359,7 +373,7 @@ export default function Attendance() {
       `กะ: ${selectedShiftDate.shift.name} (${selectedShiftDate.shift.startTime}-${selectedShiftDate.shift.endTime})\n` +
       `วันที่: ${selectedShiftDate.date.toLocaleDateString('th-TH')}`
     );
-    
+
     setAssignEmployeeForm({ empCode: "" });
     // Optionally close modal
     // handleCloseShiftModal();
@@ -370,7 +384,7 @@ export default function Attendance() {
     if (!selectedShiftDate) return;
 
     const { assigned } = getEmployeesForShift(selectedShiftDate.shift, selectedShiftDate.date);
-    
+
     if (assigned.length === 0) {
       alert("กรุณาเพิ่มพนักงานเข้ากะก่อนบันทึก");
       return;
@@ -482,10 +496,10 @@ export default function Attendance() {
   const isHoliday = (date: Date): boolean => {
     const dateStr = date.toISOString().split('T')[0];
     const dayOfWeek = date.getDay();
-    
+
     // ตรวจสอบวันหยุดสุดสัปดาห์
     if (dayOfWeek === 0 || dayOfWeek === 6) return true;
-    
+
     // ตรวจสอบวันหยุดพิเศษ
     return holidays.some(h => h.date === dateStr);
   };
@@ -517,7 +531,7 @@ export default function Attendance() {
     const newEmployeeHolidays = selectedHolidayEmployees.map(empCode => {
       const emp = employees.find(e => e.code === empCode);
       if (!emp) return null;
-      
+
       // ตรวจสอบว่ามีข้อมูลซ้ำหรือไม่
       const existing = employeeHolidays.find(
         eh => eh.date === selectedHolidayDate && eh.empCode === empCode
@@ -560,7 +574,7 @@ export default function Attendance() {
     }
 
     setSelectedCellData({ employee, date, log });
-    
+
     if (log) {
       setEditForm({
         checkIn: log.checkIn !== "-" ? log.checkIn : "",
@@ -580,7 +594,7 @@ export default function Attendance() {
       });
       setSelectedLog(null);
     }
-    
+
     setIsEditModalOpen(true);
   };
 
@@ -613,7 +627,7 @@ export default function Attendance() {
         const shiftMinutes = shiftHour * 60 + shiftMin;
         const checkMinutes = checkHour * 60 + checkMin;
         const lateMinutes = checkMinutes - shiftMinutes;
-        
+
         if (lateMinutes > 0) {
           if (lateMinutes <= 1) status = "สาย 1 นาที";
           else if (lateMinutes <= 5) status = "สาย 5 นาที";
@@ -648,11 +662,11 @@ export default function Attendance() {
     // For now, we'll just show a confirmation
     // Note: updatedLog is created but not used in this mock implementation
     void updatedLog;
-    
+
     // Mark this cell as edited
     const cellKey = `${employee.code}-${dateStr}`;
     setEditedCells(prev => new Set(prev).add(cellKey));
-    
+
     alert(
       `บันทึกข้อมูลสำเร็จ!\n\n` +
       `พนักงาน: ${employee.name} (${employee.code})\n` +
@@ -909,7 +923,7 @@ export default function Attendance() {
               </div>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead className="bg-soft border-b-2 border-app sticky top-0 z-10">
@@ -932,9 +946,8 @@ export default function Attendance() {
                     return (
                       <th
                         key={idx}
-                        className={`px-2 py-3 text-center text-xs font-semibold border-r border-app min-w-[50px] ${
-                          isWeekend ? "bg-red-500/30 text-red-700 dark:text-red-400" : "text-app"
-                        }`}
+                        className={`px-2 py-3 text-center text-xs font-semibold border-r border-app min-w-[50px] ${isWeekend ? "bg-red-500/30 text-red-700 dark:text-red-400" : "text-app"
+                          }`}
                       >
                         {day.getDate()}
                       </th>
@@ -986,7 +999,7 @@ export default function Attendance() {
                       const dateStr = day.toISOString().split('T')[0];
                       const cellKey = `${data.employee.code}-${dateStr}`;
                       const isEdited = editedCells.has(cellKey);
-                      
+
                       const getCellColor = () => {
                         if (isHolidayDay || isEmpHoliday) return "bg-gray-200/30";
                         if (!att.log) return "";
@@ -995,7 +1008,7 @@ export default function Attendance() {
                         if (att.status?.includes("สาย")) return "bg-orange-200/30";
                         return "";
                       };
-                      
+
                       const getCellContent = () => {
                         // ถ้าเป็นวันหยุดแสดง "off" (ทั้งวันหยุดทั่วไปและวันหยุดเฉพาะพนักงาน)
                         if (isHolidayDay || isEmpHoliday) {
@@ -1012,7 +1025,7 @@ export default function Attendance() {
                             </div>
                           );
                         }
-                        
+
                         if (!att.log) {
                           return (
                             <div className="flex flex-col gap-0.5">
@@ -1025,7 +1038,7 @@ export default function Attendance() {
                             </div>
                           );
                         }
-                        
+
                         if (att.status === "ลา") {
                           return (
                             <div className="flex flex-col gap-0.5">
@@ -1040,7 +1053,7 @@ export default function Attendance() {
                             </div>
                           );
                         }
-                        
+
                         if (att.status === "ขาดงาน") {
                           return (
                             <div className="flex flex-col gap-0.5">
@@ -1055,16 +1068,15 @@ export default function Attendance() {
                             </div>
                           );
                         }
-                        
+
                         // แสดงเวลาเข้าและเวลาออก
                         if (att.checkIn && att.checkOut && att.checkIn !== "-" && att.checkOut !== "-") {
                           return (
                             <div className="flex flex-col gap-0.5">
-                              <div className={`text-[9px] font-medium ${
-                                att.status?.includes("สาย") 
-                                  ? "text-orange-700 dark:text-orange-400" 
+                              <div className={`text-[9px] font-medium ${att.status?.includes("สาย")
+                                  ? "text-orange-700 dark:text-orange-400"
                                   : "text-green-700 dark:text-green-400"
-                              }`}>
+                                }`}>
                                 {att.checkIn.replace(':', '.')}
                               </div>
                               <div className="text-[9px] text-blue-700 dark:text-blue-400">
@@ -1078,16 +1090,15 @@ export default function Attendance() {
                             </div>
                           );
                         }
-                        
+
                         // ถ้ามีแค่เวลาเข้า
                         if (att.checkIn && att.checkIn !== "-") {
                           return (
                             <div className="flex flex-col gap-0.5">
-                              <div className={`text-[9px] font-medium ${
-                                att.status?.includes("สาย") 
-                                  ? "text-orange-700 dark:text-orange-400" 
+                              <div className={`text-[9px] font-medium ${att.status?.includes("สาย")
+                                  ? "text-orange-700 dark:text-orange-400"
                                   : "text-green-700 dark:text-green-400"
-                              }`}>
+                                }`}>
                                 {att.checkIn.replace(':', '.')}
                               </div>
                               {isEdited && (
@@ -1098,12 +1109,12 @@ export default function Attendance() {
                             </div>
                           );
                         }
-                        
+
                         return (
                           <div className="text-[9px] text-muted">-</div>
                         );
                       };
-                      
+
                       const getTooltip = () => {
                         if (isHolidayDay || isEmpHoliday) {
                           if (isEmpHoliday && !isHolidayDay) {
@@ -1120,14 +1131,13 @@ export default function Attendance() {
                         if (att.checkOut && att.checkOut !== "-") tooltip += `\nออก: ${att.checkOut}`;
                         return tooltip;
                       };
-                      
+
                       return (
                         <td
                           key={dayIndex}
                           onClick={() => handleCellClick(data.employee, day, att.log || null)}
-                          className={`px-2 py-2 text-center border-r border-app ${getCellColor()} ${
-                            !isHolidayDay && !isEmpHoliday ? "cursor-pointer hover:bg-soft/70 transition-colors" : ""
-                          }`}
+                          className={`px-2 py-2 text-center border-r border-app ${getCellColor()} ${!isHolidayDay && !isEmpHoliday ? "cursor-pointer hover:bg-soft/70 transition-colors" : ""
+                            }`}
                           title={getTooltip() + (!isHolidayDay && !isEmpHoliday ? "\n(คลิกเพื่อแก้ไข)" : "")}
                         >
                           {getCellContent()}
@@ -1139,13 +1149,13 @@ export default function Attendance() {
               </tbody>
             </table>
           </div>
-          
+
           {calendarData.length === 0 && (
             <div className="text-center py-12">
               <p className="text-muted font-light">ไม่พบข้อมูลพนักงานในแผนกที่เลือก</p>
             </div>
           )}
-          
+
           {/* Legend */}
           <div className="px-6 py-4 border-t border-app bg-soft">
             <div className="flex flex-wrap gap-4 text-xs">
@@ -1172,222 +1182,221 @@ export default function Attendance() {
 
       {/* Shift Plan Table - Hide in calendar view */}
       {viewMode === "list" && (
-      <motion.div
-        ref={shiftPlanRef}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
-      >
-        <div className="px-6 py-4 border-b border-app bg-soft">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
-                <ArrowRightLeft className="w-5 h-5 text-ptt-cyan" />
-                ตารางลงทะเบียนกะล่วงหน้า
-              </h3>
-              <p className="text-xs text-muted mt-1">
-                วางแผนการโยกย้ายกะในเดือนถัดไป (ข้อมูลจำลองเพื่อการทดสอบ)
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    const [year, month] = shiftPlanMonth.split('-').map(Number);
-                    const prevMonth = month === 1 ? 12 : month - 1;
-                    const prevYear = month === 1 ? year - 1 : year;
-                    setShiftPlanMonth(`${prevYear}-${String(prevMonth).padStart(2, '0')}`);
-                  }}
-                  className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4 text-app" />
-                </button>
-                <input
-                  type="month"
-                  value={shiftPlanMonth}
-                  onChange={(e) => setShiftPlanMonth(e.target.value)}
-                  className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-                />
-                <button
-                  onClick={() => {
-                    const [year, month] = shiftPlanMonth.split('-').map(Number);
-                    const nextMonth = month === 12 ? 1 : month + 1;
-                    const nextYear = month === 12 ? year + 1 : year;
-                    setShiftPlanMonth(`${nextYear}-${String(nextMonth).padStart(2, '0')}`);
-                  }}
-                  className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4 text-app" />
-                </button>
+        <motion.div
+          ref={shiftPlanRef}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-soft border border-app rounded-2xl overflow-hidden shadow-xl"
+        >
+          <div className="px-6 py-4 border-b border-app bg-soft">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-app font-display flex items-center gap-2">
+                  <ArrowRightLeft className="w-5 h-5 text-ptt-cyan" />
+                  ตารางลงทะเบียนกะล่วงหน้า
+                </h3>
+                <p className="text-xs text-muted mt-1">
+                  วางแผนการโยกย้ายกะในเดือนถัดไป (ข้อมูลจำลองเพื่อการทดสอบ)
+                </p>
               </div>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-              >
-                <option value="">ทุกแผนก</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat || ""}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={selectedShift === "" ? "" : String(selectedShift)}
-                onChange={(e) => setSelectedShift(e.target.value === "" ? "" : Number(e.target.value))}
-                className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-              >
-                <option value="">ทุกกะ</option>
-                {(() => {
-                  // Filter shifts by selected category
-                  let availableShifts = shifts;
-                  if (selectedCategory) {
-                    availableShifts = shifts.filter(s => s.category === selectedCategory);
-                  }
-                  return availableShifts.map((shift) => (
-                    <option key={shift.id} value={String(shift.id)}>
-                      {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
-                    </option>
-                  ));
-                })()}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {shiftPlanRows.length > 0 ? (
-          <>
-            {/* Calendar Header - Weekdays */}
-            <div className="bg-soft border-b border-app">
-              <div className="grid grid-cols-7 border-b-2 border-app bg-ink-800">
-                {['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'].map((day) => (
-                  <div
-                    key={day}
-                    className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app last:border-r-0"
+              <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const [year, month] = shiftPlanMonth.split('-').map(Number);
+                      const prevMonth = month === 1 ? 12 : month - 1;
+                      const prevYear = month === 1 ? year - 1 : year;
+                      setShiftPlanMonth(`${prevYear}-${String(prevMonth).padStart(2, '0')}`);
+                    }}
+                    className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
                   >
-                    {day}
-                  </div>
-                ))}
-              </div>
-              
-              {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-0">
-                {/* Empty cells for days before month starts */}
-                {planDays.length > 0 && Array.from({ length: planDays[0].getDay() }).map((_, idx) => (
-                  <div
-                    key={`empty-${idx}`}
-                    className="min-h-[120px] border-r border-b border-app last:border-r-0 bg-ink-900/50"
+                    <ChevronLeft className="w-4 h-4 text-app" />
+                  </button>
+                  <input
+                    type="month"
+                    value={shiftPlanMonth}
+                    onChange={(e) => setShiftPlanMonth(e.target.value)}
+                    className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
                   />
-                ))}
-                
-                {/* Calendar days */}
-                {planDays.map((day, idx) => {
-                  const dayOfWeek = day.getDay();
-                  const isLastCol = dayOfWeek === 6;
-                  const isLastRow = idx === planDays.length - 1;
-                  
-                  // Get all unique shifts to display for this day
-                  let shiftsToDisplay: typeof shifts = [];
-                  
-                  if (selectedShift !== "") {
-                    // If specific shift is selected, show only that shift
-                    const specificShift = shifts.find(s => s.id === selectedShift);
-                    if (specificShift) {
-                      shiftsToDisplay = [specificShift];
+                  <button
+                    onClick={() => {
+                      const [year, month] = shiftPlanMonth.split('-').map(Number);
+                      const nextMonth = month === 12 ? 1 : month + 1;
+                      const nextYear = month === 12 ? year + 1 : year;
+                      setShiftPlanMonth(`${nextYear}-${String(nextMonth).padStart(2, '0')}`);
+                    }}
+                    className="p-2 bg-soft hover:bg-soft/80 border border-app rounded-lg transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4 text-app" />
+                  </button>
+                </div>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                >
+                  <option value="">ทุกแผนก</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat || ""}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={selectedShift === "" ? "" : String(selectedShift)}
+                  onChange={(e) => setSelectedShift(e.target.value === "" ? "" : Number(e.target.value))}
+                  className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+                >
+                  <option value="">ทุกกะ</option>
+                  {(() => {
+                    // Filter shifts by selected category
+                    let availableShifts = shifts;
+                    if (selectedCategory) {
+                      availableShifts = shifts.filter(s => s.category === selectedCategory);
                     }
-                  } else if (selectedCategory) {
-                    // If category is selected, show all shifts for that category
-                    shiftsToDisplay = shifts.filter(s => s.category === selectedCategory);
-                  } else {
-                    // If no filter, show all shifts
-                    shiftsToDisplay = shifts;
-                  }
-                  
-                  return (
-                    <div
-                      key={`day-${idx}`}
-                      className={`min-h-[200px] border-r border-b border-app p-2 bg-soft/50 hover:bg-soft transition-colors ${
-                        isLastCol ? 'border-r-0' : ''
-                      } ${isLastRow ? 'border-b-0' : ''}`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold text-app">
-                          {day.getDate()}
-                        </span>
-                        <span className="text-xs text-muted">
-                          {day.toLocaleDateString('th-TH', { month: 'short' })}
-                        </span>
-                      </div>
-                      
-                      {/* Show all shifts for this category/day */}
-                      <div className="space-y-2 text-xs">
-                        {shiftsToDisplay.map((shift) => {
-                          const shiftColor = shiftColorPalette[shift.id % shiftColorPalette.length];
-                          
-                          // Get employees assigned to this shift on this day
-                          const employeesInShift = shiftAssignments
-                            .filter(
-                              assignment =>
-                                assignment.shiftId === shift.id &&
-                                assignment.status === "Active" &&
-                                new Date(assignment.effectiveDate) <= day &&
-                                (!assignment.endDate || new Date(assignment.endDate) >= day)
-                            )
-                            .map(assignment => employees.find(emp => emp.code === assignment.empCode))
-                            .filter(Boolean) as typeof employees;
-                          
-                          return (
-                            <div
-                              key={`${shift.id}-${idx}`}
-                              onClick={() => handleShiftClick(day, shift)}
-                              className={`p-2 rounded text-[11px] font-medium ${shiftColor} cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 border border-app/30`}
-                              title={`${shift.name} (${shift.startTime}-${shift.endTime}) - คลิกเพื่อดูรายละเอียด`}
-                            >
-                              {/* Shift info */}
-                              <div className="font-semibold text-app truncate mb-1">
-                                {shift.shortCode && (
-                                  <span className="bg-app/20 px-1 rounded text-[9px] font-bold mr-1">
-                                    {shift.shortCode}
-                                  </span>
-                                )}
-                                {shift.shiftType ? `กะ${shift.shiftType}` : shift.name}
-                              </div>
-                              <div className="text-[10px] text-muted mb-1">{shift.startTime}-{shift.endTime}</div>
-                              
-                              {/* Employees in shift */}
-                              {employeesInShift.length > 0 ? (
-                                <div className="bg-app/10 rounded px-1.5 py-1 mt-1">
-                                  <div className="text-[9px] text-app font-semibold mb-0.5">
-                                    👤 {employeesInShift.length} คน
-                                  </div>
-                                  <div className="space-y-0.5">
-                                    {employeesInShift.map((emp) => (
-                                      <div key={emp.code} className="text-[9px] text-app truncate">
-                                        {emp.name.substring(0, 10)}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="bg-red-500/20 rounded px-1.5 py-1 mt-1 text-center text-[9px] text-red-700 font-semibold">
-                                  ยังไม่มีคน
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+                    return availableShifts.map((shift) => (
+                      <option key={shift.id} value={String(shift.id)}>
+                        {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
+                      </option>
+                    ));
+                  })()}
+                </select>
               </div>
             </div>
-          </>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-muted font-light">ไม่พบข้อมูลสำหรับเดือนที่เลือก</p>
           </div>
-        )}
+
+          {shiftPlanRows.length > 0 ? (
+            <>
+              {/* Calendar Header - Weekdays */}
+              <div className="bg-soft border-b border-app">
+                <div className="grid grid-cols-7 border-b-2 border-app bg-ink-800">
+                  {['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'].map((day) => (
+                    <div
+                      key={day}
+                      className="px-3 py-3 text-center text-xs font-semibold text-app border-r border-app last:border-r-0"
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-0">
+                  {/* Empty cells for days before month starts */}
+                  {planDays.length > 0 && Array.from({ length: planDays[0].getDay() }).map((_, idx) => (
+                    <div
+                      key={`empty-${idx}`}
+                      className="min-h-[120px] border-r border-b border-app last:border-r-0 bg-ink-900/50"
+                    />
+                  ))}
+
+                  {/* Calendar days */}
+                  {planDays.map((day, idx) => {
+                    const dayOfWeek = day.getDay();
+                    const isLastCol = dayOfWeek === 6;
+                    const isLastRow = idx === planDays.length - 1;
+
+                    // Get all unique shifts to display for this day
+                    let shiftsToDisplay: typeof shifts = [];
+
+                    if (selectedShift !== "") {
+                      // If specific shift is selected, show only that shift
+                      const specificShift = shifts.find(s => s.id === selectedShift);
+                      if (specificShift) {
+                        shiftsToDisplay = [specificShift];
+                      }
+                    } else if (selectedCategory) {
+                      // If category is selected, show all shifts for that category
+                      shiftsToDisplay = shifts.filter(s => s.category === selectedCategory);
+                    } else {
+                      // If no filter, show all shifts
+                      shiftsToDisplay = shifts;
+                    }
+
+                    return (
+                      <div
+                        key={`day-${idx}`}
+                        className={`min-h-[200px] border-r border-b border-app p-2 bg-soft/50 hover:bg-soft transition-colors ${isLastCol ? 'border-r-0' : ''
+                          } ${isLastRow ? 'border-b-0' : ''}`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-app">
+                            {day.getDate()}
+                          </span>
+                          <span className="text-xs text-muted">
+                            {day.toLocaleDateString('th-TH', { month: 'short' })}
+                          </span>
+                        </div>
+
+                        {/* Show all shifts for this category/day */}
+                        <div className="space-y-2 text-xs">
+                          {shiftsToDisplay.map((shift) => {
+                            const shiftColor = shiftColorPalette[shift.id % shiftColorPalette.length];
+
+                            // Get employees assigned to this shift on this day
+                            const employeesInShift = shiftAssignments
+                              .filter(
+                                assignment =>
+                                  assignment.shiftId === shift.id &&
+                                  assignment.status === "Active" &&
+                                  new Date(assignment.effectiveDate) <= day &&
+                                  (!assignment.endDate || new Date(assignment.endDate) >= day)
+                              )
+                              .map(assignment => employees.find(emp => emp.code === assignment.empCode))
+                              .filter(Boolean) as typeof employees;
+
+                            return (
+                              <div
+                                key={`${shift.id}-${idx}`}
+                                onClick={() => handleShiftClick(day, shift)}
+                                className={`p-2 rounded text-[11px] font-medium ${shiftColor} cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 border border-app/30`}
+                                title={`${shift.name} (${shift.startTime}-${shift.endTime}) - คลิกเพื่อดูรายละเอียด`}
+                              >
+                                {/* Shift info */}
+                                <div className="font-semibold text-app truncate mb-1">
+                                  {shift.shortCode && (
+                                    <span className="bg-app/20 px-1 rounded text-[9px] font-bold mr-1">
+                                      {shift.shortCode}
+                                    </span>
+                                  )}
+                                  {shift.shiftType ? `กะ${shift.shiftType}` : shift.name}
+                                </div>
+                                <div className="text-[10px] text-muted mb-1">{shift.startTime}-{shift.endTime}</div>
+
+                                {/* Employees in shift */}
+                                {employeesInShift.length > 0 ? (
+                                  <div className="bg-app/10 rounded px-1.5 py-1 mt-1">
+                                    <div className="text-[9px] text-app font-semibold mb-0.5">
+                                      👤 {employeesInShift.length} คน
+                                    </div>
+                                    <div className="space-y-0.5">
+                                      {employeesInShift.map((emp) => (
+                                        <div key={emp.code} className="text-[9px] text-app truncate">
+                                          {emp.name.substring(0, 10)}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="bg-red-500/20 rounded px-1.5 py-1 mt-1 text-center text-[9px] text-red-700 font-semibold">
+                                    ยังไม่มีคน
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted font-light">ไม่พบข้อมูลสำหรับเดือนที่เลือก</p>
+            </div>
+          )}
           <div className="px-6 py-4 border-t border-app bg-soft">
             <div className="flex flex-wrap gap-4 text-xs">
               <div className="flex items-center gap-2">
@@ -1408,7 +1417,7 @@ export default function Attendance() {
               </div>
             </div>
           </div>
-      </motion.div>
+        </motion.div>
       )}
 
       {/* Shift Detail Modal */}
@@ -1436,11 +1445,11 @@ export default function Attendance() {
                   {selectedShiftDate.shift.description && ` • ${selectedShiftDate.shift.description}`}
                 </p>
                 <p className="text-sm text-ptt-cyan mt-1 font-medium">
-                  {selectedShiftDate.date.toLocaleDateString('th-TH', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  {selectedShiftDate.date.toLocaleDateString('th-TH', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
                   })}
                 </p>
               </div>
@@ -1528,7 +1537,7 @@ export default function Attendance() {
                   <Plus className="w-4 h-4 text-ptt-cyan" />
                   เพิ่มพนักงานเข้ากะ
                 </h4>
-                
+
                 {(() => {
                   const { available } = getEmployeesForShift(selectedShiftDate.shift, selectedShiftDate.date);
                   return available.length > 0 ? (
@@ -1725,8 +1734,8 @@ export default function Attendance() {
                           eh => eh.date === selectedHolidayDate && eh.empCode === emp.code
                         );
                         return (
-                          <option 
-                            key={emp.id} 
+                          <option
+                            key={emp.id}
                             value={emp.code}
                             disabled={isAlreadyHoliday}
                             className={isAlreadyHoliday ? "opacity-50" : ""}
@@ -1847,11 +1856,10 @@ export default function Attendance() {
                                       day: 'numeric'
                                     })}
                                   </p>
-                                  <span className={`text-xs px-2 py-0.5 rounded mt-1 inline-block ${
-                                    holiday.type === "holiday"
+                                  <span className={`text-xs px-2 py-0.5 rounded mt-1 inline-block ${holiday.type === "holiday"
                                       ? "bg-blue-500/20 text-blue-600"
                                       : "bg-purple-500/20 text-purple-600"
-                                  }`}>
+                                    }`}>
                                     {holiday.type === "holiday" ? "วันหยุดประจำ" : "วันหยุดพิเศษ"}
                                   </span>
                                 </div>
@@ -1906,11 +1914,11 @@ export default function Attendance() {
                   {selectedCellData.employee.name} ({selectedCellData.employee.code})
                 </p>
                 <p className="text-sm text-ptt-cyan mt-1 font-medium">
-                  {selectedCellData.date.toLocaleDateString('th-TH', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  {selectedCellData.date.toLocaleDateString('th-TH', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
                   })}
                 </p>
               </div>
@@ -2014,8 +2022,8 @@ export default function Attendance() {
                 {selectedLog && (
                   <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
                     <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                      <strong>ข้อมูลเดิม:</strong> {selectedLog.status} | 
-                      เข้า: {selectedLog.checkIn} | 
+                      <strong>ข้อมูลเดิม:</strong> {selectedLog.status} |
+                      เข้า: {selectedLog.checkIn} |
                       ออก: {selectedLog.checkOut}
                     </p>
                   </div>

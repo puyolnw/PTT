@@ -2,7 +2,8 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AlertTriangle, Users, Calendar, ArrowLeft, BarChart3, Activity, TrendingUp, FileText } from "lucide-react";
-import { attendanceLogs, employees } from "@/data/mockData";
+import { attendanceLogs as initialAttendanceLogs, employees as initialEmployees } from "@/data/mockData";
+import { useBranch } from "@/contexts/BranchContext";
 
 interface EmployeeAbsenceStat {
   empCode: string;
@@ -20,10 +21,25 @@ interface EmployeeAbsenceStat {
 
 export default function AttendanceAbsenceDashboard() {
   const navigate = useNavigate();
+  const { selectedBranches } = useBranch();
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+
+  // Filter core data based on branch first
+  const employees = useMemo(() =>
+    initialEmployees.filter(emp => selectedBranches.includes(String(emp.branchId))),
+    [selectedBranches]
+  );
+
+  const empCodes = useMemo(() => new Set(employees.map(e => e.code)), [employees]);
+
+  const attendanceLogs = useMemo(() =>
+    initialAttendanceLogs.filter(log => empCodes.has(log.empCode)),
+    [empCodes]
+  );
+
   const {
     totalAbsences,
     totalLeaves,
@@ -95,7 +111,7 @@ export default function AttendanceAbsenceDashboard() {
       statsList,
       recentAbsenceLogs,
     };
-  }, []);
+  }, [attendanceLogs, employees]);
 
   const departments = useMemo(
     () => Array.from(new Set(statsList.map((stat) => stat.dept).filter(Boolean))) as string[],
@@ -317,8 +333,8 @@ export default function AttendanceAbsenceDashboard() {
                     {stat.lastAbsent
                       ? `ขาด: ${new Date(stat.lastAbsent).toLocaleDateString("th-TH")}`
                       : stat.lastLeave
-                      ? `ลา: ${new Date(stat.lastLeave).toLocaleDateString("th-TH")}`
-                      : "-"}
+                        ? `ลา: ${new Date(stat.lastLeave).toLocaleDateString("th-TH")}`
+                        : "-"}
                   </td>
                 </tr>
               ))}
@@ -358,9 +374,8 @@ export default function AttendanceAbsenceDashboard() {
               </div>
               <div className="text-right">
                 <p
-                  className={`text-sm font-semibold ${
-                    log.status === "ขาดงาน" ? "text-red-500" : "text-yellow-500"
-                  }`}
+                  className={`text-sm font-semibold ${log.status === "ขาดงาน" ? "text-red-500" : "text-yellow-500"
+                    }`}
                 >
                   {log.status}
                 </p>

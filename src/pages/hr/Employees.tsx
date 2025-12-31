@@ -6,7 +6,10 @@ import ModalForm from "@/components/ModalForm";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import { employees as initialEmployees, shifts, type Employee } from "@/data/mockData";
 
+import { useBranch } from "@/contexts/BranchContext";
+
 export default function Employees() {
+  const { selectedBranches } = useBranch();
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>(employees);
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,9 +30,12 @@ export default function Employees() {
     category: ""
   });
 
+  // Base list filtered by branch (for stats)
+  const employeesInBranch = employees.filter(emp => selectedBranches.includes(String(emp.branchId)));
+
   // Handle filtering
   const handleFilter = () => {
-    let filtered = employees;
+    let filtered = employeesInBranch;
 
     // Search across all fields
     if (searchQuery) {
@@ -65,21 +71,21 @@ export default function Employees() {
   useEffect(() => {
     handleFilter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [employees, searchQuery, deptFilter, statusFilter, shiftFilter]);
+  }, [employees, searchQuery, deptFilter, statusFilter, shiftFilter, selectedBranches]);
 
-  const departments = Array.from(new Set(employees.map((e) => e.dept)));
-  const statuses = Array.from(new Set(employees.map((e) => e.status)));
+  const departments = Array.from(new Set(employeesInBranch.map((e) => e.dept)));
+  const statuses = Array.from(new Set(employeesInBranch.map((e) => e.status)));
 
   // Calculate statistics for dashboard
-  const totalEmployees = employees.length;
-  const activeEmployees = employees.filter(e => e.status === "Active").length;
-  const leaveEmployees = employees.filter(e => e.status === "Leave").length;
-  const resignedEmployees = employees.filter(e => e.status === "Resigned").length;
-  
+  const totalEmployees = employeesInBranch.length;
+  const activeEmployees = employeesInBranch.filter(e => e.status === "Active").length;
+  const leaveEmployees = employeesInBranch.filter(e => e.status === "Leave").length;
+  const resignedEmployees = employeesInBranch.filter(e => e.status === "Resigned").length;
+
   // Get department with most employees
   const deptCounts = departments.map(dept => ({
     dept,
-    count: employees.filter(e => e.dept === dept).length
+    count: employeesInBranch.filter(e => e.dept === dept).length
   }));
   const topDept = deptCounts.sort((a, b) => b.count - a.count)[0];
 
@@ -120,7 +126,7 @@ export default function Employees() {
     };
 
     setEmployees([...employees, newEmployee]);
-    
+
     // Reset form
     setFormData({
       name: "",
@@ -135,7 +141,7 @@ export default function Employees() {
       category: ""
     });
     setIsAddModalOpen(false);
-    
+
     alert(`เพิ่มพนักงาน "${newEmployee.name}" (${newEmployee.code}) สำเร็จ!`);
   };
 
@@ -307,7 +313,7 @@ export default function Employees() {
               </p>
             </div>
           </div>
-          
+
           {/* Filter Bar - Inline with table */}
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search Input */}

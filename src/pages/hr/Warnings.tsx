@@ -411,7 +411,7 @@ export default function Warnings() {
             <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
               <p className="text-xs text-app">
                 <strong>ระบบล้างทัณฑ์บน:</strong> ทัณฑ์บนจะถูกล้างอัตโนมัติเมื่อครบ 1 ปีนับจากวันที่ออกการเตือน 
-                และเริ่มนับใหม่ (เฉพาะ "พูดคุย" และ "เอกสาร" จะนับใหม่ได้)
+                และเริ่มนับใหม่ (เฉพาะ &quot;พูดคุย&quot; และ &quot;เอกสาร&quot; จะนับใหม่ได้)
               </p>
             </div>
           </div>
@@ -946,7 +946,7 @@ export default function Warnings() {
                 <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                   <p className="text-xs text-app">
                     <strong>หมายเหตุ:</strong> ทัณฑ์บนจะถูกล้างอัตโนมัติเมื่อครบ 1 ปีนับจากวันที่ออกการเตือน 
-                    หรือสามารถล้างด้วยตนเองได้โดยคลิกปุ่ม "ล้างทัณฑ์บน"
+                    หรือสามารถล้างด้วยตนเองได้โดยคลิกปุ่ม &quot;ล้างทัณฑ์บน&quot;
                   </p>
                 </div>
               </div>

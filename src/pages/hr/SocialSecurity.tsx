@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { 
-  Shield, 
-  FileText, 
-  Printer, 
+import {
+  Shield,
+  FileText,
+  Printer,
   Users,
   TrendingUp,
   CheckCircle,
@@ -13,14 +13,15 @@ import {
   Plus
 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
-import { 
-  socialSecurity, 
+import {
+  socialSecurity as initialSocialSecurity,
   socialSecurityContributions,
-  employees,
+  employees as initialEmployees,
   shifts,
   type SocialSecurity as SocialSecurityType,
   type SocialSecurityContribution as ContributionType
 } from "@/data/mockData";
+import { useBranch } from "@/contexts/BranchContext";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("th-TH", {
@@ -76,8 +77,29 @@ const initialNewRecord: NewRecord = {
 };
 
 export default function SocialSecurity() {
-  const [records, setRecords] = useState<SocialSecurityType[]>(socialSecurity);
-  const [filteredSSO, setFilteredSSO] = useState<SocialSecurityType[]>(socialSecurity);
+  const { selectedBranches } = useBranch();
+
+  // Filter core data based on branch
+  const employees = useMemo(() =>
+    initialEmployees.filter(emp => selectedBranches.includes(String(emp.branchId))),
+    [selectedBranches]
+  );
+
+  const empCodes = useMemo(() => new Set(employees.map(e => e.code)), [employees]);
+
+  const currentBranchSSO = useMemo(() =>
+    initialSocialSecurity.filter(sso => empCodes.has(sso.empCode)),
+    [empCodes]
+  );
+
+  const [records, setRecords] = useState<SocialSecurityType[]>(currentBranchSSO);
+
+  // Sync records when branch changes
+  useEffect(() => {
+    setRecords(currentBranchSSO);
+  }, [currentBranchSSO]);
+
+  const [filteredSSO, setFilteredSSO] = useState<SocialSecurityType[]>(records);
   const [searchQuery, setSearchQuery] = useState("");
   const [sectionFilter, setSectionFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -90,9 +112,9 @@ export default function SocialSecurity() {
   const [newRecord, setNewRecord] = useState<NewRecord>(initialNewRecord);
 
   // Get employee info by code
-  const getEmployeeInfo = (empCode: string) => {
+  const getEmployeeInfo = useCallback((empCode: string) => {
     return employees.find(emp => emp.code === empCode);
-  };
+  }, [employees]);
 
   useEffect(() => {
     let filtered = records;
@@ -129,7 +151,7 @@ export default function SocialSecurity() {
     }
 
     setFilteredSSO(filtered);
-  }, [records, searchQuery, sectionFilter, statusFilter, deptFilter, shiftFilter]);
+  }, [records, searchQuery, sectionFilter, statusFilter, deptFilter, shiftFilter, getEmployeeInfo]);
 
   // Handle view employee contributions
   const handleViewContributions = (sso: SocialSecurityType) => {
@@ -145,8 +167,8 @@ export default function SocialSecurity() {
       ...prev,
       [field]:
         field === "salaryBase" ||
-        field === "employeeContribution" ||
-        field === "employerContribution"
+          field === "employeeContribution" ||
+          field === "employerContribution"
           ? Number(value) || 0
           : value,
     }));
@@ -182,7 +204,7 @@ export default function SocialSecurity() {
   // Handle print document
   const handlePrintDocument = (docType: string) => {
     if (!selectedEmployee) return;
-    
+
     const docNames: Record<string, string> = {
       sso1: "สปส.1-10 (ใบสำคัญแสดงการส่งเงินสมทบ)",
       sso2: "สปส.2-10 (ใบสำคัญแสดงการส่งเงินสมทบ)",
@@ -389,7 +411,7 @@ export default function SocialSecurity() {
               </p>
             </div>
           </div>
-          
+
           {/* Filter Bar - Inline with table */}
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search Input */}
@@ -514,79 +536,79 @@ export default function SocialSecurity() {
             </thead>
             <tbody className="divide-y divide-white/5">
               {filteredSSO.map((item, index) => (
-                  <motion.tr
-                    key={item.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="hover:bg-soft transition-colors"
-                  >
-                    <td className="px-6 py-4 text-sm text-ptt-cyan font-medium">
-                      {item.empCode}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-app font-medium">
-                      {item.empName}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-app font-mono">
-                      {item.ssoNumber}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium
+                <motion.tr
+                  key={item.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="hover:bg-soft transition-colors"
+                >
+                  <td className="px-6 py-4 text-sm text-ptt-cyan font-medium">
+                    {item.empCode}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-app font-medium">
+                    {item.empName}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-app font-mono">
+                    {item.ssoNumber}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium
                                      bg-ptt-blue/20 text-ptt-cyan border border-ptt-blue/30">
-                        มาตรา {item.section}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-app font-light">
-                      {formatDate(item.registrationDate)}
-                    </td>
-                    <td className="px-6 py-4 text-right text-sm text-app font-mono">
-                      {item.salaryBase > 0 ? formatCurrency(item.salaryBase) : "-"}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="text-sm">
-                        <div className="text-app font-mono">
-                          {formatCurrency(item.totalContribution)}
-                        </div>
-                        <div className="text-xs text-muted">
-                          ลูกจ้าง: {formatCurrency(item.employeeContribution)} • นายจ้าง: {formatCurrency(item.employerContribution)}
-                        </div>
+                      มาตรา {item.section}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-app font-light">
+                    {formatDate(item.registrationDate)}
+                  </td>
+                  <td className="px-6 py-4 text-right text-sm text-app font-mono">
+                    {item.salaryBase > 0 ? formatCurrency(item.salaryBase) : "-"}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="text-sm">
+                      <div className="text-app font-mono">
+                        {formatCurrency(item.totalContribution)}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {item.status === "Active" ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium
+                      <div className="text-xs text-muted">
+                        ลูกจ้าง: {formatCurrency(item.employeeContribution)} • นายจ้าง: {formatCurrency(item.employerContribution)}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {item.status === "Active" ? (
+                      <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium
                                        bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Active
-                        </span>
-                      ) : item.status === "Inactive" ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Active
+                      </span>
+                    ) : item.status === "Inactive" ? (
+                      <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium
                                        bg-gray-500/10 text-gray-400 border border-gray-500/30">
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          Inactive
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Inactive
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium
                                        bg-red-500/10 text-red-400 border border-red-500/30">
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          Suspended
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleViewContributions(item)}
-                          className="inline-flex items-center gap-2 px-4 py-2 text-sm 
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Suspended
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleViewContributions(item)}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm 
                                    bg-ptt-blue/20 hover:bg-ptt-blue/30 text-ptt-cyan rounded-lg
                                    transition-colors font-medium"
-                        >
-                          <FileText className="w-4 h-4" />
-                          ดูประวัติ
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
+                      >
+                        <FileText className="w-4 h-4" />
+                        ดูประวัติ
+                      </button>
+                    </div>
+                  </td>
+                </motion.tr>
               ))}
             </tbody>
           </table>
@@ -631,13 +653,12 @@ export default function SocialSecurity() {
                 </div>
                 <div>
                   <p className="text-muted mb-1">สถานะ:</p>
-                  <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                    selectedEmployee.status === "Active" 
+                  <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${selectedEmployee.status === "Active"
                       ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
                       : selectedEmployee.status === "Inactive"
-                      ? "bg-gray-500/10 text-gray-400 border border-gray-500/30"
-                      : "bg-red-500/10 text-red-400 border border-red-500/30"
-                  }`}>
+                        ? "bg-gray-500/10 text-gray-400 border border-gray-500/30"
+                        : "bg-red-500/10 text-red-400 border border-red-500/30"
+                    }`}>
                     {selectedEmployee.status}
                   </span>
                 </div>
@@ -684,7 +705,7 @@ export default function SocialSecurity() {
                           {formatCurrency(contribution.totalContribution)}
                         </p>
                         <p className="text-xs text-muted">
-                          ลูกจ้าง: {formatCurrency(contribution.employeeContribution)} • 
+                          ลูกจ้าง: {formatCurrency(contribution.employeeContribution)} •
                           นายจ้าง: {formatCurrency(contribution.employerContribution)}
                         </p>
                         {contribution.status === "Paid" ? (

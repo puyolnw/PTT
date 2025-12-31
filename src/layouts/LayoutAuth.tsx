@@ -1,51 +1,62 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { login } from "@/lib/auth";
-import { Lock, User, Building2 } from "lucide-react";
+import { Lock, User, Building2, UserCircle } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import AppVersion from "@/components/AppVersion";
+import { useAuth } from "@/contexts/AuthContext";
+
+const roles = [
+  { value: "admin", label: "ผู้ดูแลระบบ (Admin)", color: "from-red-500 to-pink-500" },
+  { value: "manager", label: "ผู้จัดการ (Manager)", color: "from-purple-500 to-indigo-500" },
+  { value: "hr", label: "ฝ่ายบุคคล (HR)", color: "from-blue-500 to-cyan-500" },
+  { value: "finance", label: "ฝ่ายการเงิน (Finance)", color: "from-green-500 to-emerald-500" },
+  { value: "accountant", label: "นักบัญชี (Accountant)", color: "from-yellow-500 to-orange-500" },
+  { value: "employee", label: "พนักงานทั่วไป (Employee)", color: "from-gray-500 to-slate-500" },
+];
 
 export default function LayoutAuth() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState("employee");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Mock login - in production, this would call your auth API
+
     setTimeout(() => {
-      login("mock-token-12345");
+      const roleData = roles.find(r => r.value === selectedRole);
+      login({
+        name: username || "PTT User",
+        email: `${username || "user"}@ptt.com`,
+        role: selectedRole,
+      });
       navigate("/app");
     }, 800);
   };
 
+  const selectedRoleData = roles.find(r => r.value === selectedRole);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-app relative overflow-hidden">
-      {/* Background Pattern */}
       <div className="absolute inset-0 bg-gradient-to-br from-ptt-blue/5 via-transparent to-ptt-cyan/5 dark:from-ptt-blue/10 dark:to-ptt-cyan/10"></div>
-      
-      {/* Theme Toggle - Top Right */}
+
       <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50">
         <ThemeToggle />
       </div>
 
-      {/* App Version - Bottom Right */}
       <AppVersion />
 
-      {/* Login Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="relative w-full max-w-md mx-4"
       >
-        {/* Card */}
         <div className="panel rounded-2xl shadow-2xl p-8 md:p-10 relative z-10">
-          {/* Logo & Title */}
           <div className="text-center mb-8">
             <motion.div
               initial={{ scale: 0.8 }}
@@ -55,7 +66,7 @@ export default function LayoutAuth() {
             >
               <Building2 className="w-9 h-9 text-white" strokeWidth={2} />
             </motion.div>
-            
+
             <motion.h1
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -69,9 +80,7 @@ export default function LayoutAuth() {
             </p>
           </div>
 
-          {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-5">
-            {/* Username */}
             <div>
               <label className="block text-sm font-medium text-app mb-2">
                 ชื่อผู้ใช้
@@ -89,7 +98,6 @@ export default function LayoutAuth() {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-app mb-2">
                 รหัสผ่าน
@@ -107,7 +115,39 @@ export default function LayoutAuth() {
               </div>
             </div>
 
-            {/* Login Button */}
+            <div>
+              <label className="block text-sm font-medium text-app mb-2">
+                บทบาท (Role)
+              </label>
+              <div className="relative">
+                <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted z-10" />
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 bg-soft text-app border border-app rounded-xl focus:ring-2 ring-ptt-blue/50 outline-none transition-all appearance-none cursor-pointer"
+                >
+                  {roles.map((role) => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+              {selectedRoleData && (
+                <div className="mt-2 flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${selectedRoleData.color}`}></div>
+                  <p className="text-xs text-muted">
+                    ระบบจะแสดงเมนูที่เหมาะสมกับบทบาท: {selectedRoleData.label}
+                  </p>
+                </div>
+              )}
+            </div>
+
             <motion.button
               type="submit"
               disabled={isLoading}
@@ -126,7 +166,6 @@ export default function LayoutAuth() {
             </motion.button>
           </form>
 
-          {/* Footer Info */}
           <div className="mt-6 pt-6 border-t border-app text-center">
             <p className="text-xs text-muted">
               🔒 ระบบภายในสำหรับพนักงานเท่านั้น
@@ -137,7 +176,6 @@ export default function LayoutAuth() {
           </div>
         </div>
 
-        {/* Bottom Decoration */}
         <div className="text-center mt-6 text-xs text-muted">
           © 2024 PTT Organization. All rights reserved.
         </div>
@@ -145,4 +183,3 @@ export default function LayoutAuth() {
     </div>
   );
 }
-

@@ -778,13 +778,13 @@ export default function WelfareStock() {
                 <>
                   <DollarSign className="w-16 h-16 text-muted mx-auto mb-4 opacity-50" />
                   <p className="text-muted font-light text-lg mb-2">ยังไม่มีบันทึกการใช้เงิน</p>
-                  <p className="text-xs text-muted">บันทึกการใช้เงินจะถูกเพิ่มจากหน้า "สวัสดิการพนักงาน"</p>
+                  <p className="text-xs text-muted">บันทึกการใช้เงินจะถูกเพิ่มจากหน้า &ldquo;สวัสดิการพนักงาน&ldquo;</p>
                 </>
               ) : (
                 <>
                   <Package className="w-16 h-16 text-muted mx-auto mb-4 opacity-50" />
                   <p className="text-muted font-light text-lg mb-2">ยังไม่มีรายการสต๊อก</p>
-                  <p className="text-xs text-muted">คลิกปุ่ม "เพิ่มสต๊อก" เพื่อเพิ่มรายการใหม่</p>
+                  <p className="text-xs text-muted">คลิกปุ่ม &quot;เพิ่มสต๊อก&quot; เพื่อเพิ่มรายการใหม่</p>
                 </>
               )}
             </div>
@@ -819,10 +819,11 @@ export default function WelfareStock() {
         >
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="stock-type" className="block text-sm font-semibold text-app mb-1.5">
                 ประเภท <span className="text-red-400">*</span>
               </label>
               <select
+                id="stock-type"
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="w-full px-4 py-3 bg-soft border border-app rounded-xl
@@ -838,10 +839,11 @@ export default function WelfareStock() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="stock-name" className="block text-sm font-semibold text-app mb-1.5">
                 ชื่อสินค้า <span className="text-red-400">*</span>
               </label>
               <input
+                id="stock-name"
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -855,28 +857,30 @@ export default function WelfareStock() {
 
             <div className="grid grid-cols-2 gap-5">
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-app mb-1.5">
+                <label htmlFor="stock-source" className="block text-sm font-semibold text-app mb-1.5">
                   <div className="flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
                     ที่มา (ร้าน/บ้าน) <span className="text-red-400">*</span>
                   </div>
                 </label>
                 <input
+                  id="stock-source"
                   type="text"
                   value={formData.source}
                   onChange={(e) => setFormData({ ...formData, source: e.target.value })}
                   placeholder="เช่น ร้านปั๊มน้ำมัน, หอพัก A"
                   className="w-full px-4 py-3 bg-soft border border-app rounded-xl
-                           text-app placeholder:text-muted
-                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
-                           transition-all duration-200 hover:border-app/50"
+                            text-app placeholder:text-muted
+                            focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
+                            transition-all duration-200 hover:border-app/50"
                 />
               </div>
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-app mb-1.5">
+                <label htmlFor="stock-category" className="block text-sm font-semibold text-app mb-1.5">
                   หมวดหมู่ <span className="text-red-400">*</span>
                 </label>
                 <input
+                  id="stock-category"
                   type="text"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -891,10 +895,11 @@ export default function WelfareStock() {
 
             <div className="grid grid-cols-2 gap-5">
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-app mb-1.5">
+                <label htmlFor="stock-unit" className="block text-sm font-semibold text-app mb-1.5">
                   หน่วยนับ
                 </label>
                 <input
+                  id="stock-unit"
                   type="text"
                   value={formData.unit}
                   onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
@@ -906,10 +911,11 @@ export default function WelfareStock() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-app mb-1.5">
+                <label htmlFor="stock-last-restock-date" className="block text-sm font-semibold text-app mb-1.5">
                   วันที่เบิกครั้งสุดท้าย
                 </label>
                 <input
+                  id="stock-last-restock-date"
                   type="date"
                   value={formData.lastRestockDate}
                   onChange={(e) => setFormData({ ...formData, lastRestockDate: e.target.value })}
@@ -922,13 +928,14 @@ export default function WelfareStock() {
 
             <div className="grid grid-cols-3 gap-5">
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-app mb-1.5">
+                <label htmlFor="stock-quantity" className="block text-sm font-semibold text-app mb-1.5">
                   <div className="flex items-center gap-1">
                     <Package className="w-3 h-3" />
                     จำนวนคงเหลือ
                   </div>
                 </label>
                 <input
+                  id="stock-quantity"
                   type="number"
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -941,10 +948,11 @@ export default function WelfareStock() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-app mb-1.5">
+                <label htmlFor="stock-min" className="block text-sm font-semibold text-app mb-1.5">
                   สต๊อกต่ำสุด
                 </label>
                 <input
+                  id="stock-min"
                   type="number"
                   value={formData.minStock}
                   onChange={(e) => setFormData({ ...formData, minStock: e.target.value })}
@@ -957,10 +965,11 @@ export default function WelfareStock() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-app mb-1.5">
+                <label htmlFor="stock-max" className="block text-sm font-semibold text-app mb-1.5">
                   สต๊อกสูงสุด
                 </label>
                 <input
+                  id="stock-max"
                   type="number"
                   value={formData.maxStock}
                   onChange={(e) => setFormData({ ...formData, maxStock: e.target.value })}
@@ -975,10 +984,11 @@ export default function WelfareStock() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="stock-cost-per-unit" className="block text-sm font-semibold text-app mb-1.5">
                 ราคา/หน่วย (บาท)
               </label>
               <input
+                id="stock-cost-per-unit"
                 type="number"
                 value={formData.costPerUnit}
                 onChange={(e) => setFormData({ ...formData, costPerUnit: e.target.value })}
@@ -993,10 +1003,11 @@ export default function WelfareStock() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="stock-notes" className="block text-sm font-semibold text-app mb-1.5">
                 หมายเหตุ
               </label>
               <textarea
+                id="stock-notes"
                 rows={3}
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}

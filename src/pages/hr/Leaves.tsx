@@ -1,13 +1,41 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { UserPlus, Calendar, CheckCircle, Clock, X, View, FileText, Download, Upload, UserCheck, AlertCircle, Printer } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
-import { leaves as initialLeaves, attendanceLogs as initialAttendanceLogs, employees, shifts, type Leave, type AttendanceLog } from "@/data/mockData";
+import { leaves as initialLeaves, attendanceLogs as initialAttendanceLogs, employees as initialEmployees, shifts, type Leave, type AttendanceLog } from "@/data/mockData";
+import { useBranch } from "@/contexts/BranchContext";
 
 export default function Leaves() {
-  const [leaves, setLeaves] = useState<Leave[]>(initialLeaves);
-  const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>(initialAttendanceLogs);
+  const { selectedBranches } = useBranch();
+
+  // Filter core data based on branch
+  const employees = useMemo(() =>
+    initialEmployees.filter(emp => selectedBranches.includes(String(emp.branchId))),
+    [selectedBranches]
+  );
+
+  const empCodes = useMemo(() => new Set(employees.map(e => e.code)), [employees]);
+
+  const currentBranchLeaves = useMemo(() =>
+    initialLeaves.filter(leave => empCodes.has(leave.empCode)),
+    [empCodes]
+  );
+
+  const currentBranchLogs = useMemo(() =>
+    initialAttendanceLogs.filter(log => empCodes.has(log.empCode)),
+    [empCodes]
+  );
+
+  const [leaves, setLeaves] = useState<Leave[]>(currentBranchLeaves);
+  const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>(currentBranchLogs);
+
+  // Update local state when branch changes
+  useEffect(() => {
+    setLeaves(currentBranchLeaves);
+    setAttendanceLogs(currentBranchLogs);
+  }, [currentBranchLeaves, currentBranchLogs]);
+
   const [filteredLeaves, setFilteredLeaves] = useState<Leave[]>(leaves);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -15,7 +43,7 @@ export default function Leaves() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
   const [shiftFilter, setShiftFilter] = useState<number | "">("");
-  
+
   // Modal states
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -121,9 +149,9 @@ export default function Leaves() {
   const getEmployeesInSameDept = (empCode: string) => {
     const employee = employees.find(e => e.code === empCode);
     if (!employee) return [];
-    return employees.filter(e => 
-      e.code !== empCode && 
-      e.dept === employee.dept && 
+    return employees.filter(e =>
+      e.code !== empCode &&
+      e.dept === employee.dept &&
       e.status === "Active"
     );
   };
@@ -171,12 +199,12 @@ export default function Leaves() {
     const from = new Date(fromDate);
     const to = new Date(toDate);
     const current = new Date(from);
-    
+
     while (current <= to) {
       dates.push(current.toISOString().split('T')[0]);
       current.setDate(current.getDate() + 1);
     }
-    
+
     return dates;
   };
 
@@ -222,7 +250,7 @@ export default function Leaves() {
     }
 
     const days = recordForm.isPartialLeave ? 0.5 : calculateDays(recordForm.fromDate, recordForm.toDate);
-    
+
     const newLeave: Leave = {
       id: Math.max(...leaves.map(l => l.id), 0) + 1,
       empCode: recordForm.empCode,
@@ -248,7 +276,7 @@ export default function Leaves() {
     // Update attendance logs
     const dates = generateDateRange(recordForm.fromDate, recordForm.toDate);
     const updatedLogs = [...attendanceLogs];
-    
+
     dates.forEach((date) => {
       const existingLog = updatedLogs.find(
         (log) => log.empCode === recordForm.empCode && log.date === date
@@ -291,7 +319,7 @@ export default function Leaves() {
       createdBy: "manager"
     });
     setIsRecordModalOpen(false);
-    
+
     // Show success message
     alert(`บันทึกการลาสำเร็จ! บันทึกการลา ${days} ${recordForm.isPartialLeave ? 'ชั่วโมง' : 'วัน'} สำหรับ ${recordForm.empName}`);
   };
@@ -317,7 +345,7 @@ export default function Leaves() {
     }
 
     const newDays = calculateDays(editForm.fromDate, editForm.toDate);
-    
+
     // Update leave
     const updatedLeaves = leaves.map(leave => {
       if (leave.id === editForm.id) {
@@ -367,7 +395,7 @@ export default function Leaves() {
       reason: ""
     });
     setIsEditModalOpen(false);
-    
+
     // Show success message
     alert(`แก้ไขการลาสำเร็จ! วันที่สิ้นสุดเปลี่ยนเป็น ${editForm.toDate} (${newDays} วัน)`);
   };
@@ -432,7 +460,7 @@ export default function Leaves() {
     // Update attendance logs
     const dates = generateDateRange(leave.fromDate, leave.toDate);
     const updatedLogs = [...attendanceLogs];
-    
+
     dates.forEach((date) => {
       const existingLog = updatedLogs.find(
         (log) => log.empCode === leave.empCode && log.date === date
@@ -486,7 +514,7 @@ export default function Leaves() {
   const handlePrintLeave = (leave: Leave) => {
     setSelectedLeave(leave);
     setIsPrintModalOpen(true);
-    
+
     // Update printed info
     const updatedLeaves = leaves.map(l => {
       if (l.id === leave.id) {
@@ -626,7 +654,7 @@ export default function Leaves() {
               </p>
             </div>
           </div>
-          
+
           {/* Filter Bar - Inline with table */}
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search Input */}
@@ -781,7 +809,7 @@ export default function Leaves() {
                 <th className="px-6 py-4 text-center text-sm font-semibold text-app">
                   สถานะ
                 </th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-app">
+                <th className="px-6 py-4 text-center text-sm font-semibold text-app">
                   การจัดการ
                 </th>
                 <th className="px-6 py-4 text-center text-sm font-semibold text-app">
@@ -973,10 +1001,11 @@ export default function Leaves() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="edit-type" className="block text-sm font-medium text-app mb-2">
               ประเภทการลา
             </label>
             <input
+              id="edit-type"
               type="text"
               value={editForm.type}
               disabled
@@ -987,10 +1016,11 @@ export default function Leaves() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="edit-fromDate" className="block text-sm font-medium text-app mb-2">
                 วันที่เริ่ม
               </label>
               <input
+                id="edit-fromDate"
                 type="date"
                 value={editForm.fromDate}
                 disabled
@@ -999,11 +1029,12 @@ export default function Leaves() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="edit-toDate" className="block text-sm font-medium text-app mb-2">
                 วันที่สิ้นสุด <span className="text-red-400">*</span>
                 <span className="text-xs text-yellow-400 ml-2">(แก้ไขได้)</span>
               </label>
               <input
+                id="edit-toDate"
                 type="date"
                 value={editForm.toDate}
                 onChange={(e) => setEditForm({ ...editForm, toDate: e.target.value })}
@@ -1016,10 +1047,11 @@ export default function Leaves() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="edit-reason" className="block text-sm font-medium text-app mb-2">
               เหตุผลการลา
             </label>
             <textarea
+              id="edit-reason"
               rows={4}
               value={editForm.reason}
               onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
@@ -1072,10 +1104,11 @@ export default function Leaves() {
       >
         <div className="space-y-6">
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
+            <label htmlFor="record-emp" className="block text-sm font-semibold text-app mb-1.5">
               เลือกพนักงาน <span className="text-red-400">*</span>
             </label>
             <select
+              id="record-emp"
               value={recordForm.empCode}
               onChange={(e) => handleEmployeeSelect(e.target.value)}
               className="w-full px-4 py-3 bg-soft border border-app rounded-xl
@@ -1093,10 +1126,11 @@ export default function Leaves() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
+            <label htmlFor="record-type" className="block text-sm font-semibold text-app mb-1.5">
               ประเภทการลา <span className="text-red-400">*</span>
             </label>
             <select
+              id="record-type"
               value={recordForm.type}
               onChange={(e) => setRecordForm({ ...recordForm, type: e.target.value as Leave["type"] | "" })}
               className="w-full px-4 py-3 bg-soft border border-app rounded-xl
@@ -1129,10 +1163,11 @@ export default function Leaves() {
 
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="record-fromDate" className="block text-sm font-semibold text-app mb-1.5">
                 วันที่เริ่ม <span className="text-red-400">*</span>
               </label>
               <input
+                id="record-fromDate"
                 type="date"
                 value={recordForm.fromDate}
                 onChange={(e) => setRecordForm({ ...recordForm, fromDate: e.target.value })}
@@ -1143,10 +1178,11 @@ export default function Leaves() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="record-toDate" className="block text-sm font-semibold text-app mb-1.5">
                 วันที่สิ้นสุด <span className="text-red-400">*</span>
               </label>
               <input
+                id="record-toDate"
                 type="date"
                 value={recordForm.toDate}
                 onChange={(e) => setRecordForm({ ...recordForm, toDate: e.target.value })}
@@ -1163,10 +1199,11 @@ export default function Leaves() {
           {recordForm.isPartialLeave && (
             <div className="grid grid-cols-2 gap-5">
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-app mb-1.5">
+                <label htmlFor="record-fromTime" className="block text-sm font-semibold text-app mb-1.5">
                   เวลาเริ่ม <span className="text-red-400">*</span>
                 </label>
                 <input
+                  id="record-fromTime"
                   type="time"
                   value={recordForm.fromTime}
                   onChange={(e) => setRecordForm({ ...recordForm, fromTime: e.target.value })}
@@ -1177,10 +1214,11 @@ export default function Leaves() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-app mb-1.5">
+                <label htmlFor="record-toTime" className="block text-sm font-semibold text-app mb-1.5">
                   เวลาสิ้นสุด <span className="text-red-400">*</span>
                 </label>
                 <input
+                  id="record-toTime"
                   type="time"
                   value={recordForm.toTime}
                   onChange={(e) => setRecordForm({ ...recordForm, toTime: e.target.value })}
@@ -1196,16 +1234,17 @@ export default function Leaves() {
           {/* Replacement Employee */}
           {recordForm.empCode && (
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="record-replacement" className="block text-sm font-semibold text-app mb-1.5">
                 <UserCheck className="w-4 h-4 inline mr-1" />
                 คนมาทำงานแทน <span className="text-red-400">*</span>
               </label>
               <select
+                id="record-replacement"
                 value={recordForm.replacementEmpCode}
                 onChange={(e) => {
                   const emp = employees.find(em => em.code === e.target.value);
-                  setRecordForm({ 
-                    ...recordForm, 
+                  setRecordForm({
+                    ...recordForm,
                     replacementEmpCode: e.target.value,
                     replacementEmpName: emp?.name || ""
                   });
@@ -1228,11 +1267,12 @@ export default function Leaves() {
 
           {/* File Upload */}
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
+            <label htmlFor="record-files" className="block text-sm font-semibold text-app mb-1.5">
               <Upload className="w-4 h-4 inline mr-1" />
               แนบเอกสาร (ถ้ามี)
             </label>
             <input
+              id="record-files"
               type="file"
               multiple
               onChange={handleFileUpload}
@@ -1264,10 +1304,11 @@ export default function Leaves() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
+            <label htmlFor="record-reason" className="block text-sm font-semibold text-app mb-1.5">
               เหตุผลการลา
             </label>
             <textarea
+              id="record-reason"
               rows={4}
               value={recordForm.reason}
               onChange={(e) => setRecordForm({ ...recordForm, reason: e.target.value })}

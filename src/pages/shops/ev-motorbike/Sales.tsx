@@ -65,7 +65,7 @@ const initialSalesData = [
 export default function Sales() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "ร้านมอเตอร์ไซค์ไฟฟ้า (EV Motorbike Shop)";
-  
+
   const [salesData, setSalesData] = useState(initialSalesData);
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -113,8 +113,8 @@ export default function Sales() {
     })
     .reduce((sum, sale) => sum + sale.total, 0);
 
-  const salesComparison = lastWeekSales > 0 
-    ? ((todaySales - lastWeekSales) / lastWeekSales) * 100 
+  const salesComparison = lastWeekSales > 0
+    ? ((todaySales - lastWeekSales) / lastWeekSales) * 100
     : 0;
 
   // Filter sales data
@@ -184,7 +184,7 @@ export default function Sales() {
       [field]: value,
       total: field === "quantity" || field === "price"
         ? Number(field === "quantity" ? value : updatedItems[index].quantity) *
-          Number(field === "price" ? value : updatedItems[index].price)
+        Number(field === "price" ? value : updatedItems[index].price)
         : updatedItems[index].total,
     };
     setFormData({ ...formData, items: updatedItems });
@@ -242,9 +242,8 @@ export default function Sales() {
             <span className="text-sm text-muted">ยอดขายเดือนนี้</span>
           </div>
           <p className="text-2xl font-bold text-app">{currencyFormatter.format(thisMonthSales)}</p>
-          <div className={`flex items-center gap-1 text-xs mt-1 ${
-            salesComparison >= 0 ? 'text-emerald-400' : 'text-red-400'
-          }`}>
+          <div className={`flex items-center gap-1 text-xs mt-1 ${salesComparison >= 0 ? 'text-emerald-400' : 'text-red-400'
+            }`}>
             {salesComparison >= 0 ? (
               <ArrowUpRight className="w-3 h-3" />
             ) : (
@@ -481,8 +480,9 @@ export default function Sales() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่</label>
+              <label htmlFor="sales-date" className="block text-sm font-medium text-app mb-2">วันที่</label>
               <input
+                id="sales-date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -491,8 +491,9 @@ export default function Sales() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วิธีชำระ</label>
+              <label htmlFor="sales-payment" className="block text-sm font-medium text-app mb-2">วิธีชำระ</label>
               <select
+                id="sales-payment"
                 value={formData.paymentMethod}
                 onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -506,8 +507,9 @@ export default function Sales() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ลูกค้า (ไม่บังคับ)</label>
+            <label htmlFor="sales-customer" className="block text-sm font-medium text-app mb-2">ลูกค้า (ไม่บังคับ)</label>
             <input
+              id="sales-customer"
               type="text"
               value={formData.customer}
               onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
@@ -532,6 +534,7 @@ export default function Sales() {
                   <div className="col-span-4">
                     <input
                       type="text"
+                      aria-label="ชื่อสินค้า"
                       value={item.name}
                       onChange={(e) => updateItemInForm(index, "name", e.target.value)}
                       placeholder="ชื่อสินค้า"
@@ -541,6 +544,7 @@ export default function Sales() {
                   </div>
                   <div className="col-span-3">
                     <select
+                      aria-label="หมวดหมู่สินค้า"
                       value={item.product}
                       onChange={(e) => updateItemInForm(index, "product", e.target.value)}
                       className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app text-sm"
@@ -555,6 +559,7 @@ export default function Sales() {
                   <div className="col-span-2">
                     <input
                       type="number"
+                      aria-label="จำนวน"
                       value={item.quantity}
                       onChange={(e) => updateItemInForm(index, "quantity", e.target.value)}
                       placeholder="จำนวน"
@@ -565,6 +570,7 @@ export default function Sales() {
                   <div className="col-span-2">
                     <input
                       type="number"
+                      aria-label="ราคาต่อหน่วย"
                       value={item.price}
                       onChange={(e) => updateItemInForm(index, "price", e.target.value)}
                       placeholder="ราคา"

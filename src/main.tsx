@@ -237,6 +237,26 @@ import ReceiveOil from "@/pages/gas-station/ReceiveOil";
 import InterBranchTransfer from "@/pages/gas-station/InterBranchTransfer";
 
 import { isAuthenticated } from "@/lib/auth";
+import Forbidden from "@/components/Forbidden";
+import { useAuth } from "@/contexts/AuthContext";
+
+// Component to handle role-based redirection
+const RoleBasedRedirect = () => {
+  const { user } = useAuth();
+  const role = user?.role || "employee";
+
+  if (role === "admin") return <Navigate to="/app/hr" replace />;
+  if (role === "hr") return <Navigate to="/app/hr" replace />;
+  if (role === "finance") return <Navigate to="/app/accounting" replace />;
+  if (role === "accountant") return <Navigate to="/app/accounting" replace />;
+  if (role === "manager") return <Navigate to="/app/hr" replace />;
+  if (role === "gas-station") return <Navigate to="/app/gas-station" replace />;
+  if (role === "shop") return <Navigate to="/app/shops" replace />;
+  if (role === "property") return <Navigate to="/app/rental" replace />;
+
+  // Default fallback
+  return <Navigate to="/app/documents" replace />;
+};
 
 // Protected Route Component
 const Protected = ({ children }: { children: React.ReactNode }) =>
@@ -258,10 +278,14 @@ const router = createBrowserRouter([
     ),
     errorElement: <ErrorPage />,
     children: [
-      // ========== DEFAULT: Redirect to HR ==========
+      // ========== DEFAULT: Redirect based on Role ==========
       {
         index: true,
-        element: <Navigate to="/app/hr" replace />,
+        element: <RoleBasedRedirect />,
+      },
+      {
+        path: "forbidden",
+        element: <Forbidden />,
       },
 
       // ========== HR MODULE ==========
@@ -1164,8 +1188,16 @@ const router = createBrowserRouter([
   },
 ]);
 
+import { AuthProvider } from "@/contexts/AuthContext";
+
+import { BranchProvider } from "@/contexts/BranchContext";
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <BranchProvider>
+        <RouterProvider router={router} />
+      </BranchProvider>
+    </AuthProvider>
   </React.StrictMode>
 );

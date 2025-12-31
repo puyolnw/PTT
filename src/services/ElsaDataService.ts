@@ -20,7 +20,7 @@ class ElsaDataService {
                 skipEmptyLines: true,
                 complete: (results) => {
                     try {
-                        const data = results.data.map((row: any, index: number) => ({
+                        const data = (results.data as Record<string, string | undefined>[]).map((row, index) => ({
                             productId: row["Product ID"] || row["รหัสสินค้า"] || "",
                             productName: row["Product Name"] || row["ชื่อสินค้า"] || "",
                             quantity: parseFloat(row["Quantity"] || row["จำนวน"] || "0"),

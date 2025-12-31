@@ -69,7 +69,7 @@ const initialPurchases = [
 export default function Purchases() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "ร้านมอเตอร์ไซค์ไฟฟ้า (EV Motorbike Shop)";
-  
+
   const [purchases, setPurchases] = useState(initialPurchases);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -287,11 +287,10 @@ export default function Purchases() {
                       {purchase.poNumber}
                     </span>
                     <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        purchase.status === "ชำระแล้ว"
+                      className={`text-xs px-2 py-1 rounded-full ${purchase.status === "ชำระแล้ว"
                           ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
                           : "bg-orange-500/10 text-orange-400 border border-orange-500/30"
-                      }`}
+                        }`}
                     >
                       {purchase.status}
                     </span>
@@ -342,8 +341,9 @@ export default function Purchases() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่</label>
+              <label htmlFor="purchase-date" className="block text-sm font-medium text-app mb-2">วันที่</label>
               <input
+                id="purchase-date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -352,8 +352,9 @@ export default function Purchases() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">สถานะ</label>
+              <label htmlFor="purchase-status" className="block text-sm font-medium text-app mb-2">สถานะ</label>
               <select
+                id="purchase-status"
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -364,8 +365,9 @@ export default function Purchases() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
+            <label htmlFor="purchase-supplier" className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
             <input
+              id="purchase-supplier"
               type="text"
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
@@ -375,8 +377,9 @@ export default function Purchases() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">รายการสินค้า</label>
+            <label htmlFor="purchase-items" className="block text-sm font-medium text-app mb-2">รายการสินค้า</label>
             <textarea
+              id="purchase-items"
               value={formData.items}
               onChange={(e) => setFormData({ ...formData, items: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -387,8 +390,9 @@ export default function Purchases() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
+              <label htmlFor="purchase-amount" className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
               <input
+                id="purchase-amount"
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -397,8 +401,9 @@ export default function Purchases() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ครบกำหนดชำระ</label>
+              <label htmlFor="purchase-duedate" className="block text-sm font-medium text-app mb-2">ครบกำหนดชำระ</label>
               <input
+                id="purchase-duedate"
                 type="date"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
@@ -407,8 +412,9 @@ export default function Purchases() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">แหล่งที่มา</label>
+            <label htmlFor="purchase-source" className="block text-sm font-medium text-app mb-2">แหล่งที่มา</label>
             <select
+              id="purchase-source"
               value={formData.source}
               onChange={(e) => setFormData({ ...formData, source: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -432,8 +438,8 @@ export default function Purchases() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
-            <select className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app">
+            <label htmlFor="po-supplier" className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
+            <select id="po-supplier" className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app">
               <option value="">เลือกซัพพลายเออร์</option>
               <option value="SKY Motorbike มหาสารคาม">SKY Motorbike มหาสารคาม</option>
               <option value="SAGASONIC">SAGASONIC</option>
@@ -441,16 +447,18 @@ export default function Purchases() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">รายการสินค้า</label>
+            <label htmlFor="po-items" className="block text-sm font-medium text-app mb-2">รายการสินค้า</label>
             <textarea
+              id="po-items"
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
               placeholder="ระบุรายการสินค้าที่ต้องการสั่งซื้อ"
               rows={4}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">หมายเหตุ</label>
+            <label htmlFor="po-note" className="block text-sm font-medium text-app mb-2">หมายเหตุ</label>
             <textarea
+              id="po-note"
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
               placeholder="หมายเหตุเพิ่มเติม"
               rows={2}

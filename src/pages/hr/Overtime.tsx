@@ -1,14 +1,15 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { 
-  Plus, 
+import {
+  Plus,
   Clock,
   CheckCircle,
   XCircle,
   Send,
   FileText,
 } from "lucide-react";
-import { employees } from "@/data/mockData";
+import { employees as initialEmployees } from "@/data/mockData";
+import { useBranch } from "@/contexts/BranchContext";
 
 // ========== OT Request Types ==========
 type OTRequestStatus = "pending_manager" | "pending_hr" | "pending_admin" | "approved" | "rejected" | "completed";
@@ -41,6 +42,7 @@ interface OTRequest {
 
 // Mock data for OT Requests
 const mockOTRequests: OTRequest[] = [
+  // ... (mock data remains same)
   {
     id: 1,
     empCode: "EMP-0004",
@@ -102,7 +104,7 @@ const mockOTRequests: OTRequest[] = [
 const calculateOTRate = (baseSalary: number, rateType: OTRateType): number => {
   // คำนวณจากฐานเงินเดือน: ฐานเงินเดือน / 30 วัน / 8 ชั่วโมง = ต่อชั่วโมง
   const hourlyRate = baseSalary / 30 / 8;
-  
+
   switch (rateType) {
     case "normal":
       return Math.round(hourlyRate * 10) / 10; // 1 เท่า
@@ -120,9 +122,9 @@ const calculateOTRate = (baseSalary: number, rateType: OTRateType): number => {
 const getEmployeeBaseSalary = (empCode: string): number => {
   // ในระบบจริงจะดึงจากฐานข้อมูล
   // ตอนนี้ใช้ค่า mock
-  const employee = employees.find(e => e.code === empCode);
+  const employee = initialEmployees.find(e => e.code === empCode);
   if (!employee) return 0;
-  
+
   // Mock base salary (ฐานเงินเดือน)
   const mockBaseSalaries: Record<string, number> = {
     "EMP-0001": 30000,
@@ -156,12 +158,37 @@ const getEmployeeBaseSalary = (empCode: string): number => {
     "EMP-0031": 18000,
     "EMP-0032": 22000,
   };
-  
+
   return mockBaseSalaries[empCode] || 20000;
 };
 
 export default function Overtime() {
-  const [otRequests, setOtRequests] = useState<OTRequest[]>(mockOTRequests);
+  const { selectedBranches } = useBranch();
+
+  // Filter core data based on branch first
+  const employees = useMemo(() =>
+    initialEmployees.filter(emp => selectedBranches.includes(String(emp.branchId))),
+    [selectedBranches]
+  );
+
+  const empCodes = useMemo(() => new Set(employees.map(e => e.code)), [employees]);
+
+  // Filter OT requests based on filtered employees
+  const branchOtRequests = useMemo(() =>
+    mockOTRequests.filter(req => empCodes.has(req.empCode)),
+    [empCodes]
+  );
+
+  const [otRequests, setOtRequests] = useState<OTRequest[]>(branchOtRequests);
+  // Update local state when branch changes (optional: strictly speaking local state init only runs once, so we should sync it)
+  // But since we modify otRequests locally (approve/reject), syncing is tricky.
+  // Best practice: Derive from source of truth OR reset when branch changes.
+  // For now, let's reset otRequests when branch changes to ensure consistency with view.
+
+  useMemo(() => {
+    setOtRequests(branchOtRequests);
+  }, [branchOtRequests]);
+
   const [viewMode, setViewMode] = useState<"requests" | "approval" | "records">("requests");
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     const now = new Date();
@@ -171,7 +198,7 @@ export default function Overtime() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-  
+
   // Form states
   const [requestForm, setRequestForm] = useState({
     empCode: "",
@@ -180,7 +207,7 @@ export default function Overtime() {
     rateType: "normal" as OTRateType,
     reason: ""
   });
-  
+
   const [recordForm, setRecordForm] = useState({
     requestId: "",
     fingerprintIn: "",
@@ -194,25 +221,25 @@ export default function Overtime() {
   // Filter OT requests
   const filteredRequests = useMemo(() => {
     let filtered = otRequests;
-    
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(req => 
+      filtered = filtered.filter(req =>
         req.empName.toLowerCase().includes(query) ||
         req.empCode.toLowerCase().includes(query)
       );
     }
-    
+
     if (selectedCategory) {
       filtered = filtered.filter(req => req.category === selectedCategory);
     }
-    
+
     const [year, month] = selectedMonth.split('-').map(Number);
     filtered = filtered.filter(req => {
       const reqDate = new Date(req.date);
       return reqDate.getFullYear() === year && reqDate.getMonth() + 1 === month;
     });
-    
+
     return filtered;
   }, [otRequests, searchQuery, selectedCategory, selectedMonth]);
 
@@ -267,14 +294,14 @@ export default function Overtime() {
       rateType: "normal",
       reason: ""
     });
-    
+
     alert("ยื่นเรื่อง OT สำเร็จ! รอการพิจารณาจากผู้จัดการแผนก");
   };
 
   // Handle HR send request (HR ส่งเรื่อง)
   const handleHRSend = (requestId: number) => {
-    const updated = otRequests.map(req => 
-      req.id === requestId 
+    const updated = otRequests.map(req =>
+      req.id === requestId
         ? { ...req, status: "pending_hr" as OTRequestStatus, hrSentDate: new Date().toISOString().split('T')[0] }
         : req
     );
@@ -284,14 +311,14 @@ export default function Overtime() {
 
   // Handle admin approve/reject (หัวหน้าสถานีอนุมัติ/ปฏิเสธ)
   const handleAdminApprove = (requestId: number) => {
-    const updated = otRequests.map(req => 
-      req.id === requestId 
-        ? { 
-            ...req, 
-            status: "approved" as OTRequestStatus, 
-            approvedBy: "หัวหน้าสถานี",
-            approvedDate: new Date().toISOString().split('T')[0]
-          }
+    const updated = otRequests.map(req =>
+      req.id === requestId
+        ? {
+          ...req,
+          status: "approved" as OTRequestStatus,
+          approvedBy: "หัวหน้าสถานี",
+          approvedDate: new Date().toISOString().split('T')[0]
+        }
         : req
     );
     setOtRequests(updated);
@@ -303,16 +330,16 @@ export default function Overtime() {
       alert("กรุณาระบุเหตุผลการปฏิเสธ");
       return;
     }
-    
-    const updated = otRequests.map(req => 
-      req.id === requestId 
-        ? { 
-            ...req, 
-            status: "rejected" as OTRequestStatus,
-            rejectedReason: reason,
-            approvedBy: "หัวหน้าสถานี",
-            approvedDate: new Date().toISOString().split('T')[0]
-          }
+
+    const updated = otRequests.map(req =>
+      req.id === requestId
+        ? {
+          ...req,
+          status: "rejected" as OTRequestStatus,
+          rejectedReason: reason,
+          approvedBy: "หัวหน้าสถานี",
+          approvedDate: new Date().toISOString().split('T')[0]
+        }
         : req
     );
     setOtRequests(updated);
@@ -336,17 +363,17 @@ export default function Overtime() {
     const confirmedHours = parseFloat(recordForm.managerConfirmedHours);
     const actualAmount = confirmedHours * request.otRate;
 
-    const updated = otRequests.map(req => 
-      req.id === requestId 
-        ? { 
-            ...req, 
-            actualHours: confirmedHours,
-            managerConfirmedHours: confirmedHours,
-            fingerprintIn: recordForm.fingerprintIn || undefined,
-            fingerprintOut: recordForm.fingerprintOut || undefined,
-            status: "completed" as OTRequestStatus,
-            otAmount: actualAmount
-          }
+    const updated = otRequests.map(req =>
+      req.id === requestId
+        ? {
+          ...req,
+          actualHours: confirmedHours,
+          managerConfirmedHours: confirmedHours,
+          fingerprintIn: recordForm.fingerprintIn || undefined,
+          fingerprintOut: recordForm.fingerprintOut || undefined,
+          status: "completed" as OTRequestStatus,
+          otAmount: actualAmount
+        }
         : req
     );
     setOtRequests(updated);
@@ -357,7 +384,7 @@ export default function Overtime() {
       fingerprintOut: "",
       managerConfirmedHours: ""
     });
-    
+
     alert(`บันทึก OT สำเร็จ! ${confirmedHours} ชั่วโมง = ${actualAmount.toFixed(2)} บาท`);
   };
 
@@ -371,7 +398,7 @@ export default function Overtime() {
       rejected: { text: "ปฏิเสธ", color: "bg-red-500/20 text-red-400 border-red-500/30" },
       completed: { text: "ทำ OT เสร็จแล้ว", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" }
     };
-    
+
     const badge = badges[status];
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${badge.color}`}>
@@ -405,33 +432,30 @@ export default function Overtime() {
         <div className="flex gap-2">
           <button
             onClick={() => setViewMode("requests")}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 font-medium ${
-              viewMode === "requests"
-                ? "bg-ptt-cyan text-app"
-                : "bg-soft hover:bg-soft/80 text-app border border-app"
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 font-medium ${viewMode === "requests"
+              ? "bg-ptt-cyan text-app"
+              : "bg-soft hover:bg-soft/80 text-app border border-app"
+              }`}
           >
             <FileText className="w-4 h-4" />
             ยื่นเรื่อง OT
           </button>
           <button
             onClick={() => setViewMode("approval")}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 font-medium ${
-              viewMode === "approval"
-                ? "bg-ptt-cyan text-app"
-                : "bg-soft hover:bg-soft/80 text-app border border-app"
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 font-medium ${viewMode === "approval"
+              ? "bg-ptt-cyan text-app"
+              : "bg-soft hover:bg-soft/80 text-app border border-app"
+              }`}
           >
             <CheckCircle className="w-4 h-4" />
             อนุมัติ OT
           </button>
           <button
             onClick={() => setViewMode("records")}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 font-medium ${
-              viewMode === "records"
-                ? "bg-ptt-cyan text-app"
-                : "bg-soft hover:bg-soft/80 text-app border border-app"
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 font-medium ${viewMode === "records"
+              ? "bg-ptt-cyan text-app"
+              : "bg-soft hover:bg-soft/80 text-app border border-app"
+              }`}
           >
             <Clock className="w-4 h-4" />
             บันทึก OT

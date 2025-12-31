@@ -23,7 +23,8 @@ import {
   UserPlus
 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
-import { employees, welfareRecords as initialWelfareRecords } from "@/data/mockData";
+import { employees as initialEmployees, welfareRecords as initialWelfareRecords } from "@/data/mockData";
+import { useBranch } from "@/contexts/BranchContext";
 
 interface WelfareRecord {
   id: number;
@@ -59,33 +60,68 @@ interface TripProject {
   createdAt: string;
 }
 
+const initialTripProjects: TripProject[] = [
+  {
+    id: 1,
+    projectName: "ทัศนศึกษาปี 2567",
+    destination: "เกาะสมุย",
+    startDate: "2025-02-15",
+    endDate: "2025-02-18",
+    participants: [
+      { empCode: "EMP-0001", empName: "สมชาย ใจดี", category: "ปั๊ม", companion: "ภรรยา" },
+      { empCode: "EMP-0002", empName: "สมหญิง รักงาน", category: "ปั๊ม", companion: null },
+    ],
+    budget: 50000,
+    status: "อนุมัติ",
+    notes: "ทัศนศึกษา 3 วัน 2 คืน",
+    createdAt: "2025-01-10"
+  }
+];
+
 export default function Welfare() {
   const navigate = useNavigate();
+  const { selectedBranches } = useBranch();
+
+  // Filter core data based on branch
+  const employees = useMemo(() =>
+    initialEmployees.filter(emp => selectedBranches.includes(String(emp.branchId))),
+    [selectedBranches]
+  );
+
+  const empCodes = useMemo(() => new Set(employees.map(e => e.code)), [employees]);
+
+  const currentBranchWelfareRecords = useMemo(() =>
+    initialWelfareRecords.filter(record => empCodes.has(record.empCode)),
+    [empCodes]
+  );
+
   const [activeTab, setActiveTab] = useState<string>("benefits");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTripModalOpen, setIsTripModalOpen] = useState(false);
   const [isParticipantModalOpen, setIsParticipantModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [welfareRecords, setWelfareRecords] = useState<WelfareRecord[]>(initialWelfareRecords);
+  const [welfareRecords, setWelfareRecords] = useState<WelfareRecord[]>(currentBranchWelfareRecords);
 
-  // State สำหรับโปรเจคทัศนศึกษา
-  const [tripProjects, setTripProjects] = useState<TripProject[]>([
-    {
-      id: 1,
-      projectName: "ทัศนศึกษาปี 2567",
-      destination: "เกาะสมุย",
-      startDate: "2025-02-15",
-      endDate: "2025-02-18",
-      participants: [
-        { empCode: "EMP-0001", empName: "สมชาย ใจดี", category: "ปั๊ม", companion: "ภรรยา" },
-        { empCode: "EMP-0002", empName: "สมหญิง รักงาน", category: "ปั๊ม", companion: null },
-      ],
-      budget: 50000,
-      status: "อนุมัติ",
-      notes: "ทัศนศึกษา 3 วัน 2 คืน",
-      createdAt: "2025-01-10"
-    }
-  ]);
+  // Sync welfareRecords when branch changes
+  useEffect(() => {
+    setWelfareRecords(currentBranchWelfareRecords);
+  }, [currentBranchWelfareRecords]);
+
+  // Filter trip projects based on participants in branch
+  const currentBranchTripProjects = useMemo(() => {
+    return initialTripProjects.map(project => ({
+      ...project,
+      participants: project.participants.filter(p => empCodes.has(p.empCode))
+    })).filter(project => project.participants.length > 0 || true); // Keep project even if 0 participants? Maybe yes, to allow adding.
+  }, [empCodes]);
+
+  const [tripProjects, setTripProjects] = useState<TripProject[]>(currentBranchTripProjects);
+
+  // Sync tripProjects when branch changes (simple reset strategy)
+  useEffect(() => {
+    setTripProjects(currentBranchTripProjects);
+  }, [currentBranchTripProjects]);
+
 
   const [editingTripProject, setEditingTripProject] = useState<TripProject | null>(null);
   const [currentProjectForParticipants, setCurrentProjectForParticipants] = useState<TripProject | null>(null);
@@ -124,7 +160,7 @@ export default function Welfare() {
       const year = date.getFullYear() + 543; // Convert to Buddhist Era
       const dayOfWeek = date.toLocaleDateString('th-TH', { weekday: 'long' });
       return `${dayOfWeek}ที่ ${day} ${month} ${year}`;
-    } catch (error) {
+    } catch {
       return dateString;
     }
   };
@@ -139,7 +175,7 @@ export default function Welfare() {
       const month = date.toLocaleDateString('th-TH', { month: 'short' });
       const year = date.getFullYear() + 543;
       return `${day} ${month} ${year}`;
-    } catch (error) {
+    } catch {
       return dateString;
     }
   };
@@ -343,7 +379,7 @@ export default function Welfare() {
       if (cat) categories.add(cat);
     });
     return Array.from(categories).sort();
-  }, []);
+  }, [employees]);
 
   // Filter employees for participant selection
   const filteredEmployeesForParticipant = useMemo(() => {
@@ -367,7 +403,7 @@ export default function Welfare() {
 
       return true;
     });
-  }, [participantCategoryFilter, participantSearchQuery, participantFormData]);
+  }, [participantCategoryFilter, participantSearchQuery, participantFormData, employees]);
 
   // Handle save participants
   const handleSaveParticipants = () => {
@@ -626,8 +662,8 @@ export default function Welfare() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                                "bg-yellow-500/5"
+                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                              "bg-yellow-500/5"
                             }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
@@ -668,8 +704,8 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
                               }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
@@ -703,7 +739,7 @@ export default function Welfare() {
                 <div className="text-center py-16 bg-soft/30 rounded-xl border-2 border-dashed border-app">
                   <Package className="w-16 h-16 text-muted mx-auto mb-4 opacity-50" />
                   <p className="text-muted font-light text-lg mb-2">ยังไม่มีรายการเบิกสวัสดิการ</p>
-                  <p className="text-xs text-muted">คลิกปุ่ม "เพิ่มสวัสดิการ" เพื่อเพิ่มรายการใหม่</p>
+                  <p className="text-xs text-muted">คลิกปุ่ม &quot;เพิ่มสวัสดิการ&quot; เพื่อเพิ่มรายการใหม่</p>
                 </div>
               )}
 
@@ -853,8 +889,8 @@ export default function Welfare() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                                "bg-yellow-500/5"
+                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                              "bg-yellow-500/5"
                             }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
@@ -892,8 +928,8 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
                               }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
@@ -927,7 +963,7 @@ export default function Welfare() {
                 <div className="text-center py-16 bg-soft/30 rounded-xl border-2 border-dashed border-app mt-4">
                   <Gift className="w-16 h-16 text-muted mx-auto mb-4 opacity-50" />
                   <p className="text-muted font-light text-lg mb-2">ยังไม่มีรายการโบนัส</p>
-                  <p className="text-xs text-muted">คลิกปุ่ม "เพิ่มสวัสดิการ" เพื่อเพิ่มรายการใหม่</p>
+                  <p className="text-xs text-muted">คลิกปุ่ม &quot;เพิ่มสวัสดิการ&quot; เพื่อเพิ่มรายการใหม่</p>
                 </div>
               )}
             </motion.div>
@@ -1003,8 +1039,8 @@ export default function Welfare() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                                "bg-yellow-500/5"
+                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                              "bg-yellow-500/5"
                             }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
@@ -1033,8 +1069,8 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
                               }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
@@ -1068,7 +1104,7 @@ export default function Welfare() {
                 <div className="text-center py-16 bg-soft/30 rounded-xl border-2 border-dashed border-app mt-4">
                   <HomeIcon className="w-16 h-16 text-muted mx-auto mb-4 opacity-50" />
                   <p className="text-muted font-light text-lg mb-2">ยังไม่มีรายการหอพัก</p>
-                  <p className="text-xs text-muted">คลิกปุ่ม "เพิ่มสวัสดิการ" เพื่อเพิ่มรายการใหม่</p>
+                  <p className="text-xs text-muted">คลิกปุ่ม &quot;เพิ่มสวัสดิการ&quot; เพื่อเพิ่มรายการใหม่</p>
                 </div>
               )}
             </motion.div>
@@ -1134,8 +1170,8 @@ export default function Welfare() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                                "bg-yellow-500/5"
+                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                              "bg-yellow-500/5"
                             }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
@@ -1176,8 +1212,8 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
                               }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
@@ -1211,7 +1247,7 @@ export default function Welfare() {
                 <div className="text-center py-16 bg-soft/30 rounded-xl border-2 border-dashed border-app mt-4">
                   <Fuel className="w-16 h-16 text-muted mx-auto mb-4 opacity-50" />
                   <p className="text-muted font-light text-lg mb-2">ยังไม่มีรายการเบิกค่าน้ำมัน</p>
-                  <p className="text-xs text-muted">คลิกปุ่ม "เพิ่มสวัสดิการ" เพื่อเพิ่มรายการใหม่</p>
+                  <p className="text-xs text-muted">คลิกปุ่ม &quot;เพิ่มสวัสดิการ&quot; เพื่อเพิ่มรายการใหม่</p>
                 </div>
               )}
             </motion.div>
@@ -1275,8 +1311,8 @@ export default function Welfare() {
                     >
                       {/* Header */}
                       <div className={`p-6 border-b border-app ${project.status === "อนุมัติ" ? "bg-gradient-to-r from-green-500/10 to-emerald-500/10" :
-                          project.status === "ปฏิเสธ" ? "bg-gradient-to-r from-red-500/10 to-rose-500/10" :
-                            "bg-gradient-to-r from-purple-500/10 to-pink-500/10"
+                        project.status === "ปฏิเสธ" ? "bg-gradient-to-r from-red-500/10 to-rose-500/10" :
+                          "bg-gradient-to-r from-purple-500/10 to-pink-500/10"
                         }`}>
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
@@ -1296,8 +1332,8 @@ export default function Welfare() {
                             </div>
                           </div>
                           <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${project.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                              project.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                                "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                            project.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                              "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
                             }`}>
                             {project.status === "อนุมัติ" && "✓ "}
                             {project.status === "ปฏิเสธ" && "✗ "}
@@ -1383,7 +1419,7 @@ export default function Welfare() {
                 <div className="text-center py-16 bg-soft/30 rounded-xl border-2 border-dashed border-app mt-4">
                   <Plane className="w-16 h-16 text-muted mx-auto mb-4 opacity-50" />
                   <p className="text-muted font-light text-lg mb-2">ยังไม่มีโปรเจคทัศนศึกษา</p>
-                  <p className="text-xs text-muted">คลิกปุ่ม "สร้างโปรเจคทัศนศึกษา" เพื่อสร้างโปรเจคใหม่</p>
+                  <p className="text-xs text-muted">คลิกปุ่ม &quot;สร้างโปรเจคทัศนศึกษา&quot; เพื่อสร้างโปรเจคใหม่</p>
                 </div>
               )}
             </motion.div>
@@ -1502,8 +1538,8 @@ export default function Welfare() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                                "bg-yellow-500/5"
+                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                              "bg-yellow-500/5"
                             }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
@@ -1541,8 +1577,8 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
                               }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
@@ -1576,7 +1612,7 @@ export default function Welfare() {
                 <div className="text-center py-16 bg-soft/30 rounded-xl border-2 border-dashed border-app mt-4">
                   <HeartHandshake className="w-16 h-16 text-muted mx-auto mb-4 opacity-50" />
                   <p className="text-muted font-light text-lg mb-2">ยังไม่มีรายการเยี่ยมไข้/คลอด/งานศพ</p>
-                  <p className="text-xs text-muted">คลิกปุ่ม "เพิ่มสวัสดิการ" เพื่อเพิ่มรายการใหม่</p>
+                  <p className="text-xs text-muted">คลิกปุ่ม &quot;เพิ่มสวัสดิการ&quot; เพื่อเพิ่มรายการใหม่</p>
                 </div>
               )}
             </motion.div>
@@ -1654,8 +1690,8 @@ export default function Welfare() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                                "bg-yellow-500/5"
+                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                              "bg-yellow-500/5"
                             }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
@@ -1693,8 +1729,8 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
                               }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
@@ -1728,7 +1764,7 @@ export default function Welfare() {
                 <div className="text-center py-16 bg-soft/30 rounded-xl border-2 border-dashed border-app mt-4">
                   <GraduationCap className="w-16 h-16 text-muted mx-auto mb-4 opacity-50" />
                   <p className="text-muted font-light text-lg mb-2">ยังไม่มีรายการทุนการศึกษา</p>
-                  <p className="text-xs text-muted">คลิกปุ่ม "เพิ่มสวัสดิการ" เพื่อเพิ่มรายการใหม่</p>
+                  <p className="text-xs text-muted">คลิกปุ่ม &quot;เพิ่มสวัสดิการ&quot; เพื่อเพิ่มรายการใหม่</p>
                 </div>
               )}
             </motion.div>
@@ -1804,8 +1840,8 @@ export default function Welfare() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className={`hover:bg-soft/70 transition-colors ${record.status === "อนุมัติ" ? "bg-green-500/5" :
-                              record.status === "ปฏิเสธ" ? "bg-red-500/5" :
-                                "bg-yellow-500/5"
+                            record.status === "ปฏิเสธ" ? "bg-red-500/5" :
+                              "bg-yellow-500/5"
                             }`}
                           title={`วันที่เบิก: ${formatDateDetailed(record.date)}`}
                         >
@@ -1843,8 +1879,8 @@ export default function Welfare() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${record.status === "อนุมัติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                                record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
-                                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                              record.status === "ปฏิเสธ" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                                "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
                               }`}>
                               {record.status === "อนุมัติ" && "✓ "}
                               {record.status === "ปฏิเสธ" && "✗ "}
@@ -1878,7 +1914,7 @@ export default function Welfare() {
                 <div className="text-center py-16 bg-soft/30 rounded-xl border-2 border-dashed border-app mt-4">
                   <Shield className="w-16 h-16 text-muted mx-auto mb-4 opacity-50" />
                   <p className="text-muted font-light text-lg mb-2">ยังไม่มีรายการประกันชีวิต</p>
-                  <p className="text-xs text-muted">คลิกปุ่ม "เพิ่มสวัสดิการ" เพื่อเพิ่มรายการใหม่</p>
+                  <p className="text-xs text-muted">คลิกปุ่ม &quot;เพิ่มสวัสดิการ&quot; เพื่อเพิ่มรายการใหม่</p>
                 </div>
               )}
             </motion.div>
@@ -1909,7 +1945,7 @@ export default function Welfare() {
         <div className="space-y-6">
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>หมายเหตุ:</strong> สร้างโปรเจคก่อน หลังจากนั้นสามารถเพิ่มพนักงานได้จากปุ่ม "เพิ่มพนักงาน" ในแต่ละโปรเจค
+              <strong>หมายเหตุ:</strong> สร้างโปรเจคก่อน หลังจากนั้นสามารถเพิ่มพนักงานได้จากปุ่ม &quot;เพิ่มพนักงาน&quot; ในแต่ละโปรเจค
             </p>
           </div>
 

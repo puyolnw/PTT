@@ -5,6 +5,19 @@ import {
     TaxInvoiceSummaryRow,
     ReceivingRecord,
 } from "@/types/accounting";
+
+interface SalesRecord {
+    date: string;
+    documentNo: string;
+    customer?: string;
+    oilType: string;
+    quantity: number;
+    sellingPrice: number;
+    cost: number;
+    totalSales: number;
+    totalCost: number;
+    profit: number;
+}
 import { costCalculationService } from "./CostCalculationService";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
@@ -277,7 +290,7 @@ class ExcelExportService {
     exportSalesReport(
         startDate: string,
         endDate: string,
-        sales: any[]
+        sales: SalesRecord[]
     ): void {
         const data = sales.map((sale) => ({
             วันที่: sale.date,
@@ -330,7 +343,10 @@ class ExcelExportService {
             adjustment: "ปรับปรุง",
             transfer: "โอนย้าย",
         };
-        return descriptions[action] || action;
+        if (Object.prototype.hasOwnProperty.call(descriptions, action)) {
+            return descriptions[action];
+        }
+        return action;
     }
 }
 
