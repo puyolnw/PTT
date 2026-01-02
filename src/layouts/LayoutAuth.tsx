@@ -28,7 +28,6 @@ export default function LayoutAuth() {
     setIsLoading(true);
 
     setTimeout(() => {
-      const roleData = roles.find(r => r.value === selectedRole);
       login({
         name: username || "PTT User",
         email: `${username || "user"}@ptt.com`,
@@ -82,12 +81,13 @@ export default function LayoutAuth() {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="username" className="block text-sm font-medium text-app mb-2">
                 ชื่อผู้ใช้
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                 <input
+                  id="username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -99,12 +99,13 @@ export default function LayoutAuth() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-app mb-2">
                 รหัสผ่าน
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                 <input
+                  id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -116,12 +117,13 @@ export default function LayoutAuth() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="role" className="block text-sm font-medium text-app mb-2">
                 บทบาท (Role)
               </label>
               <div className="relative">
                 <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted z-10" />
                 <select
+                  id="role"
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 bg-soft text-app border border-app rounded-xl focus:ring-2 ring-ptt-blue/50 outline-none transition-all appearance-none cursor-pointer"
