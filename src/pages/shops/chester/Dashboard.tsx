@@ -445,7 +445,7 @@ export default function ChesterDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <button className="flex items-center gap-3 p-4 bg-ptt-blue/10 hover:bg-ptt-blue/20 border border-ptt-blue/30 rounded-xl transition-colors">
             <Upload className="w-5 h-5 text-ptt-cyan" />
-            <span className="text-app font-medium">นำเข้า Excel จากแอป Chester's</span>
+            <span className="text-app font-medium">นำเข้า Excel จากแอป Chester&apos;s</span>
           </button>
           <button className="flex items-center gap-3 p-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl transition-colors">
             <DollarSign className="w-5 h-5 text-emerald-400" />

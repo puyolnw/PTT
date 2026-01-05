@@ -94,7 +94,7 @@ const topSellingItems = [
 
 export default function Reports() {
   const { currentShop } = useShop();
-  const shopName = currentShop?.name || "ร้านเชสเตอร์ (Chester's)";
+  const shopName = currentShop?.name || "ร้านเชสเตอร์ (Chester&apos;s)";
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [selectedBranch, setSelectedBranch] = useState<string>("ทั้งหมด");
 

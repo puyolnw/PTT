@@ -24,7 +24,7 @@ export default function Settings() {
       >
         <h2 className="text-3xl font-bold text-app mb-2 font-display">ตั้งค่า - M2</h2>
         <p className="text-muted font-light">
-          จัดการการตั้งค่าสำหรับโมดูลจัดการพื้นที่เช่า (M2) รองรับทุกประเภทร้านที่เช่าพื้นที่ในปั๊ม (FIT Auto, Chester's, Daiso, Quick, ร้าน EV, ฯลฯ) ครอบคลุม 5 ปั๊ม
+          จัดการการตั้งค่าสำหรับโมดูลจัดการพื้นที่เช่า (M2) รองรับทุกประเภทร้านที่เช่าพื้นที่ในปั๊ม (FIT Auto, Chester&apos;s, Daiso, Quick, ร้าน EV, ฯลฯ) ครอบคลุม 5 ปั๊ม
         </p>
       </motion.div>
 
@@ -39,8 +39,8 @@ export default function Settings() {
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">แจ้งเตือนหนี้ค้างชำระ (วัน)</label>
-            <div className="flex gap-2">
+            <label htmlFor="alert-days" className="block text-sm font-medium text-app mb-2">แจ้งเตือนหนี้ค้างชำระ (วัน)</label>
+            <div id="alert-days" className="flex gap-2">
               {settings.alertDays.map((day) => (
                 <span key={day} className="px-3 py-2 bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30 rounded-lg text-sm">
                   {day} วัน
@@ -51,12 +51,13 @@ export default function Settings() {
           </div>
           <div className="flex items-center gap-2">
             <input
+              id="auto-calculate"
               type="checkbox"
               checked={settings.autoCalculate}
               onChange={(e) => setSettings({ ...settings, autoCalculate: e.target.checked })}
               className="w-4 h-4"
             />
-            <label className="text-sm text-app">คำนวณค่าเช่าอัตโนมัติจากสัญญาเช่า</label>
+            <label htmlFor="auto-calculate" className="text-sm text-app">คำนวณค่าเช่าอัตโนมัติจากสัญญาเช่า</label>
           </div>
         </div>
       </motion.div>
@@ -78,11 +79,12 @@ export default function Settings() {
               <div>
                 <p className="font-medium text-app">M1: ดึงยอดขายร้าน → คำนวณ % ค่าเช่า</p>
                 <p className="text-sm text-muted">
-                  ดึงยอดขายร้าน (เช่น Chester's) จาก M1 → คำนวณ % ค่าเช่าอัตโนมัติ
+                  ดึงยอดขายร้าน (เช่น Chester&apos;s) จาก M1 → คำนวณ % ค่าเช่าอัตโนมัติ
                 </p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
+              <span className="sr-only">เชื่อมต่อ M1</span>
               <input
                 type="checkbox"
                 checked={settings.connectToModule1}
@@ -103,6 +105,7 @@ export default function Settings() {
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
+              <span className="sr-only">เชื่อมต่อ M6</span>
               <input
                 type="checkbox"
                 checked={settings.connectToModule6}
@@ -118,11 +121,12 @@ export default function Settings() {
               <div>
                 <p className="font-medium text-app">M7: แสดงในแดชบอร์ดรวม</p>
                 <p className="text-sm text-muted">
-                  แสดง "รายได้ค่าเช่า vs ค่าใช้จ่ายเช่า"
+                  แสดง &quot;รายได้ค่าเช่า vs ค่าใช้จ่ายเช่า&quot;
                 </p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
+              <span className="sr-only">เชื่อมต่อ M7</span>
               <input
                 type="checkbox"
                 checked={settings.connectToModule7}

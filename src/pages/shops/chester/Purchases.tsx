@@ -28,7 +28,7 @@ const initialPurchases = [
     amount: 15000,
     status: "ชำระแล้ว",
     dueDate: "2024-12-15",
-    source: "แอป Chester's",
+    source: "แอป Chester&apos;s",
     poNumber: "PO-2024-001",
   },
   {
@@ -50,14 +50,14 @@ const initialPurchases = [
     amount: 4500,
     status: "รอชำระ",
     dueDate: "2024-12-20",
-    source: "แอป Chester's",
+    source: "แอป Chester&apos;s",
     poNumber: "PO-2024-002",
   },
 ];
 
 export default function Purchases() {
   const { currentShop } = useShop();
-  const shopName = currentShop?.name || "ร้านเชสเตอร์ (Chester's)";
+  const shopName = currentShop?.name || "ร้านเชสเตอร์ (Chester&apos;s)";
   
   const [purchases, setPurchases] = useState(initialPurchases);
   const [searchQuery, setSearchQuery] = useState("");
@@ -114,19 +114,19 @@ export default function Purchases() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Simulate file processing from Chester's App
-      alert(`กำลังประมวลผลไฟล์ ${file.name}...\n\nระบบจะสร้างใบสั่งซื้อ (PO) อัตโนมัติจากข้อมูลในแอป Chester's (Excel)`);
+      // Simulate file processing from Chester&apos;s App
+      alert(`กำลังประมวลผลไฟล์ ${file.name}...\n\nระบบจะสร้างใบสั่งซื้อ (PO) อัตโนมัติจากข้อมูลในแอป Chester&apos;s (Excel)`);
       
       // Simulate adding a purchase from file
       const newPurchase = {
         id: String(purchases.length + 1),
         date: new Date().toISOString().split("T")[0],
         supplier: "CP Foods",
-        items: `วัตถุดิบจากไฟล์แอป Chester's`,
+        items: `วัตถุดิบจากไฟล์แอป Chester&apos;s`,
         amount: Math.floor(Math.random() * 20000) + 10000,
         status: "รอชำระ",
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-        source: "แอป Chester's",
+        source: "แอป Chester&apos;s",
         poNumber: `PO-2024-${String(purchases.length + 1).padStart(3, "0")}`,
       };
       setPurchases([newPurchase, ...purchases]);
@@ -142,7 +142,7 @@ export default function Purchases() {
       >
         <h2 className="text-3xl font-bold text-app mb-2 font-display">การสั่งซื้อวัตถุดิบ - {shopName}</h2>
         <p className="text-muted font-light">
-          บันทึกการสั่งซื้อวัตถุดิบ (ไก่สด, ซอสเกาหลี) จาก CP Foods หรือซัพพลายเออร์ รองรับ Excel จากแอป Chester's ระบบสร้างใบสั่งซื้อ (PO) อัตโนมัติ
+          บันทึกการสั่งซื้อวัตถุดิบ (ไก่สด, ซอสเกาหลี) จาก CP Foods หรือซัพพลายเออร์ รองรับ Excel จากแอป Chester&apos;s ระบบสร้างใบสั่งซื้อ (PO) อัตโนมัติ
         </p>
       </motion.div>
 
@@ -209,10 +209,10 @@ export default function Purchases() {
         >
           <div className="flex items-center justify-between mb-4">
             <Drumstick className="w-8 h-8 text-purple-400" />
-            <span className="text-sm text-muted">จากแอป Chester's</span>
+            <span className="text-sm text-muted">จากแอป Chester&apos;s</span>
           </div>
           <p className="text-2xl font-bold text-app">
-            {purchases.filter((p) => p.source === "แอป Chester's").length}
+            {purchases.filter((p) => p.source === "แอป Chester&apos;s").length}
           </p>
           <p className="text-sm text-muted">รายการ</p>
         </motion.div>
@@ -238,7 +238,7 @@ export default function Purchases() {
               value: sourceFilter,
               options: [
                 { value: "", label: "ทั้งหมด" },
-                { value: "แอป Chester's", label: "แอป Chester's" },
+                { value: "แอป Chester's", label: "แอป Chester&apos;s" },
                 { value: "Manual", label: "กรอกด้วยมือ" },
               ],
               onChange: setSourceFilter,
@@ -249,7 +249,7 @@ export default function Purchases() {
         <div className="flex gap-2">
           <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
             <Upload className="w-4 h-4" />
-            <span>นำเข้า Excel จากแอป Chester's</span>
+            <span>นำเข้า Excel จากแอป Chester&apos;s</span>
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -349,8 +349,9 @@ export default function Purchases() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่</label>
+              <label htmlFor="purchase-date" className="block text-sm font-medium text-app mb-2">วันที่</label>
               <input
+                id="purchase-date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -359,8 +360,9 @@ export default function Purchases() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">สถานะ</label>
+              <label htmlFor="purchase-status" className="block text-sm font-medium text-app mb-2">สถานะ</label>
               <select
+                id="purchase-status"
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -371,8 +373,9 @@ export default function Purchases() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
+            <label htmlFor="purchase-supplier" className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
             <input
+              id="purchase-supplier"
               type="text"
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
@@ -382,8 +385,9 @@ export default function Purchases() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">รายการวัตถุดิบ</label>
+            <label htmlFor="purchase-items" className="block text-sm font-medium text-app mb-2">รายการวัตถุดิบ</label>
             <textarea
+              id="purchase-items"
               value={formData.items}
               onChange={(e) => setFormData({ ...formData, items: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -394,8 +398,9 @@ export default function Purchases() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
+              <label htmlFor="purchase-amount" className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
               <input
+                id="purchase-amount"
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -405,8 +410,9 @@ export default function Purchases() {
             </div>
             {formData.status === "รอชำระ" && (
               <div>
-                <label className="block text-sm font-medium text-app mb-2">ครบกำหนด</label>
+                <label htmlFor="purchase-due-date" className="block text-sm font-medium text-app mb-2">ครบกำหนด</label>
                 <input
+                  id="purchase-due-date"
                   type="date"
                   value={formData.dueDate}
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
@@ -416,17 +422,18 @@ export default function Purchases() {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">แหล่งที่มา</label>
+            <label htmlFor="purchase-source" className="block text-sm font-medium text-app mb-2">แหล่งที่มา</label>
             <select
+              id="purchase-source"
               value={formData.source}
               onChange={(e) => setFormData({ ...formData, source: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
             >
               <option value="Manual">กรอกด้วยมือ</option>
-              <option value="แอป Chester's">แอป Chester's</option>
+              <option value="แอป Chester's">แอป Chester&apos;s</option>
             </select>
             <p className="text-xs text-muted mt-1">
-              หากเลือก "แอป Chester's" ระบบจะสร้างใบสั่งซื้อ (PO) อัตโนมัติ
+              หากเลือก &quot;แอป Chester&apos;s&quot; ระบบจะสร้างใบสั่งซื้อ (PO) อัตโนมัติ
             </p>
           </div>
         </div>

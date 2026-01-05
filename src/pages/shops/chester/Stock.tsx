@@ -88,7 +88,7 @@ const initialStockData = [
 
 export default function Stock() {
   const { currentShop } = useShop();
-  const shopName = currentShop?.name || "ร้านเชสเตอร์ (Chester's)";
+  const shopName = currentShop?.name || "ร้านเชสเตอร์ (Chester&apos;s)";
   
   const [stockData, setStockData] = useState(initialStockData);
   const [searchQuery, setSearchQuery] = useState("");
@@ -202,8 +202,8 @@ export default function Stock() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Simulate file processing from Chester's App
-      alert(`กำลังประมวลผลไฟล์ ${file.name}...\n\nระบบจะอัปเดตสต็อกจากแอป Chester's (Excel)`);
+      // Simulate file processing from Chester&apos;s App
+      alert(`กำลังประมวลผลไฟล์ ${file.name}...\n\nระบบจะอัปเดตสต็อกจากแอป Chester&apos;s (Excel)`);
     }
   };
 
@@ -216,7 +216,7 @@ export default function Stock() {
       >
         <h2 className="text-3xl font-bold text-app mb-2 font-display">สต็อกสินค้า - {shopName}</h2>
         <p className="text-muted font-light">
-          จัดการสต็อกสินค้า (ไก่สด, ซอสเกาหลี) แจ้งเตือนเมื่อใกล้หมด (ต่ำกว่า 20%) อัปเดตจากยอดขาย นำเข้าจากแอป Chester's (Excel)
+          จัดการสต็อกสินค้า (ไก่สด, ซอสเกาหลี) แจ้งเตือนเมื่อใกล้หมด (ต่ำกว่า 20%) อัปเดตจากยอดขาย นำเข้าจากแอป Chester&apos;s (Excel)
         </p>
       </motion.div>
 
@@ -306,7 +306,7 @@ export default function Stock() {
         <div className="flex gap-2">
           <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
             <Upload className="w-4 h-4" />
-            <span>นำเข้าจากแอป Chester's</span>
+            <span>นำเข้าจากแอป Chester&apos;s</span>
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -453,8 +453,9 @@ export default function Stock() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
+            <label htmlFor="stock-name" className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
             <input
+              id="stock-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -465,8 +466,9 @@ export default function Stock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวน</label>
+              <label htmlFor="stock-quantity" className="block text-sm font-medium text-app mb-2">จำนวน</label>
               <input
+                id="stock-quantity"
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -475,8 +477,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หน่วย</label>
+              <label htmlFor="stock-unit" className="block text-sm font-medium text-app mb-2">หน่วย</label>
               <select
+                id="stock-unit"
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -489,8 +492,9 @@ export default function Stock() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท/{formData.unit})</label>
+            <label htmlFor="stock-cost" className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท/{formData.unit})</label>
             <input
+              id="stock-cost"
               type="number"
               value={formData.cost}
               onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
@@ -499,8 +503,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
+            <label htmlFor="stock-expiry" className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
             <input
+              id="stock-expiry"
               type="date"
               value={formData.expiry}
               onChange={(e) => setFormData({ ...formData, expiry: e.target.value })}
@@ -509,8 +514,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
+            <label htmlFor="stock-supplier" className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
             <input
+              id="stock-supplier"
               type="text"
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
@@ -520,8 +526,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
+            <label htmlFor="stock-threshold" className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
             <input
+              id="stock-threshold"
               type="number"
               value={formData.lowStockThreshold}
               onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
@@ -531,8 +538,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
+            <label htmlFor="stock-category" className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
             <select
+              id="stock-category"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -556,8 +564,9 @@ export default function Stock() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
+            <label htmlFor="edit-stock-name" className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
             <input
+              id="edit-stock-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -567,8 +576,9 @@ export default function Stock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวน</label>
+              <label htmlFor="edit-stock-quantity" className="block text-sm font-medium text-app mb-2">จำนวน</label>
               <input
+                id="edit-stock-quantity"
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -577,8 +587,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หน่วย</label>
+              <label htmlFor="edit-stock-unit" className="block text-sm font-medium text-app mb-2">หน่วย</label>
               <select
+                id="edit-stock-unit"
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -591,8 +602,9 @@ export default function Stock() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท/{formData.unit})</label>
+            <label htmlFor="edit-stock-cost" className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท/{formData.unit})</label>
             <input
+              id="edit-stock-cost"
               type="number"
               value={formData.cost}
               onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
@@ -601,8 +613,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
+            <label htmlFor="edit-stock-expiry" className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
             <input
+              id="edit-stock-expiry"
               type="date"
               value={formData.expiry}
               onChange={(e) => setFormData({ ...formData, expiry: e.target.value })}
@@ -611,8 +624,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
+            <label htmlFor="edit-stock-supplier" className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
             <input
+              id="edit-stock-supplier"
               type="text"
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
@@ -621,8 +635,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
+            <label htmlFor="edit-stock-threshold" className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
             <input
+              id="edit-stock-threshold"
               type="number"
               value={formData.lowStockThreshold}
               onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
@@ -631,8 +646,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
+            <label htmlFor="edit-stock-category" className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
             <select
+              id="edit-stock-category"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"

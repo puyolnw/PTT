@@ -36,7 +36,7 @@ const initialSalesData = [
     total: 1250,
     paymentMethod: "PTT Card",
     customer: "ลูกค้าทั่วไป",
-    source: "แอป Chester's",
+    source: "แอป Chester&apos;s",
   },
   {
     id: "2",
@@ -48,7 +48,7 @@ const initialSalesData = [
     total: 1257,
     paymentMethod: "QR Code",
     customer: "ลูกค้าทั่วไป",
-    source: "แอป Chester's",
+    source: "แอป Chester&apos;s",
   },
   {
     id: "3",
@@ -67,7 +67,7 @@ const initialSalesData = [
 
 export default function Sales() {
   const { currentShop } = useShop();
-  const shopName = currentShop?.name || "ร้านเชสเตอร์ (Chester's)";
+  const shopName = currentShop?.name || "ร้านเชสเตอร์ (Chester&apos;s)";
   
   const [salesData, setSalesData] = useState(initialSalesData);
   const [searchQuery, setSearchQuery] = useState("");
@@ -199,8 +199,8 @@ export default function Sales() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Simulate file processing from Chester's App
-      alert(`กำลังประมวลผลไฟล์ ${file.name}...\n\nระบบจะนำเข้าข้อมูลยอดขายจากแอป Chester's (Excel)`);
+      // Simulate file processing from Chester&apos;s App
+      alert(`กำลังประมวลผลไฟล์ ${file.name}...\n\nระบบจะนำเข้าข้อมูลยอดขายจากแอป Chester&apos;s (Excel)`);
       
       // Simulate adding sales from file
       const newSale = {
@@ -213,7 +213,7 @@ export default function Sales() {
         total: 860,
         paymentMethod: "PTT Card",
         customer: "ลูกค้าทั่วไป",
-        source: "แอป Chester's",
+        source: "แอป Chester&apos;s",
       };
       setSalesData([newSale, ...salesData]);
     }
@@ -228,7 +228,7 @@ export default function Sales() {
       >
         <h2 className="text-3xl font-bold text-app mb-2 font-display">ยอดขาย - {shopName}</h2>
         <p className="text-muted font-light">
-          บันทึกยอดขายและดูรายงานยอดขายรายวัน/เดือน/ปี แยกตามเมนู (ไก่ทอด vs เฟรนช์ฟรายส์) นำเข้าจาก Excel จากแอป Chester's หรือกรอกด้วยมือ
+          บันทึกยอดขายและดูรายงานยอดขายรายวัน/เดือน/ปี แยกตามเมนู (ไก่ทอด vs เฟรนช์ฟรายส์) นำเข้าจาก Excel จากแอป Chester&apos;s หรือกรอกด้วยมือ
         </p>
       </motion.div>
 
@@ -294,10 +294,10 @@ export default function Sales() {
         >
           <div className="flex items-center justify-between mb-4">
             <FileText className="w-8 h-8 text-orange-400" />
-            <span className="text-sm text-muted">จากแอป Chester's</span>
+            <span className="text-sm text-muted">จากแอป Chester&apos;s</span>
           </div>
           <p className="text-2xl font-bold text-app">
-            {salesData.filter((s) => s.source === "แอป Chester's").length}
+            {salesData.filter((s) => s.source === "แอป Chester&apos;s").length}
           </p>
           <p className="text-sm text-muted">รายการ</p>
         </motion.div>
@@ -377,7 +377,7 @@ export default function Sales() {
         <div className="flex gap-2">
           <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
             <Upload className="w-4 h-4" />
-            <span>นำเข้า Excel จากแอป Chester's</span>
+            <span>นำเข้า Excel จากแอป Chester&apos;s</span>
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -476,8 +476,9 @@ export default function Sales() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่</label>
+              <label htmlFor="sale-date" className="block text-sm font-medium text-app mb-2">วันที่</label>
               <input
+                id="sale-date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -486,8 +487,9 @@ export default function Sales() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วิธีชำระ</label>
+              <label htmlFor="payment-method" className="block text-sm font-medium text-app mb-2">วิธีชำระ</label>
               <select
+                id="payment-method"
                 value={formData.paymentMethod}
                 onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -500,8 +502,9 @@ export default function Sales() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ลูกค้า (ไม่บังคับ)</label>
+            <label htmlFor="customer" className="block text-sm font-medium text-app mb-2">ลูกค้า (ไม่บังคับ)</label>
             <input
+              id="customer"
               type="text"
               value={formData.customer}
               onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
@@ -511,7 +514,7 @@ export default function Sales() {
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-app">รายการเมนู</label>
+              <label htmlFor="menu-items" className="block text-sm font-medium text-app">รายการเมนู</label>
               <button
                 type="button"
                 onClick={addItemToForm}

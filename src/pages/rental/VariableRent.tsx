@@ -235,7 +235,7 @@ export default function VariableRent() {
               ระบบจะดึงยอดขายจากโมดูล M1 (Gas Station) อัตโนมัติทุกวัน เพื่อคำนวณค่าเช่าที่ผันแปรตามยอดขาย
             </p>
             <p className="text-xs text-muted mt-2">
-              ตัวอย่าง: Chester's ขาย 500,000 บาท × 5% = 25,000 บาท (ค่าเช่า)
+              ตัวอย่าง: Chester&apos;s ขาย 500,000 บาท × 5% = 25,000 บาท (ค่าเช่า)
             </p>
           </div>
         </div>
