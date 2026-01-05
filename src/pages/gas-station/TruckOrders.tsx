@@ -24,6 +24,7 @@ import {
     useSortable,
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { useBranch } from "@/contexts/BranchContext";
 import { CSS } from "@dnd-kit/utilities";
 
 // Helper functions (moved from missing utils or reconstructed)
@@ -123,6 +124,8 @@ function SortableBranchItem({ branch, index }: { branch: any; index: number }) {
 
 export default function TruckOrders() {
     const { branches } = useGasStation();
+    const { selectedBranches } = useBranch();
+    const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
 
     // State definitions
     const [newOrder, setNewOrder] = useState({
@@ -361,9 +364,13 @@ export default function TruckOrders() {
             const matchesBranch = filterBranch === "all" ||
                 (order.branches && order.branches.some((b: any) => b.branchId === filterBranch));
 
-            return matchesSearch && matchesStatus && matchesDate && matchesBranch;
+            // Global branch filter
+            const matchesGlobalBranch = selectedBranchIds.length === 0 ||
+                (order.branches && order.branches.some((b: any) => selectedBranchIds.includes(b.branchId)));
+
+            return matchesSearch && matchesStatus && matchesDate && matchesBranch && matchesGlobalBranch;
         });
-    }, [searchTerm, filterStatus, filterDateFrom, filterDateTo, filterBranch, combinedOrders]);
+    }, [searchTerm, filterStatus, filterDateFrom, filterDateTo, filterBranch, combinedOrders, selectedBranchIds]);
 
     const handleCreateOrder = () => {
         if (!newOrder.purchaseOrderNo || !newOrder.truckId || !newOrder.trailerId || !newOrder.driverId) {
@@ -523,13 +530,21 @@ export default function TruckOrders() {
                             </p>
                         </div>
                     </div>
-                    <button
-                        onClick={() => setShowCreateOrderModal(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
-                    >
-                        <PackageCheck className="w-5 h-5" />
-                        สร้างการขนส่งใหม่
-                    </button>
+
+                    <div className="flex flex-col md:flex-row items-center gap-4">
+                        <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => setShowCreateOrderModal(true)}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
+                        >
+                            <PackageCheck className="w-5 h-5" />
+                            สร้างการขนส่งใหม่
+                        </button>
+                    </div>
                 </div>
             </div>
 

@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
 import type { TankEntryRecord as TankEntryRecordType, OilType } from "@/types/gasStation";
 
 // Helper function to map local source to base source type
@@ -261,8 +262,11 @@ export default function RecordTankEntry() {
         oilReceipts, 
         transportDeliveries, 
         tankEntries,
-        createTankEntry, 
+        createTankEntry,
+        branches,
     } = useGasStation();
+    const { selectedBranches } = useBranch();
+    const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
     const location = useLocation();
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState("");
@@ -666,6 +670,7 @@ export default function RecordTankEntry() {
         const newTankEntry: TankEntryRecordType = {
             id: recordId,
             entryNo: entryNo,
+            branchId: selectedBranchIds[0] || 1,
             entryDate: formData.entryDate,
             entryTime: formData.entryTime,
             tankNumber: formData.tankNumber,
@@ -916,6 +921,7 @@ export default function RecordTankEntry() {
         const tankEntryRecord: TankEntryRecordType = {
             id: recordId,
             entryNo: entryNo,
+            branchId: selectedBranchIds[0] || 1,
             entryDate: incorrectEntryForm.entryDate,
             entryTime: incorrectEntryForm.entryTime,
             tankNumber: incorrectEntryForm.wrongTankNumber,
@@ -974,15 +980,23 @@ export default function RecordTankEntry() {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="mb-6"
+                className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
             >
-                <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
-                    <Droplet className="w-8 h-8 text-teal-500" />
-                    บันทึกน้ำมันลงหลุม
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                    บันทึกรายการน้ำมันที่ลงหลุมใต้ดิน แยกตามรหัสหลุม ประเภทน้ำมัน และหัวจ่าย
-                </p>
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
+                        <Droplet className="w-8 h-8 text-teal-500" />
+                        บันทึกน้ำมันลงหลุม
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400">
+                        บันทึกรายการน้ำมันที่ลงหลุมใต้ดิน แยกตามรหัสหลุม ประเภทน้ำมัน และหัวจ่าย
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+                    </span>
+                </div>
             </motion.div>
 
             {/* Summary Cards */}

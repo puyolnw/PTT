@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { FileText, Plus, Upload, Truck, Search, X, MoreHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ChartCard from "@/components/ChartCard";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import { DeliveryPurchaseOrder, loadPurchaseOrders, savePurchaseOrders, uid } from "@/pages/delivery/_storage";
 import { useNavigate } from "react-router-dom";
+import { useBranch } from "@/contexts/BranchContext";
+import { useGasStation } from "@/contexts/GasStationContext";
 
 const defaultProducts = [
   { product: "ดีเซล", liters: 0 },
@@ -13,16 +15,33 @@ const defaultProducts = [
 
 export default function PurchaseOrders() {
   const navigate = useNavigate();
+  const { selectedBranches } = useBranch();
+  const { branches } = useGasStation();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
+
   const [list, setList] = useState<DeliveryPurchaseOrder[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Form State
+  const [targetBranchId, setTargetBranchId] = useState<number>(0);
   const [approveNo, setApproveNo] = useState("");
   const [invoiceNo, setInvoiceNo] = useState("");
   const [status, setStatus] = useState<DeliveryPurchaseOrder["status"]>("จ่ายเงินแล้ว");
   const [items, setItems] = useState(defaultProducts);
   const [invoicePdfName, setInvoicePdfName] = useState<string | undefined>();
   const [receiptPdfName, setReceiptPdfName] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (selectedBranchIds.length > 0 && !targetBranchId) {
+      setTargetBranchId(selectedBranchIds[0]);
+    } else if (branches.length > 0 && !targetBranchId) {
+      setTargetBranchId(branches[0].id);
+    }
+  }, [selectedBranchIds, branches, targetBranchId]);
+
+  const filteredList = useMemo(() => {
+    return list.filter(po => selectedBranchIds.length === 0 || selectedBranchIds.includes(po.branchId));
+  }, [list, selectedBranchIds]);
 
   useEffect(() => {
     setList(loadPurchaseOrders());
@@ -47,6 +66,7 @@ export default function PurchaseOrders() {
 
     const next: DeliveryPurchaseOrder = {
       id: uid("po"),
+      branchId: targetBranchId,
       createdAt: new Date().toISOString(),
       approveNo: cleanApprove,
       invoiceNo: cleanInvoice,
@@ -92,26 +112,34 @@ export default function PurchaseOrders() {
           </div>
         </div>
 
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center gap-2 font-medium"
-        >
-          <Plus className="w-5 h-5" />
-          สร้างใบสั่งซื้อใหม่
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center gap-2 font-medium"
+          >
+            <Plus className="w-5 h-5" />
+            สร้างใบสั่งซื้อใหม่
+          </button>
+        </div>
       </motion.div>
 
       {/* Stats Cards (Optional Summary) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <ChartCard title="PO ทั้งหมด" icon={FileText} className="shadow-sm border-none ring-1 ring-gray-200 dark:ring-gray-700">
-          <div className="text-2xl font-bold text-gray-800 dark:text-white">{list.length}</div>
+          <div className="text-2xl font-bold text-gray-800 dark:text-white">{filteredList.length}</div>
         </ChartCard>
         <ChartCard title="รอรับของ" icon={Truck} className="shadow-sm border-none ring-1 ring-gray-200 dark:ring-gray-700">
-          <div className="text-2xl font-bold text-amber-600">{list.filter(i => i.status === 'รอรับของ').length}</div>
+          <div className="text-2xl font-bold text-amber-600">{filteredList.filter(i => i.status === 'รอรับของ').length}</div>
         </ChartCard>
         <ChartCard title="ปริมาณรวม (ลิตร)" icon={Upload} className="shadow-sm border-none ring-1 ring-gray-200 dark:ring-gray-700">
           <div className="text-2xl font-bold text-blue-600">
-            {list.reduce((sum, item) => sum + item.items.reduce((s, i) => s + i.liters, 0), 0).toLocaleString()}
+            {filteredList.reduce((sum, item) => sum + item.items.reduce((s, i) => s + i.liters, 0), 0).toLocaleString()}
           </div>
         </ChartCard>
       </div>
@@ -152,14 +180,14 @@ export default function PurchaseOrders() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {list.length === 0 ? (
+              {filteredList.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-muted">
                     ยังไม่มีข้อมูลใบสั่งซื้อ
                   </td>
                 </tr>
               ) : (
-                list.map((po) => (
+                filteredList.map((po) => (
                   <tr key={po.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
                     <td className="py-4 px-6 text-sm font-medium text-gray-900 dark:text-white">{po.approveNo}</td>
                     <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-300">{po.invoiceNo}</td>
@@ -225,6 +253,21 @@ export default function PurchaseOrders() {
                 </div>
 
                 <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      สาขาที่สั่งซื้อ
+                    </label>
+                    <select
+                      value={targetBranchId}
+                      onChange={(e) => setTargetBranchId(Number(e.target.value))}
+                      className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium appearance-none"
+                    >
+                      {branches.map(b => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">

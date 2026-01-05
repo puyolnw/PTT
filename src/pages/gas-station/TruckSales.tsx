@@ -303,6 +303,7 @@ export default function TruckSales() {
     const newReceipt: Receipt = {
       id: `REC-${Date.now()}`,
       receiptNo,
+      branchId: selectedItem.fromBranchId,
       receiptDate: new Date().toISOString().split("T")[0],
       deliveryNoteNo,
       customerName: toBranch.name,

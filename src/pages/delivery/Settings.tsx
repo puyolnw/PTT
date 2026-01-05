@@ -1,12 +1,25 @@
 import { Settings as SettingsIcon, FileText, Shield } from "lucide-react";
 import ChartCard from "@/components/ChartCard";
+import { useBranch } from "@/contexts/BranchContext";
+import { useGasStation } from "@/contexts/GasStationContext";
 
 export default function DeliverySettings() {
+  const { selectedBranches } = useBranch();
+  const { branches } = useGasStation();
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-app font-display">ตั้งค่า (Delivery)</h1>
-        <p className="text-muted mt-1">หน้านี้เป็นโครงพร้อมต่อยอด (สิทธิ์/คำศัพท์/ฟิลด์/รายงานภาษี)</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-app font-display">ตั้งค่า (Delivery)</h1>
+          <p className="text-muted mt-1">หน้านี้เป็นโครงพร้อมต่อยอด (สิทธิ์/คำศัพท์/ฟิลด์/รายงานภาษี)</p>
+        </div>
+
+        <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

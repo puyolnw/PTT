@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Droplet, Plus, Search, X } from "lucide-react";
 import ChartCard from "@/components/ChartCard";
 import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
 import type { OilType } from "@/types/gasStation";
 
 type SuctionMode = "sell" | "clean";
@@ -75,6 +76,8 @@ function ModeBadge({ mode }: { mode: SuctionMode }) {
 
 export default function RecordSuctionOil() {
   const { branches, getBranchById } = useGasStation();
+  const { selectedBranches } = useBranch();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
 
   const [logs, setLogs] = useState<SuctionLog[]>(() =>
     loadFromStorage<SuctionLog[]>(SUCTION_LOG_STORAGE_KEY, [
@@ -115,17 +118,19 @@ export default function RecordSuctionOil() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return logs;
     return logs.filter((l) => {
-      return (
+      const matchSearch = !q ||
         l.branchName.toLowerCase().includes(q) ||
         l.oilType.toLowerCase().includes(q) ||
         (l.notes || "").toLowerCase().includes(q) ||
         `${l.tankNumber || ""}`.includes(q) ||
-        (l.mode === "sell" ? "ขาย" : "ล้าง").includes(q)
-      );
+        (l.mode === "sell" ? "ขาย" : "ล้าง").includes(q);
+
+      const matchBranch = selectedBranchIds.length === 0 || selectedBranchIds.includes(l.branchId);
+
+      return matchSearch && matchBranch;
     });
-  }, [logs, search]);
+  }, [logs, search, selectedBranchIds]);
 
   const summary = useMemo(() => {
     const sellLiters = filtered.filter((x) => x.mode === "sell").reduce((s, x) => s + x.quantity, 0);
@@ -199,20 +204,29 @@ export default function RecordSuctionOil() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-app text-2xl font-bold">บันทึกการดูดน้ำมัน</div>
+          <div className="text-app text-2xl font-bold font-display">บันทึกการดูดน้ำมัน</div>
           <div className="text-sm text-muted">
             มี 2 แบบ: <span className="text-app font-semibold">ดูดขึ้นมาขาย</span> (จะเพิ่มเข้าสต็อกขาย) และ{" "}
             <span className="text-app font-semibold">ดูดเพื่อล้างถัง</span> (บันทึกประวัติ)
           </div>
         </div>
-        <button
-          type="button"
-          onClick={openAdd}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-ptt-blue text-white hover:brightness-110 transition"
-        >
-          <Plus className="w-4 h-4" />
-          เพิ่มรายการดูดน้ำมัน
-        </button>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={openAdd}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-ptt-blue text-white hover:brightness-110 transition shadow-lg shadow-blue-500/20 font-bold"
+          >
+            <Plus className="w-4 h-4" />
+            เพิ่มรายการดูดน้ำมัน
+          </button>
+        </div>
       </div>
 
       <ChartCard

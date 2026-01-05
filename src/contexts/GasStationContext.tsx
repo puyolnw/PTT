@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
 import type {
   Branch,
   LegalEntity,
@@ -13,12 +13,14 @@ import type {
   TankEntryRecord,
   FuelingRecord,
   RunningNumber,
+  SaleTx,
 } from "@/types/gasStation";
 import type { TruckProfile, Trailer } from "@/pages/gas-station/TruckProfiles";
 import { branches, legalEntities, mockOrderSummary, mockApprovedOrders } from "@/data/gasStationOrders";
 import { mockOilReceipts } from "@/data/gasStationReceipts";
 import { mockTrucks, mockTrailers } from "@/pages/gas-station/TruckProfiles";
 import { mockDriverJobs } from "@/data/gasStationDriverJobs";
+import { useBranch } from "@/contexts/BranchContext";
 
 interface GasStationContextType {
   // Data
@@ -35,6 +37,7 @@ interface GasStationContextType {
   tankEntries: TankEntryRecord[];
   trucks: TruckProfile[];
   trailers: Trailer[];
+  saleTxs: SaleTx[];
   runningNumbers: Map<string, RunningNumber>;
 
   // Actions - Orders
@@ -104,6 +107,9 @@ interface GasStationContextType {
 const GasStationContext = createContext<GasStationContextType | undefined>(undefined);
 
 export function GasStationProvider({ children }: { children: ReactNode }) {
+  const { selectedBranches } = useBranch();
+  const selectedBranchIds = selectedBranches.map(id => Number(id));
+
   // State
   const [ordersState, setOrdersState] = useState<OrderSummaryItem[]>(
     mockOrderSummary.map((order) => ({
@@ -219,6 +225,7 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       customerName: "ดินดำ",
       customerAddress: "456 ถนนพหลโยธิน กรุงเทพมหานคร 10400",
       customerTaxId: "0105536000001",
+      branchId: 2, // ดินดำ
       items: [
         { id: "item-1", oilType: "Premium Diesel", quantity: 22000, pricePerLiter: 32.5, totalAmount: 715000 },
         { id: "item-2", oilType: "Gasohol 95", quantity: 15000, pricePerLiter: 35.0, totalAmount: 525000 },
@@ -240,6 +247,7 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       customerName: "หนองจิก",
       customerAddress: "789 ถนนรัชดาภิเษก กรุงเทพมหานคร 10320",
       customerTaxId: "0105536000002",
+      branchId: 3, // หนองจิก
       items: [
         { id: "item-1", oilType: "Diesel", quantity: 20000, pricePerLiter: 30.0, totalAmount: 600000 },
       ],
@@ -255,10 +263,22 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
   const [receiptsState, setReceiptsState] = useState<Receipt[]>(mockReceipts);
   const [transportDeliveriesState, setTransportDeliveriesState] = useState<TransportDelivery[]>([]);
   const [driverJobsState, setDriverJobsState] = useState<DriverJob[]>(mockDriverJobs);
+  const [saleTxsState, setSaleTxsState] = useState<SaleTx[]>([]);
+
+  // Initial load from delivery_mock_data.json if needed
+  useEffect(() => {
+    import("@/data/delivery_mock_data.json").then((data) => {
+      if (data.saleTxs) {
+        setSaleTxsState(data.saleTxs as SaleTx[]);
+      }
+    });
+  }, []);
+
   const [oilReceiptsState, setOilReceiptsState] = useState<OilReceipt[]>(
-    mockOilReceipts.map((receipt) => ({
+    mockOilReceipts.map((receipt, index) => ({
       id: receipt.id,
       receiptNo: receipt.receiptNo,
+      branchId: (index % 5) + 1, // กระจายไปตามสาขา 1-5
       deliveryNoteNo: receipt.deliveryNoteNo,
       purchaseOrderNo: receipt.purchaseOrderNo,
       receiveDate: receipt.receiveDate,
@@ -586,18 +606,43 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     // Data
     branches,
     legalEntities,
-    orders: ordersState,
-    purchaseOrders: purchaseOrdersState,
-    quotations: quotationsState,
-    deliveryNotes: deliveryNotesState,
-    receipts: receiptsState,
-    transportDeliveries: transportDeliveriesState,
-    driverJobs: driverJobsState,
-    oilReceipts: oilReceiptsState,
-    tankEntries: tankEntriesState,
+    runningNumbers: runningNumbersState,
+
+    // Filtered Data based on selected branches
+    orders: ordersState.filter(o => selectedBranchIds.length === 0 || selectedBranchIds.includes(o.branchId)),
+    purchaseOrders: purchaseOrdersState.filter(po => 
+      selectedBranchIds.length === 0 || po.branches.some(b => selectedBranchIds.includes(b.branchId))
+    ),
+    quotations: quotationsState.filter(q => 
+      selectedBranchIds.length === 0 || q.branches.some(b => selectedBranchIds.includes(b.branchId))
+    ),
+    deliveryNotes: deliveryNotesState.filter(dn => 
+      selectedBranchIds.length === 0 || selectedBranchIds.includes(dn.toBranchId) || selectedBranchIds.includes(dn.fromBranchId)
+    ),
+    receipts: receiptsState.filter(r => 
+      selectedBranchIds.length === 0 || selectedBranchIds.includes(r.branchId)
+    ),
+    transportDeliveries: transportDeliveriesState.filter(t => 
+      selectedBranchIds.length === 0 || 
+      selectedBranchIds.includes(t.sourceBranchId) || 
+      t.destinationBranchIds.some(bid => selectedBranchIds.includes(bid))
+    ),
+    driverJobs: driverJobsState.filter(j => 
+      selectedBranchIds.length === 0 || 
+      selectedBranchIds.includes(j.sourceBranchId) ||
+      j.destinationBranches.some(b => selectedBranchIds.includes(b.branchId))
+    ),
+    oilReceipts: oilReceiptsState.filter(r => 
+      selectedBranchIds.length === 0 || selectedBranchIds.includes(r.branchId)
+    ),
+    saleTxs: saleTxsState.filter(tx => 
+      selectedBranchIds.length === 0 || selectedBranchIds.includes(tx.fromBranchId) || selectedBranchIds.includes(tx.toBranchId)
+    ),
+    tankEntries: tankEntriesState.filter(te => 
+      selectedBranchIds.length === 0 || selectedBranchIds.includes(te.branchId)
+    ),
     trucks: mockTrucks,
     trailers: mockTrailers,
-    runningNumbers: runningNumbersState,
 
     // Actions
     addOrder,

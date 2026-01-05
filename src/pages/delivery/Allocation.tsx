@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Gauge, Plus, Trash2, CheckCircle, AlertTriangle } from "lucide-react";
 import ChartCard from "@/components/ChartCard";
+import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
 import StatusTag from "@/components/StatusTag";
-import { loadPurchaseOrders } from "@/pages/delivery/_storage";
+import { loadPurchaseOrders, DeliveryPurchaseOrder } from "@/pages/delivery/_storage";
 
 type AllocationRow = {
   id: string;
@@ -12,9 +14,21 @@ type AllocationRow = {
 };
 
 export default function Allocation() {
-  const pos = useMemo(() => loadPurchaseOrders(), []);
+  const { branches } = useGasStation();
+  const { selectedBranches } = useBranch();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
+
+  const [allPos, setAllPos] = useState<DeliveryPurchaseOrder[]>([]);
   const [poId, setPoId] = useState("");
   const [rows, setRows] = useState<AllocationRow[]>([]);
+
+  useEffect(() => {
+    setAllPos(loadPurchaseOrders());
+  }, []);
+
+  const pos = useMemo(() => {
+    return allPos.filter(p => selectedBranchIds.length === 0 || selectedBranchIds.includes(p.branchId));
+  }, [allPos, selectedBranchIds]);
 
   const selectedPO = useMemo(() => pos.find((p) => p.id === poId), [pos, poId]);
 
@@ -64,11 +78,19 @@ export default function Allocation() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-app font-display">กระจายน้ำมัน (Volume Allocation)</h1>
-        <p className="text-muted mt-1">
-          ตามเอกสาร: 1 เที่ยววิ่งสามารถส่งหลายสถานี และต้อง Check Balance (ยอดรวมปลายทาง ≤ ยอดรับจากคลัง)
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-app font-display">กระจายน้ำมัน (Volume Allocation)</h1>
+          <p className="text-muted mt-1">
+            ตามเอกสาร: 1 เที่ยววิ่งสามารถส่งหลายสถานี และต้อง Check Balance (ยอดรวมปลายทาง ≤ ยอดรับจากคลัง)
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+          </span>
+        </div>
       </div>
 
       <ChartCard title="เลือก PO ที่ต้องการกระจาย" icon={Gauge}>

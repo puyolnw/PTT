@@ -189,6 +189,7 @@ export default function ReceiptPage() {
     const newReceipt: Receipt = {
       id: `REC-${Date.now()}`,
       receiptNo,
+      branchId: parseInt(formData.selectedBranchId) || 1,
       receiptDate: new Date().toISOString().split("T")[0],
       documentType: formData.documentType,
       customerName: formData.customerName,

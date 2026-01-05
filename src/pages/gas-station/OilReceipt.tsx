@@ -180,6 +180,7 @@ export default function OilReceiptPage() {
     const newOilReceipt: OilReceipt = {
       id: `OR-${Date.now()}`,
       receiptNo,
+      branchId: deliveryNote.toBranchId,
       purchaseOrderNo: formData.purchaseOrderNo || deliveryNote.purchaseOrderNo || "",
       deliveryNoteNo: formData.deliveryNoteNo,
       receiveDate: formData.receiveDate,

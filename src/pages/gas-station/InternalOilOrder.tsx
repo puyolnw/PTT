@@ -11,7 +11,8 @@ import {
   Building2,
   FileText,
 } from "lucide-react";
-import { branches } from "../../data/gasStationOrders";
+import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
 import type { InternalOilOrder, OilType } from "@/types/gasStation";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -57,6 +58,10 @@ const mockInternalOrders: InternalOilOrder[] = [
 ];
 
 export default function InternalOilOrder() {
+  const { branches } = useGasStation();
+  const { selectedBranches } = useBranch();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
+
   const [internalOrders, setInternalOrders] = useState<InternalOilOrder[]>(mockInternalOrders);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | InternalOilOrder["status"]>("all");
@@ -91,9 +96,10 @@ export default function InternalOilOrder() {
       const matchesStatus = filterStatus === "all" || order.status === filterStatus;
       const matchesBranch = filterBranch === "all" || order.fromBranchId === filterBranch;
       const matchesDate = isDateInRange(order.orderDate, filterDateFrom, filterDateTo);
-      return matchesSearch && matchesStatus && matchesBranch && matchesDate;
+      const matchesGlobalBranch = selectedBranchIds.length === 0 || selectedBranchIds.includes(order.fromBranchId);
+      return matchesSearch && matchesStatus && matchesBranch && matchesDate && matchesGlobalBranch;
     });
-  }, [internalOrders, searchTerm, filterStatus, filterBranch, filterDateFrom, filterDateTo]);
+  }, [internalOrders, searchTerm, filterStatus, filterBranch, filterDateFrom, filterDateTo, selectedBranchIds]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -213,6 +219,12 @@ export default function InternalOilOrder() {
               สั่งซื้อน้ำมันจากปั๊มอื่นในเครือข่าย
             </p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+          </span>
         </div>
       </motion.div>
 

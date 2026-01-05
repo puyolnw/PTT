@@ -261,6 +261,7 @@ import DeliveryManageTrips from "@/pages/delivery/gs/ManageTrips";
 import DeliveryRemainingOnTruck from "@/pages/delivery/gs/RemainingOnTruck";
 import DeliveryInternalPumpSales from "@/pages/delivery/gs/InternalPumpSales";
 import DeliveryRecordSuctionOil from "@/pages/delivery/gs/RecordSuctionOil";
+import InternalAPAR from "@/pages/delivery/InternalAPAR";
 
 import { isAuthenticated } from "@/lib/auth";
 import Forbidden from "@/components/Forbidden";
@@ -1252,6 +1253,10 @@ const router = createBrowserRouter([
           {
             path: "record-suction-oil",
             element: <DeliveryRecordSuctionOil />,
+          },
+          {
+            path: "internal-apar",
+            element: <InternalAPAR />,
           },
           {
             path: "oil-sales",

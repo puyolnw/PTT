@@ -3,16 +3,26 @@ import { BarChart3, Gauge, Save, AlertTriangle } from "lucide-react";
 import ChartCard from "@/components/ChartCard";
 import StatusTag from "@/components/StatusTag";
 import { DeliveryTrip, loadTrips, saveTrips } from "@/pages/delivery/_storage";
+import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
 import { validateEndOdometer } from "@/utils/odometerValidation";
 
 export default function FuelEfficiency() {
-  const [trips, setTrips] = useState<DeliveryTrip[]>([]);
+  const { branches } = useGasStation();
+  const { selectedBranches } = useBranch();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
+
+  const [allTrips, setAllTrips] = useState<DeliveryTrip[]>([]);
   const [tripId, setTripId] = useState("");
   const [fueledLiters, setFueledLiters] = useState<number>(0);
 
   useEffect(() => {
-    setTrips(loadTrips());
+    setAllTrips(loadTrips());
   }, []);
+
+  const trips = useMemo(() => {
+    return allTrips.filter(t => selectedBranchIds.length === 0 || selectedBranchIds.includes(t.branchId));
+  }, [allTrips, selectedBranchIds]);
 
   const selected = useMemo(() => trips.find((t) => t.id === tripId), [trips, tripId]);
 
@@ -30,8 +40,8 @@ export default function FuelEfficiency() {
     if (!endCheck.valid) return alert(endCheck.error);
     if (!fueledLiters || fueledLiters <= 0) return alert("กรุณากรอกจำนวนลิตรที่เติมเข้ารถ");
 
-    const updated = trips.map((t) => (t.id === tripId ? { ...t, fueledLiters } : t));
-    setTrips(updated);
+    const updated = allTrips.map((t) => (t.id === tripId ? { ...t, fueledLiters } : t));
+    setAllTrips(updated);
     saveTrips(updated);
     alert("บันทึกข้อมูล Fueling สำเร็จ");
   };
@@ -44,11 +54,19 @@ export default function FuelEfficiency() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-app font-display">ประสิทธิภาพเชื้อเพลิง (Fuel Efficiency)</h1>
-        <p className="text-muted mt-1">
-          สูตรตามเอกสาร: (เลขไมล์สิ้นสุด - เลขไมล์เริ่มต้น) / จำนวนน้ำมันที่เติมเข้ารถ = อัตราสิ้นเปลือง (กม./ลิตร)
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-app font-display">ประสิทธิภาพเชื้อเพลิง (Fuel Efficiency)</h1>
+          <p className="text-muted mt-1">
+            สูตรตามเอกสาร: (เลขไมล์สิ้นสุด - เลขไมล์เริ่มต้น) / จำนวนน้ำมันที่เติมเข้ารถ = อัตราสิ้นเปลือง (กม./ลิตร)
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+          </span>
+        </div>
       </div>
 
       <ChartCard title="เลือก Trip และบันทึกการเติมน้ำมันรถ" icon={Gauge}>

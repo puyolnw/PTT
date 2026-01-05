@@ -413,6 +413,7 @@ export default function DeliveryNotePage() {
     const newReceipt: Receipt = {
       id: `REC-${Date.now()}`,
       receiptNo,
+      branchId: deliveryNote.toBranchId,
       receiptDate: new Date().toISOString().split("T")[0],
       documentType: "ใบเสร็จรับเงิน",
       customerName: toBranch.name,

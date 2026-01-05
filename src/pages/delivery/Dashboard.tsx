@@ -5,14 +5,23 @@ import SummaryStats from "@/components/SummaryStats";
 import ChartCard from "@/components/ChartCard";
 import StatusTag from "@/components/StatusTag";
 import { loadPurchaseOrders, loadTrips } from "@/pages/delivery/_storage";
+import { useBranch } from "@/contexts/BranchContext";
+import { useGasStation } from "@/contexts/GasStationContext";
 
 export default function DeliveryDashboard() {
+  const { selectedBranches } = useBranch();
+  const { branches } = useGasStation();
+  const selectedBranchIds = selectedBranches.map(id => Number(id));
+
   const { pos, trips } = useMemo(() => {
+    const allPos = loadPurchaseOrders();
+    const allTrips = loadTrips();
+
     return {
-      pos: loadPurchaseOrders(),
-      trips: loadTrips(),
+      pos: allPos.filter(p => selectedBranchIds.length === 0 || selectedBranchIds.includes(p.branchId)),
+      trips: allTrips.filter(t => selectedBranchIds.length === 0 || selectedBranchIds.includes(t.branchId)),
     };
-  }, []);
+  }, [selectedBranchIds]);
 
   const poWaiting = pos.filter((p) => p.status === "รอรับของ").length;
   const tripsInProgress = trips.filter((t) => t.status !== "ส่งมอบสำเร็จ").length;
@@ -69,6 +78,12 @@ export default function DeliveryDashboard() {
               จัดการการขนส่ง สั่งซื้อ และติดตามสถานะน้ำมัน
             </p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+          </span>
         </div>
       </motion.div>
 

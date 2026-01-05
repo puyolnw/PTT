@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
 import {
   ShoppingCart,
   Plus,
@@ -53,7 +54,7 @@ const quantityOptions = [
 ];
 
 // Import shared data from gasStationOrders.ts
-import { branches, legalEntities } from "@/data/gasStationOrders";
+import { legalEntities } from "@/data/gasStationOrders";
 import type { PurchaseOrder, OrderSummaryItem } from "@/types/gasStation";
 
 // Mock data - ใบสั่งซื้อที่อนุมัติแล้ว (บิลรวมการสั่งในแต่ละครั้ง)
@@ -94,7 +95,8 @@ const mockTruckCapacity = {
 
 export default function Orders() {
   const navigate = useNavigate();
-  const { orders, purchaseOrders, createPurchaseOrder, updateOrder } = useGasStation();
+  const { orders, purchaseOrders, createPurchaseOrder, updateOrder, branches } = useGasStation();
+  const { selectedBranches } = useBranch();
   const [searchTerm, setSearchTerm] = useState("");
 
   const [showTruckModal, setShowTruckModal] = useState(false);
@@ -260,6 +262,12 @@ export default function Orders() {
           <p className="text-sm text-gray-500 dark:text-gray-400">
             ปั๊มไฮโซ - สั่งน้ำมันให้ทุกสาขา
           </p>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+          </span>
         </div>
       </motion.div>
 

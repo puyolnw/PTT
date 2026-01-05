@@ -14,6 +14,7 @@ import {
   PackageCheck,
   User,
   Monitor,
+  Building2,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -55,6 +56,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { to: "/app/delivery/remaining-on-truck", icon: Droplet, label: "น้ำมันที่เหลือบนรถ", end: false },
       { to: "/app/delivery/internal-pump-sales", icon: DollarSign, label: "ขายน้ำมันภายในปั๊ม", end: false },
+      { to: "/app/delivery/internal-apar", icon: Building2, label: "เจ้าหนี้ / ลูกหนี้ ภายใน", end: false },
       { to: "/app/delivery/oil-sales", icon: FileText, label: "บันทึกการขายน้ำมัน", end: false },
       { to: "/app/delivery/record-suction-oil", icon: ClipboardList, label: "บันทึกการดูดน้ำมัน", end: false },
     ],

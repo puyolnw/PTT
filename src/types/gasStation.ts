@@ -190,6 +190,7 @@ export interface DeliveryNote {
 export interface Receipt {
   id: string;
   receiptNo: string; // เลขที่ใบเสร็จ (Running Number)
+  branchId: number; // ปั๊มที่ออกใบเสร็จ
   receiptDate: string;
   deliveryNoteNo?: string; // เชื่อมกับ Delivery Note
   purchaseOrderNo?: string;
@@ -233,6 +234,7 @@ export interface DipMeasurement {
 export interface OilReceipt {
   id: string;
   receiptNo: string; // เลขที่ใบรับของ (Running Number)
+  branchId: number; // ปั๊มที่รับ
   deliveryNoteNo: string; // เลขที่ใบส่งของ
   purchaseOrderNo?: string;
   receiveDate: string;
@@ -265,6 +267,7 @@ export interface OilReceipt {
 export interface TankEntryRecord {
   id: string;
   entryNo: string; // เลขที่บันทึก (Running Number)
+  branchId: number; // ปั๊มที่ลงหลุม
   entryDate: string;
   entryTime: string;
   tankNumber: number;
@@ -464,6 +467,34 @@ export interface BranchOilReceipt {
   notes?: string;
   createdAt: string;
   createdBy: string;
+}
+
+// ==================== Inter-branch Sale (Sale Recording) ====================
+export type SaleSource = "truck-remaining" | "recovered";
+
+export interface SaleTx {
+  id: string;
+  source: SaleSource;
+  createdAt: string;
+  fromBranchId: number;
+  fromBranchName: string;
+  toBranchId: number;
+  toBranchName: string;
+  oilType: OilType;
+  quantity: number;
+  pricePerLiter: number;
+  totalAmount: number;
+  deliveryNoteNo: string;
+  receiptNo: string;
+  // source refs
+  jobId?: string;
+  transportNo?: string;
+  purchaseOrderNo?: string;
+  internalOrderNo?: string;
+  destinationBranchId?: number;
+  destinationBranchName?: string;
+  recoveredItemId?: string;
+  paymentStatus?: "unpaid" | "paid";
 }
 
 // ==================== Running Number ====================

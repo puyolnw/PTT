@@ -20,6 +20,8 @@ import {
   Thermometer,
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
+import deliveryMockData from "@/data/delivery_mock_data.json";
 import type { OilType, DeliveryNote, Receipt, OilReceipt } from "@/types/gasStation";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
@@ -56,6 +58,7 @@ type SaleTx = {
   purchaseOrderNo?: string;
   internalOrderNo?: string;
   recoveredItemId?: string;
+  paymentStatus?: "unpaid" | "paid";
 };
 
 // function loadFromStorage<T>(key: string, fallback: T): T {
@@ -67,118 +70,34 @@ type SaleTx = {
 //   }
 // }
 
-// Mock Data extracted from "ขั้นตอนการสั่งซื้อน้ำมัน.txt" scenarios
-const MOCK_SALES_DATA: SaleTx[] = [
-  {
-    id: "TX-20240501-001",
-    source: "truck-remaining",
-    createdAt: "2024-05-01T08:30:00.000Z",
-    fromBranchId: 101,
-    fromBranchName: "คลังน้ำมัน ปตท. (สระบุรี)",
-    toBranchId: 201,
-    toBranchName: "ปตท. สาขาหลักสี่ (สำนักงานใหญ่)",
-    oilType: "Diesel",
-    quantity: 4000,
-    pricePerLiter: 29.50,
-    totalAmount: 118000,
-    deliveryNoteNo: "DN-240501-001",
-    receiptNo: "RCP-240501-001",
-    transportNo: "TP-240501-01",
-    purchaseOrderNo: "PO-240501-089",
-    internalOrderNo: "INT-240501-001"
-  },
-  {
-    id: "TX-20240501-002",
-    source: "truck-remaining",
-    createdAt: "2024-05-01T10:15:00.000Z",
-    fromBranchId: 101,
-    fromBranchName: "คลังน้ำมัน ปตท. (สระบุรี)",
-    toBranchId: 202,
-    toBranchName: "ปตท. สาขาวิภาวดี",
-    oilType: "Gasohol 95",
-    quantity: 3000,
-    pricePerLiter: 35.80,
-    totalAmount: 107400,
-    deliveryNoteNo: "DN-240501-002",
-    receiptNo: "RCP-240501-002",
-    transportNo: "TP-240501-01",
-    purchaseOrderNo: "PO-240501-089",
-    internalOrderNo: "INT-240501-002"
-  },
-  {
-    id: "TX-20240502-001",
-    source: "recovered",
-    createdAt: "2024-05-02T14:20:00.000Z",
-    fromBranchId: 201,
-    fromBranchName: "ปตท. สาขาหลักสี่",
-    toBranchId: 201,
-    toBranchName: "ปตท. สาขาหลักสี่ (Recycle)",
-    oilType: "Diesel",
-    quantity: 150,
-    pricePerLiter: 29.50,
-    totalAmount: 4425,
-    deliveryNoteNo: "DN-240502-REC01",
-    receiptNo: "RCP-240502-REC01",
-    internalOrderNo: "REC-240502-001"
-  },
-  {
-    id: "TX-20240503-005",
-    source: "truck-remaining",
-    createdAt: "2024-05-03T09:45:00.000Z",
-    fromBranchId: 102,
-    fromBranchName: "คลังน้ำมัน ปตท. (พระโขนง)",
-    toBranchId: 203,
-    toBranchName: "ปตท. สาขาบางนา",
-    oilType: "E20",
-    quantity: 6000,
-    pricePerLiter: 33.50,
-    totalAmount: 201000,
-    deliveryNoteNo: "DN-240503-005",
-    receiptNo: "RCP-240503-005",
-    transportNo: "TP-240503-02",
-    purchaseOrderNo: "PO-240503-112",
-    internalOrderNo: "INT-240503-005"
-  },
-  {
-    id: "TX-20240503-006",
-    source: "truck-remaining",
-    createdAt: "2024-05-03T11:30:00.000Z",
-    fromBranchId: 102,
-    fromBranchName: "คลังน้ำมัน ปตท. (พระโขนง)",
-    toBranchId: 204,
-    toBranchName: "ปตท. สาขาสุขุมวิท 62",
-    oilType: "Premium Diesel",
-    quantity: 2500,
-    pricePerLiter: 42.50,
-    totalAmount: 106250,
-    deliveryNoteNo: "DN-240503-006",
-    receiptNo: "RCP-240503-006",
-    transportNo: "TP-240503-02",
-    purchaseOrderNo: "PO-240503-112",
-    internalOrderNo: "INT-240503-006"
-  }
-];
-
 export default function DeliveryOilSales() {
-  const { deliveryNotes, receipts, oilReceipts } = useGasStation();
+  const { deliveryNotes, receipts, oilReceipts, branches } = useGasStation();
+  const { selectedBranches } = useBranch();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
 
-  // State - Use Mock Data
-  const [saleTxs] = useState<SaleTx[]>(MOCK_SALES_DATA);
+  // State - Use Mock Data from JSON
+  const [saleTxs] = useState<SaleTx[]>(deliveryMockData.saleTxs as SaleTx[]);
 
   const [search, setSearch] = useState("");
   const [selectedDoc, setSelectedDoc] = useState<{ type: "DN" | "RCP" | "OR", no: string } | null>(null);
 
   const filteredSales = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return saleTxs;
-    return saleTxs.filter(t =>
-      t.deliveryNoteNo.toLowerCase().includes(q) ||
-      t.receiptNo.toLowerCase().includes(q) ||
-      t.oilType.toLowerCase().includes(q) ||
-      t.fromBranchName.toLowerCase().includes(q) ||
-      t.toBranchName.toLowerCase().includes(q)
-    );
-  }, [saleTxs, search]);
+    return saleTxs.filter(t => {
+      const matchSearch = !q ||
+        t.deliveryNoteNo.toLowerCase().includes(q) ||
+        t.receiptNo.toLowerCase().includes(q) ||
+        t.oilType.toLowerCase().includes(q) ||
+        t.fromBranchName.toLowerCase().includes(q) ||
+        t.toBranchName.toLowerCase().includes(q);
+      
+      const matchBranch = selectedBranchIds.length === 0 || 
+        selectedBranchIds.includes(t.fromBranchId) || 
+        selectedBranchIds.includes(t.toBranchId);
+
+      return matchSearch && matchBranch;
+    });
+  }, [saleTxs, search, selectedBranchIds]);
 
   const summary = useMemo(() => {
     const totalQty = filteredSales.reduce((sum, s) => sum + s.quantity, 0);
@@ -220,6 +139,7 @@ export default function DeliveryOilSales() {
   const generateMockReceipt = (tx: SaleTx): Receipt => ({
     id: `MOCK-RCP-${tx.id}`,
     receiptNo: tx.receiptNo,
+    branchId: tx.fromBranchId,
     receiptDate: tx.createdAt,
     deliveryNoteNo: tx.deliveryNoteNo,
     customerName: tx.toBranchName,
@@ -243,6 +163,7 @@ export default function DeliveryOilSales() {
   const generateMockOR = (tx: SaleTx): OilReceipt => ({
     id: `MOCK-OR-${tx.id}`,
     receiptNo: `OR-${tx.receiptNo}`,
+    branchId: tx.fromBranchId,
     deliveryNoteNo: tx.deliveryNoteNo,
     receiveDate: tx.createdAt.split("T")[0],
     receiveTime: tx.createdAt.split("T")[1].substring(0, 5),
@@ -557,6 +478,12 @@ export default function DeliveryOilSales() {
             <p className="text-sm text-gray-500 mt-1">แสดงข้อมูลการขายน้ำมันภายในและการดูดน้ำมัน (จากหน้าขายน้ำมันภายในปั๊ม)</p>
           </div>
         </div>
+
+        <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+          </span>
+        </div>
       </motion.div>
 
       {/* Summary Cards */}
@@ -704,7 +631,7 @@ export default function DeliveryOilSales() {
           </table>
           {filteredSales.length === 0 && (
             <div className="p-12 text-center text-muted">
-              ไม่พบข้อมูลการขาย (ระบบจะดึงข้อมูลมาจากหน้า "ขายน้ำมันภายในปั๊ม")
+              ไม่พบข้อมูลการขาย (ระบบจะดึงข้อมูลมาจากหน้า &ldquo;ขายน้ำมันภายในปั๊ม&rdquo;)
             </div>
           )}
         </div>

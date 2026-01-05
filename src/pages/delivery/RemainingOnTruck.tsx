@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Droplet, Search, Truck, MoreHorizontal } from "lucide-react";
 
 import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
 import type { DriverJob, PurchaseOrder } from "@/types/gasStation";
 
 type TypeFilter = "all" | "external" | "internal";
@@ -79,7 +80,9 @@ function toSortTimeMs(job: DriverJob) {
 }
 
 export default function RemainingOnTruck() {
-  const { driverJobs, purchaseOrders } = useGasStation();
+  const { driverJobs, purchaseOrders, branches } = useGasStation();
+  const { selectedBranches } = useBranch();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
@@ -147,6 +150,9 @@ export default function RemainingOnTruck() {
         if (typeFilter !== "all" && r.orderType !== typeFilter) return false;
         if (statusFilter === "active" && r.jobStatus === "ส่งเสร็จ") return false;
         if (statusFilter === "completed" && r.jobStatus !== "ส่งเสร็จ") return false;
+
+        const matchBranch = selectedBranchIds.length === 0 || selectedBranchIds.includes(r.branchId);
+        if (!matchBranch) return false;
         if (!q) return true;
 
         const poText = r.poMeta?.orderNo || r.purchaseOrderNo || "";
@@ -173,7 +179,7 @@ export default function RemainingOnTruck() {
         if (aActive !== bActive) return aActive ? -1 : 1;
         return b.sortTimeMs - a.sortTimeMs;
       });
-  }, [rows, search, typeFilter, statusFilter, showZero]);
+  }, [rows, search, showZero, typeFilter, statusFilter, selectedBranchIds]);
 
   const summary = useMemo(() => {
     const activeJobs = new Set<string>();
@@ -203,17 +209,25 @@ export default function RemainingOnTruck() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm text-gray-500 dark:text-gray-400">คงเหลือรวม</p>
-              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{summary.totalRemaining.toLocaleString()} ลิตร</p>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm mr-4">
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+              </span>
             </div>
-            {statusFilter !== "completed" && (
-              <div className="text-right px-4 border-l border-gray-200 dark:border-gray-700">
-                <p className="text-sm text-gray-500 dark:text-gray-400">รถที่มีงาน</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">{summary.activeJobsCount}</p>
+
+            <div className="flex items-center gap-3 border-l border-gray-200 dark:border-gray-700 pl-4">
+              <div className="text-right">
+                <p className="text-sm text-gray-500 dark:text-gray-400">คงเหลือรวม</p>
+                <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{summary.totalRemaining.toLocaleString()} ลิตร</p>
               </div>
-            )}
+              {statusFilter !== "completed" && (
+                <div className="text-right px-4 border-l border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">รถที่มีงาน</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white">{summary.activeJobsCount}</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

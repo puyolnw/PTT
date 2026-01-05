@@ -14,6 +14,7 @@ import {
   Search
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
 import type { FuelingRecord, OilType, DriverJob } from "@/types/gasStation";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 
@@ -28,7 +29,8 @@ const OIL_TYPES: OilType[] = [
 ];
 
 export default function RecordFueling() {
-  const { driverJobs, addFuelingRecord } = useGasStation();
+  const { driverJobs, addFuelingRecord, branches } = useGasStation();
+  const { selectedBranches } = useBranch();
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -62,6 +64,12 @@ export default function RecordFueling() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">บันทึกเติมน้ำมัน</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">สำหรับคนขับรถขนส่งน้ำมัน</p>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+          </span>
         </div>
       </motion.div>
 

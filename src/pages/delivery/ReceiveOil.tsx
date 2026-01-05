@@ -19,6 +19,7 @@ import {
   Download,
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
 import type { BranchOilReceipt, PurchaseOrder, DriverJob, DeliveryNote, Receipt } from "@/types/gasStation";
 
 // --- Storage Utilities ---
@@ -146,7 +147,7 @@ const buildReceipts = (base: BranchOilReceipt[], overrides: Partial<BranchOilRec
 // --- Component ---
 
 export default function ReceiveOil() {
-  const { purchaseOrders, driverJobs, branches, deliveryNotes, receipts: allReceipts } = useGasStation();
+  const { purchaseOrders, driverJobs, branches, deliveryNotes, receipts: contextReceipts } = useGasStation();
 
   const baseReceipts = useMemo(() => generateBranchReceipts(purchaseOrders, driverJobs), [purchaseOrders, driverJobs]);
   const [receipts, setReceipts] = useState<BranchOilReceipt[]>([]);
@@ -158,8 +159,10 @@ export default function ReceiveOil() {
     setReceipts(buildReceipts(baseReceipts, finalOverrides));
   }, [baseReceipts]);
 
+  const { selectedBranches } = useBranch();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedBranchFilterId, setSelectedBranchFilterId] = useState<number | "all">("all");
 
   // Document Viewing State
   const [selectedDoc, setSelectedDoc] = useState<DeliveryNote | Receipt | BranchOilReceipt | PurchaseOrder | null>(null);
@@ -423,7 +426,7 @@ export default function ReceiveOil() {
 
   const getRelatedTaxInvoice = (r: BranchOilReceipt) => {
     const dn = getRelatedDN(r);
-    return allReceipts.find(rec =>
+    return contextReceipts.find((rec: Receipt) =>
       (rec.purchaseOrderNo === r.purchaseOrderNo || (dn && rec.deliveryNoteNo === dn.deliveryNoteNo)) &&
       rec.documentType === "ใบกำกับภาษี"
     );
@@ -440,11 +443,11 @@ export default function ReceiveOil() {
         r.branchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.truckPlateNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchBranch = selectedBranchFilterId === "all" || r.branchId === selectedBranchFilterId;
+      const matchBranch = selectedBranchIds.length === 0 || selectedBranchIds.includes(r.branchId);
 
       return matchSearch && matchBranch;
     }).sort((a, b) => new Date(b.receiveDate).getTime() - new Date(a.receiveDate).getTime());
-  }, [receipts, searchTerm, selectedBranchFilterId]);
+  }, [receipts, searchTerm, selectedBranchIds]);
 
   // Summary Stats
   const stats = useMemo(() => {
@@ -483,18 +486,10 @@ export default function ReceiveOil() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
-            <span className="text-sm font-medium text-gray-500 px-2">สาขา:</span>
-            <select
-              value={selectedBranchFilterId}
-              onChange={(e) => setSelectedBranchFilterId(e.target.value === "all" ? "all" : Number(e.target.value))}
-              className="bg-transparent text-sm font-bold text-orange-600 outline-none cursor-pointer pr-2"
-            >
-              <option value="all">ทุกสาขา</option>
-              {branches.map(b => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
+          <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+            </span>
           </div>
         </motion.div>
 

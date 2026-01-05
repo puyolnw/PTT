@@ -3,20 +3,20 @@
 
 // สาขาทั้ง 5 แห่ง
 export const branches = [
-  { id: 1, name: "ปั๊มไฮโซ", code: "HQ", address: "มหาสารคาม", legalEntityName: "บริษัท A จำกัด" },
-  { id: 2, name: "ดินดำ", code: "B2", address: "มหาสารคาม", legalEntityName: "บริษัท B จำกัด" },
-  { id: 3, name: "หนองจิก", code: "B3", address: "มหาสารคาม", legalEntityName: "บริษัท C จำกัด" },
-  { id: 4, name: "ตักสิลา", code: "B4", address: "มหาสารคาม", legalEntityName: "บริษัท D จำกัด" },
-  { id: 5, name: "บายพาส", code: "B5", address: "มหาสารคาม", legalEntityName: "บริษัท E จำกัด" },
+  { id: 1, name: "ปั้มไฮโซ", code: "HQ", address: "มหาสารคาม", legalEntityName: "บริษัท ไฮโซกรุ๊ป จำกัด" },
+  { id: 2, name: "ปั้มดินดำ", code: "B2", address: "มหาสารคาม", legalEntityName: "บริษัท ดินดำบริการ จำกัด" },
+  { id: 3, name: "ปั้มหนองจิก", code: "B3", address: "มหาสารคาม", legalEntityName: "ห้างหุ้นส่วนจำกัด หนองจิกพลังงาน" },
+  { id: 4, name: "ปั้มบายพาส", code: "B4", address: "มหาสารคาม", legalEntityName: "บริษัท บายพาส ออยล์ จำกัด" },
+  { id: 5, name: "ปั้มตักสิลา", code: "B5", address: "มหาสารคาม", legalEntityName: "บริษัท ตักสิลา ออยล์ จำกัด" },
 ];
 
 // นิติบุคคล
 export const legalEntities = [
-  { id: 1, name: "บริษัท A จำกัด" },
-  { id: 2, name: "บริษัท B จำกัด" },
-  { id: 3, name: "บริษัท C จำกัด" },
-  { id: 4, name: "บริษัท D จำกัด" },
-  { id: 5, name: "บริษัท E จำกัด" },
+  { id: 1, name: "บริษัท ไฮโซกรุ๊ป จำกัด" },
+  { id: 2, name: "บริษัท ดินดำบริการ จำกัด" },
+  { id: 3, name: "ห้างหุ้นส่วนจำกัด หนองจิกพลังงาน" },
+  { id: 4, name: "บริษัท บายพาส ออยล์ จำกัด" },
+  { id: 5, name: "บริษัท ตักสิลา ออยล์ จำกัด" },
 ];
 
 // Interface สำหรับ Order Summary Item
@@ -60,7 +60,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     lowStockAlert: false,
     quantityOrdered: 32000,
     legalEntityId: 1,
-    legalEntityName: "บริษัท A จำกัด",
+    legalEntityName: "บริษัท ไฮโซกรุ๊ป จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 09:00",
     requestedBy: "ผู้จัดการปั๊มไฮโซ",
@@ -75,7 +75,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     lowStockAlert: false,
     quantityOrdered: 28000,
     legalEntityId: 1,
-    legalEntityName: "บริษัท A จำกัด",
+    legalEntityName: "บริษัท ไฮโซกรุ๊ป จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 09:00",
     requestedBy: "ผู้จัดการปั๊มไฮโซ",
@@ -90,7 +90,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     lowStockAlert: false,
     quantityOrdered: 38000,
     legalEntityId: 1,
-    legalEntityName: "บริษัท A จำกัด",
+    legalEntityName: "บริษัท ไฮโซกรุ๊ป จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 09:00",
     requestedBy: "ผู้จัดการปั๊มไฮโซ",
@@ -106,7 +106,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     lowStockAlert: true,
     quantityOrdered: 22000,
     legalEntityId: 2,
-    legalEntityName: "บริษัท B จำกัด",
+    legalEntityName: "บริษัท ดินดำบริการ จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 10:30",
     requestedBy: "ผู้จัดการดินดำ",
@@ -121,7 +121,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     lowStockAlert: false,
     quantityOrdered: 18000,
     legalEntityId: 2,
-    legalEntityName: "บริษัท B จำกัด",
+    legalEntityName: "บริษัท ดินดำบริการ จำกัด",
     status: "อนุมัติแล้ว",
     requestedAt: "2024-12-15 10:30",
     requestedBy: "ผู้จัดการดินดำ",
@@ -143,7 +143,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     lowStockAlert: true,
     quantityOrdered: 10000,
     legalEntityId: 2,
-    legalEntityName: "บริษัท B จำกัด",
+    legalEntityName: "บริษัท ดินดำบริการ จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 10:30",
     requestedBy: "ผู้จัดการดินดำ",
@@ -159,7 +159,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     lowStockAlert: true,
     quantityOrdered: 20000,
     legalEntityId: 3,
-    legalEntityName: "บริษัท C จำกัด",
+    legalEntityName: "ห้างหุ้นส่วนจำกัด หนองจิกพลังงาน",
     status: "ส่งแล้ว",
     requestedAt: "2024-12-15 11:00",
     requestedBy: "ผู้จัดการหนองจิก",
@@ -181,7 +181,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     lowStockAlert: false,
     quantityOrdered: 15000,
     legalEntityId: 3,
-    legalEntityName: "บริษัท C จำกัด",
+    legalEntityName: "ห้างหุ้นส่วนจำกัด หนองจิกพลังงาน",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 11:00",
     requestedBy: "ผู้จัดการหนองจิก",
@@ -197,7 +197,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     lowStockAlert: false,
     quantityOrdered: 24000,
     legalEntityId: 4,
-    legalEntityName: "บริษัท D จำกัด",
+    legalEntityName: "บริษัท ตักสิลา ออยล์ จำกัด",
     status: "ส่งแล้ว",
     requestedAt: "2024-12-15 09:45",
     requestedBy: "ผู้จัดการตักสิลา",
@@ -222,7 +222,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     lowStockAlert: false,
     quantityOrdered: 18000,
     legalEntityId: 4,
-    legalEntityName: "บริษัท D จำกัด",
+    legalEntityName: "บริษัท ตักสิลา ออยล์ จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 09:45",
     requestedBy: "ผู้จัดการตักสิลา",
@@ -238,7 +238,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     lowStockAlert: true,
     quantityOrdered: 15000,
     legalEntityId: 5,
-    legalEntityName: "บริษัท E จำกัด",
+    legalEntityName: "บริษัท บายพาส ออยล์ จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 11:30",
     requestedBy: "ผู้จัดการบายพาส",
@@ -253,7 +253,7 @@ export const mockOrderSummary: OrderSummaryItem[] = [
     lowStockAlert: true,
     quantityOrdered: 12000,
     legalEntityId: 5,
-    legalEntityName: "บริษัท E จำกัด",
+    legalEntityName: "บริษัท บายพาส ออยล์ จำกัด",
     status: "รออนุมัติ",
     requestedAt: "2024-12-15 11:30",
     requestedBy: "ผู้จัดการบายพาส",
@@ -415,8 +415,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
     branches: [
       {
         branchId: 1,
-        branchName: "ปั๊มไฮโซ",
-        legalEntityName: "บริษัท A จำกัด",
+        branchName: "ปั้มไฮโซ",
+        legalEntityName: "บริษัท ไฮโซกรุ๊ป จำกัด",
         address: "100 ถนนเพชรบุรี กรุงเทพมหานคร 10400",
         items: [
           { oilType: "Premium Diesel", quantity: 32000, pricePerLiter: 32.5, totalAmount: 1040000 },
@@ -428,8 +428,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 2,
-        branchName: "ดินดำ",
-        legalEntityName: "บริษัท B จำกัด",
+        branchName: "ปั้มดินดำ",
+        legalEntityName: "บริษัท ดินดำบริการ จำกัด",
         address: "456 ถนนพหลโยธิน กรุงเทพมหานคร 10400",
         items: [
           { oilType: "Premium Diesel", quantity: 22000, pricePerLiter: 32.5, totalAmount: 715000 },
@@ -440,8 +440,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 3,
-        branchName: "หนองจิก",
-        legalEntityName: "บริษัท C จำกัด",
+        branchName: "ปั้มหนองจิก",
+        legalEntityName: "ห้างหุ้นส่วนจำกัด หนองจิกพลังงาน",
         address: "789 ถนนรัชดาภิเษก กรุงเทพมหานคร 10320",
         items: [
           { oilType: "Diesel", quantity: 20000, pricePerLiter: 30.0, totalAmount: 600000 },
@@ -451,8 +451,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 4,
-        branchName: "ตักสิลา",
-        legalEntityName: "บริษัท D จำกัด",
+        branchName: "ปั้มบายพาส",
+        legalEntityName: "บริษัท บายพาส ออยล์ จำกัด",
         address: "123 ถนนสุขุมวิท กรุงเทพมหานคร 10110",
         items: [
           { oilType: "Premium Diesel", quantity: 24000, pricePerLiter: 32.5, totalAmount: 780000 },
@@ -462,8 +462,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 5,
-        branchName: "บายพาส",
-        legalEntityName: "บริษัท E จำกัด",
+        branchName: "ปั้มตักสิลา",
+        legalEntityName: "บริษัท ตักสิลา ออยล์ จำกัด",
         address: "321 ถนนสีลม กรุงเทพมหานคร 10500",
         items: [
           { oilType: "Gasohol 95", quantity: 15000, pricePerLiter: 35.0, totalAmount: 525000 },
@@ -501,8 +501,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
     branches: [
       {
         branchId: 1,
-        branchName: "ปั๊มไฮโซ",
-        legalEntityName: "บริษัท A จำกัด",
+        branchName: "ปั้มไฮโซ",
+        legalEntityName: "บริษัท ไฮโซกรุ๊ป จำกัด",
         address: "100 ถนนเพชรบุรี กรุงเทพมหานคร 10400",
         items: [
           { oilType: "Premium Diesel", quantity: 30000, pricePerLiter: 32.5, totalAmount: 975000 },
@@ -513,8 +513,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 2,
-        branchName: "ดินดำ",
-        legalEntityName: "บริษัท B จำกัด",
+        branchName: "ปั้มดินดำ",
+        legalEntityName: "บริษัท ดินดำบริการ จำกัด",
         address: "456 ถนนพหลโยธิน กรุงเทพมหานคร 10400",
         items: [
           { oilType: "Diesel", quantity: 35000, pricePerLiter: 30.0, totalAmount: 1050000 },
@@ -524,8 +524,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 3,
-        branchName: "หนองจิก",
-        legalEntityName: "บริษัท C จำกัด",
+        branchName: "ปั้มหนองจิก",
+        legalEntityName: "ห้างหุ้นส่วนจำกัด หนองจิกพลังงาน",
         address: "789 ถนนรัชดาภิเษก กรุงเทพมหานคร 10320",
         items: [
           { oilType: "Premium Diesel", quantity: 20000, pricePerLiter: 32.5, totalAmount: 650000 },
@@ -535,8 +535,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 4,
-        branchName: "ตักสิลา",
-        legalEntityName: "บริษัท D จำกัด",
+        branchName: "ปั้มบายพาส",
+        legalEntityName: "บริษัท บายพาส ออยล์ จำกัด",
         address: "123 ถนนสุขุมวิท กรุงเทพมหานคร 10110",
         items: [
           { oilType: "E20", quantity: 18000, pricePerLiter: 33.0, totalAmount: 594000 },
@@ -546,8 +546,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 5,
-        branchName: "บายพาส",
-        legalEntityName: "บริษัท E จำกัด",
+        branchName: "ปั้มตักสิลา",
+        legalEntityName: "บริษัท ตักสิลา ออยล์ จำกัด",
         address: "321 ถนนสีลม กรุงเทพมหานคร 10500",
         items: [
           { oilType: "Gasohol 91", quantity: 12000, pricePerLiter: 34.0, totalAmount: 408000 },
@@ -585,8 +585,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
     branches: [
       {
         branchId: 1,
-        branchName: "ปั๊มไฮโซ",
-        legalEntityName: "บริษัท A จำกัด",
+        branchName: "ปั้มไฮโซ",
+        legalEntityName: "บริษัท ไฮโซกรุ๊ป จำกัด",
         address: "100 ถนนเพชรบุรี กรุงเทพมหานคร 10400",
         items: [
           { oilType: "Diesel", quantity: 25000, pricePerLiter: 30.0, totalAmount: 750000 },
@@ -596,8 +596,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 2,
-        branchName: "ดินดำ",
-        legalEntityName: "บริษัท B จำกัด",
+        branchName: "ปั้มดินดำ",
+        legalEntityName: "บริษัท ดินดำบริการ จำกัด",
         address: "456 ถนนพหลโยธิน กรุงเทพมหานคร 10400",
         items: [
           { oilType: "Premium Diesel", quantity: 20000, pricePerLiter: 32.5, totalAmount: 650000 },
@@ -607,8 +607,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 3,
-        branchName: "หนองจิก",
-        legalEntityName: "บริษัท C จำกัด",
+        branchName: "ปั้มหนองจิก",
+        legalEntityName: "ห้างหุ้นส่วนจำกัด หนองจิกพลังงาน",
         address: "789 ถนนรัชดาภิเษก กรุงเทพมหานคร 10320",
         items: [
           { oilType: "Gasohol 95", quantity: 22000, pricePerLiter: 35.0, totalAmount: 770000 },
@@ -618,8 +618,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 4,
-        branchName: "ตักสิลา",
-        legalEntityName: "บริษัท D จำกัด",
+        branchName: "ปั้มบายพาส",
+        legalEntityName: "บริษัท บายพาส ออยล์ จำกัด",
         address: "123 ถนนสุขุมวิท กรุงเทพมหานคร 10110",
         items: [
           { oilType: "Premium Diesel", quantity: 15000, pricePerLiter: 32.5, totalAmount: 487500 },
@@ -629,8 +629,8 @@ export const mockApprovedOrders: ApprovedOrder[] = [
       },
       {
         branchId: 5,
-        branchName: "บายพาส",
-        legalEntityName: "บริษัท E จำกัด",
+        branchName: "ปั้มตักสิลา",
+        legalEntityName: "บริษัท ตักสิลา ออยล์ จำกัด",
         address: "321 ถนนสีลม กรุงเทพมหานคร 10500",
         items: [
           { oilType: "Diesel", quantity: 18000, pricePerLiter: 30.0, totalAmount: 540000 },

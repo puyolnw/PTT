@@ -17,6 +17,7 @@ import {
   Download,
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
 import type { DeliveryNote, DriverJob, PurchaseOrder, QualityTest, Receipt } from "@/types/gasStation";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -170,7 +171,9 @@ const generateBranchReceipts = (purchaseOrders: PurchaseOrder[], driverJobs: Dri
 };
 
 export default function BranchOilReceipt() {
-  const { purchaseOrders, deliveryNotes, driverJobs, receipts } = useGasStation();
+  const { purchaseOrders, deliveryNotes, driverJobs, receipts, branches } = useGasStation();
+  const { selectedBranches } = useBranch();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
 
   const poByNo = useMemo(() => {
     const m = new Map<string, PurchaseOrder>();
@@ -338,12 +341,14 @@ export default function BranchOilReceipt() {
         r.truckPlateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         approveNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         contractNo.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = filterStatus === "all" || r.status === filterStatus;
-      const matchesBranch = filterBranch === "all" || r.branchId === filterBranch;
-      const matchesDate = isDateInRange(r.receiveDate, filterDateFrom, filterDateTo);
-      return matchesSearch && matchesStatus && matchesBranch && matchesDate;
-    });
-  }, [branchReceiptsState, poByNo, searchTerm, filterStatus, filterBranch, filterDateFrom, filterDateTo]);
+        const matchesStatus = filterStatus === "all" || r.status === filterStatus;
+        const matchGlobalBranch = selectedBranchIds.length === 0 || selectedBranchIds.includes(r.branchId);
+        const matchesLocalBranch = filterBranch === "all" || r.branchId === filterBranch;
+        const matchesBranch = matchGlobalBranch && matchesLocalBranch;
+        const matchesDate = isDateInRange(r.receiveDate, filterDateFrom, filterDateTo);
+        return matchesSearch && matchesStatus && matchesBranch && matchesDate;
+      });
+  }, [branchReceiptsState, poByNo, searchTerm, filterStatus, filterBranch, filterDateFrom, filterDateTo, selectedBranchIds]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -739,6 +744,12 @@ export default function BranchOilReceipt() {
             <h1 className="text-2xl font-bold text-gray-800 font-display">รับน้ำมัน (Branch Receipt)</h1>
             <p className="text-sm text-gray-500 mt-1">รับน้ำมันตามใบสั่งซื้อและเลขใบขนส่ง</p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+          </span>
         </div>
       </motion.div>
 

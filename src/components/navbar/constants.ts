@@ -1,4 +1,4 @@
-import { Users, PiggyBank, BarChart3, FileText, Store, Building, Calculator, Fuel } from "lucide-react";
+import { Users, PiggyBank, BarChart3, FileText, Store, Building, Calculator, Fuel, Truck } from "lucide-react";
 import { Module, Branch } from "./types";
 
 export const modules: Module[] = [
@@ -50,14 +50,20 @@ export const modules: Module[] = [
         icon: Fuel,
         roles: ["admin", "manager", "gas-station"]
     },
+    {
+        name: "ระบบ Delivery",
+        path: "/app/delivery",
+        icon: Truck,
+        roles: ["admin", "manager", "gas-station"]
+    },
 ];
 
 export const branches: Branch[] = [
-    { id: "1", name: "สาขา 1" },
-    { id: "2", name: "สาขา 2" },
-    { id: "3", name: "สาขา 3" },
-    { id: "4", name: "สาขา 4" },
-    { id: "5", name: "สาขา 5" },
+    { id: "1", name: "ปั้มไฮโซ" },
+    { id: "2", name: "ปั้มดินดำ" },
+    { id: "3", name: "ปั้มหนองจิก" },
+    { id: "4", name: "ปั้มบายพาส" },
+    { id: "5", name: "ปั้มตักสิลา" },
 ];
 
 /**

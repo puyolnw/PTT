@@ -28,7 +28,6 @@ export default function LayoutAuth() {
     setIsLoading(true);
 
     setTimeout(() => {
-      const roleData = roles.find(r => r.value === selectedRole);
       login({
         name: username || "PTT User",
         email: `${username || "user"}@ptt.com`,

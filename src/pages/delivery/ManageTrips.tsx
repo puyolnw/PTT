@@ -6,6 +6,7 @@ import { FileText, Route, Save, Search, Image as ImageIcon, Pencil, X, Truck, Ca
 import { motion, AnimatePresence } from "framer-motion";
 import ChartCard from "@/components/ChartCard";
 import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
 import type { DriverJob, PurchaseOrder } from "@/types/gasStation";
 import StatusTag from "@/components/StatusTag";
 
@@ -98,7 +99,8 @@ function PhotoGrid({ photos }: { photos: string[] }) {
 }
 
 export default function ManageTrips() {
-  const { driverJobs, updateDriverJob, purchaseOrders } = useGasStation();
+  const { driverJobs, updateDriverJob, purchaseOrders, branches } = useGasStation();
+  const { selectedBranches } = useBranch();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed">("all");
@@ -229,17 +231,23 @@ export default function ManageTrips() {
         className="flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
-            <Route className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-blue-900/20">
+            <Truck className="w-6 h-6 text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-800 dark:text-white font-display">
-              จัดการรอบจัดส่ง
+              จัดการรอบจัดส่ง (Manage Trips)
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              จัดเรียงเส้นทาง ตรวจสอบสถานะ และจัดการเอกสารขนส่ง
+              ติดตามสถานะรถขนส่ง ตรวจสอบภาพถ่าย และจัดลำดับเส้นทาง
             </p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+          </span>
         </div>
       </motion.div>
 

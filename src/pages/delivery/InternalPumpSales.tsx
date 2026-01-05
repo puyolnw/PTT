@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { DollarSign, Plus, Search, X, MoreHorizontal } from "lucide-react";
 
 import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
 import type { DeliveryNote, DriverJob, OilType, PurchaseOrder, Receipt } from "@/types/gasStation";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
@@ -67,6 +68,7 @@ type SaleTx = {
   destinationBranchId?: number;
   destinationBranchName?: string;
   recoveredItemId?: string;
+  paymentStatus?: "unpaid" | "paid";
 };
 
 const SALES_TX_STORAGE_KEY = "ptt.delivery.internalSales.v1";
@@ -108,6 +110,23 @@ const MOCK_SALES: SaleTx[] = [
     deliveryNoteNo: "DN-MOCK-002",
     receiptNo: "RCP-MOCK-002",
     recoveredItemId: "RCV-MOCK-001",
+  },
+  {
+    id: "SALE-MOCK-003",
+    source: "truck-remaining",
+    createdAt: "2024-12-16T14:30:00+07:00",
+    fromBranchId: 5,
+    fromBranchName: "ปั้มตักสิลา",
+    toBranchId: 4,
+    toBranchName: "บายพาส",
+    oilType: "Diesel",
+    quantity: 1200,
+    pricePerLiter: 29.5,
+    totalAmount: 35400,
+    deliveryNoteNo: "DN-MOCK-003",
+    receiptNo: "RCP-MOCK-003",
+    transportNo: "TP-20241216-009",
+    purchaseOrderNo: "SO-20241215-005",
   },
 ];
 
@@ -165,8 +184,10 @@ export default function InternalPumpSales() {
     incrementRunningNumber,
     getBranchById,
   } = useGasStation();
+  const { selectedBranches } = useBranch();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
 
-  const [saleTxs, setSaleTxs] = useState<SaleTx[]>(() => loadFromStorage<SaleTx[]>(SALES_TX_STORAGE_KEY, []));
+  const [saleTxs, setSaleTxs] = useState<SaleTx[]>(() => loadFromStorage<SaleTx[]>(SALES_TX_STORAGE_KEY, MOCK_SALES));
   const [recoveredItems, setRecoveredItems] = useState<RecoveredOilItem[]>(() =>
     loadFromStorage<RecoveredOilItem[]>(RECOVERED_STORAGE_KEY, [
       {
@@ -230,7 +251,7 @@ export default function InternalPumpSales() {
       });
 
       job.destinationBranches
-        .filter((b) => b.status !== "ส่งแล้ว")
+        .filter((b) => b.status !== "ส่งแล้ว" && (selectedBranchIds.length === 0 || selectedBranchIds.includes(b.branchId)))
         .forEach((b) => {
           const key = `${b.branchId}::${b.oilType}`;
           const plannedQty = (compSumByDestOil.get(key) || 0) > 0 ? (compSumByDestOil.get(key) || 0) : b.quantity;
@@ -259,7 +280,7 @@ export default function InternalPumpSales() {
         });
     });
     return rows.sort((a, b) => a.transportNo.localeCompare(b.transportNo));
-  }, [driverJobs, poByOrderNo, soldQtyByJobBranchOil]);
+  }, [driverJobs, poByOrderNo, soldQtyByJobBranchOil, selectedBranchIds]);
 
   type InventoryRow = {
     id: string;
@@ -303,7 +324,7 @@ export default function InternalPumpSales() {
     });
 
     recoveredItems
-      .filter((i) => i.quantityAvailable > 0)
+      .filter((i) => i.quantityAvailable > 0 && (selectedBranchIds.length === 0 || selectedBranchIds.includes(i.fromBranchId)))
       .forEach((i) => {
         rows.push({
           id: `recovered::${i.id}`,
@@ -322,7 +343,7 @@ export default function InternalPumpSales() {
       if (a.source !== b.source) return a.source === "truck-remaining" ? -1 : 1;
       return a.fromBranchName.localeCompare(b.fromBranchName);
     });
-  }, [truckRows, recoveredItems]);
+  }, [truckRows, recoveredItems, selectedBranchIds]);
 
   const availableTransportNos = useMemo(() => {
     const set = new Set<string>();
@@ -342,11 +363,11 @@ export default function InternalPumpSales() {
 
     const base = saleTxs.length > 0 ? saleTxs : MOCK_SALES;
 
-    if (!q) return base;
     return base.filter((t) => {
       const poText = t.purchaseOrderNo || "";
       const internalText = t.internalOrderNo || "";
-      return (
+      
+      const matchSearch = !q ||
         t.deliveryNoteNo.toLowerCase().includes(q) ||
         t.receiptNo.toLowerCase().includes(q) ||
         t.fromBranchName.toLowerCase().includes(q) ||
@@ -357,10 +378,15 @@ export default function InternalPumpSales() {
         (t.transportNo || "").toLowerCase().includes(q) ||
         poText.toLowerCase().includes(q) ||
         internalText.toLowerCase().includes(q) ||
-        (t.source === "truck-remaining" ? "รถ" : "ดูด").includes(q)
-      );
+        (t.source === "truck-remaining" ? "รถ" : "ดูด").includes(q);
+
+      const matchBranch = selectedBranchIds.length === 0 || 
+        selectedBranchIds.includes(t.fromBranchId) || 
+        selectedBranchIds.includes(t.toBranchId);
+
+      return matchSearch && matchBranch;
     });
-  }, [saleTxs, search]);
+  }, [saleTxs, search, selectedBranchIds]);
 
   const salesSummary = useMemo(() => {
     const totalLiters = filteredSales.reduce((s, t) => s + t.quantity, 0);
@@ -481,6 +507,7 @@ export default function InternalPumpSales() {
     const newReceipt: Receipt = {
       id: `REC-${Date.now()}`,
       receiptNo,
+      branchId: fromBranchId!, // ใช้ branchId ของสาขาต้นทาง
       receiptDate: new Date().toISOString().split("T")[0],
       deliveryNoteNo,
       customerName: toBranch.name,
@@ -570,19 +597,28 @@ export default function InternalPumpSales() {
                 ขายน้ำมันภายในปั๊ม
               </h1>
               <p className="text-gray-500 dark:text-gray-400 mt-1">
-                ขาย "น้ำมันที่เหลือบนรถ" หรือ "น้ำมันที่ดูดขึ้นมา" พร้อมออกใบส่งของ/ใบเสร็จ
-              </p>
+              ขาย &ldquo;น้ำมันที่เหลือบนรถ&rdquo; หรือ &ldquo;น้ำมันที่ดูดขึ้นมา&rdquo; พร้อมออกใบส่งของ/ใบเสร็จ
+            </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={openAddSale}
-            disabled={inventoryRows.length === 0}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Plus className="w-5 h-5" />
-            เพิ่มรายการขาย
-          </button>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={openAddSale}
+              disabled={inventoryRows.length === 0}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus className="w-5 h-5" />
+              เพิ่มรายการขาย
+            </button>
+          </div>
         </div>
       </div>
 
@@ -620,7 +656,7 @@ export default function InternalPumpSales() {
               <DollarSign className="w-6 h-6 text-gray-400" />
             </div>
             <p>ยังไม่มีรายการขาย</p>
-            <p className="text-sm mt-1">กดปุ่ม "เพิ่มรายการขาย" เพื่อเริ่มบันทึกการขาย</p>
+            <p className="text-sm mt-1">กดปุ่ม &ldquo;เพิ่มรายการขาย&rdquo; เพื่อเริ่มบันทึกการขาย</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
