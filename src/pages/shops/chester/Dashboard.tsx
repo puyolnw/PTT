@@ -67,7 +67,7 @@ const mockTopSellingItems = [
 export default function ChesterDashboard() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "ร้านเชสเตอร์ (Chester's)";
-  
+
   const salesChange = ((mockSalesData.today - mockSalesData.yesterday) / mockSalesData.yesterday) * 100;
   const monthlyChange = ((mockSalesData.thisMonth - mockSalesData.lastMonth) / mockSalesData.lastMonth) * 100;
   const lowStockItems = mockStockData.filter(item => item.lowStock);
@@ -117,9 +117,9 @@ export default function ChesterDashboard() {
           ภาพรวมยอดขาย สต็อก และการเงินของร้านอาหารฟาสต์ฟู้ดเกาหลี เน้นไก่ย่างเกาหลี (Korean Fried Chicken) กรอบนอกนุ่มใน รสชาติเผ็ดหวานสูตรเด็ด
         </p>
         <p className="text-xs text-muted/70">
-          อัปเดตล่าสุด: {new Date().toLocaleDateString("th-TH", { 
-            year: "numeric", 
-            month: "long", 
+          อัปเดตล่าสุด: {new Date().toLocaleDateString("th-TH", {
+            year: "numeric",
+            month: "long",
             day: "numeric",
             hour: "2-digit",
             minute: "2-digit"
@@ -142,9 +142,8 @@ export default function ChesterDashboard() {
                 <stat.icon className="w-6 h-6 text-app" />
               </div>
               {stat.change && (
-                <div className={`flex items-center gap-1 text-sm font-medium ${
-                  stat.change.startsWith('+') ? 'text-emerald-400' : 'text-red-400'
-                }`}>
+                <div className={`flex items-center gap-1 text-sm font-medium ${stat.change.startsWith('+') ? 'text-emerald-400' : 'text-red-400'
+                  }`}>
                   {stat.change.startsWith('+') ? (
                     <ArrowUpRight className="w-4 h-4" />
                   ) : (
@@ -234,11 +233,10 @@ export default function ChesterDashboard() {
             {mockStockData.map((item) => (
               <div
                 key={item.name}
-                className={`flex items-center justify-between p-4 rounded-xl border ${
-                  item.lowStock 
-                    ? "bg-orange-500/10 border-orange-500/30" 
+                className={`flex items-center justify-between p-4 rounded-xl border ${item.lowStock
+                    ? "bg-orange-500/10 border-orange-500/30"
                     : "bg-soft border-app"
-                }`}
+                  }`}
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
@@ -265,14 +263,12 @@ export default function ChesterDashboard() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                    item.lowStock 
-                      ? "bg-orange-500/20 border-2 border-orange-500/50" 
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center ${item.lowStock
+                      ? "bg-orange-500/20 border-2 border-orange-500/50"
                       : "bg-emerald-500/20 border-2 border-emerald-500/50"
-                  }`}>
-                    <Drumstick className={`w-6 h-6 ${
-                      item.lowStock ? "text-orange-400" : "text-emerald-400"
-                    }`} />
+                    }`}>
+                    <Drumstick className={`w-6 h-6 ${item.lowStock ? "text-orange-400" : "text-emerald-400"
+                      }`} />
                   </div>
                 </div>
               </div>
@@ -348,11 +344,10 @@ export default function ChesterDashboard() {
                 className="flex items-center justify-between p-4 bg-soft rounded-xl border-app"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    index === 0 ? "bg-ptt-blue/20 text-ptt-cyan" :
-                    index === 1 ? "bg-emerald-500/20 text-emerald-400" :
-                    "bg-muted/20 text-muted"
-                  }`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${index === 0 ? "bg-ptt-blue/20 text-ptt-cyan" :
+                      index === 1 ? "bg-emerald-500/20 text-emerald-400" :
+                        "bg-muted/20 text-muted"
+                    }`}>
                     <span className="text-sm font-bold">{index + 1}</span>
                   </div>
                   <div>
@@ -366,9 +361,8 @@ export default function ChesterDashboard() {
                   <p className="font-semibold text-app">
                     {currencyFormatter.format(item.sales)}
                   </p>
-                  <div className={`flex items-center gap-1 text-xs ${
-                    item.trend.startsWith('+') ? 'text-emerald-400' : 'text-red-400'
-                  }`}>
+                  <div className={`flex items-center gap-1 text-xs ${item.trend.startsWith('+') ? 'text-emerald-400' : 'text-red-400'
+                    }`}>
                     {item.trend.startsWith('+') ? (
                       <ArrowUpRight className="w-3 h-3" />
                     ) : (
@@ -408,11 +402,10 @@ export default function ChesterDashboard() {
                     <p className="text-xs text-muted">{purchase.supplier}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      purchase.status === "ชำระแล้ว"
+                    <span className={`text-xs px-2 py-1 rounded-full ${purchase.status === "ชำระแล้ว"
                         ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
                         : "bg-orange-500/10 text-orange-400 border border-orange-500/30"
-                    }`}>
+                      }`}>
                       {purchase.status}
                     </span>
                     <span className="text-xs px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30">
@@ -445,7 +438,7 @@ export default function ChesterDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <button className="flex items-center gap-3 p-4 bg-ptt-blue/10 hover:bg-ptt-blue/20 border border-ptt-blue/30 rounded-xl transition-colors">
             <Upload className="w-5 h-5 text-ptt-cyan" />
-            <span className="text-app font-medium">นำเข้า Excel จากแอป Chester's</span>
+            <span className="text-app font-medium">นำเข้า Excel จากแอป Chester&apos;s</span>
           </button>
           <button className="flex items-center gap-3 p-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl transition-colors">
             <DollarSign className="w-5 h-5 text-emerald-400" />

@@ -336,10 +336,10 @@ export default function TruckSales() {
       prev.map((item) =>
         item.id === selectedItem.id
           ? {
-              ...item,
-              quantityOnTruck: newQuantity,
-              status: newQuantity === 0 ? "sold" : "partial",
-            }
+            ...item,
+            quantityOnTruck: newQuantity,
+            status: newQuantity === 0 ? "sold" : "partial",
+          }
           : item
       )
     );
@@ -455,7 +455,9 @@ export default function TruckSales() {
           {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <label htmlFor="truck-sales-search" className="sr-only">ค้นหา</label>
             <input
+              id="truck-sales-search"
               type="text"
               placeholder="ค้นหาประเภทน้ำมัน, สาขา, เลขที่ใบสั่งซื้อ, เลขขนส่ง, ทะเบียนรถ..."
               value={searchTerm}
@@ -466,25 +468,29 @@ export default function TruckSales() {
 
           {/* Filter Options */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <select
+            <label htmlFor="truck-sales-filter-branch" className="sr-only">สาขา</label>
+            <select
+              id="truck-sales-filter-branch"
               value={filterBranch}
               onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : parseInt(e.target.value))}
-            className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
-          >
-            <option value="all">ทุกสาขา</option>
-            {branches
-              .sort((a, b) => {
-                const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
-                return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
-              })
-              .map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-          </select>
+              className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
+            >
+              <option value="all">ทุกสาขา</option>
+              {branches
+                .sort((a, b) => {
+                  const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                  return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
+                })
+                .map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+            </select>
 
+            <label htmlFor="truck-sales-filter-transport" className="sr-only">ประเภทการขนส่ง</label>
             <select
+              id="truck-sales-filter-transport"
               value={filterTransportType}
               onChange={(e) =>
                 setFilterTransportType(e.target.value as "all" | "internal" | "external")
@@ -497,7 +503,9 @@ export default function TruckSales() {
             </select>
 
             <div className="flex items-center gap-2">
+              <label htmlFor="truck-sales-filter-date-from" className="sr-only">วันที่เริ่มต้น</label>
               <input
+                id="truck-sales-filter-date-from"
                 type="date"
                 value={filterDateFrom}
                 onChange={(e) => setFilterDateFrom(e.target.value)}
@@ -505,7 +513,9 @@ export default function TruckSales() {
                 title="วันที่เริ่มต้น"
               />
               <span className="text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">ถึง</span>
+              <label htmlFor="truck-sales-filter-date-to" className="sr-only">วันที่สิ้นสุด</label>
               <input
+                id="truck-sales-filter-date-to"
                 type="date"
                 value={filterDateTo}
                 onChange={(e) => setFilterDateTo(e.target.value)}
@@ -526,7 +536,7 @@ export default function TruckSales() {
                 className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
               >
                 ล้างตัวกรอง
-            </button>
+              </button>
             )}
           </div>
         </div>
@@ -625,9 +635,8 @@ export default function TruckSales() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gradient-to-r hover:from-orange-50/50 hover:to-red-50/50 dark:hover:from-orange-900/10 dark:hover:to-red-900/10 transition-all duration-200 ${
-                        isOverdue ? "bg-red-50/30 dark:bg-red-900/10 border-l-4 border-l-red-500" : ""
-                      }`}
+                      className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gradient-to-r hover:from-orange-50/50 hover:to-red-50/50 dark:hover:from-orange-900/10 dark:hover:to-red-900/10 transition-all duration-200 ${isOverdue ? "bg-red-50/30 dark:bg-red-900/10 border-l-4 border-l-red-500" : ""
+                        }`}
                     >
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-2">
@@ -639,11 +648,10 @@ export default function TruckSales() {
                               {item.fromBranchName}
                             </span>
                             <span
-                              className={`text-xs ${
-                                item.transportType === "internal"
+                              className={`text-xs ${item.transportType === "internal"
                                   ? "text-purple-600 dark:text-purple-400"
                                   : "text-blue-600 dark:text-blue-400"
-                              }`}
+                                }`}
                             >
                               {item.transportType === "internal" ? "ส่งภายในปั๊ม" : "รับจาก PTT"}
                             </span>
@@ -697,9 +705,8 @@ export default function TruckSales() {
                       <td className="py-4 px-6 text-sm text-center">
                         <div className="flex items-center justify-center gap-1">
                           <span
-                            className={`font-semibold ${
-                              isOverdue ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-400"
-                            }`}
+                            className={`font-semibold ${isOverdue ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-400"
+                              }`}
                           >
                             {item.daysOnTruck} วัน
                           </span>
@@ -708,13 +715,12 @@ export default function TruckSales() {
                       </td>
                       <td className="py-4 px-6 text-center">
                         <span
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
-                          item.status === "sold"
-                            ? "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600"
-                            : item.status === "partial"
-                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800"
-                            : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800"
-                          }`}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${item.status === "sold"
+                              ? "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600"
+                              : item.status === "partial"
+                                ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800"
+                                : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800"
+                            }`}
                         >
                           {item.status === "sold" ? "ขายหมดแล้ว" : item.status === "partial" ? "ขายบางส่วน" : "พร้อมขาย"}
                         </span>
@@ -812,13 +818,14 @@ export default function TruckSales() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="truck-sales-to-branch" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       <div className="flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-blue-500" />
                         ขายให้สาขา *
                       </div>
                     </label>
                     <select
+                      id="truck-sales-to-branch"
                       value={saleToBranch}
                       onChange={(e) => setSaleToBranch(e.target.value === "" ? "" : parseInt(e.target.value))}
                       className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -839,13 +846,14 @@ export default function TruckSales() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="truck-sales-quantity" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       <div className="flex items-center gap-2">
                         <Droplet className="w-4 h-4 text-blue-500" />
                         จำนวนที่ขาย (ลิตร) *
                       </div>
                     </label>
                     <input
+                      id="truck-sales-quantity"
                       type="number"
                       min="0"
                       step="0.01"
@@ -858,13 +866,14 @@ export default function TruckSales() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="truck-sales-price" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       <div className="flex items-center gap-2">
                         <DollarSign className="w-4 h-4 text-blue-500" />
                         ราคาต่อลิตร (บาท) *
                       </div>
                     </label>
                     <input
+                      id="truck-sales-price"
                       type="number"
                       min="0"
                       step="0.01"

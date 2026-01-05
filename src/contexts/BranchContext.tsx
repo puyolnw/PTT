@@ -1,13 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { branches } from "@/components/navbar/constants";
 
-interface BranchContextType {
-    selectedBranches: string[];
-    setSelectedBranches: (branches: string[]) => void;
-    toggleBranch: (branchId: string) => void;
-    selectAll: () => void;
-    clearAll: () => void;
-}
+import { BranchContextType } from "./branch-types";
 
 const BranchContext = createContext<BranchContextType | undefined>(undefined);
 
@@ -52,6 +46,7 @@ export function BranchProvider({ children }: { children: ReactNode }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useBranch() {
     const context = useContext(BranchContext);
     if (context === undefined) {

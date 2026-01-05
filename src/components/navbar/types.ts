@@ -1,7 +1,7 @@
 export interface Module {
     name: string;
     path: string;
-    icon: any;
+    icon: React.ElementType;
     roles?: string[]; // roles ที่สามารถเห็นเมนูนี้ได้ (ถ้าไม่ระบุ = ทุกคน)
 }
 

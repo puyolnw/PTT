@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useMemo } from "react";
 import { X, CheckCircle, Camera, AlertCircle, MapPin, Clock } from "lucide-react";
-import type { TruckOrder } from "@/pages/gas-station/TruckProfiles";
+import type { TruckOrder } from "@/types/truck";
 import {
     validateEndOdometer,
     calculateTripMetrics,
@@ -138,9 +138,9 @@ export default function EndTripModal({ isOpen, onClose, order, onEndTrip }: EndT
 
                             {/* Start Odometer (Read-only) */}
                             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                                <label className="block text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                                <div className="block text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
                                     📊 เลขไมล์เริ่มต้น (อ่านอย่างเดียว)
-                                </label>
+                                </div>
                                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                                     {order.startOdometer ? numberFormatter.format(order.startOdometer) : "-"} กม.
                                 </div>
@@ -154,10 +154,11 @@ export default function EndTripModal({ isOpen, onClose, order, onEndTrip }: EndT
 
                             {/* End Odometer Input */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label htmlFor="end-odometer" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     📝 เลขไมล์สิ้นสุด <span className="text-red-500">*</span>
                                 </label>
                                 <input
+                                    id="end-odometer"
                                     type="number"
                                     value={endOdometer}
                                     onChange={(e) => {
@@ -166,7 +167,6 @@ export default function EndTripModal({ isOpen, onClose, order, onEndTrip }: EndT
                                     }}
                                     placeholder="กรอกเลขไมล์ปัจจุบัน"
                                     className="w-full px-4 py-3 text-lg border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                    autoFocus
                                 />
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                     ดูจากหน้าปัดรถและกรอกเลขไมล์ที่แสดง
@@ -215,10 +215,11 @@ export default function EndTripModal({ isOpen, onClose, order, onEndTrip }: EndT
 
                             {/* End Time */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label htmlFor="end-time" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     🕐 เวลาถึงปลายทาง
                                 </label>
                                 <input
+                                    id="end-time"
                                     type="datetime-local"
                                     value={endTime.slice(0, 16)}
                                     onChange={(e) => setEndTime(new Date(e.target.value).toISOString())}
@@ -228,11 +229,11 @@ export default function EndTripModal({ isOpen, onClose, order, onEndTrip }: EndT
 
                             {/* Photo Upload (Optional) */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label htmlFor="end-photo-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     📷 ถ่ายรูปไมล์ (ถ้ามี)
                                 </label>
                                 <div className="flex items-center gap-3">
-                                    <label className="flex-1 cursor-pointer">
+                                    <label htmlFor="end-photo-input" className="flex-1 cursor-pointer">
                                         <div className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-emerald-500 dark:hover:border-emerald-400 transition-colors">
                                             <Camera className="w-5 h-5 text-gray-400" />
                                             <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -240,6 +241,7 @@ export default function EndTripModal({ isOpen, onClose, order, onEndTrip }: EndT
                                             </span>
                                         </div>
                                         <input
+                                            id="end-photo-input"
                                             type="file"
                                             accept="image/*"
                                             onChange={handlePhotoUpload}

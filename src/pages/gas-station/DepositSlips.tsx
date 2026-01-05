@@ -376,12 +376,13 @@ export default function DepositSlips() {
           <form onSubmit={handleCreateSlip} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                <label htmlFor="slip-customer" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                   ชื่อลูกค้า / บริษัท
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
+                    id="slip-customer"
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
@@ -391,10 +392,11 @@ export default function DepositSlips() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                <label htmlFor="slip-branch" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                   สาขา
                 </label>
                 <select
+                  id="slip-branch"
                   value={branch}
                   onChange={(e) => setBranch(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
@@ -410,10 +412,11 @@ export default function DepositSlips() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                <label htmlFor="slip-amount" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                   มูลค่าใบฝาก (บาท)
                 </label>
                 <input
+                  id="slip-amount"
                   type="number"
                   min={0}
                   value={amount}
@@ -425,12 +428,13 @@ export default function DepositSlips() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                <label htmlFor="slip-issue-date" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                   วันที่ออกใบฝาก
                 </label>
                 <div className="relative">
                   <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
+                    id="slip-issue-date"
                     type="date"
                     value={issueDate}
                     onChange={(e) => setIssueDate(e.target.value)}
@@ -439,10 +443,11 @@ export default function DepositSlips() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                <label htmlFor="slip-expiry-date" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                   วันที่หมดอายุ (อายุ 6 เดือน)
                 </label>
                 <input
+                  id="slip-expiry-date"
                   type="date"
                   value={expiryDateForForm}
                   readOnly
@@ -529,8 +534,10 @@ export default function DepositSlips() {
           </div>
           <div className="flex flex-col md:flex-row gap-3 md:items-center">
             <div className="relative">
+              <label htmlFor="search-slips" className="sr-only">ค้นหาใบฝากคูปอง</label>
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
+                id="search-slips"
                 type="text"
                 placeholder="ค้นหาเลขที่ใบฝาก / ชื่อลูกค้า / สาขา..."
                 value={searchTerm}
@@ -540,7 +547,9 @@ export default function DepositSlips() {
             </div>
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-gray-400" />
+              <label htmlFor="slip-status-filter" className="sr-only">กรองสถานะ</label>
               <select
+                id="slip-status-filter"
                 value={filterStatus}
                 onChange={(e) =>
                   setFilterStatus(e.target.value as "ทั้งหมด" | CouponStatus)
@@ -737,10 +746,11 @@ export default function DepositSlips() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                <label htmlFor="use-amount" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                   จำนวนที่ใช้ในรอบนี้ (บาท)
                 </label>
                 <input
+                  id="use-amount"
                   type="number"
                   min={0}
                   max={activeSlip.balance}
@@ -827,10 +837,11 @@ export default function DepositSlips() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                <label htmlFor="topup-amount" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                   จำนวนที่ต้องการฝากเพิ่ม (บาท)
                 </label>
                 <input
+                  id="topup-amount"
                   type="number"
                   min={0}
                   value={topupAmount}
@@ -862,8 +873,8 @@ export default function DepositSlips() {
                     {topupAmount === ""
                       ? currencyFormatter.format(activeTopupSlip.balance)
                       : currencyFormatter.format(
-                          activeTopupSlip.balance + Number(topupAmount)
-                        )}
+                        activeTopupSlip.balance + Number(topupAmount)
+                      )}
                   </span>
                 </p>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400">

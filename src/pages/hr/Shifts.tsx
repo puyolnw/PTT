@@ -57,7 +57,7 @@ export default function Shifts() {
             <h3 className="text-xl font-bold text-app mb-2 font-display">
               กะ{shift.name}
             </h3>
-            
+
             <div className="space-y-2 mb-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted">เวลาเริ่ม:</span>
@@ -103,10 +103,11 @@ export default function Shifts() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="shift-name" className="block text-sm font-medium text-slate-300 mb-2">
               ชื่อกะ
             </label>
             <input
+              id="shift-name"
               type="text"
               placeholder="เช่น กะเช้า"
               className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
@@ -117,20 +118,22 @@ export default function Shifts() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="shift-start" className="block text-sm font-medium text-slate-300 mb-2">
                 เวลาเริ่ม
               </label>
               <input
+                id="shift-start"
                 type="time"
                 className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="shift-end" className="block text-sm font-medium text-slate-300 mb-2">
                 เวลาสิ้นสุด
               </label>
               <input
+                id="shift-end"
                 type="time"
                 className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
@@ -139,10 +142,11 @@ export default function Shifts() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="shift-desc" className="block text-sm font-medium text-slate-300 mb-2">
               คำอธิบาย
             </label>
             <textarea
+              id="shift-desc"
               rows={3}
               placeholder="รายละเอียดเพิ่มเติม..."
               className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl
@@ -155,4 +159,3 @@ export default function Shifts() {
     </div>
   );
 }
-

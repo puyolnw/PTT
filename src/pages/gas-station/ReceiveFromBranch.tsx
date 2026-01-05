@@ -20,8 +20,50 @@ import {
     BookOpen,
 } from "lucide-react";
 
+interface LocalTransportItem {
+    oilType: string;
+    quantity: number;
+    compartment: number;
+}
+
+interface LocalTransport {
+    id: string;
+    status: string;
+    sourceBranch: string;
+    destinationBranch: string;
+    truckPlate: string;
+    trailerPlate: string;
+    driverName: string;
+    departureTime: string;
+    startMileage: number;
+    deliveryNoteNo: string;
+    items: LocalTransportItem[];
+    startOdometer?: number; // Added to match usage
+}
+
+interface LocalTank {
+    id: number;
+    name: string;
+    oilType: string;
+    capacity: number;
+    currentLevel: number;
+    code: string;
+    pumpCode: string;
+    description: string;
+}
+
+interface Measurement {
+    oilType: string;
+    quantity: number;
+    compartment: number;
+    targetTankId: number | string;
+    beforeDip: number;
+    afterDip: number;
+    receivedQuantity: number;
+}
+
 // Mock Data for Transports
-        const mockTransports = [
+const mockTransports: LocalTransport[] = [
     {
         id: "TR-20241215-001",
         status: "in_transit",
@@ -32,6 +74,7 @@ import {
         driverName: "Somchai Driver",
         departureTime: "2024-12-15 08:30",
         startMileage: 125000,
+        startOdometer: 125000,
         deliveryNoteNo: "DN-HO-20241215-001",
         items: [
             { oilType: "Premium Diesel", quantity: 12000, compartment: 1 },
@@ -49,6 +92,7 @@ import {
         driverName: "Wichai Driver",
         departureTime: "2024-12-15 09:00",
         startMileage: 98500,
+        startOdometer: 98500,
         deliveryNoteNo: "DN-HO-20241215-002",
         items: [
             { oilType: "Premium Diesel", quantity: 15000, compartment: 1 },
@@ -66,6 +110,7 @@ import {
         driverName: "Somsak Finished",
         departureTime: "2024-12-14 14:00",
         startMileage: 124000,
+        startOdometer: 124000,
         deliveryNoteNo: "DN-HO-20241214-999",
         items: [
             { oilType: "Premium Diesel", quantity: 10000, compartment: 1 }
@@ -74,7 +119,8 @@ import {
 ];
 
 // Mock Tanks - ต้องตรงกับ mockUndergroundTanks ใน RecordTankEntry
-const mockTanks = [
+// Mock Tanks - ต้องตรงกับ mockUndergroundTanks ใน RecordTankEntry
+const mockTanks: LocalTank[] = [
     { id: 1, name: "Tank 1 (Premium Diesel)", oilType: "Premium Diesel", capacity: 50000, currentLevel: 25000, code: "34 HSD", pumpCode: "P18", description: "E สินสา" },
     { id: 2, name: "Tank 2 (Gasohol 95)", oilType: "Gasohol 95", capacity: 40000, currentLevel: 18000, code: "18 63H95", pumpCode: "P59", description: "B 5" },
     { id: 3, name: "Tank 3 (Gasohol 91)", oilType: "Gasohol 91", capacity: 35000, currentLevel: 15000, code: "59 69H91", pumpCode: "P67", description: "B สมาคม" },
@@ -85,7 +131,7 @@ const mockTanks = [
 export default function ReceiveFromBranch() {
     const navigate = useNavigate();
     // State
-    const [selectedTransport, setSelectedTransport] = useState<any>(null);
+    const [selectedTransport, setSelectedTransport] = useState<LocalTransport | null>(null);
     const [step, setStep] = useState(1); // 1: Select Transport, 2: Verify & Details, 3: Success
 
     // Form Data
@@ -101,13 +147,13 @@ export default function ReceiveFromBranch() {
             color: "Normal",
             testResult: "pass" // pass, fail
         },
-        measurements: [] as any[]
+        measurements: [] as Measurement[]
     });
 
     // Initialize measurements when transport is selected
     useEffect(() => {
         if (selectedTransport) {
-            const initialMeasurements = selectedTransport.items.map((item: any) => ({
+            const initialMeasurements: Measurement[] = selectedTransport.items.map((item) => ({
                 ...item,
                 targetTankId: mockTanks.find(t => t.oilType === item.oilType)?.id || "",
                 beforeDip: 0,
@@ -122,7 +168,7 @@ export default function ReceiveFromBranch() {
     const distance = selectedTransport ? formData.endMileage - selectedTransport.startMileage : 0;
     const isDeliveryNoteMatch = selectedTransport ? formData.deliveryNoteVerify === selectedTransport.deliveryNoteNo : false;
 
-    const handleTransportSelect = (transport: any) => {
+    const handleTransportSelect = (transport: LocalTransport) => {
         setSelectedTransport(transport);
         setStep(2);
     };
@@ -130,17 +176,17 @@ export default function ReceiveFromBranch() {
     const handleSave = () => {
         // Logic to save data would go here
         // alert("Received successfully! Stock updated.");
-        
+
         // บันทึกประวัติการทำงาน
         const recordId = selectedTransport?.id || `REC-BR-${Date.now()}`;
-        const totalQuantity = formData.measurements.reduce((sum: number, item: any) => {
+        const totalQuantity = formData.measurements.reduce((sum: number, item: Measurement) => {
             return sum + ((item.afterDip || 0) - (item.beforeDip || 0));
         }, 0);
-        
+
         // คำนวณระยะทางจากเลขไมล์
-        const distance = formData.endMileage > 0 && selectedTransport?.startOdometer ? 
+        const distance = formData.endMileage > 0 && selectedTransport?.startOdometer ?
             formData.endMileage - selectedTransport.startOdometer : 0;
-        
+
         logActivity({
             module: "รับน้ำมันจากสาขาหลัก",
             action: "create",
@@ -163,7 +209,7 @@ export default function ReceiveFromBranch() {
             },
             status: "success",
         });
-        
+
         setStep(3); // Go to Success Step
     };
 
@@ -171,7 +217,7 @@ export default function ReceiveFromBranch() {
     const handleRecordTankEntry = () => {
         // Prepare data to pass to RecordTankEntry
         // Filter only measurements that have tank selected and measurements filled
-        const validMeasurements = formData.measurements.filter((item: any) => 
+        const validMeasurements = formData.measurements.filter((item) =>
             item.targetTankId && item.beforeDip > 0 && item.afterDip > 0
         );
 
@@ -189,7 +235,7 @@ export default function ReceiveFromBranch() {
             driverName: selectedTransport?.driverName,
             receiveDate: formData.receiveDate,
             receiveTime: formData.receiveTime,
-            measurements: validMeasurements.map((item: any) => {
+            measurements: validMeasurements.map((item) => {
                 const tank = mockTanks.find((t) => t.id === item.targetTankId);
                 return {
                     oilType: item.oilType,
@@ -198,7 +244,7 @@ export default function ReceiveFromBranch() {
                     beforeDip: item.beforeDip || 0,
                     afterDip: item.afterDip || 0,
                     quantity: (item.afterDip || 0) - (item.beforeDip || 0),
-                    quantityOrdered: item.quantity,
+                    quantityOrdered: item.receivedQuantity,
                     compartment: item.compartment,
                     pumpCode: tank?.pumpCode || "",
                     description: tank?.description || "",
@@ -241,12 +287,12 @@ export default function ReceiveFromBranch() {
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
                     {mockTransports.map((transport) => (
-                        <div
+                        <button
                             key={transport.id}
                             onClick={() => transport.status === 'in_transit' && handleTransportSelect(transport)}
-                            className={`rounded-xl shadow-md p-6 transition-all border-2 group relative overflow-hidden ${transport.status === 'in_transit'
+                            className={`w-full text-left rounded-xl shadow-md p-6 transition-all border-2 group relative overflow-hidden ${transport.status === 'in_transit'
                                 ? "bg-white dark:bg-gray-800 cursor-pointer hover:shadow-xl hover:scale-[1.02] border-transparent hover:border-blue-500"
-                                : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 opacity-90"
+                                : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 opacity-90 cursor-default"
                                 }`}
                         >
                             <div className="flex justify-between items-start mb-4">
@@ -313,7 +359,7 @@ export default function ReceiveFromBranch() {
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        </button>
                     ))}
 
                     {mockTransports.length === 0 && (
@@ -342,28 +388,28 @@ export default function ReceiveFromBranch() {
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-xs text-gray-500 uppercase tracking-wider">Transport ID</label>
+                                    <span className="text-xs text-gray-500 uppercase tracking-wider block">Transport ID</span>
                                     <p className="font-semibold text-gray-800 dark:text-white">{selectedTransport.id}</p>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-xs text-gray-500 uppercase tracking-wider">หัวลาก</label>
+                                        <span className="text-xs text-gray-500 uppercase tracking-wider block">หัวลาก</span>
                                         <p className="font-semibold text-gray-800 dark:text-white">{selectedTransport.truckPlate}</p>
                                     </div>
                                     <div>
-                                        <label className="text-xs text-gray-500 uppercase tracking-wider">หางพ่วง</label>
+                                        <span className="text-xs text-gray-500 uppercase tracking-wider block">หางพ่วง</span>
                                         <p className="font-semibold text-gray-800 dark:text-white">{selectedTransport.trailerPlate}</p>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="text-xs text-gray-500 uppercase tracking-wider">คนขับ</label>
+                                    <span className="text-xs text-gray-500 uppercase tracking-wider block">คนขับ</span>
                                     <p className="font-semibold text-gray-800 dark:text-white">{selectedTransport.driverName}</p>
                                 </div>
 
                                 <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-                                    <label className="text-xs text-gray-500 uppercase tracking-wider">เลขใบส่งของ (ต้นทาง)</label>
+                                    <span className="text-xs text-gray-500 uppercase tracking-wider block">เลขใบส่งของ (ต้นทาง)</span>
                                     <div className="flex items-center justify-between mt-1">
                                         <p className="font-mono font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
                                             {selectedTransport.deliveryNoteNo}
@@ -405,11 +451,12 @@ export default function ReceiveFromBranch() {
                                 {/* Delivery Note Verification */}
                                 <div className="space-y-4">
                                     <div className="flex flex-col">
-                                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        <label htmlFor="verify-delivery-note" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             ระบุเลขที่ใบส่งของ (เพื่อยืนยัน) <span className="text-red-500">*</span>
                                         </label>
                                         <div className="relative">
                                             <input
+                                                id="verify-delivery-note"
                                                 type="text"
                                                 value={formData.deliveryNoteVerify}
                                                 onChange={(e) => setFormData({ ...formData, deliveryNoteVerify: e.target.value })}
@@ -444,8 +491,9 @@ export default function ReceiveFromBranch() {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">วันที่รับ</label>
+                                            <label htmlFor="receive-date" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">วันที่รับ</label>
                                             <input
+                                                id="receive-date"
                                                 type="date"
                                                 value={formData.receiveDate}
                                                 onChange={(e) => setFormData({ ...formData, receiveDate: e.target.value })}
@@ -453,8 +501,9 @@ export default function ReceiveFromBranch() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">เวลาที่รับ</label>
+                                            <label htmlFor="receive-time" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">เวลาที่รับ</label>
                                             <input
+                                                id="receive-time"
                                                 type="time"
                                                 value={formData.receiveTime}
                                                 onChange={(e) => setFormData({ ...formData, receiveTime: e.target.value })}
@@ -473,14 +522,15 @@ export default function ReceiveFromBranch() {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-xs text-gray-500">เลขไมล์ต้นทาง</label>
+                                            <span className="text-xs text-gray-500 block mb-1">เลขไมล์ต้นทาง</span>
                                             <div className="font-mono text-lg font-bold text-gray-600 dark:text-gray-400">
                                                 {selectedTransport.startMileage.toLocaleString()}
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="text-xs text-blue-600 dark:text-blue-400 font-medium">เลขไมล์ปลายทาง (ท่าน)</label>
+                                            <label htmlFor="end-mileage" className="text-xs text-blue-600 dark:text-blue-400 font-medium block mb-1">เลขไมล์ปลายทาง (ท่าน)</label>
                                             <input
+                                                id="end-mileage"
                                                 type="number"
                                                 value={formData.endMileage || ''}
                                                 onChange={(e) => setFormData({ ...formData, endMileage: parseFloat(e.target.value) })}
@@ -509,8 +559,9 @@ export default function ReceiveFromBranch() {
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">API Gravity</label>
+                                    <label htmlFor="quality-api-gravity" className="text-xs text-gray-500 mb-1 block">API Gravity</label>
                                     <input
+                                        id="quality-api-gravity"
                                         type="number"
                                         className="w-full px-3 py-2 border rounded-lg"
                                         placeholder="30-45"
@@ -519,8 +570,9 @@ export default function ReceiveFromBranch() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">อุณหภูมิ (°C)</label>
+                                    <label htmlFor="quality-temperature" className="text-xs text-gray-500 mb-1 block">อุณหภูมิ (°C)</label>
                                     <input
+                                        id="quality-temperature"
                                         type="number"
                                         className="w-full px-3 py-2 border rounded-lg"
                                         placeholder="25-35"
@@ -529,8 +581,9 @@ export default function ReceiveFromBranch() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">น้ำปนเปื้อน (%)</label>
+                                    <label htmlFor="quality-water-content" className="text-xs text-gray-500 mb-1 block">น้ำปนเปื้อน (%)</label>
                                     <input
+                                        id="quality-water-content"
                                         type="number"
                                         className="w-full px-3 py-2 border rounded-lg"
                                         placeholder="0.00"
@@ -539,8 +592,9 @@ export default function ReceiveFromBranch() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">ลักษณะสี</label>
+                                    <label htmlFor="quality-color" className="text-xs text-gray-500 mb-1 block">ลักษณะสี</label>
                                     <select
+                                        id="quality-color"
                                         className="w-full px-3 py-2 border rounded-lg"
                                         value={formData.qualityTest.color}
                                         onChange={(e) => setFormData(prev => ({ ...prev, qualityTest: { ...prev.qualityTest, color: e.target.value } }))}>
@@ -572,12 +626,17 @@ export default function ReceiveFromBranch() {
                                                 </span>
                                             </div>
                                             <select
+                                                aria-label="เลือกถังลงน้ำมัน"
                                                 className="bg-white border text-sm px-3 py-1 rounded-lg"
                                                 value={item.targetTankId}
                                                 onChange={(e) => {
-                                                    const newMeasurements = [...formData.measurements];
-                                                    newMeasurements[index].targetTankId = parseInt(e.target.value);
-                                                    setFormData({ ...formData, measurements: newMeasurements });
+                                                    const value = parseInt(e.target.value);
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        measurements: prev.measurements.map((m, i) =>
+                                                            i === index ? { ...m, targetTankId: value } : m
+                                                        )
+                                                    }));
                                                 }}
                                             >
                                                 <option value="">เลือกถังลงน้ำมัน...</option>
@@ -589,35 +648,45 @@ export default function ReceiveFromBranch() {
 
                                         <div className="grid grid-cols-3 gap-4">
                                             <div>
-                                                <label className="text-xs text-gray-500">วัดก่อนลง (Before) <span className="text-red-500">*</span></label>
+                                                <label htmlFor={`before-dip-${index}`} className="text-xs text-gray-500">วัดก่อนลง (Before) <span className="text-red-500">*</span></label>
                                                 <input
+                                                    id={`before-dip-${index}`}
                                                     type="number"
                                                     className="w-full border rounded px-2 py-1 text-sm"
                                                     value={item.beforeDip || ''}
                                                     onChange={(e) => {
-                                                        const newMeasurements = [...formData.measurements];
-                                                        newMeasurements[index].beforeDip = parseFloat(e.target.value);
-                                                        setFormData({ ...formData, measurements: newMeasurements });
+                                                        const value = parseFloat(e.target.value);
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            measurements: prev.measurements.map((m, i) =>
+                                                                i === index ? { ...m, beforeDip: value } : m
+                                                            )
+                                                        }));
                                                     }}
                                                     placeholder="0"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-xs text-gray-500">วัดหลังลง (After) <span className="text-red-500">*</span></label>
+                                                <label htmlFor={`after-dip-${index}`} className="text-xs text-gray-500">วัดหลังลง (After) <span className="text-red-500">*</span></label>
                                                 <input
+                                                    id={`after-dip-${index}`}
                                                     type="number"
                                                     className="w-full border rounded px-2 py-1 text-sm"
                                                     value={item.afterDip || ''}
                                                     onChange={(e) => {
-                                                        const newMeasurements = [...formData.measurements];
-                                                        newMeasurements[index].afterDip = parseFloat(e.target.value);
-                                                        setFormData({ ...formData, measurements: newMeasurements });
+                                                        const value = parseFloat(e.target.value);
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            measurements: prev.measurements.map((m, i) =>
+                                                                i === index ? { ...m, afterDip: value } : m
+                                                            )
+                                                        }));
                                                     }}
                                                     placeholder="0"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-xs text-gray-500">รับจริง (คำนวณ)</label>
+                                                <span className="text-xs text-gray-500 block mb-1">รับจริง (คำนวณ)</span>
                                                 <div className={`text-sm font-bold py-1 ${((item.afterDip || 0) - (item.beforeDip || 0)) > 0 ? 'text-green-600' : 'text-gray-700'}`}>
                                                     {((item.afterDip || 0) - (item.beforeDip || 0)).toLocaleString()} ลิตร
                                                 </div>
@@ -643,8 +712,8 @@ export default function ReceiveFromBranch() {
                             </button>
                             <button
                                 onClick={handleSave}
-                                disabled={!isDeliveryNoteMatch || !distance || formData.measurements.some((item: any) => !item.targetTankId || !item.beforeDip || !item.afterDip)}
-                                className={`flex-1 px-6 py-2.5 rounded-xl text-white font-semibold flex items-center justify-center gap-2 shadow-lg transition-all ${(!isDeliveryNoteMatch || !distance || formData.measurements.some((item: any) => !item.targetTankId || !item.beforeDip || !item.afterDip))
+                                disabled={!isDeliveryNoteMatch || !distance || formData.measurements.some((item) => !item.targetTankId || !item.beforeDip || !item.afterDip)}
+                                className={`flex-1 px-6 py-2.5 rounded-xl text-white font-semibold flex items-center justify-center gap-2 shadow-lg transition-all ${(!isDeliveryNoteMatch || !distance || formData.measurements.some((item) => !item.targetTankId || !item.beforeDip || !item.afterDip))
                                     ? "bg-gray-400 cursor-not-allowed"
                                     : "bg-gradient-to-r from-blue-600 to-cyan-600 hover:scale-[1.02]"
                                     }`}

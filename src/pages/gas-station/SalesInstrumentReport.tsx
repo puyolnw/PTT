@@ -117,8 +117,9 @@ export default function SalesInstrumentReport() {
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-gray-400" />
             <div className="flex-1">
-              <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">เริ่มต้น</label>
+              <label htmlFor="sales-start-date" className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">เริ่มต้น</label>
               <input
+                id="sales-start-date"
                 type="text"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
@@ -130,8 +131,9 @@ export default function SalesInstrumentReport() {
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-gray-400" />
             <div className="flex-1">
-              <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">จนถึง</label>
+              <label htmlFor="sales-end-date" className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">จนถึง</label>
               <input
+                id="sales-end-date"
                 type="text"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -143,8 +145,9 @@ export default function SalesInstrumentReport() {
           <div className="flex items-center gap-2">
             <Search className="w-5 h-5 text-gray-400" />
             <div className="flex-1">
-              <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">ค้นหา</label>
+              <label htmlFor="sales-search" className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">ค้นหา</label>
               <input
+                id="sales-search"
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}

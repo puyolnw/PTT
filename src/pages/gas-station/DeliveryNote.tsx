@@ -157,7 +157,7 @@ export default function DeliveryNotePage() {
     // ถ้ามีสาขาเดียวหรือไม่มี branches (backward compatibility)
     const branch = quotation.branches?.[0];
     if (branch) {
-    setFormData({
+      setFormData({
         purchaseOrderNo: quotation.purchaseOrderNo || "",
         billNo: "",
         selectedBranchId: "",
@@ -175,20 +175,20 @@ export default function DeliveryNotePage() {
     } else {
       // Backward compatibility: ถ้าไม่มี branches ใช้โครงสร้างเดิม
       setFormData({
-      purchaseOrderNo: quotation.purchaseOrderNo || "",
+        purchaseOrderNo: quotation.purchaseOrderNo || "",
         billNo: "",
         selectedBranchId: "",
         quotationNo,
-      transportNo: "",
-      fromBranchId: quotation.fromBranchId,
-        toBranchId: (quotation as any).toBranchId || 2,
-      items: quotation.items,
-      truckId: "",
-      trailerId: "",
-      driverId: "",
-      startOdometer: "",
-    });
-    setShowCreateModal(true);
+        transportNo: "",
+        fromBranchId: quotation.fromBranchId,
+        toBranchId: (quotation as unknown as { toBranchId: number }).toBranchId || 2,
+        items: quotation.items,
+        truckId: "",
+        trailerId: "",
+        driverId: "",
+        startOdometer: "",
+      });
+      setShowCreateModal(true);
     }
   };
 
@@ -561,7 +561,9 @@ export default function DeliveryNotePage() {
 
   // Handle edit item
   const handleEditItem = (index: number) => {
-    const item = formData.items[index];
+    const item = formData.items.find((_, i) => i === index);
+    if (!item) return;
+
     setEditingItemIndex(index);
     setItemForm({
       oilType: item.oilType,
@@ -607,9 +609,10 @@ export default function DeliveryNotePage() {
 
     if (editingItemIndex !== null) {
       // Edit existing item
-      const newItems = [...formData.items];
-      newItems[editingItemIndex] = newItem;
-      setFormData({ ...formData, items: newItems });
+      setFormData({
+        ...formData,
+        items: formData.items.map((it, idx) => (idx === editingItemIndex ? newItem : it)),
+      });
     } else {
       // Add new item
       setFormData({ ...formData, items: [...formData.items, newItem] });
@@ -710,19 +713,23 @@ export default function DeliveryNotePage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
+                  id="delivery-note-search"
                   type="text"
                   placeholder="ค้นหาเลขที่ใบส่งของ, สาขา, เลขที่ขนส่ง..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  aria-label="ค้นหาใบส่งของ"
                 />
               </div>
             </div>
             <div className="flex gap-2">
               <select
+                id="delivery-note-status-filter"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
                 className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                aria-label="กรองข้อมูลตามสถานะ"
               >
                 <option value="all">ทั้งหมด</option>
                 <option value="draft">ร่าง</option>
@@ -954,92 +961,92 @@ export default function DeliveryNotePage() {
         {/* Create from Quotation or Transport */}
         {(quotations.filter((q) => q.status === "confirmed").length > 0 ||
           transportDeliveries.filter((t) => t.status === "กำลังขนส่ง").length > 0) && (
-          <div className="mt-8">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
-              สร้างใบส่งของจาก
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* From Quotations */}
-              {quotations.filter((q) => q.status === "confirmed").length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    ใบเสนอราคาที่ยืนยันแล้ว
-                  </h3>
-                  <div className="space-y-2">
-                    {quotations
-                      .filter((q) => q.status === "confirmed")
-                      .slice(0, 3)
-                      .map((quotation) => {
-                        // แสดงข้อมูลหลายสาขาถ้ามี
-                        const branches = quotation.branches || [];
-                        const hasMultipleBranches = branches.length > 1;
-                        
-                        return (
-                        <button
-                          key={quotation.id}
-                          onClick={() => handleCreateFromQuotation(quotation.quotationNo)}
-                          className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-left"
-                        >
-                          <p className="font-semibold text-gray-800 dark:text-white">
-                            {quotation.quotationNo}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {quotation.fromBranchName} → {hasMultipleBranches 
-                                ? `${branches.length} สาขา` 
-                                : ((quotation as any).toBranchName || branches[0]?.branchName || "หลายสาขา")}
-                          </p>
-                            {hasMultipleBranches && (
-                              <div className="mt-2 space-y-1">
-                                {branches.map((branch, idx) => (
-                                  <div key={idx} className="text-xs text-gray-600 dark:text-gray-400">
-                                    • {branch.branchName}: {branch.items.map(i => `${i.oilType} ${numberFormatter.format(i.quantity)}L`).join(", ")}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                            {currencyFormatter.format(quotation.totalAmount)}
-                          </p>
-                        </button>
-                        );
-                      })}
-                  </div>
-                </div>
-              )}
+            <div className="mt-8">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
+                สร้างใบส่งของจาก
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* From Quotations */}
+                {quotations.filter((q) => q.status === "confirmed").length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      ใบเสนอราคาที่ยืนยันแล้ว
+                    </h3>
+                    <div className="space-y-2">
+                      {quotations
+                        .filter((q) => q.status === "confirmed")
+                        .slice(0, 3)
+                        .map((quotation) => {
+                          // แสดงข้อมูลหลายสาขาถ้ามี
+                          const branches = quotation.branches || [];
+                          const hasMultipleBranches = branches.length > 1;
 
-              {/* From Transport */}
-              {transportDeliveries.filter((t) => t.status === "กำลังขนส่ง").length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    รอบส่งที่กำลังขนส่ง
-                  </h3>
-                  <div className="space-y-2">
-                    {transportDeliveries
-                      .filter((t) => t.status === "กำลังขนส่ง")
-                      .slice(0, 3)
-                      .map((transport) => (
-                        <button
-                          key={transport.id}
-                          onClick={() => handleCreateFromTransport(transport.transportNo)}
-                          className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-left"
-                        >
-                          <p className="font-semibold text-gray-800 dark:text-white">
-                            {transport.transportNo}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {transport.sourceBranchName} → {transport.destinationBranchNames.join(", ")}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {transport.truckPlateNumber} - {transport.driverName}
-                          </p>
-                        </button>
-                      ))}
+                          return (
+                            <button
+                              key={quotation.id}
+                              onClick={() => handleCreateFromQuotation(quotation.quotationNo)}
+                              className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-left"
+                            >
+                              <p className="font-semibold text-gray-800 dark:text-white">
+                                {quotation.quotationNo}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {quotation.fromBranchName} → {hasMultipleBranches
+                                  ? `${branches.length} สาขา`
+                                  : ((quotation as unknown as { toBranchName: string }).toBranchName || branches[0]?.branchName || "หลายสาขา")}
+                              </p>
+                              {hasMultipleBranches && (
+                                <div className="mt-2 space-y-1">
+                                  {branches.map((branch, idx) => (
+                                    <div key={idx} className="text-xs text-gray-600 dark:text-gray-400">
+                                      • {branch.branchName}: {branch.items.map(i => `${i.oilType} ${numberFormatter.format(i.quantity)}L`).join(", ")}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                                {currencyFormatter.format(quotation.totalAmount)}
+                              </p>
+                            </button>
+                          );
+                        })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+
+                {/* From Transport */}
+                {transportDeliveries.filter((t) => t.status === "กำลังขนส่ง").length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      รอบส่งที่กำลังขนส่ง
+                    </h3>
+                    <div className="space-y-2">
+                      {transportDeliveries
+                        .filter((t) => t.status === "กำลังขนส่ง")
+                        .slice(0, 3)
+                        .map((transport) => (
+                          <button
+                            key={transport.id}
+                            onClick={() => handleCreateFromTransport(transport.transportNo)}
+                            className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-left"
+                          >
+                            <p className="font-semibold text-gray-800 dark:text-white">
+                              {transport.transportNo}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {transport.sourceBranchName} → {transport.destinationBranchNames.join(", ")}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {transport.truckPlateNumber} - {transport.driverName}
+                            </p>
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
 
       {/* Create/Edit Modal */}
@@ -1114,10 +1121,11 @@ export default function DeliveryNotePage() {
                   <div className="space-y-4">
                     {/* เลือก Purchase Order จากบันทึกใบเสนอราคาจากปตท. */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="create-po-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         เลือกใบสั่งซื้อจากบันทึกใบเสนอราคาจากปตท. *
                       </label>
                       <select
+                        id="create-po-select"
                         value={formData.purchaseOrderNo}
                         onChange={(e) => {
                           const orderNo = e.target.value;
@@ -1207,9 +1215,9 @@ export default function DeliveryNotePage() {
                       if (purchaseOrder && purchaseOrder.billNo) {
                         return (
                           <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <span className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                               บิล
-                            </label>
+                            </span>
                             <div className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-white">
                               {purchaseOrder.billNo}
                             </div>
@@ -1225,10 +1233,11 @@ export default function DeliveryNotePage() {
                       if (purchaseOrder && purchaseOrder.branches.length > 0) {
                         return (
                           <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <label htmlFor="create-branch-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                               เลือกปั๊ม (สาขา) ที่จะส่งของ *
                             </label>
                             <select
+                              id="create-branch-select"
                               value={formData.selectedBranchId}
                               onChange={(e) => {
                                 const branchId = parseInt(e.target.value);
@@ -1307,10 +1316,11 @@ export default function DeliveryNotePage() {
                     })()}
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="create-from-branch" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         จากสาขา
                       </label>
                       <select
+                        id="create-from-branch"
                         value={formData.fromBranchId}
                         onChange={(e) => setFormData({ ...formData, fromBranchId: parseInt(e.target.value) })}
                         className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
@@ -1328,10 +1338,11 @@ export default function DeliveryNotePage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="create-to-branch" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         ไปสาขา
                       </label>
                       <select
+                        id="create-to-branch"
                         value={formData.toBranchId}
                         onChange={(e) => setFormData({ ...formData, toBranchId: parseInt(e.target.value) })}
                         className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
@@ -1351,9 +1362,9 @@ export default function DeliveryNotePage() {
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        <span className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                           รายการสินค้า
-                        </label>
+                        </span>
                         <button
                           type="button"
                           onClick={handleAddItem}
@@ -1733,10 +1744,11 @@ export default function DeliveryNotePage() {
                 </div>
                 <div className="p-6">
                   <div className="mb-4">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="sign-signature" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       กรอกลายเซ็น
                     </label>
                     <input
+                      id="sign-signature"
                       type="text"
                       value={signature}
                       onChange={(e) => setSignature(e.target.value)}
@@ -1805,10 +1817,11 @@ export default function DeliveryNotePage() {
                 </div>
                 <div className="p-6 space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="item-oil-type" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       ประเภทน้ำมัน *
                     </label>
                     <select
+                      id="item-oil-type"
                       value={itemForm.oilType}
                       onChange={(e) => setItemForm({ ...itemForm, oilType: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1825,10 +1838,11 @@ export default function DeliveryNotePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="item-quantity" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       จำนวนลิตร *
                     </label>
                     <input
+                      id="item-quantity"
                       type="number"
                       value={itemForm.quantity}
                       onChange={(e) => setItemForm({ ...itemForm, quantity: e.target.value })}
@@ -1839,10 +1853,11 @@ export default function DeliveryNotePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="item-price" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       ราคาต่อลิตร (บาท) *
                     </label>
                     <input
+                      id="item-price"
                       type="number"
                       value={itemForm.pricePerLiter}
                       onChange={(e) => setItemForm({ ...itemForm, pricePerLiter: e.target.value })}
@@ -1952,10 +1967,11 @@ export default function DeliveryNotePage() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="receive-name" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         ชื่อผู้รับ * (ลายเซ็น)
                       </label>
                       <input
+                        id="receive-name"
                         type="text"
                         value={receiveFormData.receiverName}
                         onChange={(e) => setReceiveFormData({ ...receiveFormData, receiverName: e.target.value })}
@@ -1964,10 +1980,11 @@ export default function DeliveryNotePage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="receive-signature" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         ลายเซ็นผู้รับ *
                       </label>
                       <input
+                        id="receive-signature"
                         type="text"
                         value={receiveFormData.receiverSignature}
                         onChange={(e) => setReceiveFormData({ ...receiveFormData, receiverSignature: e.target.value })}
@@ -1977,10 +1994,11 @@ export default function DeliveryNotePage() {
                     </div>
                     {selectedDeliveryNote.startOdometer && (
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="receive-odometer" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           เลขไมล์สิ้นสุด (กม.)
                         </label>
                         <input
+                          id="receive-odometer"
                           type="number"
                           value={receiveFormData.endOdometer}
                           onChange={(e) => setReceiveFormData({ ...receiveFormData, endOdometer: e.target.value })}
@@ -1996,10 +2014,11 @@ export default function DeliveryNotePage() {
                       </div>
                     )}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="receive-notes-input" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         หมายเหตุ (ถ้ามี)
                       </label>
                       <textarea
+                        id="receive-notes-input"
                         value={receiveFormData.notes}
                         onChange={(e) => setReceiveFormData({ ...receiveFormData, notes: e.target.value })}
                         placeholder="กรอกหมายเหตุเพิ่มเติม"

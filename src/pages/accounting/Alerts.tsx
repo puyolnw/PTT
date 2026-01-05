@@ -138,9 +138,10 @@ export default function Alerts() {
         </motion.div>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col md:flex-row gap-4 items-center">
+        <label htmlFor="alert-type-filter" className="sr-only">กรองตามประเภทการแจ้งเตือน</label>
         <select
+          id="alert-type-filter"
           value={selectedType || ""}
           onChange={(e) => setSelectedType(e.target.value || null)}
           className="px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
@@ -176,21 +177,19 @@ export default function Alerts() {
           {filteredAlerts.map((alert) => (
             <div
               key={alert.id}
-              className={`p-4 rounded-xl border-2 ${
-                alert.enabled
+              className={`p-4 rounded-xl border-2 ${alert.enabled
                   ? "bg-soft border-app"
                   : "bg-soft/50 border-app/50"
-              }`}
+                }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h4 className="font-semibold text-app">{alert.name}</h4>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      alert.enabled
+                    <span className={`px-2 py-1 rounded-full text-xs ${alert.enabled
                         ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
                         : "bg-gray-500/10 text-gray-400 border border-gray-500/30"
-                    }`}>
+                      }`}>
                       {alert.enabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
                     </span>
                     <span className="px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan text-xs">
@@ -251,9 +250,10 @@ export default function Alerts() {
                 <Mail className="w-5 h-5 text-blue-400" />
                 <span className="font-medium text-app">อีเมล</span>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" defaultChecked className="sr-only peer" />
+              <label htmlFor="email-alert-toggle" className="relative inline-flex items-center cursor-pointer">
+                <input id="email-alert-toggle" type="checkbox" defaultChecked className="sr-only peer" />
                 <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-app after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
+                <span className="sr-only">เปิดการแจ้งเตือนทางอีเมล</span>
               </label>
             </div>
             <p className="text-xs text-muted">ส่งการแจ้งเตือนผ่านอีเมล</p>
@@ -264,9 +264,10 @@ export default function Alerts() {
                 <MessageSquare className="w-5 h-5 text-purple-400" />
                 <span className="font-medium text-app">SMS</span>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" defaultChecked className="sr-only peer" />
+              <label htmlFor="sms-alert-toggle" className="relative inline-flex items-center cursor-pointer">
+                <input id="sms-alert-toggle" type="checkbox" defaultChecked className="sr-only peer" />
                 <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-app after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
+                <span className="sr-only">เปิดการแจ้งเตือนทาง SMS</span>
               </label>
             </div>
             <p className="text-xs text-muted">ส่งการแจ้งเตือนผ่าน SMS</p>

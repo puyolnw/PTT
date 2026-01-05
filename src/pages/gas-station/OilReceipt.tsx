@@ -338,20 +338,25 @@ export default function OilReceiptPage() {
 
   // Update item calculations
   const updateItemCalculations = (index: number) => {
-    const item = formData.items[index];
-    if (item.afterDip > 0 && item.beforeDip >= 0) {
+    const item = formData.items.find((_, i) => i === index);
+    if (item && item.afterDip > 0 && item.beforeDip >= 0) {
       const quantityReceived = item.afterDip - item.beforeDip;
       const differenceLiter = quantityReceived - item.quantityOrdered;
       const differenceAmount = differenceLiter * item.pricePerLiter;
 
-      const updatedItems = [...formData.items];
-      updatedItems[index] = {
-        ...item,
-        quantityReceived,
-        differenceLiter,
-        differenceAmount,
-      };
-      setFormData({ ...formData, items: updatedItems });
+      setFormData(prev => ({
+        ...prev,
+        items: prev.items.map((it, i) =>
+          i === index
+            ? {
+              ...it,
+              quantityReceived,
+              differenceLiter,
+              differenceAmount,
+            }
+            : it
+        ),
+      }));
     }
   };
 
@@ -537,19 +542,18 @@ export default function OilReceiptPage() {
                         {oilReceipt.receiptNo}
                       </h3>
                       <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
-                          oilReceipt.status === "completed"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : oilReceipt.status === "draft"
+                        className={`px-2 py-1 rounded text-xs font-semibold ${oilReceipt.status === "completed"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                          : oilReceipt.status === "draft"
                             ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
                             : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                        }`}
+                          }`}
                       >
                         {oilReceipt.status === "completed"
                           ? "เสร็จสมบูรณ์"
                           : oilReceipt.status === "draft"
-                          ? "ร่าง"
-                          : "ยกเลิก"}
+                            ? "ร่าง"
+                            : "ยกเลิก"}
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -686,9 +690,9 @@ export default function OilReceiptPage() {
                           notes: "",
                         },
                         items: [],
-                  notes: "",
-                });
-              }}
+                        notes: "",
+                      });
+                    }}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                   >
                     <X className="h-5 w-5 text-gray-500" />
@@ -699,10 +703,11 @@ export default function OilReceiptPage() {
                     {/* เลือกใบส่งของ */}
                     {!isEditing && (
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="receipt-delivery-note" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           เลือกใบส่งของ *
                         </label>
                         <select
+                          id="receipt-delivery-note"
                           value={formData.deliveryNoteNo}
                           onChange={(e) => {
                             const deliveryNoteNo = e.target.value;
@@ -776,10 +781,11 @@ export default function OilReceiptPage() {
                     {/* วันที่และเวลารับ */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="receipt-receive-date" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           วันที่รับ *
                         </label>
                         <input
+                          id="receipt-receive-date"
                           type="date"
                           value={formData.receiveDate}
                           onChange={(e) => setFormData({ ...formData, receiveDate: e.target.value })}
@@ -787,10 +793,11 @@ export default function OilReceiptPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="receipt-receive-time" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           เวลารับ *
                         </label>
                         <input
+                          id="receipt-receive-time"
                           type="time"
                           value={formData.receiveTime}
                           onChange={(e) => setFormData({ ...formData, receiveTime: e.target.value })}
@@ -802,10 +809,11 @@ export default function OilReceiptPage() {
                     {/* ข้อมูลรถและคนขับ */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="receipt-truck-license-plate" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           ทะเบียนรถ *
                         </label>
                         <input
+                          id="receipt-truck-license-plate"
                           type="text"
                           value={formData.truckLicensePlate}
                           onChange={(e) => setFormData({ ...formData, truckLicensePlate: e.target.value })}
@@ -814,10 +822,11 @@ export default function OilReceiptPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="receipt-driver-name" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           ชื่อคนขับ *
                         </label>
                         <input
+                          id="receipt-driver-name"
                           type="text"
                           value={formData.driverName}
                           onChange={(e) => setFormData({ ...formData, driverName: e.target.value })}
@@ -828,10 +837,11 @@ export default function OilReceiptPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="receipt-driver-license" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         เลขใบขับขี่
                       </label>
                       <input
+                        id="receipt-driver-license"
                         type="text"
                         value={formData.driverLicense}
                         onChange={(e) => setFormData({ ...formData, driverLicense: e.target.value })}
@@ -847,10 +857,11 @@ export default function OilReceiptPage() {
                       </h3>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label htmlFor="receipt-api-gravity" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                             API Gravity
                           </label>
                           <input
+                            id="receipt-api-gravity"
                             type="number"
                             step="0.01"
                             value={formData.qualityTest.apiGravity}
@@ -864,10 +875,11 @@ export default function OilReceiptPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label htmlFor="receipt-water-content" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                             Water Content (%)
                           </label>
                           <input
+                            id="receipt-water-content"
                             type="number"
                             step="0.01"
                             value={formData.qualityTest.waterContent}
@@ -881,10 +893,11 @@ export default function OilReceiptPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label htmlFor="receipt-temperature" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                             Temperature (°C)
                           </label>
                           <input
+                            id="receipt-temperature"
                             type="number"
                             step="0.1"
                             value={formData.qualityTest.temperature}
@@ -898,10 +911,11 @@ export default function OilReceiptPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label htmlFor="receipt-color" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                             สี
                           </label>
                           <input
+                            id="receipt-color"
                             type="text"
                             value={formData.qualityTest.color}
                             onChange={(e) =>
@@ -915,10 +929,11 @@ export default function OilReceiptPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label htmlFor="receipt-test-result" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                             ผลการตรวจสอบ
                           </label>
                           <select
+                            id="receipt-test-result"
                             value={formData.qualityTest.testResult}
                             onChange={(e) =>
                               setFormData({
@@ -936,10 +951,11 @@ export default function OilReceiptPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label htmlFor="receipt-tested-by" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                             ผู้ตรวจสอบ
                           </label>
                           <input
+                            id="receipt-tested-by"
                             type="text"
                             value={formData.qualityTest.testedBy}
                             onChange={(e) =>
@@ -969,54 +985,58 @@ export default function OilReceiptPage() {
                             >
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                                 <div>
-                                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                  <span className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                     ชนิดน้ำมัน
-                                  </label>
+                                  </span>
                                   <div className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm">
                                     {item.oilType}
                                   </div>
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                  <span className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                     จำนวนที่สั่ง (ลิตร)
-                                  </label>
+                                  </span>
                                   <div className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm">
                                     {numberFormatter.format(item.quantityOrdered)}
                                   </div>
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                  <label htmlFor={`receipt-before-dip-${idx}`} className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                     ยอดก่อนลงหลุม (ลิตร)
                                   </label>
                                   <input
+                                    id={`receipt-before-dip-${idx}`}
                                     type="number"
                                     value={item.beforeDip || ""}
                                     onChange={(e) => {
-                                      const updatedItems = [...formData.items];
-                                      updatedItems[idx] = {
-                                        ...item,
-                                        beforeDip: parseFloat(e.target.value) || 0,
-                                      };
-                                      setFormData({ ...formData, items: updatedItems });
+                                      const val = parseFloat(e.target.value) || 0;
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        items: prev.items.map((it, i) =>
+                                          i === idx ? { ...it, beforeDip: val } : it
+                                        ),
+                                      }));
                                       setTimeout(() => updateItemCalculations(idx), 100);
                                     }}
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                  <label htmlFor={`receipt-after-dip-${idx}`} className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                     ยอดหลังลงหลุม (ลิตร)
                                   </label>
                                   <input
+                                    id={`receipt-after-dip-${idx}`}
                                     type="number"
                                     value={item.afterDip || ""}
                                     onChange={(e) => {
-                                      const updatedItems = [...formData.items];
-                                      updatedItems[idx] = {
-                                        ...item,
-                                        afterDip: parseFloat(e.target.value) || 0,
-                                      };
-                                      setFormData({ ...formData, items: updatedItems });
+                                      const val = parseFloat(e.target.value) || 0;
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        items: prev.items.map((it, i) =>
+                                          i === idx ? { ...it, afterDip: val } : it
+                                        ),
+                                      }));
                                       setTimeout(() => updateItemCalculations(idx), 100);
                                     }}
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
@@ -1025,61 +1045,61 @@ export default function OilReceiptPage() {
                               </div>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 <div>
-                                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                  <span className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                     จำนวนที่รับจริง (ลิตร)
-                                  </label>
+                                  </span>
                                   <div className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm font-semibold">
                                     {numberFormatter.format(item.quantityReceived)}
                                   </div>
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                  <span className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                     ส่วนต่าง (ลิตร)
-                                  </label>
+                                  </span>
                                   <div
-                                    className={`px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm font-semibold ${
-                                      item.differenceLiter > 0
-                                        ? "text-green-600"
-                                        : item.differenceLiter < 0
+                                    className={`px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm font-semibold ${item.differenceLiter > 0
+                                      ? "text-green-600"
+                                      : item.differenceLiter < 0
                                         ? "text-red-600"
                                         : ""
-                                    }`}
+                                      }`}
                                   >
                                     {item.differenceLiter > 0 ? "+" : ""}
                                     {numberFormatter.format(item.differenceLiter)}
                                   </div>
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                  <span className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                     ส่วนต่าง (บาท)
-                                  </label>
+                                  </span>
                                   <div
-                                    className={`px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm font-semibold ${
-                                      item.differenceAmount > 0
-                                        ? "text-green-600"
-                                        : item.differenceAmount < 0
+                                    className={`px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm font-semibold ${item.differenceAmount > 0
+                                      ? "text-green-600"
+                                      : item.differenceAmount < 0
                                         ? "text-red-600"
                                         : ""
-                                    }`}
+                                      }`}
                                   >
                                     {item.differenceAmount > 0 ? "+" : ""}
                                     {currencyFormatter.format(item.differenceAmount)}
                                   </div>
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                  <label htmlFor={`receipt-tank-number-${idx}`} className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                     หมายเลขถัง
                                   </label>
                                   <input
+                                    id={`receipt-tank-number-${idx}`}
                                     type="number"
                                     value={item.tankNumber || ""}
                                     onChange={(e) => {
-                                      const updatedItems = [...formData.items];
-                                      updatedItems[idx] = {
-                                        ...item,
-                                        tankNumber: parseInt(e.target.value) || 0,
-                                      };
-                                      setFormData({ ...formData, items: updatedItems });
+                                      const val = parseInt(e.target.value) || 0;
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        items: prev.items.map((it, i) =>
+                                          i === idx ? { ...it, tankNumber: val } : it
+                                        ),
+                                      }));
                                     }}
                                     placeholder="หมายเลขถัง"
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
@@ -1088,19 +1108,21 @@ export default function OilReceiptPage() {
                               </div>
                               {item.differenceLiter !== 0 && (
                                 <div className="mt-3">
-                                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                  <label htmlFor={`receipt-gain-loss-reason-${idx}`} className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                     เหตุผลส่วนต่าง
                                   </label>
                                   <input
+                                    id={`receipt-gain-loss-reason-${idx}`}
                                     type="text"
                                     value={item.gainLossReason || ""}
                                     onChange={(e) => {
-                                      const updatedItems = [...formData.items];
-                                      updatedItems[idx] = {
-                                        ...item,
-                                        gainLossReason: e.target.value,
-                                      };
-                                      setFormData({ ...formData, items: updatedItems });
+                                      const val = e.target.value;
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        items: prev.items.map((it, i) =>
+                                          i === idx ? { ...it, gainLossReason: val } : it
+                                        ),
+                                      }));
                                     }}
                                     placeholder="อธิบายเหตุผลส่วนต่าง (เช่น ระเหย, หก, วัดผิด)"
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
@@ -1119,10 +1141,11 @@ export default function OilReceiptPage() {
 
                     {/* หมายเหตุ */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="receipt-notes" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         หมายเหตุ
                       </label>
                       <textarea
+                        id="receipt-notes"
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                         placeholder="กรอกหมายเหตุ (ถ้ามี)"
@@ -1158,9 +1181,9 @@ export default function OilReceiptPage() {
                           notes: "",
                         },
                         items: [],
-                  notes: "",
-                });
-              }}
+                        notes: "",
+                      });
+                    }}
                     className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
                     ยกเลิก
@@ -1239,19 +1262,18 @@ export default function OilReceiptPage() {
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">สถานะ</p>
                         <span
-                          className={`px-3 py-1 rounded text-sm font-semibold ${
-                            selectedOilReceipt.status === "completed"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                              : selectedOilReceipt.status === "draft"
+                          className={`px-3 py-1 rounded text-sm font-semibold ${selectedOilReceipt.status === "completed"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                            : selectedOilReceipt.status === "draft"
                               ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
                               : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                          }`}
+                            }`}
                         >
                           {selectedOilReceipt.status === "completed"
                             ? "เสร็จสมบูรณ์"
                             : selectedOilReceipt.status === "draft"
-                            ? "ร่าง"
-                            : "ยกเลิก"}
+                              ? "ร่าง"
+                              : "ยกเลิก"}
                         </span>
                       </div>
                       <div>
@@ -1292,11 +1314,10 @@ export default function OilReceiptPage() {
                         <div>
                           <span className="text-gray-600 dark:text-gray-400">ผลการตรวจสอบ: </span>
                           <span
-                            className={`font-semibold ${
-                              selectedOilReceipt.qualityTest.testResult === "ผ่าน"
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }`}
+                            className={`font-semibold ${selectedOilReceipt.qualityTest.testResult === "ผ่าน"
+                              ? "text-green-600"
+                              : "text-red-600"
+                              }`}
                           >
                             {selectedOilReceipt.qualityTest.testResult}
                           </span>
@@ -1334,13 +1355,12 @@ export default function OilReceiptPage() {
                               <div>
                                 <p className="text-gray-600 dark:text-gray-400">ส่วนต่าง</p>
                                 <p
-                                  className={`font-semibold ${
-                                    item.differenceLiter > 0
-                                      ? "text-green-600"
-                                      : item.differenceLiter < 0
+                                  className={`font-semibold ${item.differenceLiter > 0
+                                    ? "text-green-600"
+                                    : item.differenceLiter < 0
                                       ? "text-red-600"
                                       : ""
-                                  }`}
+                                    }`}
                                 >
                                   {item.differenceLiter > 0 ? "+" : ""}
                                   {numberFormatter.format(item.differenceLiter)} ลิตร
@@ -1357,13 +1377,12 @@ export default function OilReceiptPage() {
                               <div>
                                 <p className="text-gray-600 dark:text-gray-400">ส่วนต่าง (บาท)</p>
                                 <p
-                                  className={`font-semibold ${
-                                    item.differenceAmount > 0
-                                      ? "text-green-600"
-                                      : item.differenceAmount < 0
+                                  className={`font-semibold ${item.differenceAmount > 0
+                                    ? "text-green-600"
+                                    : item.differenceAmount < 0
                                       ? "text-red-600"
                                       : ""
-                                  }`}
+                                    }`}
                                 >
                                   {item.differenceAmount > 0 ? "+" : ""}
                                   {currencyFormatter.format(item.differenceAmount)}

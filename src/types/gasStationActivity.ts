@@ -6,23 +6,23 @@ export interface GasStationActivity {
     action: "create" | "update" | "delete" | "approve" | "reject" | "cancel" | "complete"; // การกระทำ
     recordId: string; // ID ของรายการที่ทำการกระทำ เช่น "SO-20241215-001"
     recordType: string; // ประเภทของรายการ เช่น "PurchaseOrder", "OilReceipt", "TankEntry"
-    
+
     // ข้อมูลผู้ใช้
     userId: string; // ID ผู้ใช้
     userName: string; // ชื่อผู้ใช้
-    
+
     // รายละเอียด
     description: string; // คำอธิบายการกระทำ
-    details?: Record<string, any>; // รายละเอียดเพิ่มเติม (JSON)
+    details?: Record<string, unknown>; // รายละเอียดเพิ่มเติม (JSON)
     changes?: {
-        before?: Record<string, any>; // ข้อมูลก่อนแก้ไข
-        after?: Record<string, any>; // ข้อมูลหลังแก้ไข
+        before?: Record<string, unknown>; // ข้อมูลก่อนแก้ไข
+        after?: Record<string, unknown>; // ข้อมูลหลังแก้ไข
     };
-    
+
     // ข้อมูลระบบ
     ipAddress?: string; // IP Address
     userAgent?: string; // User Agent
-    
+
     // สถานะ
     status: "success" | "failed" | "pending";
     errorMessage?: string; // ข้อความ error (ถ้ามี)
@@ -63,11 +63,11 @@ export function logActivity(activity: Omit<GasStationActivity, "id" | "timestamp
         id: `ACT-${Date.now()}`,
         timestamp: new Date().toISOString(),
     };
-    
+
     // ใน production จะบันทึกลง database
     // ตอนนี้ใช้ mock data
     mockGasStationActivities.unshift(newActivity);
-    
+
     console.log("Activity logged:", newActivity);
 }
 

@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { UserPlus, Eye, Users, UserCheck, UserX, Building2 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
 import { employees as initialEmployees, shifts, type Employee } from "@/data/mockData";
 
 import { useBranch } from "@/contexts/BranchContext";
@@ -318,7 +319,9 @@ export default function Employees() {
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search Input */}
             <div className="relative flex-1">
+              <label htmlFor="emp-search" className="sr-only">ค้นหาพนักงาน</label>
               <input
+                id="emp-search"
                 type="text"
                 placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
                 value={searchQuery}
@@ -343,62 +346,74 @@ export default function Employees() {
 
             {/* Filter Dropdowns */}
             <div className="flex flex-wrap gap-3">
-              <select
-                value={deptFilter}
-                onChange={(e) => {
-                  setDeptFilter(e.target.value);
-                  handleFilter();
-                }}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกแผนก</option>
-                {departments.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col">
+                <label htmlFor="dept-filter" className="sr-only">กรองตามแผนก</label>
+                <select
+                  id="dept-filter"
+                  value={deptFilter}
+                  onChange={(e) => {
+                    setDeptFilter(e.target.value);
+                    handleFilter();
+                  }}
+                  className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                           text-app text-sm min-w-[150px]
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                           transition-all cursor-pointer hover:border-app/50"
+                >
+                  <option value="">ทุกแผนก</option>
+                  {departments.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  handleFilter();
-                }}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกสถานะ</option>
-                {statuses.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col">
+                <label htmlFor="status-filter" className="sr-only">กรองตามสถานะ</label>
+                <select
+                  id="status-filter"
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    handleFilter();
+                  }}
+                  className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                           text-app text-sm min-w-[150px]
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                           transition-all cursor-pointer hover:border-app/50"
+                >
+                  <option value="">ทุกสถานะ</option>
+                  {statuses.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              <select
-                value={shiftFilter === "" ? "" : String(shiftFilter)}
-                onChange={(e) => {
-                  setShiftFilter(e.target.value === "" ? "" : Number(e.target.value));
-                  handleFilter();
-                }}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกกะ</option>
-                {shifts.map((shift) => (
-                  <option key={shift.id} value={String(shift.id)}>
-                    {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col">
+                <label htmlFor="shift-filter" className="sr-only">กรองตามกะ</label>
+                <select
+                  id="shift-filter"
+                  value={shiftFilter === "" ? "" : String(shiftFilter)}
+                  onChange={(e) => {
+                    setShiftFilter(e.target.value === "" ? "" : Number(e.target.value));
+                    handleFilter();
+                  }}
+                  className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                           text-app text-sm min-w-[150px]
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                           transition-all cursor-pointer hover:border-app/50"
+                >
+                  <option value="">ทุกกะ</option>
+                  {shifts.map((shift) => (
+                    <option key={shift.id} value={String(shift.id)}>
+                      {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -552,10 +567,11 @@ export default function Employees() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Name */}
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-emp-name" className="block text-sm font-semibold text-app mb-1.5">
                 ชื่อ-นามสกุล <span className="text-red-400">*</span>
               </label>
               <input
+                id="add-emp-name"
                 type="text"
                 name="name"
                 value={formData.name}
@@ -571,10 +587,11 @@ export default function Employees() {
 
             {/* Department */}
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-emp-dept" className="block text-sm font-semibold text-app mb-1.5">
                 แผนก <span className="text-red-400">*</span>
               </label>
               <select
+                id="add-emp-dept"
                 name="dept"
                 value={formData.dept}
                 onChange={handleFormChange}
@@ -594,10 +611,11 @@ export default function Employees() {
 
             {/* Position */}
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-emp-position" className="block text-sm font-semibold text-app mb-1.5">
                 ตำแหน่ง <span className="text-red-400">*</span>
               </label>
               <input
+                id="add-emp-position"
                 type="text"
                 name="position"
                 value={formData.position}
@@ -613,10 +631,11 @@ export default function Employees() {
 
             {/* Email */}
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-emp-email" className="block text-sm font-semibold text-app mb-1.5">
                 อีเมล
               </label>
               <input
+                id="add-emp-email"
                 type="email"
                 name="email"
                 value={formData.email}
@@ -631,10 +650,11 @@ export default function Employees() {
 
             {/* Phone */}
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-emp-phone" className="block text-sm font-semibold text-app mb-1.5">
                 เบอร์โทร
               </label>
               <input
+                id="add-emp-phone"
                 type="tel"
                 name="phone"
                 value={formData.phone}
@@ -649,10 +669,11 @@ export default function Employees() {
 
             {/* Start Date */}
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-emp-start-date" className="block text-sm font-semibold text-app mb-1.5">
                 วันที่เริ่มงาน <span className="text-red-400">*</span>
               </label>
               <input
+                id="add-emp-start-date"
                 type="date"
                 name="startDate"
                 value={formData.startDate}
@@ -666,10 +687,11 @@ export default function Employees() {
 
             {/* Shift */}
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-emp-shift" className="block text-sm font-semibold text-app mb-1.5">
                 กะการทำงาน
               </label>
               <select
+                id="add-emp-shift"
                 name="shiftId"
                 value={formData.shiftId}
                 onChange={handleFormChange}
@@ -688,10 +710,11 @@ export default function Employees() {
 
             {/* OT Rate */}
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-emp-ot-rate" className="block text-sm font-semibold text-app mb-1.5">
                 OT Rate (บาท/ชั่วโมง)
               </label>
               <input
+                id="add-emp-ot-rate"
                 type="number"
                 name="otRate"
                 value={formData.otRate}
@@ -708,10 +731,11 @@ export default function Employees() {
 
             {/* Category */}
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-emp-category" className="block text-sm font-semibold text-app mb-1.5">
                 หมวดหมู่
               </label>
               <select
+                id="add-emp-category"
                 name="category"
                 value={formData.category}
                 onChange={handleFormChange}
@@ -734,10 +758,11 @@ export default function Employees() {
 
             {/* Status */}
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-emp-status" className="block text-sm font-semibold text-app mb-1.5">
                 สถานะ
               </label>
               <select
+                id="add-emp-status"
                 name="status"
                 value={formData.status}
                 onChange={handleFormChange}

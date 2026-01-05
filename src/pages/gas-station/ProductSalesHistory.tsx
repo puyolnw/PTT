@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   History,
@@ -281,15 +281,17 @@ export default function ProductSalesHistory() {
   };
 
   // จัดกลุ่มข้อมูลตามวันที่
-  const groupedByDate = filteredHistory.reduce((acc, item) => {
-    if (!acc[item.saleDate]) {
-      acc[item.saleDate] = [];
-    }
-    acc[item.saleDate].push(item);
-    return acc;
-  }, {} as Record<string, SalesHistoryItem[]>);
+  const groupedByDate = useMemo(() => {
+    const groups = new Map<string, SalesHistoryItem[]>();
+    filteredHistory.forEach((item) => {
+      const group = groups.get(item.saleDate) || [];
+      group.push(item);
+      groups.set(item.saleDate, group);
+    });
+    return groups;
+  }, [filteredHistory]);
 
-  const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
+  const sortedDates: string[] = Array.from(groupedByDate.keys()).sort((a, b) => b.localeCompare(a));
 
   const getCategoryLabel = (category: ProductCategory) => {
     if (category === "lubricants") return "น้ำมันหล่อลื่น";
@@ -438,10 +440,11 @@ export default function ProductSalesHistory() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* ประเภทสินค้า */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="filter-category" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               ประเภทสินค้า
             </label>
             <select
+              id="filter-category"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as ProductCategory | "all")}
               className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/50 text-gray-800 dark:text-white transition-all duration-200"
@@ -455,10 +458,11 @@ export default function ProductSalesHistory() {
 
           {/* ช่วงเวลาที่ต้องการกรอง */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="filter-period" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               กรองตาม
             </label>
             <select
+              id="filter-period"
               value={filterPeriod}
               onChange={(e) => {
                 setFilterPeriod(e.target.value as FilterPeriod);
@@ -477,10 +481,11 @@ export default function ProductSalesHistory() {
           {/* ตัวกรองตามช่วงเวลาที่เลือก */}
           {filterPeriod === "day" && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="filter-date" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 เลือกวันที่
               </label>
               <input
+                id="filter-date"
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
@@ -492,10 +497,11 @@ export default function ProductSalesHistory() {
           {filterPeriod === "month" && (
             <>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="filter-month" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   เลือกเดือน
                 </label>
                 <select
+                  id="filter-month"
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/50 text-gray-800 dark:text-white transition-all duration-200"
@@ -509,10 +515,11 @@ export default function ProductSalesHistory() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="filter-year-month" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   เลือกปี
                 </label>
                 <select
+                  id="filter-year-month"
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/50 text-gray-800 dark:text-white transition-all duration-200"
@@ -530,10 +537,11 @@ export default function ProductSalesHistory() {
 
           {filterPeriod === "year" && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="filter-year-only" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 เลือกปี
               </label>
               <select
+                id="filter-year-only"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/50 text-gray-800 dark:text-white transition-all duration-200"
@@ -564,10 +572,10 @@ export default function ProductSalesHistory() {
       ) : (
         <div className="space-y-6">
           {sortedDates.map((date, dateIndex) => {
-            const items = groupedByDate[date];
-            const dateTotal = items.reduce((sum, item) => sum + item.totalAmount, 0);
-            const dateQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-            const dateObj = new Date(date);
+            const items = groupedByDate.get(date) || [];
+            const dateTotal = items.reduce((sum: number, item: SalesHistoryItem) => sum + item.totalAmount, 0);
+            const dateQuantity = items.reduce((sum: number, item: SalesHistoryItem) => sum + item.quantity, 0);
+            const dateObj = new Date(date as string);
             const formattedDate = dateObj.toLocaleDateString("th-TH", {
               year: "numeric",
               month: "long",

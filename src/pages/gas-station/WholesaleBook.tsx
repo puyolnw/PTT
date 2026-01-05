@@ -501,6 +501,13 @@ export default function WholesaleBook() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedItem(null)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setSelectedItem(null);
+                }
+              }}
+              role="button"
+              tabIndex={0}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
             />
             {/* Modal */}
@@ -513,6 +520,8 @@ export default function WholesaleBook() {
               <div
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                role="none"
               >
                 {/* Modal Header */}
                 <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">

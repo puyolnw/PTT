@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { X, ChevronDown, ChevronRight } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
-import { SidebarConfig, SidebarProps } from "./types";
+import { SidebarConfig, SidebarProps, SidebarItem } from "./types";
 import { getSidebarItemsForRole, getSidebarGroupsForRole } from "./utils";
 
 interface BaseSidebarProps extends SidebarProps {
@@ -22,8 +22,8 @@ export default function BaseSidebar({
     const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
 
     // Initialize visible items/groups
-    const visibleItems = items ? getSidebarItemsForRole(items, userRole) : [];
-    const visibleGroups = groups ? getSidebarGroupsForRole(groups, userRole) : [];
+    const visibleItems = useMemo(() => items ? getSidebarItemsForRole(items, userRole) : [], [items, userRole]);
+    const visibleGroups = useMemo(() => groups ? getSidebarGroupsForRole(groups, userRole) : [], [groups, userRole]);
 
     const showText = isMobile || isExpanded;
     const sidebarWidth = isMobile ? 'w-64' : (isExpanded ? 'w-64' : 'w-16');
@@ -38,7 +38,7 @@ export default function BaseSidebar({
                 setExpandedGroups(prev => [...prev, activeGroup.id]);
             }
         }
-    }, [location.pathname, visibleGroups]);
+    }, [location.pathname, visibleGroups, expandedGroups]);
 
     const toggleGroup = (groupId: string) => {
         setExpandedGroups(prev =>
@@ -48,7 +48,7 @@ export default function BaseSidebar({
         );
     };
 
-    const renderItem = (item: any) => (
+    const renderItem = (item: SidebarItem) => (
         <NavLink
             key={item.to}
             to={item.to}
@@ -57,12 +57,9 @@ export default function BaseSidebar({
             aria-label={item.label}
             onClick={isMobile ? onClose : undefined}
             className={({ isActive }) =>
-                `p-3 rounded-xl hover:panel relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-ptt-blue/30 ${isActive ? "panel shadow-md" : ""
+                `p-3 rounded-xl hover:panel relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-ptt-blue/30 transition-all duration-300 ease-in-out ${isActive ? "panel shadow-md" : ""
                 } ${showText ? 'flex items-center gap-3 w-full' : 'justify-center'}`
             }
-            style={{
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
         >
             {({ isActive }) => (
                 <>
@@ -71,21 +68,15 @@ export default function BaseSidebar({
                     )}
 
                     <item.icon
-                        className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${isActive ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
+                        className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 transition-all duration-300 ${isActive ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
                             }`}
                         strokeWidth={1.5}
-                        style={{
-                            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                        }}
                     />
 
                     {showText && (
                         <span
-                            className={`text-sm font-medium whitespace-nowrap overflow-hidden ${isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
+                            className={`text-sm font-medium whitespace-nowrap overflow-hidden transition-colors duration-300 ${isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
                                 }`}
-                            style={{
-                                transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                            }}
                         >
                             {item.label}
                         </span>

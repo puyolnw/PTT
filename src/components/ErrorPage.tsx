@@ -40,7 +40,7 @@ export default function ErrorPage() {
             )}
           </p>
 
-          {(import.meta as any).env?.MODE === "development" && error?.stack && (
+          {(import.meta as unknown as { env: { MODE: string } }).env?.MODE === "development" && error?.stack && (
             <details className="text-left">
               <summary className="text-xs text-muted cursor-pointer hover:text-app">
                 รายละเอียดข้อผิดพลาด (Development)

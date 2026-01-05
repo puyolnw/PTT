@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 import { mockApprovedOrders, mockPTTQuotations } from "../../data/gasStationOrders";
 import { useGasStation } from "@/contexts/GasStationContext";
-import type { QualityTest, DeliveryNote } from "@/types/gasStation";
+import type { QualityTest, DeliveryNote, PurchaseOrder } from "@/types/gasStation";
+import type { ApprovedOrder } from "../../data/gasStationOrders";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
@@ -64,18 +65,32 @@ interface BranchOilReceipt {
   notes?: string;
   createdAt: string;
   createdBy: string;
+  qualityTest?: QualityTest;
+}
+// Interface for Truck Order (simplified for this view)
+interface TruckOrder {
+  id: string;
+  purchaseOrderNo: string;
+  transportNo: string;
+  truckPlateNumber: string;
+  trailerPlateNumber: string;
+  driver: string;
+  status: string;
+  receivedBy?: string;
+  receivedByName?: string;
+  receivedAt?: string;
 }
 
 // Helper function - ดึงข้อมูล Branch Receipts จาก Purchase Orders และ Truck Orders
-const generateBranchReceipts = (purchaseOrders: typeof mockApprovedOrders, truckOrders: any[]): BranchOilReceipt[] => {
+const generateBranchReceipts = (purchaseOrders: (PurchaseOrder | ApprovedOrder)[], truckOrders: TruckOrder[]): BranchOilReceipt[] => {
   const receipts: BranchOilReceipt[] = [];
-  
+
   // ดึงข้อมูลจาก Purchase Orders และเชื่อมกับ Truck Orders
   purchaseOrders.forEach((po) => {
     // หา Truck Order ที่เชื่อมกับ Purchase Order นี้ (ผ่าน purchaseOrderNo)
-    const truckOrder = truckOrders.find((to: any) => to.purchaseOrderNo === po.orderNo);
+    const truckOrder = truckOrders.find((to) => to.purchaseOrderNo === po.orderNo);
     const transportNo = truckOrder?.transportNo || `TP-${po.orderDate.replace(/-/g, '')}-001`;
-    
+
     po.branches.forEach((branch) => {
       // สร้าง Branch Receipt สำหรับแต่ละปั๊ม
       const receipt: BranchOilReceipt = {
@@ -87,9 +102,9 @@ const generateBranchReceipts = (purchaseOrders: typeof mockApprovedOrders, truck
         branchName: branch.branchName,
         receiveDate: po.deliveryDate,
         receiveTime: "09:00",
-        truckPlateNumber: truckOrder?.truckPlateNumber || po.truckPlateNumber || "-",
-        trailerPlateNumber: truckOrder?.trailerPlateNumber || po.trailerPlateNumber || "-",
-        driverName: truckOrder?.driver || po.driverName || "-",
+        truckPlateNumber: truckOrder?.truckPlateNumber || ('truckPlateNumber' in po ? po.truckPlateNumber : undefined) || "-",
+        trailerPlateNumber: truckOrder?.trailerPlateNumber || ('trailerPlateNumber' in po ? po.trailerPlateNumber : undefined) || "-",
+        driverName: truckOrder?.driver || ('driverName' in po ? po.driverName : undefined) || "-",
         items: branch.items.map((item) => ({
           oilType: item.oilType,
           quantityOrdered: item.quantity,
@@ -105,29 +120,29 @@ const generateBranchReceipts = (purchaseOrders: typeof mockApprovedOrders, truck
         createdAt: po.approvedAt,
         createdBy: po.approvedBy,
       };
-      
+
       receipts.push(receipt);
     });
   });
-  
+
   return receipts;
 };
 
 export default function BranchOilReceipt() {
   const { purchaseOrders, deliveryNotes } = useGasStation();
-  
+
   // ดึงข้อมูล Truck Orders โดยการสร้างจาก mockApprovedOrders และ mockPTTQuotations
   // ในระบบจริงจะดึงจาก context หรือ API ที่มี Truck Orders จริง
   const mockTruckOrders = useMemo(() => {
     return mockApprovedOrders.map((po) => {
       // หา Quotation ที่เชื่อมกับ Purchase Order
       const quotation = mockPTTQuotations.find((q) => q.purchaseOrderNo === po.orderNo);
-      
+
       // สร้าง transport number จาก quotation หรือ order date
-      const transportNo = quotation?.pttQuotationNo 
+      const transportNo = quotation?.pttQuotationNo
         ? `TP-${po.orderDate.replace(/-/g, '')}-${quotation.pttQuotationNo.slice(-3)}`
         : `TP-${po.orderDate.replace(/-/g, '')}-${po.orderNo.slice(-3)}`;
-      
+
       return {
         id: po.orderNo,
         purchaseOrderNo: po.orderNo,
@@ -139,10 +154,10 @@ export default function BranchOilReceipt() {
       };
     });
   }, []);
-  
+
   // Generate branch receipts from purchase orders and truck orders
   const branchReceipts = useMemo(() => {
-    const allPurchaseOrders = purchaseOrders.length > 0 ? purchaseOrders : (mockApprovedOrders as any);
+    const allPurchaseOrders = purchaseOrders.length > 0 ? purchaseOrders : mockApprovedOrders;
     return generateBranchReceipts(allPurchaseOrders, mockTruckOrders);
   }, [purchaseOrders, mockTruckOrders]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -155,9 +170,9 @@ export default function BranchOilReceipt() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showDeliveryNoteModal, setShowDeliveryNoteModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<BranchOilReceipt | null>(null);
-  const [selectedDeliveryNote, setSelectedDeliveryNote] = useState<any>(null);
+  const [selectedDeliveryNote, setSelectedDeliveryNote] = useState<DeliveryNote | null>(null);
   const [rejectReason, setRejectReason] = useState("");
-  
+
   // Form state for receiving oil
   const [receiveFormData, setReceiveFormData] = useState<{
     receiveDate: string;
@@ -486,10 +501,10 @@ export default function BranchOilReceipt() {
             <div class="info-value">${deliveryNote.quotationNo}</div>
           </div>
           ` : ''}
-          ${(deliveryNote as any).transportNo ? `
+          ${deliveryNote.transportNo ? `
           <div class="info-row">
             <div class="info-label">เลขที่ขนส่ง:</div>
-            <div class="info-value">${(deliveryNote as any).transportNo}</div>
+            <div class="info-value">${deliveryNote.transportNo}</div>
           </div>
           ` : ''}
         </div>
@@ -518,10 +533,10 @@ export default function BranchOilReceipt() {
             <div class="info-value">${deliveryNote.truckPlateNumber}</div>
           </div>
           ` : ''}
-          ${(deliveryNote as any).trailerPlateNumber ? `
+          ${deliveryNote.trailerPlateNumber ? `
           <div class="info-row">
             <div class="info-label">หางบรรทุก:</div>
-            <div class="info-value">${(deliveryNote as any).trailerPlateNumber}</div>
+            <div class="info-value">${deliveryNote.trailerPlateNumber}</div>
           </div>
           ` : ''}
           ${deliveryNote.driverName ? `
@@ -543,7 +558,7 @@ export default function BranchOilReceipt() {
             </tr>
           </thead>
           <tbody>
-            ${deliveryNote.items.map((item: any) => `
+            ${deliveryNote.items.map((item) => `
               <tr>
                 <td>${item.oilType}</td>
                 <td>${numberFormatter.format(item.quantity)}</td>
@@ -562,7 +577,7 @@ export default function BranchOilReceipt() {
           <div class="signature-box">
             <div class="signature-line">
               <div>ผู้ส่ง</div>
-              ${(deliveryNote as any).senderSignature ? `<div style="margin-top: 5px;">${(deliveryNote as any).senderSignature}</div>` : ''}
+              ${deliveryNote.senderSignature ? `<div style="margin-top: 5px;">${deliveryNote.senderSignature}</div>` : ''}
             </div>
           </div>
           <div class="signature-box">
@@ -704,35 +719,43 @@ export default function BranchOilReceipt() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
+              id="receipt-search"
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="ค้นหาเลขที่ใบสั่งซื้อ, เลขขนส่ง, ปั๊ม..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              aria-label="ค้นหาใบรับน้ำมัน"
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="flex items-center gap-2">
               <input
+                id="receipt-date-from"
                 type="date"
                 value={filterDateFrom}
                 onChange={(e) => setFilterDateFrom(e.target.value)}
                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 title="วันที่เริ่มต้น"
+                aria-label="วันที่เริ่มต้น"
               />
               <span className="text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">ถึง</span>
               <input
+                id="receipt-date-to"
                 type="date"
                 value={filterDateTo}
                 onChange={(e) => setFilterDateTo(e.target.value)}
                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 title="วันที่สิ้นสุด"
+                aria-label="วันที่สิ้นสุด"
               />
             </div>
             <select
+              id="receipt-status-filter"
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as any)}
+              onChange={(e) => setFilterStatus(e.target.value as BranchOilReceipt["status"] | "all")}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              aria-label="กรองข้อมูลตามสถานะ"
             >
               <option value="all">สถานะทั้งหมด</option>
               <option value="รอรับ">รอรับ</option>
@@ -741,9 +764,11 @@ export default function BranchOilReceipt() {
               <option value="ยกเลิก">ยกเลิก</option>
             </select>
             <select
+              id="receipt-branch-filter"
               value={filterBranch}
               onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              aria-label="กรองข้อมูลตามปั๊ม"
             >
               <option value="all">ปั๊มทั้งหมด</option>
               {availableBranches
@@ -1104,22 +1129,22 @@ export default function BranchOilReceipt() {
                       <p className="font-semibold text-gray-900 dark:text-white">{selectedReceipt.receivedByName}</p>
                     </div>
                   )}
-                  {(selectedReceipt as any).rejectReason && (
+                  {selectedReceipt.rejectReason && (
                     <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800 col-span-2">
                       <div className="flex items-center gap-2 mb-2">
                         <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                         <p className="text-xs font-semibold text-orange-800 dark:text-orange-300">เหตุผลในการปฏิเสธ</p>
                       </div>
-                      <p className="text-sm text-orange-700 dark:text-orange-400">{(selectedReceipt as any).rejectReason}</p>
-                      {(selectedReceipt as any).rejectedBy && (
+                      <p className="text-sm text-orange-700 dark:text-orange-400">{selectedReceipt.rejectReason}</p>
+                      {selectedReceipt.rejectedBy && (
                         <p className="text-xs text-orange-600 dark:text-orange-500 mt-2">
-                          โดย: {(selectedReceipt as any).rejectedBy} 
-                          {(selectedReceipt as any).rejectedAt && ` - ${dateFormatter.format(new Date((selectedReceipt as any).rejectedAt))}`}
+                          โดย: {selectedReceipt.rejectedBy}
+                          {selectedReceipt.rejectedAt && ` - ${dateFormatter.format(new Date(selectedReceipt.rejectedAt))}`}
                         </p>
                       )}
                     </div>
                   )}
-                  {(selectedReceipt as any).qualityTest && (
+                  {selectedReceipt.qualityTest && (
                     <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800 col-span-2">
                       <div className="flex items-center gap-2 mb-3">
                         <AlertCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -1128,38 +1153,37 @@ export default function BranchOilReceipt() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                         <div>
                           <span className="text-green-700 dark:text-green-400">API Gravity:</span>
-                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{(selectedReceipt as any).qualityTest.apiGravity}</span>
+                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{selectedReceipt.qualityTest.apiGravity}</span>
                         </div>
                         <div>
                           <span className="text-green-700 dark:text-green-400">Water Content:</span>
-                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{(selectedReceipt as any).qualityTest.waterContent}%</span>
+                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{selectedReceipt.qualityTest.waterContent}%</span>
                         </div>
                         <div>
                           <span className="text-green-700 dark:text-green-400">Temperature:</span>
-                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{(selectedReceipt as any).qualityTest.temperature}°C</span>
+                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{selectedReceipt.qualityTest.temperature}°C</span>
                         </div>
                         <div>
                           <span className="text-green-700 dark:text-green-400">สี:</span>
-                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{(selectedReceipt as any).qualityTest.color || "-"}</span>
+                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{selectedReceipt.qualityTest.color || "-"}</span>
                         </div>
                         <div>
                           <span className="text-green-700 dark:text-green-400">ผลการตรวจสอบ:</span>
-                          <span className={`font-semibold ml-2 ${
-                            (selectedReceipt as any).qualityTest.testResult === "ผ่าน"
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400"
-                          }`}>
-                            {(selectedReceipt as any).qualityTest.testResult}
+                          <span className={`font-semibold ml-2 ${selectedReceipt.qualityTest.testResult === "ผ่าน"
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400"
+                            }`}>
+                            {selectedReceipt.qualityTest.testResult}
                           </span>
                         </div>
                         <div>
                           <span className="text-green-700 dark:text-green-400">ผู้ตรวจสอบ:</span>
-                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{(selectedReceipt as any).qualityTest.testedBy || "-"}</span>
+                          <span className="font-semibold text-green-900 dark:text-green-200 ml-2">{selectedReceipt.qualityTest.testedBy || "-"}</span>
                         </div>
                       </div>
-                      {(selectedReceipt as any).qualityTest.notes && (
+                      {selectedReceipt.qualityTest.notes && (
                         <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
-                          <p className="text-xs text-green-700 dark:text-green-400">หมายเหตุ: {(selectedReceipt as any).qualityTest.notes}</p>
+                          <p className="text-xs text-green-700 dark:text-green-400">หมายเหตุ: {selectedReceipt.qualityTest.notes}</p>
                         </div>
                       )}
                     </div>
@@ -1190,13 +1214,12 @@ export default function BranchOilReceipt() {
                               </div>
                               <div>
                                 <span className="text-gray-600 dark:text-gray-400">จำนวนที่รับ:</span>
-                                <span className={`font-semibold ml-2 ${
-                                  item.quantityReceived > 0 
-                                    ? "text-emerald-600 dark:text-emerald-400" 
-                                    : "text-gray-500 dark:text-gray-400"
-                                }`}>
-                                  {item.quantityReceived > 0 
-                                    ? `${numberFormatter.format(item.quantityReceived)} ลิตร` 
+                                <span className={`font-semibold ml-2 ${item.quantityReceived > 0
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-gray-500 dark:text-gray-400"
+                                  }`}>
+                                  {item.quantityReceived > 0
+                                    ? `${numberFormatter.format(item.quantityReceived)} ลิตร`
                                     : "ยังไม่รับ"}
                                 </span>
                               </div>
@@ -1315,9 +1338,7 @@ export default function BranchOilReceipt() {
                           </button>
                           <button
                             onClick={() => {
-                              // In real app, this would generate/download PDF
-                              alert(`ดาวน์โหลดใบส่งของ: ${relatedDeliveryNote.deliveryNoteNo}`);
-                              // window.open(`/api/delivery-notes/${relatedDeliveryNote.id}/pdf`, '_blank');
+                              handleDownloadDeliveryNotePDF(relatedDeliveryNote);
                             }}
                             className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
                           >
@@ -1352,10 +1373,11 @@ export default function BranchOilReceipt() {
                 {/* Receive Form */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="receive-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       วันที่รับ *
                     </label>
                     <input
+                      id="receive-date"
                       type="date"
                       value={receiveFormData.receiveDate}
                       onChange={(e) => setReceiveFormData({ ...receiveFormData, receiveDate: e.target.value })}
@@ -1364,10 +1386,11 @@ export default function BranchOilReceipt() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="receive-time" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       เวลารับ *
                     </label>
                     <input
+                      id="receive-time"
                       type="time"
                       value={receiveFormData.receiveTime}
                       onChange={(e) => setReceiveFormData({ ...receiveFormData, receiveTime: e.target.value })}
@@ -1378,10 +1401,11 @@ export default function BranchOilReceipt() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="received-by-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     ชื่อผู้รับ *
                   </label>
                   <input
+                    id="received-by-name"
                     type="text"
                     value={receiveFormData.receivedByName}
                     onChange={(e) => setReceiveFormData({ ...receiveFormData, receivedByName: e.target.value })}
@@ -1393,9 +1417,9 @@ export default function BranchOilReceipt() {
 
                 {/* Items */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     รายการน้ำมันที่รับ
-                  </label>
+                  </span>
                   <div className="space-y-3">
                     {receiveFormData.items.map((item, idx) => (
                       <div
@@ -1409,16 +1433,21 @@ export default function BranchOilReceipt() {
                           </p>
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label htmlFor={`receive-qty-${idx}`} className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                             จำนวนที่รับจริง (ลิตร) *
                           </label>
                           <input
+                            id={`receive-qty-${idx}`}
                             type="number"
                             value={item.quantityReceived}
                             onChange={(e) => {
-                              const newItems = [...receiveFormData.items];
-                              newItems[idx].quantityReceived = Number(e.target.value);
-                              setReceiveFormData({ ...receiveFormData, items: newItems });
+                              const val = Number(e.target.value);
+                              setReceiveFormData({
+                                ...receiveFormData,
+                                items: receiveFormData.items.map((it, i) =>
+                                  i === idx ? { ...it, quantityReceived: val } : it
+                                ),
+                              });
                             }}
                             placeholder="กรอกจำนวนที่รับจริง"
                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -1440,10 +1469,11 @@ export default function BranchOilReceipt() {
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      <label htmlFor="api-gravity" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                         API Gravity
                       </label>
                       <input
+                        id="api-gravity"
                         type="number"
                         step="0.01"
                         value={receiveFormData.qualityTest.apiGravity}
@@ -1457,10 +1487,11 @@ export default function BranchOilReceipt() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      <label htmlFor="water-content" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                         Water Content (%)
                       </label>
                       <input
+                        id="water-content"
                         type="number"
                         step="0.01"
                         value={receiveFormData.qualityTest.waterContent}
@@ -1474,10 +1505,11 @@ export default function BranchOilReceipt() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      <label htmlFor="test-temperature" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                         Temperature (°C)
                       </label>
                       <input
+                        id="test-temperature"
                         type="number"
                         step="0.1"
                         value={receiveFormData.qualityTest.temperature}
@@ -1491,10 +1523,11 @@ export default function BranchOilReceipt() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      <label htmlFor="test-color" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                         สี
                       </label>
                       <input
+                        id="test-color"
                         type="text"
                         value={receiveFormData.qualityTest.color}
                         onChange={(e) =>
@@ -1508,10 +1541,11 @@ export default function BranchOilReceipt() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      <label htmlFor="test-result" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                         ผลการตรวจสอบ
                       </label>
                       <select
+                        id="test-result"
                         value={receiveFormData.qualityTest.testResult}
                         onChange={(e) =>
                           setReceiveFormData({
@@ -1529,10 +1563,11 @@ export default function BranchOilReceipt() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      <label htmlFor="tested-by" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                         ผู้ตรวจสอบ
                       </label>
                       <input
+                        id="tested-by"
                         type="text"
                         value={receiveFormData.qualityTest.testedBy}
                         onChange={(e) =>
@@ -1547,10 +1582,11 @@ export default function BranchOilReceipt() {
                     </div>
                   </div>
                   <div className="mt-4">
-                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    <label htmlFor="test-notes" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                       หมายเหตุการทดสอบ
                     </label>
                     <textarea
+                      id="test-notes"
                       value={receiveFormData.qualityTest.notes}
                       onChange={(e) =>
                         setReceiveFormData({
@@ -1566,10 +1602,11 @@ export default function BranchOilReceipt() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="receive-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     หมายเหตุ
                   </label>
                   <textarea
+                    id="receive-notes"
                     value={receiveFormData.notes}
                     onChange={(e) => setReceiveFormData({ ...receiveFormData, notes: e.target.value })}
                     placeholder="ระบุหมายเหตุ (ถ้ามี)"
@@ -1716,10 +1753,11 @@ export default function BranchOilReceipt() {
 
                   {/* Reject Reason */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="reject-reason" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       เหตุผลในการปฏิเสธ *
                     </label>
                     <textarea
+                      id="reject-reason"
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}
                       placeholder="กรุณาระบุเหตุผลในการปฏิเสธการรับน้ำมัน..."
@@ -1857,14 +1895,14 @@ export default function BranchOilReceipt() {
                   </div>
 
                   {/* Truck & Driver Info */}
-                  {(selectedDeliveryNote.truckPlateNumber || selectedDeliveryNote.driverName || (selectedDeliveryNote as any).trailerPlateNumber || (selectedDeliveryNote as any).transportNo) && (
+                  {(selectedDeliveryNote.truckPlateNumber || selectedDeliveryNote.driverName || selectedDeliveryNote.trailerPlateNumber || selectedDeliveryNote.transportNo) && (
                     <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
                       <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">ข้อมูลรถและคนขับ</p>
                       <div className="grid grid-cols-2 gap-3 text-sm">
-                        {(selectedDeliveryNote as any).transportNo && (
+                        {selectedDeliveryNote.transportNo && (
                           <div>
                             <span className="text-gray-600 dark:text-gray-400">เลขที่ขนส่ง:</span>
-                            <span className="font-semibold text-gray-900 dark:text-white ml-2">{(selectedDeliveryNote as any).transportNo}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white ml-2">{selectedDeliveryNote.transportNo}</span>
                           </div>
                         )}
                         {selectedDeliveryNote.truckPlateNumber && (
@@ -1873,10 +1911,10 @@ export default function BranchOilReceipt() {
                             <span className="font-semibold text-gray-900 dark:text-white ml-2">{selectedDeliveryNote.truckPlateNumber}</span>
                           </div>
                         )}
-                        {(selectedDeliveryNote as any).trailerPlateNumber && (
+                        {selectedDeliveryNote.trailerPlateNumber && (
                           <div>
                             <span className="text-gray-600 dark:text-gray-400">หางบรรทุก:</span>
-                            <span className="font-semibold text-gray-900 dark:text-white ml-2">{(selectedDeliveryNote as any).trailerPlateNumber}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white ml-2">{selectedDeliveryNote.trailerPlateNumber}</span>
                           </div>
                         )}
                         {selectedDeliveryNote.driverName && (
@@ -1897,7 +1935,7 @@ export default function BranchOilReceipt() {
                         <p className="text-lg font-bold text-gray-900 dark:text-white">รายการน้ำมัน</p>
                       </div>
                       <div className="space-y-3">
-                        {selectedDeliveryNote.items.map((item: any, idx: number) => (
+                        {selectedDeliveryNote.items.map((item, idx) => (
                           <div
                             key={idx}
                             className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-blue-200 dark:border-gray-600"
@@ -1944,13 +1982,12 @@ export default function BranchOilReceipt() {
                   {/* Status */}
                   <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 rounded-lg">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">สถานะ</span>
-                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${
-                      selectedDeliveryNote.status === "delivered" 
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : selectedDeliveryNote.status === "sent"
+                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${selectedDeliveryNote.status === "delivered"
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : selectedDeliveryNote.status === "sent"
                         ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                         : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                    }`}>
+                      }`}>
                       {selectedDeliveryNote.status === "delivered" && <CheckCircle className="w-4 h-4" />}
                       {selectedDeliveryNote.status === "sent" && <Clock className="w-4 h-4" />}
                       {selectedDeliveryNote.status === "draft" && "ร่าง"}
@@ -1961,21 +1998,21 @@ export default function BranchOilReceipt() {
                   </div>
 
                   {/* Signature Info */}
-                  {((selectedDeliveryNote as any).senderSignature || selectedDeliveryNote.signedBy || selectedDeliveryNote.receiverName || (selectedDeliveryNote as any).receiverSignature) && (
+                  {(selectedDeliveryNote.senderSignature || selectedDeliveryNote.signedBy || selectedDeliveryNote.receiverName || selectedDeliveryNote.receiverSignature) && (
                     <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
                       <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">ข้อมูลการส่งและรับ</p>
                       <div className="grid grid-cols-2 gap-3 text-sm">
-                        {(selectedDeliveryNote as any).senderSignature && (
+                        {selectedDeliveryNote.senderSignature && (
                           <div>
                             <span className="text-gray-600 dark:text-gray-400">ลายมือชื่อผู้ส่ง:</span>
-                            <span className="font-semibold text-gray-900 dark:text-white ml-2">{(selectedDeliveryNote as any).senderSignature}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white ml-2">{selectedDeliveryNote.senderSignature}</span>
                           </div>
                         )}
-                        {(selectedDeliveryNote as any).senderSignedAt && (
+                        {selectedDeliveryNote.senderSignedAt && (
                           <div>
                             <span className="text-gray-600 dark:text-gray-400">วันที่ส่ง:</span>
                             <span className="font-semibold text-gray-900 dark:text-white ml-2">
-                              {dateFormatter.format(new Date((selectedDeliveryNote as any).senderSignedAt))}
+                              {dateFormatter.format(new Date(selectedDeliveryNote.senderSignedAt))}
                             </span>
                           </div>
                         )}
@@ -1985,21 +2022,21 @@ export default function BranchOilReceipt() {
                             <span className="font-semibold text-gray-900 dark:text-white ml-2">{selectedDeliveryNote.receiverName}</span>
                           </div>
                         )}
-                        {(selectedDeliveryNote as any).receiverSignature && (
+                        {selectedDeliveryNote.receiverSignature && (
                           <div>
                             <span className="text-gray-600 dark:text-gray-400">ลายมือชื่อผู้รับ:</span>
-                            <span className="font-semibold text-gray-900 dark:text-white ml-2">{(selectedDeliveryNote as any).receiverSignature}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white ml-2">{selectedDeliveryNote.receiverSignature}</span>
                           </div>
                         )}
-                        {(selectedDeliveryNote as any).receiverSignedAt && (
+                        {selectedDeliveryNote.receiverSignedAt && (
                           <div>
                             <span className="text-gray-600 dark:text-gray-400">วันที่รับ:</span>
                             <span className="font-semibold text-gray-900 dark:text-white ml-2">
-                              {dateFormatter.format(new Date((selectedDeliveryNote as any).receiverSignedAt))}
+                              {dateFormatter.format(new Date(selectedDeliveryNote.receiverSignedAt))}
                             </span>
                           </div>
                         )}
-                        {selectedDeliveryNote.signedAt && !(selectedDeliveryNote as any).receiverSignedAt && (
+                        {selectedDeliveryNote.signedAt && !selectedDeliveryNote.receiverSignedAt && (
                           <div>
                             <span className="text-gray-600 dark:text-gray-400">วันที่รับ:</span>
                             <span className="font-semibold text-gray-900 dark:text-white ml-2">

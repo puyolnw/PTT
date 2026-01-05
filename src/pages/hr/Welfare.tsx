@@ -1951,10 +1951,11 @@ export default function Welfare() {
 
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="trip-project-name" className="block text-sm font-semibold text-app mb-1.5">
                 ชื่อโปรเจค <span className="text-red-400">*</span>
               </label>
               <input
+                id="trip-project-name"
                 type="text"
                 value={tripFormData.projectName}
                 onChange={(e) => setTripFormData({ ...tripFormData, projectName: e.target.value })}
@@ -1966,13 +1967,14 @@ export default function Welfare() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="trip-destination" className="block text-sm font-semibold text-app mb-1.5">
                 <div className="flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
                   สถานที่/จุดหมายปลายทาง <span className="text-red-400">*</span>
                 </div>
               </label>
               <input
+                id="trip-destination"
                 type="text"
                 value={tripFormData.destination}
                 onChange={(e) => setTripFormData({ ...tripFormData, destination: e.target.value })}
@@ -1987,13 +1989,14 @@ export default function Welfare() {
 
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="trip-start-date" className="block text-sm font-semibold text-app mb-1.5">
                 <div className="flex items-center gap-1">
                   <CalendarIcon className="w-3 h-3" />
                   วันที่เริ่มต้น <span className="text-red-400">*</span>
                 </div>
               </label>
               <input
+                id="trip-start-date"
                 type="date"
                 value={tripFormData.startDate}
                 onChange={(e) => setTripFormData({ ...tripFormData, startDate: e.target.value })}
@@ -2003,13 +2006,14 @@ export default function Welfare() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="trip-end-date" className="block text-sm font-semibold text-app mb-1.5">
                 <div className="flex items-center gap-1">
                   <CalendarIcon className="w-3 h-3" />
                   วันที่สิ้นสุด <span className="text-red-400">*</span>
                 </div>
               </label>
               <input
+                id="trip-end-date"
                 type="date"
                 value={tripFormData.endDate}
                 onChange={(e) => setTripFormData({ ...tripFormData, endDate: e.target.value })}
@@ -2022,10 +2026,11 @@ export default function Welfare() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
+            <label htmlFor="trip-budget" className="block text-sm font-semibold text-app mb-1.5">
               งบประมาณ (บาท)
             </label>
             <input
+              id="trip-budget"
               type="number"
               value={tripFormData.budget}
               onChange={(e) => setTripFormData({ ...tripFormData, budget: e.target.value })}
@@ -2040,10 +2045,11 @@ export default function Welfare() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
+            <label htmlFor="trip-notes" className="block text-sm font-semibold text-app mb-1.5">
               หมายเหตุ
             </label>
             <textarea
+              id="trip-notes"
               rows={3}
               value={tripFormData.notes}
               onChange={(e) => setTripFormData({ ...tripFormData, notes: e.target.value })}
@@ -2093,8 +2099,9 @@ export default function Welfare() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-xs text-muted">แผนก</label>
+                <label htmlFor="participant-filter-dept" className="text-xs text-muted">แผนก</label>
                 <select
+                  id="participant-filter-dept"
                   value={participantCategoryFilter}
                   onChange={(e) => setParticipantCategoryFilter(e.target.value)}
                   className="w-full px-3 py-2 bg-app/5 border border-app/20 rounded-lg text-sm text-app
@@ -2110,10 +2117,11 @@ export default function Welfare() {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-muted">ค้นหา</label>
+                <label htmlFor="participant-search" className="text-xs text-muted">ค้นหา</label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                   <input
+                    id="participant-search"
                     type="text"
                     value={participantSearchQuery}
                     onChange={(e) => setParticipantSearchQuery(e.target.value)}
@@ -2133,13 +2141,14 @@ export default function Welfare() {
           {/* Add Employee Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="block text-sm font-semibold text-app">
+              <label htmlFor="participant-add-select" className="block text-sm font-semibold text-app">
                 <div className="flex items-center gap-1">
                   <Users className="w-4 h-4" />
                   เพิ่มพนักงาน
                 </div>
               </label>
               <select
+                id="participant-add-select"
                 onChange={(e) => {
                   if (e.target.value) {
                     handleAddParticipant(e.target.value);
@@ -2180,13 +2189,14 @@ export default function Welfare() {
                       </button>
                     </div>
                     <div className="mt-2">
-                      <label className="block text-xs font-semibold text-app mb-1">
+                      <label htmlFor={`participant-companion-${participant.empCode}`} className="block text-xs font-semibold text-app mb-1">
                         <div className="flex items-center gap-1">
                           <UserPlus className="w-3 h-3" />
                           ผู้ติดตาม (ถ้ามี)
                         </div>
                       </label>
                       <input
+                        id={`participant-companion-${participant.empCode}`}
                         type="text"
                         value={participant.companion || ""}
                         onChange={(e) => handleUpdateCompanion(participant.empCode, e.target.value)}
@@ -2233,10 +2243,11 @@ export default function Welfare() {
       >
         <div className="space-y-6">
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
+            <label htmlFor="add-welfare-type" className="block text-sm font-semibold text-app mb-1.5">
               ประเภทสวัสดิการ <span className="text-red-400">*</span>
             </label>
             <select
+              id="add-welfare-type"
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className="w-full px-4 py-3 bg-soft border border-app rounded-xl
@@ -2253,10 +2264,11 @@ export default function Welfare() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
+            <label htmlFor="add-welfare-emp" className="block text-sm font-semibold text-app mb-1.5">
               เลือกพนักงาน <span className="text-red-400">*</span>
             </label>
             <select
+              id="add-welfare-emp"
               value={formData.empCode}
               onChange={(e) => handleEmployeeSelect(e.target.value)}
               className="w-full px-4 py-3 bg-soft border border-app rounded-xl
@@ -2283,10 +2295,11 @@ export default function Welfare() {
 
           {(formData.type === "benefits" || formData.type === "fuel") && (
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-welfare-item" className="block text-sm font-semibold text-app mb-1.5">
                 รายการ {formData.type === "benefits" ? "(ชุดฟอร์ม, เสื้อกันหนาว, รองเท้า)" : "(ค่าน้ำมัน)"}
               </label>
               <input
+                id="add-welfare-item"
                 type="text"
                 value={formData.item}
                 onChange={(e) => setFormData({ ...formData, item: e.target.value })}
@@ -2301,10 +2314,11 @@ export default function Welfare() {
 
           {(formData.type === "bonus" || formData.type === "fuel" || formData.type === "condolence" || formData.type === "scholarship") && (
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-welfare-amount" className="block text-sm font-semibold text-app mb-1.5">
                 จำนวนเงิน (บาท)
               </label>
               <input
+                id="add-welfare-amount"
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -2320,10 +2334,11 @@ export default function Welfare() {
           )}
 
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
+            <label htmlFor="add-welfare-date" className="block text-sm font-semibold text-app mb-1.5">
               วันที่ <span className="text-red-400">*</span>
             </label>
             <input
+              id="add-welfare-date"
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -2335,10 +2350,11 @@ export default function Welfare() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-app mb-1.5">
+            <label htmlFor="add-welfare-notes" className="block text-sm font-semibold text-app mb-1.5">
               หมายเหตุ
             </label>
             <textarea
+              id="add-welfare-notes"
               rows={3}
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}

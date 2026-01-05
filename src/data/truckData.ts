@@ -1,0 +1,287 @@
+import { Trailer, TruckProfile, TruckOrder } from "../types/truck";
+
+// Mock data - หาง 3 หาง
+export const mockTrailers: Trailer[] = [
+    {
+        id: "TRAILER-001",
+        plateNumber: "กข 1234",
+        capacity: 10000,
+        status: "in-use",
+        // Physical Specifications
+        brand: "Thai Tank",
+        model: "TT-10000",
+        year: 2019,
+        chassisNumber: "TT2019001",
+        // Dimensions & Weight
+        length: 8.5,
+        width: 2.5,
+        height: 3.2,
+        emptyWeight: 3500,
+        maxLoadWeight: 12000,
+        // Usage Statistics
+        totalTrips: 450,
+        totalOilDelivered: 4500000,
+        lastTripDate: "2024-12-15",
+        // Maintenance
+        lastMaintenanceDate: "2024-11-15",
+        nextMaintenanceDate: "2025-02-15",
+        totalMaintenanceCost: 85000,
+        lastMajorRepair: "เปลี่ยนวาล์วล้วม",
+        lastMajorRepairDate: "2024-05-10",
+        // Additional Info
+        color: "เงิน",
+        purchaseDate: "2019-03-20",
+        purchasePrice: 1200000,
+        currentTruckId: "TRUCK-001",
+        notes: "หางประจำรถ กก 1111",
+        // เอกสาร
+        compulsoryInsuranceExpiry: "2025-06-30",
+        vehicleTaxExpiry: "2025-03-15",
+        insuranceExpiry: "2025-08-20",
+        hazmatLicenseExpiry: "2025-12-31",
+    },
+    {
+        id: "TRAILER-002",
+        plateNumber: "กข 5678",
+        capacity: 12000,
+        status: "available",
+        // Physical Specifications
+        brand: "Siam Tank",
+        model: "ST-12000",
+        year: 2020,
+        chassisNumber: "ST2020002",
+        // Dimensions & Weight
+        length: 9.0,
+        width: 2.5,
+        height: 3.3,
+        emptyWeight: 3800,
+        maxLoadWeight: 14000,
+        // Usage Statistics
+        totalTrips: 320,
+        totalOilDelivered: 3840000,
+        lastTripDate: "2024-12-10",
+        // Maintenance
+        lastMaintenanceDate: "2024-10-20",
+        nextMaintenanceDate: "2025-01-20",
+        totalMaintenanceCost: 62000,
+        lastMajorRepair: "ซ่อมระบบเบรก",
+        lastMajorRepairDate: "2024-03-15",
+        // Additional Info
+        color: "ขาว",
+        purchaseDate: "2020-06-15",
+        purchasePrice: 1350000,
+        notes: "หางสำรอง",
+        // เอกสาร
+        compulsoryInsuranceExpiry: "2025-01-15",
+        vehicleTaxExpiry: "2025-05-10",
+        insuranceExpiry: "2025-07-25",
+        hazmatLicenseExpiry: "2025-11-30",
+    },
+    {
+        id: "TRAILER-003",
+        plateNumber: "กข 9012",
+        capacity: 15000,
+        status: "in-use",
+        // Physical Specifications
+        brand: "Premium Tank",
+        model: "PT-15000",
+        year: 2021,
+        chassisNumber: "PT2021003",
+        // Dimensions & Weight
+        length: 10.0,
+        width: 2.5,
+        height: 3.5,
+        emptyWeight: 4200,
+        maxLoadWeight: 18000,
+        // Usage Statistics
+        totalTrips: 280,
+        totalOilDelivered: 4200000,
+        lastTripDate: "2024-12-14",
+        // Maintenance
+        lastMaintenanceDate: "2024-12-01",
+        nextMaintenanceDate: "2025-03-01",
+        totalMaintenanceCost: 45000,
+        lastMajorRepair: "ตรวจเช็คประจำปี",
+        lastMajorRepairDate: "2024-11-25",
+        // Additional Info
+        color: "น้ำเงิน",
+        purchaseDate: "2021-01-10",
+        purchasePrice: 1650000,
+        currentTruckId: "TRUCK-002",
+        notes: "หางใหม่ ความจุสูงสุด",
+        // เอกสาร
+        compulsoryInsuranceExpiry: "2025-09-15",
+        vehicleTaxExpiry: "2025-04-20",
+        insuranceExpiry: "2025-10-10",
+        hazmatLicenseExpiry: "2025-12-25",
+    },
+];
+
+// Mock data - รถ 2 คัน
+export const mockTrucks: TruckProfile[] = [
+    {
+        id: "TRUCK-001",
+        plateNumber: "กก 1111",
+        brand: "Isuzu",
+        model: "FVR 34-260",
+        year: 2020,
+        engineNumber: "ENG-2020-001",
+        chassisNumber: "CHS-2020-001",
+        status: "active",
+        totalTrips: 245,
+        totalDistance: 125000,
+        totalOilDelivered: 2500000,
+        lastTripDate: "2024-12-15",
+        lastMaintenanceDate: "2024-11-20",
+        nextMaintenanceDate: "2025-02-20",
+        compatibleTrailers: ["TRAILER-001", "TRAILER-002", "TRAILER-003"],
+        currentTrailerId: "TRAILER-001",
+        // Driver Assignment
+        assignedDriverName: "สมชาย ใจดี",
+        // Location & Depot
+        currentLocation: "คลังปั๊มไฮโซ",
+        homeDepot: "คลังกรุงเทพ",
+        // Fuel Efficiency
+        fuelEfficiency: 3.5, // กม./ลิตร
+        lastFuelEfficiencyUpdate: "2024-12-01",
+        // Maintenance History
+        totalMaintenanceCost: 125000,
+        lastMajorRepair: "เปลี่ยนเครื่องยนต์",
+        lastMajorRepairDate: "2024-06-15",
+        // Additional Info
+        color: "ขาว",
+        purchaseDate: "2020-01-15",
+        purchasePrice: 2500000,
+        notes: "รถหลัก สภาพดี",
+        // Odometer
+        lastOdometerReading: 125500,
+        lastOdometerDate: "2024-12-15",
+        // เอกสาร
+        compulsoryInsuranceExpiry: "2025-07-15",
+        vehicleTaxExpiry: "2025-06-30",
+        insuranceExpiry: "2025-09-20",
+        hazmatLicenseExpiry: "2025-11-15",
+    },
+    {
+        id: "TRUCK-002",
+        plateNumber: "กก 2222",
+        brand: "Hino",
+        model: "300 Series",
+        year: 2021,
+        engineNumber: "ENG-2021-002",
+        chassisNumber: "CHS-2021-002",
+        status: "active",
+        totalTrips: 198,
+        totalDistance: 98000,
+        totalOilDelivered: 1980000,
+        lastTripDate: "2024-12-14",
+        lastMaintenanceDate: "2024-12-05",
+        nextMaintenanceDate: "2025-03-01",
+        compatibleTrailers: ["TRAILER-001", "TRAILER-002", "TRAILER-003"],
+        currentTrailerId: "TRAILER-003",
+        // Driver Assignment
+        assignedDriverName: "วิชัย รักงาน",
+        // Location & Depot
+        currentLocation: "คลังปั๊มไฮโซ",
+        homeDepot: "คลังกรุงเทพ",
+        // Fuel Efficiency
+        fuelEfficiency: 3.8, // กม./ลิตร
+        lastFuelEfficiencyUpdate: "2024-11-15",
+        // Maintenance History
+        totalMaintenanceCost: 95000,
+        lastMajorRepair: "ซ่อมระบบเกียร์",
+        lastMajorRepairDate: "2024-08-20",
+        // Additional Info
+        color: "เงิน",
+        purchaseDate: "2021-03-10",
+        purchasePrice: 2800000,
+        notes: "รถสำรอง ประหยัดน้ำมัน",
+        // Odometer
+        lastOdometerReading: 98350,
+        lastOdometerDate: "2024-12-14",
+        // เอกสาร
+        compulsoryInsuranceExpiry: "2025-01-10",
+        vehicleTaxExpiry: "2025-05-25",
+        insuranceExpiry: "2025-08-15",
+        hazmatLicenseExpiry: "2025-10-30",
+    },
+];
+
+// Mock data - ออเดอร์รถน้ำมัน
+export const mockTruckOrders: TruckOrder[] = [
+    {
+        id: "TO-001",
+        orderNo: "TO-20241215-001",
+        orderDate: "2024-12-15",
+        purchaseOrderNo: "SO-20241215-001",
+        transportNo: "TR-20241215-001",
+        truckId: "TRUCK-001",
+        truckPlateNumber: "กก 1111",
+        trailerId: "TRAILER-001",
+        trailerPlateNumber: "กข 1234",
+        driver: "สมชาย ใจดี",
+        fromBranch: "ปั๊มไฮโซ",
+        toBranch: "ดินดำ",
+        oilType: "Premium Diesel",
+        quantity: 10000,
+        status: "picking-up",
+        startOdometer: 125000,
+        startTime: "2024-12-15T08:00:00",
+        selectedBranches: [2, 3],
+        usedInOrderId: "SO-20241215-001",
+        notes: "รับน้ำมันจากปั๊มไฮโซ",
+        createdAt: "2024-12-15 08:00:00",
+        createdBy: "ผู้จัดการ",
+    },
+    {
+        id: "TO-002",
+        orderNo: "TO-20241215-002",
+        orderDate: "2024-12-15",
+        purchaseOrderNo: "SO-20241215-002",
+        transportNo: "TR-20241215-002",
+        truckId: "TRUCK-002",
+        truckPlateNumber: "กก 2222",
+        trailerId: "TRAILER-003",
+        trailerPlateNumber: "กข 9012",
+        driver: "วิชัย รักงาน",
+        fromBranch: "ปั๊มไฮโซ",
+        toBranch: "หนองจิก",
+        oilType: "Gasohol 95",
+        quantity: 12000,
+        status: "draft",
+        selectedBranches: [3, 4],
+        notes: "",
+        createdAt: "2024-12-15 09:00:00",
+        createdBy: "ผู้จัดการ",
+    },
+    {
+        id: "TO-003",
+        orderNo: "TO-20241214-001",
+        orderDate: "2024-12-14",
+        purchaseOrderNo: "SO-20241214-001",
+        transportNo: "TR-20241214-001",
+        truckId: "TRUCK-001",
+        truckPlateNumber: "กก 1111",
+        trailerId: "TRAILER-002",
+        trailerPlateNumber: "กข 5678",
+        driver: "สมชาย ใจดี",
+        fromBranch: "ปั๊มไฮโซ",
+        toBranch: "ตักสิลา",
+        oilType: "Diesel",
+        quantity: 8000,
+        status: "completed",
+        startOdometer: 98000,
+        endOdometer: 98350,
+        totalDistance: 350,
+        startTime: "2024-12-14T10:00:00",
+        endTime: "2024-12-14T15:30:00",
+        tripDuration: 330, // 5 hours 30 minutes
+        deliveryNoteNo: "PTT-DN-20241214-001",
+        oilReceiptId: "REC-20241214-001",
+        selectedBranches: [4],
+        usedInOrderId: "SO-20241214-001",
+        notes: "",
+        createdAt: "2024-12-14 10:00:00",
+        createdBy: "ผู้จัดการ",
+    },
+];

@@ -99,12 +99,12 @@ export default function RentalDashboard() {
       >
         <h2 className="text-3xl font-bold text-app mb-2 font-display">M2: จัดการพื้นที่เช่า</h2>
         <p className="text-muted font-light">
-          ภาพรวมค่าเช่าที่เก็บจากร้านค้าในปั๊ม (FIT Auto, Chester's, Daiso, Quick, ร้าน EV, ฯลฯ) และค่าเช่าที่ปั๊มจ่ายออก (ป้ายโฆษณา, ที่ดิน) สำหรับ 5 ปั๊ม
+          ภาพรวมค่าเช่าที่เก็บจากร้านค้าในปั๊ม (FIT Auto, Chester&apos;s, Daiso, Quick, ร้าน EV, ฯลฯ) และค่าเช่าที่ปั๊มจ่ายออก (ป้ายโฆษณา, ที่ดิน) สำหรับ 5 ปั๊ม
         </p>
         <p className="text-xs text-muted/70">
-          อัปเดตล่าสุด: {new Date().toLocaleDateString("th-TH", { 
-            year: "numeric", 
-            month: "long", 
+          อัปเดตล่าสุด: {new Date().toLocaleDateString("th-TH", {
+            year: "numeric",
+            month: "long",
             day: "numeric",
             hour: "2-digit",
             minute: "2-digit"
@@ -127,9 +127,8 @@ export default function RentalDashboard() {
                 <stat.icon className="w-6 h-6 text-app" />
               </div>
               {stat.change && (
-                <div className={`flex items-center gap-1 text-sm font-medium ${
-                  stat.change.startsWith('+') ? 'text-emerald-400' : 'text-red-400'
-                }`}>
+                <div className={`flex items-center gap-1 text-sm font-medium ${stat.change.startsWith('+') ? 'text-emerald-400' : 'text-red-400'
+                  }`}>
                   {stat.change.startsWith('+') ? (
                     <ArrowUpRight className="w-4 h-4" />
                   ) : (

@@ -28,7 +28,7 @@ export default function ModalForm({
     } else {
       document.body.style.overflow = "unset";
     }
-    
+
     return () => {
       document.body.style.overflow = "unset";
     };
@@ -41,17 +41,17 @@ export default function ModalForm({
         onClose();
       }
     };
-    
+
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
-  const sizeClasses = {
-    sm: "max-w-md",
-    md: "max-w-2xl",
-    lg: "max-w-4xl",
-    xl: "max-w-6xl"
-  };
+  const sizeClasses = new Map([
+    ["sm", "max-w-md"],
+    ["md", "max-w-2xl"],
+    ["lg", "max-w-4xl"],
+    ["xl", "max-w-6xl"]
+  ]);
 
   return (
     <AnimatePresence>
@@ -73,7 +73,7 @@ export default function ModalForm({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className={`bg-soft border border-app rounded-2xl shadow-2xl 
-                         w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden flex flex-col`}
+                         w-full ${sizeClasses.get(size) || "max-w-2xl"} max-h-[90vh] overflow-hidden flex flex-col`}
             >
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-app bg-gradient-to-r from-soft via-soft/95 to-soft">

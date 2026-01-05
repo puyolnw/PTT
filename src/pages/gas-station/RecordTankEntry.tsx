@@ -74,14 +74,14 @@ interface TankEntryRecordLocal {
     transportNo?: string; // เชื่อมกับรอบส่ง (ถ้ามี)
     source: "PTT" | "Branch" | "Other"; // ต้นทาง
     sourceBranchName?: string; // ชื่อสาขาต้นทาง (ถ้าเป็น Branch)
-    
+
     // ข้อมูลรถและคนขับ
     truckLicensePlate?: string;
     driverName?: string;
-    
+
     // ข้อมูลคนเอาน้ำมันลงหลุม
     operatorName?: string; // ชื่อคนที่เอาน้ำมันลงหลุม
-    
+
     // ข้อมูลการลงหลุม
     oilType: string; // ประเภทน้ำมัน
     tankNumber: number; // หมายเลขถังใต้ดิน (1, 2, 3, ...)
@@ -90,31 +90,31 @@ interface TankEntryRecordLocal {
     beforeDip: number; // ยอดก่อนลงหลุม (ลิตร)
     afterDip: number; // ยอดหลังลงหลุม (ลิตร)
     quantityReceived: number; // จำนวนที่รับจริง = afterDip - beforeDip
-    
+
     // ราคา
     pricePerLiter: number; // ราคาต่อลิตร
     totalAmount: number; // มูลค่ารวม
-    
+
     // หัวจ่าย
     pumpCode?: string; // รหัสหัวจ่าย เช่น "P18", "P26"
     description?: string; // คำอธิบาย เช่น "E สินสา", "B หนอง"
-    
+
     // สถานะ
     status: "draft" | "completed" | "cancelled";
-    
+
     // ผู้บันทึก
     recordedBy: string;
     recordedByName: string;
     approvedBy?: string;
     approvedByName?: string;
     approvedAt?: string;
-    
+
     // หมายเหตุ
     notes?: string;
-    
+
     createdAt: string;
     updatedAt: string;
-    
+
     // สำหรับการลงหลุมผิด
     isIncorrect?: boolean; // บ่งบอกว่าเป็นรายการลงหลุมผิด
 }
@@ -122,28 +122,58 @@ interface TankEntryRecordLocal {
 // Interface สำหรับบันทึกการลงน้ำมันผิด
 interface IncorrectTankEntry extends TankEntryRecordLocal {
     isIncorrect: true;
-    
+
     // ข้อมูลการลงหลุมผิด
     wrongTankNumber: number; // หลุมที่ลงผิด
     wrongTankCode: string; // รหัสหลุมที่ลงผิด
     wrongOilType: string; // ประเภทน้ำมันที่ลงผิด
-    
+
     correctTankNumber: number; // หลุมที่ควรลง
     correctTankCode: string; // รหัสหลุมที่ควรลง
     correctOilType: string; // ประเภทน้ำมันที่ควรลง
-    
+
     // ข้อมูลเพิ่มเติม
     reason: string; // เหตุผลที่ลงผิด
     impact: string; // ผลกระทบ (เช่น น้ำมันปนกัน, ต้องถ่ายออก, เสียทิ้ง)
     correctiveAction: string; // การแก้ไข (เช่น ถ่ายออกไปบำบัด, เสียทิ้ง)
     resolutionStatus: "pending" | "in_progress" | "resolved" | "written_off"; // สถานะการแก้ไข
     estimatedLoss?: number; // มูลค่าความเสียหาย (บาท)
-    
+
     // ข้อมูลการแก้ไข
     resolvedBy?: string;
     resolvedByName?: string;
     resolvedAt?: string;
     resolutionNotes?: string; // หมายเหตุการแก้ไข
+}
+
+interface TankEntryMeasurement {
+    tankId?: number;
+    tankNumber?: number; // For compatibility with receipt items
+    tankCode?: string;
+    oilType: string;
+    beforeDip?: number;
+    afterDip?: number;
+    quantity?: number; // quantityReceived
+    quantityReceived?: number; // For compatibility with receipt items
+    quantityOrdered?: number;
+    pricePerLiter?: number;
+    pumpCode?: string;
+    description?: string;
+    compartment?: number;
+}
+
+interface LocationStateData {
+    fromReceiveFromBranch?: boolean;
+    data?: {
+        measurements?: TankEntryMeasurement[];
+        transportNo?: string;
+        source?: "PTT" | "Branch" | "Other";
+        sourceBranchName?: string;
+        truckLicensePlate?: string;
+        driverName?: string;
+        receiveDate?: string;
+        receiveTime?: string;
+    };
 }
 
 // Mock data - ถังใต้ดินที่มีในระบบ
@@ -257,11 +287,11 @@ const mockIncorrectEntries: IncorrectTankEntry[] = [
 ];
 
 export default function RecordTankEntry() {
-    const { 
-        oilReceipts, 
-        transportDeliveries, 
+    const {
+        oilReceipts,
+        transportDeliveries,
         tankEntries,
-        createTankEntry, 
+        createTankEntry,
     } = useGasStation();
     const location = useLocation();
     const navigate = useNavigate();
@@ -300,7 +330,7 @@ export default function RecordTankEntry() {
     });
 
     // State for pending measurements from ReceiveFromBranch
-    const [pendingMeasurements, setPendingMeasurements] = useState<any[]>([]);
+    const [pendingMeasurements, setPendingMeasurements] = useState<TankEntryMeasurement[]>([]);
     const [currentMeasurementIndex, setCurrentMeasurementIndex] = useState(0);
 
     // Form state for incorrect entry
@@ -315,7 +345,7 @@ export default function RecordTankEntry() {
         truckLicensePlate: "",
         driverName: "",
         operatorName: "",
-        
+
         // ข้อมูลการลงหลุมผิด
         wrongTankNumber: 0,
         wrongTankCode: "",
@@ -327,7 +357,7 @@ export default function RecordTankEntry() {
         beforeDip: 0,
         afterDip: 0,
         pricePerLiter: 0,
-        
+
         // ข้อมูลเพิ่มเติม
         reason: "",
         impact: "",
@@ -373,14 +403,14 @@ export default function RecordTankEntry() {
 
     // Auto-fill from ReceiveFromBranch
     useEffect(() => {
-        const state = location.state as any;
+        const state = location.state as LocationStateData;
         if (state?.fromReceiveFromBranch && state?.data) {
             const data = state.data;
-            
+
             // Store all measurements for batch processing
             if (data.measurements && data.measurements.length > 0) {
                 setPendingMeasurements(data.measurements);
-                
+
                 // Auto-fill basic info
                 setFormData((prev) => ({
                     ...prev,
@@ -395,7 +425,7 @@ export default function RecordTankEntry() {
 
                 // Fill first measurement
                 fillMeasurementData(data.measurements[0], 0);
-                
+
                 // Auto-open create modal
                 setShowCreateModal(true);
             }
@@ -403,9 +433,9 @@ export default function RecordTankEntry() {
     }, [location.state]);
 
     // Helper function to fill measurement data
-    const fillMeasurementData = (measurement: any, index: number) => {
+    const fillMeasurementData = (measurement: TankEntryMeasurement, index: number) => {
         // Try to find tank by id first, then by oilType
-        let tank = mockUndergroundTanks.find((t) => t.id === measurement.tankId);
+        let tank = mockUndergroundTanks.find((t) => t.id === (measurement.tankId || measurement.tankNumber));
         if (!tank && measurement.oilType) {
             // If tankId doesn't match, find by oilType (for compatibility with ReceiveFromBranch)
             const tanksByOilType = mockUndergroundTanks.filter((t) => t.oilType === measurement.oilType);
@@ -413,7 +443,7 @@ export default function RecordTankEntry() {
                 tank = tanksByOilType[0]; // Use first matching tank
             }
         }
-        
+
         if (tank) {
             setFormData((prev) => ({
                 ...prev,
@@ -540,14 +570,14 @@ export default function RecordTankEntry() {
     // ฟังก์ชันหา transport delivery ที่เกี่ยวข้องกับ record
     const getTransportDelivery = (record: TankEntryRecordLocal | IncorrectTankEntry) => {
         if (!record.truckLicensePlate && !record.transportNo) return null;
-        
+
         const allTransports = transportDeliveries.length > 0 ? transportDeliveries : mockTransportDeliveries;
         return allTransports.find((transport) => {
-            const matchesTruck = record.truckLicensePlate && 
+            const matchesTruck = record.truckLicensePlate &&
                 transport.truckPlateNumber === record.truckLicensePlate;
-            const matchesTransportNo = record.transportNo && 
+            const matchesTransportNo = record.transportNo &&
                 transport.transportNo === record.transportNo;
-            
+
             return (matchesTruck || matchesTransportNo) && transport.status === "กำลังขนส่ง";
         }) || null;
     };
@@ -565,10 +595,10 @@ export default function RecordTankEntry() {
             const matchesStatus = filterStatus === "ทั้งหมด" || record.status === filterStatus;
             const matchesSource = filterSource === "ทั้งหมด" || record.source === filterSource;
             const matchesTank = filterTank === "ทั้งหมด" || record.tankNumber.toString() === filterTank;
-            
+
             // Filter by incorrect status
-            const matchesIncorrect = 
-                filterIncorrect === "ทั้งหมด" || 
+            const matchesIncorrect =
+                filterIncorrect === "ทั้งหมด" ||
                 (filterIncorrect === "ผิด" && record.isIncorrect) ||
                 (filterIncorrect === "ปกติ" && !record.isIncorrect);
 
@@ -748,9 +778,11 @@ export default function RecordTankEntry() {
         if (pendingMeasurements.length > currentMeasurementIndex + 1) {
             // Move to next measurement
             const nextIndex = currentMeasurementIndex + 1;
-            const nextMeasurement = pendingMeasurements[nextIndex];
-            fillMeasurementData(nextMeasurement, nextIndex);
-            
+            const nextMeasurement = pendingMeasurements.find((_, i) => i === nextIndex);
+            if (nextMeasurement) {
+                fillMeasurementData(nextMeasurement, nextIndex);
+            }
+
             // Reset price for next measurement (user needs to enter new price)
             setFormData((prev) => ({
                 ...prev,
@@ -868,7 +900,7 @@ export default function RecordTankEntry() {
         // Create incorrect entry record
         const recordId = `IE-${new Date().toISOString().split("T")[0].replace(/-/g, "")}-${Date.now().toString().slice(-4)}`;
         const now = new Date().toISOString();
-        
+
         const newIncorrectEntry: IncorrectTankEntry = {
             id: recordId,
             entryDate: incorrectEntryForm.entryDate,
@@ -930,10 +962,10 @@ export default function RecordTankEntry() {
             recordedBy: "EMP-001",
             recordedAt: now,
         };
-        
+
         // บันทึกใน context
         createTankEntry(tankEntryRecord);
-        
+
         // Add to records (use the local type with extended properties)
         setAllRecords((prev) => [...prev, newIncorrectEntry]);
 
@@ -1185,18 +1217,17 @@ export default function RecordTankEntry() {
                                 {filteredRecords.map((record, index) => {
                                     const isIncorrect = record.isIncorrect;
                                     const incorrectEntry = isIncorrect ? (record as IncorrectTankEntry) : null;
-                                    
+
                                     return (
                                         <motion.tr
                                             key={record.id}
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ duration: 0.3, delay: index * 0.05 }}
-                                            className={`hover:bg-gray-50 dark:hover:bg-gray-900/40 ${
-                                                isIncorrect 
-                                                    ? "bg-red-50/50 dark:bg-red-900/10 border-l-4 border-red-500" 
-                                                    : ""
-                                            }`}
+                                            className={`hover:bg-gray-50 dark:hover:bg-gray-900/40 ${isIncorrect
+                                                ? "bg-red-50/50 dark:bg-red-900/10 border-l-4 border-red-500"
+                                                : ""
+                                                }`}
                                         >
                                             {/* วันที่/เวลา */}
                                             <td className="py-3 px-4 text-gray-800 dark:text-gray-200">
@@ -1216,11 +1247,10 @@ export default function RecordTankEntry() {
                                                         <AlertTriangle className="w-4 h-4 text-red-500" />
                                                     )}
                                                     <div>
-                                                        <div className={`font-semibold ${
-                                                            isIncorrect 
-                                                                ? "text-red-700 dark:text-red-400" 
-                                                                : "text-gray-800 dark:text-white"
-                                                        }`}>
+                                                        <div className={`font-semibold ${isIncorrect
+                                                            ? "text-red-700 dark:text-red-400"
+                                                            : "text-gray-800 dark:text-white"
+                                                            }`}>
                                                             {isIncorrect && incorrectEntry?.wrongTankCode
                                                                 ? incorrectEntry.wrongTankCode
                                                                 : record.tankCode}
@@ -1237,11 +1267,10 @@ export default function RecordTankEntry() {
                                             {/* ประเภทน้ำมัน */}
                                             <td className="py-3 px-4">
                                                 <div>
-                                                    <div className={`font-medium ${
-                                                        isIncorrect 
-                                                            ? "text-red-700 dark:text-red-400" 
-                                                            : "text-gray-800 dark:text-white"
-                                                    }`}>
+                                                    <div className={`font-medium ${isIncorrect
+                                                        ? "text-red-700 dark:text-red-400"
+                                                        : "text-gray-800 dark:text-white"
+                                                        }`}>
                                                         {isIncorrect && incorrectEntry?.wrongOilType
                                                             ? incorrectEntry.wrongOilType
                                                             : record.oilType}
@@ -1434,7 +1463,7 @@ export default function RecordTankEntry() {
                                                 บันทึกน้ำมันลงหลุม
                                             </h3>
                                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                {pendingMeasurements.length > 0 
+                                                {pendingMeasurements.length > 0
                                                     ? `บันทึกรายการที่ ${currentMeasurementIndex + 1} จาก ${pendingMeasurements.length}`
                                                     : "บันทึกรายการน้ำมันที่ลงหลุมใต้ดิน"
                                                 }
@@ -1464,13 +1493,13 @@ export default function RecordTankEntry() {
                                                     </span>
                                                 </div>
                                                 <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
-                                                    <div 
-                                                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                                        style={{ width: `${((currentMeasurementIndex + 1) / pendingMeasurements.length) * 100}%` }}
+                                                    <motion.div
+                                                        className="bg-blue-600 h-2 rounded-full transition-all duration-300 w-[var(--progress-width)]"
+                                                        style={{ "--progress-width": `${((currentMeasurementIndex + 1) / pendingMeasurements.length) * 100}%` } as React.CSSProperties}
                                                     />
                                                 </div>
                                                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                                                    รายการปัจจุบัน: {pendingMeasurements[currentMeasurementIndex]?.oilType} → ถัง #{pendingMeasurements[currentMeasurementIndex]?.tankId}
+                                                    รายการปัจจุบัน: {pendingMeasurements.find((_, i) => i === currentMeasurementIndex)?.oilType} → ถัง #{pendingMeasurements.find((_, i) => i === currentMeasurementIndex)?.tankId}
                                                 </p>
                                             </div>
                                         )}
@@ -1480,13 +1509,14 @@ export default function RecordTankEntry() {
                                             <h4 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
                                                 1. ข้อมูลต้นทางและเอกสารอ้างอิง
                                             </h4>
-                                            
+
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="entry-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         วันที่ลงหลุม <span className="text-red-500">*</span>
                                                     </label>
                                                     <input
+                                                        id="entry-date"
                                                         type="date"
                                                         value={formData.entryDate}
                                                         onChange={(e) =>
@@ -1496,10 +1526,11 @@ export default function RecordTankEntry() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="entry-time" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         เวลา <span className="text-red-500">*</span>
                                                     </label>
                                                     <input
+                                                        id="entry-time"
                                                         type="time"
                                                         value={formData.entryTime}
                                                         onChange={(e) =>
@@ -1511,10 +1542,11 @@ export default function RecordTankEntry() {
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                <label htmlFor="source-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                     ต้นทาง <span className="text-red-500">*</span>
                                                 </label>
                                                 <select
+                                                    id="source-select"
                                                     value={formData.source}
                                                     onChange={(e) =>
                                                         setFormData({ ...formData, source: e.target.value as "PTT" | "Branch" | "Other" })
@@ -1529,10 +1561,11 @@ export default function RecordTankEntry() {
 
                                             {formData.source === "Branch" && (
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="branch-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         ชื่อสาขาต้นทาง <span className="text-red-500">*</span>
                                                     </label>
                                                     <input
+                                                        id="branch-name"
                                                         type="text"
                                                         value={formData.sourceBranchName}
                                                         onChange={(e) =>
@@ -1545,10 +1578,11 @@ export default function RecordTankEntry() {
                                             )}
 
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                <label htmlFor="receipt-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                     เลขที่ใบรับน้ำมัน <span className="text-red-500">*</span>
                                                 </label>
                                                 <select
+                                                    id="receipt-select"
                                                     value={formData.receiptNo}
                                                     onChange={(e) => handleReceiptChange(e.target.value)}
                                                     className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 text-gray-800 dark:text-white"
@@ -1633,10 +1667,11 @@ export default function RecordTankEntry() {
 
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="po-no" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         เลขที่ใบสั่งซื้อ (PO)
                                                     </label>
                                                     <input
+                                                        id="po-no"
                                                         type="text"
                                                         value={formData.purchaseOrderNo}
                                                         onChange={(e) =>
@@ -1647,10 +1682,11 @@ export default function RecordTankEntry() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="transport-no" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         เลขที่รอบส่ง (Transport)
                                                     </label>
                                                     <input
+                                                        id="transport-no"
                                                         type="text"
                                                         value={formData.transportNo}
                                                         onChange={(e) =>
@@ -1664,10 +1700,11 @@ export default function RecordTankEntry() {
 
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="truck-license" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         ทะเบียนรถ
                                                     </label>
                                                     <input
+                                                        id="truck-license"
                                                         type="text"
                                                         value={formData.truckLicensePlate}
                                                         onChange={(e) =>
@@ -1678,10 +1715,11 @@ export default function RecordTankEntry() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="driver-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         ชื่อคนขับ
                                                     </label>
                                                     <input
+                                                        id="driver-name"
                                                         type="text"
                                                         value={formData.driverName}
                                                         onChange={(e) =>
@@ -1694,10 +1732,11 @@ export default function RecordTankEntry() {
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                <label htmlFor="operator-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                     คนเอาน้ำมันลงหลุม
                                                 </label>
                                                 <input
+                                                    id="operator-name"
                                                     type="text"
                                                     value={formData.operatorName}
                                                     onChange={(e) =>
@@ -1717,10 +1756,11 @@ export default function RecordTankEntry() {
                                                 </h4>
 
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="oil-type-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         ประเภทน้ำมัน <span className="text-red-500">*</span>
                                                     </label>
                                                     <select
+                                                        id="oil-type-select"
                                                         value={formData.oilType}
                                                         onChange={(e) =>
                                                             setFormData({ ...formData, oilType: e.target.value, tankNumber: 0, tankCode: "" })
@@ -1738,10 +1778,11 @@ export default function RecordTankEntry() {
 
                                                 {formData.oilType && availableTanks.length > 0 && (
                                                     <div>
-                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        <label htmlFor="tank-number-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                             ถังใต้ดิน <span className="text-red-500">*</span>
                                                         </label>
                                                         <select
+                                                            id="tank-number-select"
                                                             value={formData.tankNumber}
                                                             onChange={(e) => handleTankChange(Number(e.target.value))}
                                                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 text-gray-800 dark:text-white"
@@ -1849,10 +1890,11 @@ export default function RecordTankEntry() {
                                                     </div>
 
                                                     <div>
-                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        <label htmlFor="quantity-receipt" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                             จำนวนที่ลงหลุมจริง (ลิตร) <span className="text-red-500">*</span>
                                                         </label>
                                                         <input
+                                                            id="quantity-receipt"
                                                             type="number"
                                                             step="0.01"
                                                             value={formData.quantity || ""}
@@ -1869,11 +1911,10 @@ export default function RecordTankEntry() {
                                                         {formData.quantity > 0 && calculatedQuantityReceived > 0 && (
                                                             <div className="mt-2">
                                                                 {formData.quantity !== calculatedQuantityReceived && (
-                                                                    <div className={`p-2 rounded-lg text-xs ${
-                                                                        formData.quantity < calculatedQuantityReceived
-                                                                            ? "bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400"
-                                                                            : "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400"
-                                                                    }`}>
+                                                                    <div className={`p-2 rounded-lg text-xs ${formData.quantity < calculatedQuantityReceived
+                                                                        ? "bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400"
+                                                                        : "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400"
+                                                                        }`}>
                                                                         {formData.quantity < calculatedQuantityReceived ? (
                                                                             <span>
                                                                                 ⚠️ น้อยกว่าที่รับมา {numberFormatter.format(calculatedQuantityReceived - formData.quantity)} ลิตร
@@ -1892,10 +1933,11 @@ export default function RecordTankEntry() {
                                             ) : (
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        <label htmlFor="before-dip" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                             ยอดก่อนลงหลุม (ลิตร) <span className="text-red-500">*</span>
                                                         </label>
                                                         <input
+                                                            id="before-dip"
                                                             type="number"
                                                             value={formData.beforeDip || ""}
                                                             onChange={(e) =>
@@ -1906,10 +1948,11 @@ export default function RecordTankEntry() {
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        <label htmlFor="after-dip" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                             ยอดหลังลงหลุม (ลิตร) <span className="text-red-500">*</span>
                                                         </label>
                                                         <input
+                                                            id="after-dip"
                                                             type="number"
                                                             value={formData.afterDip || ""}
                                                             onChange={(e) =>
@@ -1935,10 +1978,11 @@ export default function RecordTankEntry() {
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        <label htmlFor="quantity-manual" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                             จำนวนที่ลงหลุมจริง (ลิตร) <span className="text-red-500">*</span>
                                                         </label>
                                                         <input
+                                                            id="quantity-manual"
                                                             type="number"
                                                             step="0.01"
                                                             value={formData.quantity || ""}
@@ -1953,11 +1997,10 @@ export default function RecordTankEntry() {
                                                             กรอกจำนวนที่ลงหลุมจริง (อาจไม่ตรงกับที่คำนวณ)
                                                         </p>
                                                         {formData.quantity > 0 && calculatedQuantityReceived > 0 && formData.quantity !== calculatedQuantityReceived && (
-                                                            <div className={`mt-2 p-2 rounded-lg text-xs ${
-                                                                formData.quantity < calculatedQuantityReceived
-                                                                    ? "bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400"
-                                                                    : "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400"
-                                                            }`}>
+                                                            <div className={`mt-2 p-2 rounded-lg text-xs ${formData.quantity < calculatedQuantityReceived
+                                                                ? "bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400"
+                                                                : "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400"
+                                                                }`}>
                                                                 {formData.quantity < calculatedQuantityReceived ? (
                                                                     <span>
                                                                         ⚠️ น้อยกว่าที่รับมา {numberFormatter.format(calculatedQuantityReceived - formData.quantity)} ลิตร
@@ -2000,10 +2043,11 @@ export default function RecordTankEntry() {
                                                 </div>
                                             ) : (
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="price-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         ราคาต่อลิตร (บาท) <span className="text-red-500">*</span>
                                                     </label>
                                                     <input
+                                                        id="price-input"
                                                         type="number"
                                                         step="0.01"
                                                         value={formData.pricePerLiter || ""}
@@ -2041,10 +2085,11 @@ export default function RecordTankEntry() {
                                             </h4>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                <label htmlFor="notes-textarea" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                     หมายเหตุเพิ่มเติม
                                                 </label>
                                                 <textarea
+                                                    id="notes-textarea"
                                                     value={formData.notes}
                                                     onChange={(e) =>
                                                         setFormData({ ...formData, notes: e.target.value })
@@ -2082,7 +2127,10 @@ export default function RecordTankEntry() {
                                                 onClick={() => {
                                                     // Skip current and move to next
                                                     const nextIndex = currentMeasurementIndex + 1;
-                                                    fillMeasurementData(pendingMeasurements[nextIndex], nextIndex);
+                                                    const nextMeasurement = pendingMeasurements.find((_, i) => i === nextIndex);
+                                                    if (nextMeasurement) {
+                                                        fillMeasurementData(nextMeasurement, nextIndex);
+                                                    }
                                                 }}
                                                 className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl transition-colors font-semibold"
                                             >
@@ -2094,8 +2142,8 @@ export default function RecordTankEntry() {
                                             className="px-6 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
                                         >
                                             <Save className="w-4 h-4" />
-                                            {pendingMeasurements.length > currentMeasurementIndex + 1 
-                                                ? "บันทึกและถัดไป" 
+                                            {pendingMeasurements.length > currentMeasurementIndex + 1
+                                                ? "บันทึกและถัดไป"
                                                 : "บันทึก"
                                             }
                                         </button>
@@ -2127,11 +2175,10 @@ export default function RecordTankEntry() {
                             >
                                 <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${
-                                            selectedRecord.isIncorrect 
-                                                ? "bg-gradient-to-br from-red-500 to-red-600" 
-                                                : "bg-gradient-to-br from-teal-500 to-cyan-600"
-                                        }`}>
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${selectedRecord.isIncorrect
+                                            ? "bg-gradient-to-br from-red-500 to-red-600"
+                                            : "bg-gradient-to-br from-teal-500 to-cyan-600"
+                                            }`}>
                                             {selectedRecord.isIncorrect ? (
                                                 <AlertTriangle className="w-6 h-6 text-white" />
                                             ) : (
@@ -2140,8 +2187,8 @@ export default function RecordTankEntry() {
                                         </div>
                                         <div>
                                             <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                                                {selectedRecord.isIncorrect 
-                                                    ? "รายละเอียดการลงน้ำมันผิด" 
+                                                {selectedRecord.isIncorrect
+                                                    ? "รายละเอียดการลงน้ำมันผิด"
                                                     : "รายละเอียดการบันทึกน้ำมันลงหลุม"
                                                 }
                                             </h3>
@@ -2436,15 +2483,14 @@ export default function RecordTankEntry() {
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
                                                             <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 font-semibold">สถานะการแก้ไข</p>
-                                                            <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full border ${
-                                                                incorrectRecord.resolutionStatus === "resolved" 
-                                                                    ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
-                                                                    : incorrectRecord.resolutionStatus === "in_progress"
+                                                            <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full border ${incorrectRecord.resolutionStatus === "resolved"
+                                                                ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
+                                                                : incorrectRecord.resolutionStatus === "in_progress"
                                                                     ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800"
                                                                     : incorrectRecord.resolutionStatus === "written_off"
-                                                                    ? "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800"
-                                                                    : "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800"
-                                                            }`}>
+                                                                        ? "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800"
+                                                                        : "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800"
+                                                                }`}>
                                                                 {incorrectRecord.resolutionStatus === "pending" && "รอดำเนินการ"}
                                                                 {incorrectRecord.resolutionStatus === "in_progress" && "กำลังดำเนินการ"}
                                                                 {incorrectRecord.resolutionStatus === "resolved" && "แก้ไขเสร็จสิ้น"}
@@ -2594,7 +2640,7 @@ export default function RecordTankEntry() {
                                         {/* Warning Notice */}
                                         <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4">
                                             <p className="text-sm text-orange-800 dark:text-orange-200">
-                                                <strong>⚠️ คำเตือน:</strong> การลงน้ำมันผิดหลุมหรือผิดประเภทเป็นเรื่องร้ายแรง น้ำมันปนกันต้องถ่ายออกไปบำบัดหรือเสียทิ้ง 
+                                                <strong>⚠️ คำเตือน:</strong> การลงน้ำมันผิดหลุมหรือผิดประเภทเป็นเรื่องร้ายแรง น้ำมันปนกันต้องถ่ายออกไปบำบัดหรือเสียทิ้ง
                                                 กรุณากรอกข้อมูลให้ครบถ้วนเพื่อการตรวจสอบและแก้ไขต่อไป
                                             </p>
                                         </div>
@@ -2604,10 +2650,11 @@ export default function RecordTankEntry() {
                                             <h4 className="text-lg font-semibold text-gray-800 dark:text-white">ข้อมูลพื้นฐาน</h4>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="incorrect-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         วันที่ <span className="text-red-500">*</span>
                                                     </label>
                                                     <input
+                                                        id="incorrect-date"
                                                         type="date"
                                                         value={incorrectEntryForm.entryDate}
                                                         onChange={(e) => setIncorrectEntryForm({ ...incorrectEntryForm, entryDate: e.target.value })}
@@ -2615,10 +2662,11 @@ export default function RecordTankEntry() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="incorrect-time" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         เวลา <span className="text-red-500">*</span>
                                                     </label>
                                                     <input
+                                                        id="incorrect-time"
                                                         type="time"
                                                         value={incorrectEntryForm.entryTime}
                                                         onChange={(e) => setIncorrectEntryForm({ ...incorrectEntryForm, entryTime: e.target.value })}
@@ -2626,10 +2674,11 @@ export default function RecordTankEntry() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="incorrect-receipt" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         ใบรับน้ำมัน
                                                     </label>
                                                     <input
+                                                        id="incorrect-receipt"
                                                         type="text"
                                                         value={incorrectEntryForm.receiptNo}
                                                         onChange={(e) => setIncorrectEntryForm({ ...incorrectEntryForm, receiptNo: e.target.value })}
@@ -2638,10 +2687,11 @@ export default function RecordTankEntry() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="incorrect-po" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         ใบสั่งซื้อ (PO)
                                                     </label>
                                                     <input
+                                                        id="incorrect-po"
                                                         type="text"
                                                         value={incorrectEntryForm.purchaseOrderNo}
                                                         onChange={(e) => setIncorrectEntryForm({ ...incorrectEntryForm, purchaseOrderNo: e.target.value })}
@@ -2657,10 +2707,11 @@ export default function RecordTankEntry() {
                                             <h4 className="text-lg font-semibold text-red-600 dark:text-red-400">❌ ข้อมูลการลงหลุมผิด</h4>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="wrong-tank-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         หลุมที่ลงผิด <span className="text-red-500">*</span>
                                                     </label>
                                                     <select
+                                                        id="wrong-tank-select"
                                                         value={incorrectEntryForm.wrongTankNumber}
                                                         onChange={(e) => {
                                                             const tankId = parseInt(e.target.value);
@@ -2683,10 +2734,11 @@ export default function RecordTankEntry() {
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="wrong-oil-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         ประเภทน้ำมันที่ลงผิด <span className="text-red-500">*</span>
                                                     </label>
                                                     <input
+                                                        id="wrong-oil-type"
                                                         type="text"
                                                         value={incorrectEntryForm.wrongOilType}
                                                         readOnly
@@ -2701,10 +2753,11 @@ export default function RecordTankEntry() {
                                             <h4 className="text-lg font-semibold text-green-600 dark:text-green-400">✅ ข้อมูลที่ควรลง</h4>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="correct-tank-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         หลุมที่ควรลง <span className="text-red-500">*</span>
                                                     </label>
                                                     <select
+                                                        id="correct-tank-select"
                                                         value={incorrectEntryForm.correctTankNumber}
                                                         onChange={(e) => {
                                                             const tankId = parseInt(e.target.value);
@@ -2727,10 +2780,11 @@ export default function RecordTankEntry() {
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="correct-oil-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         ประเภทน้ำมันที่ควรลง <span className="text-red-500">*</span>
                                                     </label>
                                                     <input
+                                                        id="correct-oil-type"
                                                         type="text"
                                                         value={incorrectEntryForm.correctOilType}
                                                         readOnly
@@ -2745,10 +2799,11 @@ export default function RecordTankEntry() {
                                             <h4 className="text-lg font-semibold text-gray-800 dark:text-white">ข้อมูลจำนวนและราคา</h4>
                                             <div className="grid grid-cols-3 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="incorrect-quantity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         จำนวนลิตรที่ลงผิด <span className="text-red-500">*</span>
                                                     </label>
                                                     <input
+                                                        id="incorrect-quantity"
                                                         type="number"
                                                         value={incorrectEntryForm.quantity || ""}
                                                         onChange={(e) => setIncorrectEntryForm({ ...incorrectEntryForm, quantity: parseFloat(e.target.value) || 0 })}
@@ -2759,10 +2814,11 @@ export default function RecordTankEntry() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="incorrect-price" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         ราคาต่อลิตร <span className="text-red-500">*</span>
                                                     </label>
                                                     <input
+                                                        id="incorrect-price"
                                                         type="number"
                                                         value={incorrectEntryForm.pricePerLiter || ""}
                                                         onChange={(e) => setIncorrectEntryForm({ ...incorrectEntryForm, pricePerLiter: parseFloat(e.target.value) || 0 })}
@@ -2773,10 +2829,11 @@ export default function RecordTankEntry() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    <label htmlFor="incorrect-loss" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                         มูลค่าความเสียหาย (บาท)
                                                     </label>
                                                     <input
+                                                        id="incorrect-loss"
                                                         type="number"
                                                         value={incorrectEntryForm.estimatedLoss || ""}
                                                         onChange={(e) => setIncorrectEntryForm({ ...incorrectEntryForm, estimatedLoss: parseFloat(e.target.value) || 0 })}
@@ -2793,10 +2850,11 @@ export default function RecordTankEntry() {
                                         <div className="space-y-4">
                                             <h4 className="text-lg font-semibold text-gray-800 dark:text-white">รายละเอียดเหตุการณ์</h4>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                <label htmlFor="incorrect-reason" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                     เหตุผลที่ลงผิด <span className="text-red-500">*</span>
                                                 </label>
                                                 <textarea
+                                                    id="incorrect-reason"
                                                     value={incorrectEntryForm.reason}
                                                     onChange={(e) => setIncorrectEntryForm({ ...incorrectEntryForm, reason: e.target.value })}
                                                     placeholder="อธิบายเหตุผลที่ทำให้ลงน้ำมันผิดหลุมหรือผิดประเภท..."
@@ -2805,10 +2863,11 @@ export default function RecordTankEntry() {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                <label htmlFor="incorrect-impact" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                     ผลกระทบ <span className="text-red-500">*</span>
                                                 </label>
                                                 <textarea
+                                                    id="incorrect-impact"
                                                     value={incorrectEntryForm.impact}
                                                     onChange={(e) => setIncorrectEntryForm({ ...incorrectEntryForm, impact: e.target.value })}
                                                     placeholder="อธิบายผลกระทบ เช่น น้ำมันปนกัน ต้องถ่ายออกไปบำบัด เสียทิ้ง..."
@@ -2817,10 +2876,11 @@ export default function RecordTankEntry() {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                <label htmlFor="incorrect-action" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                     การแก้ไข <span className="text-red-500">*</span>
                                                 </label>
                                                 <textarea
+                                                    id="incorrect-action"
                                                     value={incorrectEntryForm.correctiveAction}
                                                     onChange={(e) => setIncorrectEntryForm({ ...incorrectEntryForm, correctiveAction: e.target.value })}
                                                     placeholder="อธิบายวิธีการแก้ไข เช่น ถ่ายน้ำมันออกไปบำบัด เสียทิ้ง..."
@@ -2829,10 +2889,11 @@ export default function RecordTankEntry() {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                <label htmlFor="incorrect-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                     สถานะการแก้ไข <span className="text-red-500">*</span>
                                                 </label>
                                                 <select
+                                                    id="incorrect-status"
                                                     value={incorrectEntryForm.resolutionStatus}
                                                     onChange={(e) => setIncorrectEntryForm({ ...incorrectEntryForm, resolutionStatus: e.target.value as "pending" | "in_progress" | "resolved" | "written_off" })}
                                                     className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 text-gray-800 dark:text-white"
@@ -2844,10 +2905,11 @@ export default function RecordTankEntry() {
                                                 </select>
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                <label htmlFor="incorrect-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                     หมายเหตุเพิ่มเติม
                                                 </label>
                                                 <textarea
+                                                    id="incorrect-notes"
                                                     value={incorrectEntryForm.notes}
                                                     onChange={(e) => setIncorrectEntryForm({ ...incorrectEntryForm, notes: e.target.value })}
                                                     placeholder="หมายเหตุเพิ่มเติม..."

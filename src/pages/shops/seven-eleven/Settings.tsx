@@ -6,7 +6,7 @@ import { useShop } from "@/contexts/ShopContext";
 export default function Settings() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "เซเว่น (7-Eleven)";
-  
+
   const [settings, setSettings] = useState({
     shopName: shopName,
     rent: 5000,
@@ -45,8 +45,9 @@ export default function Settings() {
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
+            <label htmlFor="seven-settings-shop-name" className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
             <input
+              id="seven-settings-shop-name"
               type="text"
               value={settings.shopName}
               onChange={(e) => setSettings({ ...settings, shopName: e.target.value })}
@@ -54,8 +55,9 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ที่อยู่</label>
+            <label htmlFor="seven-settings-address" className="block text-sm font-medium text-app mb-2">ที่อยู่</label>
             <input
+              id="seven-settings-address"
               type="text"
               value={settings.address}
               onChange={(e) => setSettings({ ...settings, address: e.target.value })}
@@ -65,8 +67,9 @@ export default function Settings() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">อีเมล</label>
+              <label htmlFor="seven-settings-email" className="block text-sm font-medium text-app mb-2">อีเมล</label>
               <input
+                id="seven-settings-email"
                 type="email"
                 value={settings.email}
                 onChange={(e) => setSettings({ ...settings, email: e.target.value })}
@@ -75,8 +78,9 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">เบอร์โทร</label>
+              <label htmlFor="seven-settings-phone" className="block text-sm font-medium text-app mb-2">เบอร์โทร</label>
               <input
+                id="seven-settings-phone"
                 type="tel"
                 value={settings.phone}
                 onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
@@ -99,8 +103,9 @@ export default function Settings() {
           <SettingsIcon className="w-6 h-6 text-muted" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-app mb-2">ค่าเช่าพื้นที่ (บาท/เดือน)</label>
+          <label htmlFor="seven-settings-rent" className="block text-sm font-medium text-app mb-2">ค่าเช่าพื้นที่ (บาท/เดือน)</label>
           <input
+            id="seven-settings-rent"
             type="number"
             value={settings.rent}
             onChange={(e) => setSettings({ ...settings, rent: Number(e.target.value) })}
@@ -131,6 +136,7 @@ export default function Settings() {
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
+              <span className="sr-only">เชื่อมต่อโมดูล M6</span>
               <input
                 type="checkbox"
                 checked={settings.connectToModule6}
@@ -148,6 +154,7 @@ export default function Settings() {
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
+              <span className="sr-only">เชื่อมต่อโมดูล M7</span>
               <input
                 type="checkbox"
                 checked={settings.connectToModule7}

@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, CheckCircle, Clock, Activity, XCircle, X, PackageCheck, User, GripVertical, Truck, MapPin, Eye, Droplet, Search, Save } from "lucide-react";
 import { branches } from "../../data/gasStationOrders";
-import { mockTrucks, mockTrailers } from "./TruckProfiles";
+import { mockTrucks, mockTrailers } from "@/data/truckData";
+
 import { mockDrivers } from "../../data/mockData";
 import StartTripModal from "../../components/truck/StartTripModal";
 import EndTripModal from "../../components/truck/EndTripModal";
@@ -24,6 +25,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { InternalOilOrder } from "@/types/gasStation";
+import type { TruckOrder } from "@/types/truck";
 
 // Helper functions
 const generateTransportNo = () => {
@@ -40,15 +42,15 @@ const formatDuration = (ms?: number) => {
 };
 
 const numberFormatter = new Intl.NumberFormat("th-TH");
-const dateFormatter = new Intl.DateTimeFormat("th-TH", { 
-    year: "numeric", 
-    month: "long", 
+const dateFormatter = new Intl.DateTimeFormat("th-TH", {
+    year: "numeric",
+    month: "long",
     day: "numeric",
     weekday: "long"
 });
-const dateFormatterShort = new Intl.DateTimeFormat("th-TH", { 
-    year: "numeric", 
-    month: "long", 
+const dateFormatterShort = new Intl.DateTimeFormat("th-TH", {
+    year: "numeric",
+    month: "long",
     day: "numeric"
 });
 
@@ -141,8 +143,20 @@ const mockInternalTransports: InternalTransportOrder[] = [
     },
 ];
 
+// Interface for Ordered Branch
+interface OrderedBranch {
+    branchId: number;
+    branchName: string;
+    address: string;
+    items: Array<{
+        oilType: string;
+        quantity: number;
+    }>;
+    totalAmount: number;
+}
+
 // Sortable Branch Item Component
-function SortableBranchItem({ branch, index }: { branch: any; index: number }) {
+function SortableBranchItem({ branch, index }: { branch: OrderedBranch; index: number }) {
     const {
         attributes,
         listeners,
@@ -152,14 +166,14 @@ function SortableBranchItem({ branch, index }: { branch: any; index: number }) {
         isDragging,
     } = useSortable({ id: branch.branchId || index });
 
-    const style = {
+    const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
     };
 
     return (
-        <div
+        <motion.div
             ref={setNodeRef}
             style={style}
             className="flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm"
@@ -183,7 +197,7 @@ function SortableBranchItem({ branch, index }: { branch: any; index: number }) {
                     {numberFormatter.format(branch.totalAmount)} บาท
                 </p>
             </div>
-        </div>
+        </motion.div>
     );
 }
 
@@ -207,7 +221,7 @@ export default function InternalTransport() {
     const [showStartTripModal, setShowStartTripModal] = useState(false);
     const [showEndTripModal, setShowEndTripModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<InternalTransportOrder | null>(null);
-    const [orderedBranches, setOrderedBranches] = useState<any[]>([]);
+    const [orderedBranches, setOrderedBranches] = useState<OrderedBranch[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
     const [filterDateFrom, setFilterDateFrom] = useState<string>("");
@@ -229,15 +243,15 @@ export default function InternalTransport() {
 
     // Get selected truck and trailer info
     const selectedTruck = useMemo(() => {
-        return mockTrucks.find((t: any) => t.id === newOrder.truckId) || null;
+        return mockTrucks.find((t) => t.id === newOrder.truckId) || null;
     }, [newOrder.truckId]);
 
     const selectedTrailer = useMemo(() => {
-        return mockTrailers.find((t: any) => t.id === newOrder.trailerId) || null;
+        return mockTrailers.find((t) => t.id === newOrder.trailerId) || null;
     }, [newOrder.trailerId]);
 
     const selectedDriver = useMemo(() => {
-        return mockDrivers.find((d: any) => String(d.id) === newOrder.driverId) || null;
+        return mockDrivers.find((d) => String(d.id) === newOrder.driverId) || null;
     }, [newOrder.driverId]);
 
     // Auto-fill data when internal order is selected
@@ -247,7 +261,7 @@ export default function InternalTransport() {
             if (selectedInternalOrder.assignedFromBranchId && selectedInternalOrder.fromBranchId) {
                 const fromBranch = branches.find((b) => b.id === selectedInternalOrder.assignedFromBranchId);
                 const toBranch = branches.find((b) => b.id === selectedInternalOrder.fromBranchId);
-                
+
                 if (fromBranch && toBranch) {
                     setOrderedBranches([{
                         branchId: toBranch.id,
@@ -265,11 +279,14 @@ export default function InternalTransport() {
             // Auto-fill truck, trailer, driver, odometer from internal order if available
             // (ในระบบจริงอาจจะมีการกำหนดไว้แล้วใน Internal Order)
             // สำหรับตอนนี้จะ auto-fill จาก transportNo ถ้ามี
-            if (selectedInternalOrder.transportNo && !newOrder.transportNo) {
-                setNewOrder((prev) => ({
-                    ...prev,
-                    transportNo: selectedInternalOrder.transportNo || generateTransportNo(),
-                }));
+            if (selectedInternalOrder.transportNo) {
+                setNewOrder((prev) => {
+                    if (prev.transportNo) return prev;
+                    return {
+                        ...prev,
+                        transportNo: selectedInternalOrder.transportNo || generateTransportNo(),
+                    };
+                });
             }
         } else {
             setOrderedBranches([]);
@@ -278,11 +295,14 @@ export default function InternalTransport() {
 
     // Auto-fill odometer when truck is selected
     useEffect(() => {
-        if (selectedTruck && selectedTruck.lastOdometerReading && newOrder.currentOdometer === 0) {
-            setNewOrder((prev) => ({
-                ...prev,
-                currentOdometer: selectedTruck.lastOdometerReading || 0,
-            }));
+        if (selectedTruck && selectedTruck.lastOdometerReading) {
+            setNewOrder((prev) => {
+                if (prev.currentOdometer !== 0) return prev;
+                return {
+                    ...prev,
+                    currentOdometer: selectedTruck.lastOdometerReading || 0,
+                };
+            });
         }
     }, [selectedTruck]);
 
@@ -319,19 +339,19 @@ export default function InternalTransport() {
                 order.truckPlateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 order.driverName.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesStatus = filterStatus === "all" || order.status === filterStatus;
-            
+
             // Branch filter
-            const matchesBranch = filterBranch === "all" || 
-                order.fromBranchId === filterBranch || 
+            const matchesBranch = filterBranch === "all" ||
+                order.fromBranchId === filterBranch ||
                 order.toBranchId === filterBranch;
-            
+
             // Date filter
             let matchesDate = true;
             if (filterDateFrom || filterDateTo) {
                 const orderDate = new Date(order.orderDate);
                 const fromDate = filterDateFrom ? new Date(filterDateFrom) : null;
                 const toDate = filterDateTo ? new Date(filterDateTo) : null;
-                
+
                 if (fromDate && toDate) {
                     fromDate.setHours(0, 0, 0, 0);
                     toDate.setHours(23, 59, 59, 999);
@@ -344,7 +364,7 @@ export default function InternalTransport() {
                     matchesDate = orderDate <= toDate;
                 }
             }
-            
+
             return matchesSearch && matchesStatus && matchesBranch && matchesDate;
         });
     }, [searchTerm, filterStatus, filterBranch, filterDateFrom, filterDateTo, internalTransports]);
@@ -437,12 +457,12 @@ export default function InternalTransport() {
             prev.map((order) =>
                 order.id === selectedOrder.id
                     ? {
-                          ...order,
-                          status: "picking-up",
-                          startOdometer,
-                          startTime,
-                          startFuel: startFuel || 0,
-                      }
+                        ...order,
+                        status: "picking-up",
+                        startOdometer,
+                        startTime,
+                        startFuel: startFuel || 0,
+                    }
                     : order
             )
         );
@@ -472,13 +492,13 @@ export default function InternalTransport() {
             prev.map((order) =>
                 order.id === selectedOrder.id
                     ? {
-                          ...order,
-                          status: "completed",
-                          endOdometer,
-                          endTime,
-                          totalDistance,
-                          tripDuration: duration,
-                      }
+                        ...order,
+                        status: "completed",
+                        endOdometer,
+                        endTime,
+                        totalDistance,
+                        tripDuration: duration,
+                    }
                     : order
             )
         );
@@ -574,8 +594,10 @@ export default function InternalTransport() {
             >
                 <div className="space-y-4">
                     <div className="relative">
+                        <label htmlFor="search-transport" className="sr-only">ค้นหาเลขขนส่ง, ออเดอร์, ปั๊ม...</label>
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input
+                            id="search-transport"
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -586,50 +608,62 @@ export default function InternalTransport() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="flex items-center gap-2">
                             <input
+                                id="filter-date-from"
                                 type="date"
                                 value={filterDateFrom}
                                 onChange={(e) => setFilterDateFrom(e.target.value)}
                                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 title="วันที่เริ่มต้น"
+                                aria-label="วันที่เริ่มต้น"
                             />
                             <span className="text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">ถึง</span>
                             <input
+                                id="filter-date-to"
                                 type="date"
                                 value={filterDateTo}
                                 onChange={(e) => setFilterDateTo(e.target.value)}
                                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 title="วันที่สิ้นสุด"
+                                aria-label="วันที่สิ้นสุด"
                             />
                         </div>
-                        <select
-                            value={filterBranch}
-                            onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        >
-                            <option value="all">ทุกปั๊ม</option>
-                            {branches
-                              .sort((a, b) => {
-                                const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
-                                return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
-                              })
-                              .map((branch) => (
-                                <option key={branch.id} value={branch.id}>
-                                  {branch.name}
-                                </option>
-                              ))}
-                        </select>
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        >
-                            <option value="all">สถานะทั้งหมด</option>
-                            <option value="draft">ร่าง</option>
-                            <option value="ready-to-pickup">พร้อมรับ</option>
-                            <option value="picking-up">กำลังไปรับ</option>
-                            <option value="completed">เสร็จสิ้น</option>
-                            <option value="cancelled">ยกเลิก</option>
-                        </select>
+                        <div>
+                            <label htmlFor="filter-branch" className="sr-only">กรองตามปั๊ม</label>
+                            <select
+                                id="filter-branch"
+                                value={filterBranch}
+                                onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            >
+                                <option value="all">ทุกปั๊ม</option>
+                                {branches
+                                    .sort((a, b) => {
+                                        const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                                        return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
+                                    })
+                                    .map((branch) => (
+                                        <option key={branch.id} value={branch.id}>
+                                            {branch.name}
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="filter-status" className="sr-only">กรองตามสถานะ</label>
+                            <select
+                                id="filter-status"
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            >
+                                <option value="all">สถานะทั้งหมด</option>
+                                <option value="draft">ร่าง</option>
+                                <option value="ready-to-pickup">พร้อมรับ</option>
+                                <option value="picking-up">กำลังไปรับ</option>
+                                <option value="completed">เสร็จสิ้น</option>
+                                <option value="cancelled">ยกเลิก</option>
+                            </select>
+                        </div>
                         {(filterDateFrom || filterDateTo || searchTerm || filterStatus !== "all" || filterBranch !== "all") && (
                             <button
                                 onClick={() => {
@@ -811,7 +845,7 @@ export default function InternalTransport() {
                             <Truck className="w-8 h-8 text-gray-400" />
                         </div>
                         <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">ไม่พบรายการขนส่ง</p>
-                        <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">คลิกปุ่ม "สร้างรายการขนส่งใหม่" เพื่อเพิ่มรายการ</p>
+                        <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">คลิกปุ่ม &quot;สร้างรายการขนส่งใหม่&quot; เพื่อเพิ่มรายการ</p>
                     </div>
                 )}
             </motion.div>
@@ -846,11 +880,12 @@ export default function InternalTransport() {
                             <div className="p-6 space-y-4">
                                 {/* เลขขนส่ง */}
                                 <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="new-transport-no" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         เลขขนส่ง (Transport No.) *
                                     </label>
                                     <div className="flex items-center gap-2">
                                         <input
+                                            id="new-transport-no"
                                             type="text"
                                             value={newOrder.transportNo}
                                             onChange={(e) => setNewOrder({ ...newOrder, transportNo: e.target.value })}
@@ -868,16 +903,17 @@ export default function InternalTransport() {
                                         </button>
                                     </div>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        💡 เลขขนส่งจะถูกสร้างอัตโนมัติเมื่อเปิดฟอร์มนี้ หรือคลิกปุ่ม "สร้างใหม่" เพื่อสร้างเลขใหม่
+                                        💡 เลขขนส่งจะถูกสร้างอัตโนมัติเมื่อเปิดฟอร์มนี้ หรือคลิกปุ่ม &quot;สร้างใหม่&quot; เพื่อสร้างเลขใหม่
                                     </p>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <label htmlFor="new-order-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             วันที่สร้างออเดอร์รถ *
                                         </label>
                                         <input
+                                            id="new-order-date"
                                             type="date"
                                             value={newOrder.orderDate}
                                             onChange={(e) => setNewOrder({ ...newOrder, orderDate: e.target.value })}
@@ -886,10 +922,11 @@ export default function InternalTransport() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <label htmlFor="new-departure-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             วันที่จัดส่ง *
                                         </label>
                                         <input
+                                            id="new-departure-date"
                                             type="date"
                                             value={newOrder.departureDate}
                                             onChange={(e) => setNewOrder({ ...newOrder, departureDate: e.target.value })}
@@ -900,10 +937,11 @@ export default function InternalTransport() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="new-internal-order" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         เลือกออเดอร์ภายในปั๊ม (Internal Order) *
                                     </label>
                                     <select
+                                        id="new-internal-order"
                                         value={newOrder.internalOrderNo}
                                         onChange={(e) => setNewOrder({ ...newOrder, internalOrderNo: e.target.value })}
                                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -976,17 +1014,18 @@ export default function InternalTransport() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <label htmlFor="new-truck" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             รถหัวลาก (ดึงจาก Profile รถ) *
                                         </label>
                                         <select
+                                            id="new-truck"
                                             value={newOrder.truckId}
                                             onChange={(e) => setNewOrder({ ...newOrder, truckId: e.target.value })}
                                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                             required
                                         >
                                             <option value="">เลือกรถ</option>
-                                            {mockTrucks.map((truck: any) => (
+                                            {mockTrucks.map((truck) => (
                                                 <option key={truck.id} value={truck.id}>
                                                     {truck.plateNumber} - {truck.brand} {truck.model}
                                                 </option>
@@ -1000,17 +1039,18 @@ export default function InternalTransport() {
                                         )}
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <label htmlFor="new-trailer" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             หางลาก (ดึงจาก Profile รถ) *
                                         </label>
                                         <select
+                                            id="new-trailer"
                                             value={newOrder.trailerId}
                                             onChange={(e) => setNewOrder({ ...newOrder, trailerId: e.target.value })}
                                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                             required
                                         >
                                             <option value="">เลือกหาง</option>
-                                            {mockTrailers.map((trailer: any) => (
+                                            {mockTrailers.map((trailer) => (
                                                 <option key={trailer.id} value={trailer.id}>
                                                     {trailer.plateNumber} - ความจุ {numberFormatter.format(trailer.capacity)} ลิตร
                                                 </option>
@@ -1020,17 +1060,18 @@ export default function InternalTransport() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="new-driver" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         คนขับรถ *
                                     </label>
                                     <select
+                                        id="new-driver"
                                         value={newOrder.driverId}
                                         onChange={(e) => setNewOrder({ ...newOrder, driverId: e.target.value })}
                                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                         required
                                     >
                                         <option value="">เลือกคนขับ</option>
-                                        {mockDrivers.map((driver: any) => (
+                                        {mockDrivers.map((driver) => (
                                             <option key={driver.id} value={String(driver.id)}>
                                                 {driver.name} ({driver.code})
                                             </option>
@@ -1040,10 +1081,11 @@ export default function InternalTransport() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <label htmlFor="new-odometer" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             เลขไมล์ปัจจุบัน (กม.) - แก้ไขได้ *
                                         </label>
                                         <input
+                                            id="new-odometer"
                                             type="number"
                                             value={newOrder.currentOdometer}
                                             onChange={(e) => setNewOrder({ ...newOrder, currentOdometer: Number(e.target.value) })}
@@ -1063,13 +1105,14 @@ export default function InternalTransport() {
                                         )}
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <label htmlFor="new-start-fuel" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             <div className="flex items-center gap-2">
                                                 <Droplet className="w-4 h-4 text-blue-500" />
                                                 น้ำมันตอนเริ่มต้น (ลิตร) *
                                             </div>
                                         </label>
                                         <input
+                                            id="new-start-fuel"
                                             type="number"
                                             value={newOrder.startFuel}
                                             onChange={(e) => setNewOrder({ ...newOrder, startFuel: Number(e.target.value) })}
@@ -1088,9 +1131,9 @@ export default function InternalTransport() {
                                 {/* รายการน้ำมันที่จะส่ง */}
                                 {orderedBranches.length > 0 && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             รายการส่งน้ำมัน
-                                        </label>
+                                        </span>
                                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                                             <SortableContext items={orderedBranches.map((b, i) => b.branchId || i)} strategy={verticalListSortingStrategy}>
                                                 <div className="space-y-2">
@@ -1104,10 +1147,11 @@ export default function InternalTransport() {
                                 )}
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="new-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         หมายเหตุ
                                     </label>
                                     <textarea
+                                        id="new-notes"
                                         value={newOrder.notes}
                                         onChange={(e) => setNewOrder({ ...newOrder, notes: e.target.value })}
                                         placeholder="ระบุหมายเหตุ (ถ้ามี)"
@@ -1312,7 +1356,7 @@ export default function InternalTransport() {
                         orderNo: selectedOrder.transportNo,
                         currentOdometer: selectedOrder.currentOdometer,
                         startFuel: selectedOrder.startFuel,
-                    } as any}
+                    } as unknown as TruckOrder}
                     isOpen={showStartTripModal}
                     onStartTrip={onStartTrip}
                     onClose={() => setShowStartTripModal(false)}
@@ -1327,7 +1371,7 @@ export default function InternalTransport() {
                         orderNo: selectedOrder.transportNo,
                         startOdometer: selectedOrder.startOdometer,
                         startTime: selectedOrder.startTime,
-                    } as any}
+                    } as unknown as TruckOrder}
                     isOpen={showEndTripModal}
                     onEndTrip={onEndTrip}
                     onClose={() => setShowEndTripModal(false)}

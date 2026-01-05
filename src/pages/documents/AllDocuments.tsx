@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  FileText, 
-  Plus, 
+import {
+  FileText,
+  Plus,
   Download,
   Eye,
   Edit,
@@ -11,9 +11,10 @@ import {
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
-import { 
-  documents, 
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
+import {
+  documents,
   documentCategories,
   employees,
   type Document as DocumentType
@@ -255,11 +256,10 @@ export default function AllDocuments() {
                         <div>
                           <p className="text-app">{formatDate(doc.expiryDate)}</p>
                           {days !== null && (
-                            <p className={`text-xs ${
-                              days <= 0 ? "text-red-400" :
-                              days <= 7 ? "text-orange-400" :
-                              days <= 30 ? "text-yellow-400" : "text-muted"
-                            }`}>
+                            <p className={`text-xs ${days <= 0 ? "text-red-400" :
+                                days <= 7 ? "text-orange-400" :
+                                  days <= 30 ? "text-yellow-400" : "text-muted"
+                              }`}>
                               {days <= 0 ? "หมดอายุแล้ว" : `เหลือ ${days} วัน`}
                             </p>
                           )}
@@ -272,17 +272,16 @@ export default function AllDocuments() {
                       <div className="flex flex-col gap-1 items-center">
                         <StatusTag variant={getStatusVariant(
                           doc.status === "Active" ? "Active" :
-                          doc.status === "Pending" ? "รออนุมัติ" :
-                          doc.status === "Archived" ? "Leave" : "รออนุมัติ"
+                            doc.status === "Pending" ? "รออนุมัติ" :
+                              doc.status === "Archived" ? "Leave" : "รออนุมัติ"
                         )}>
                           {doc.status}
                         </StatusTag>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
-                          getSecurityLevelColor(doc.securityLevel)
-                        }`}>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getSecurityLevelColor(doc.securityLevel)
+                          }`}>
                           <Shield className="w-3 h-3 mr-1" />
                           {doc.securityLevel === "Public" ? "สาธารณะ" :
-                           doc.securityLevel === "Internal" ? "ภายใน" : "ลับ"}
+                            doc.securityLevel === "Internal" ? "ภายใน" : "ลับ"}
                         </span>
                       </div>
                     </td>
@@ -337,10 +336,11 @@ export default function AllDocuments() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="add-doc-title" className="block text-sm font-medium text-app mb-2">
               ชื่อเอกสาร <span className="text-red-400">*</span>
             </label>
             <input
+              id="add-doc-title"
               type="text"
               className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
@@ -350,10 +350,11 @@ export default function AllDocuments() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="add-doc-category" className="block text-sm font-medium text-app mb-2">
               หมวดหมู่ <span className="text-red-400">*</span>
             </label>
             <select
+              id="add-doc-category"
               className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
             >
@@ -367,10 +368,11 @@ export default function AllDocuments() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="add-doc-desc" className="block text-sm font-medium text-app mb-2">
               คำอธิบาย
             </label>
             <textarea
+              id="add-doc-desc"
               rows={3}
               className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
@@ -380,27 +382,29 @@ export default function AllDocuments() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="add-doc-file" className="block text-sm font-medium text-app mb-2">
               อัปโหลดไฟล์ <span className="text-red-400">*</span>
             </label>
-            <div className="border-2 border-dashed border-app rounded-xl p-6 text-center">
+            <label htmlFor="add-doc-file" className="block border-2 border-dashed border-app rounded-xl p-6 text-center cursor-pointer">
               <FileText className="w-12 h-12 text-muted mx-auto mb-2" />
               <p className="text-sm text-muted mb-2">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</p>
               <p className="text-xs text-muted">รองรับ PDF, JPG, PNG, DOC, DOCX, XLS, XLSX</p>
               <input
+                id="add-doc-file"
                 type="file"
                 className="hidden"
                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
               />
-            </div>
+            </label>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="add-doc-security" className="block text-sm font-medium text-app mb-2">
                 ระดับความลับ
               </label>
               <select
+                id="add-doc-security"
                 className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               >
@@ -410,10 +414,11 @@ export default function AllDocuments() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="add-doc-expiry" className="block text-sm font-medium text-app mb-2">
                 วันหมดอายุ (ถ้ามี)
               </label>
               <input
+                id="add-doc-expiry"
                 type="date"
                 className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
@@ -422,10 +427,11 @@ export default function AllDocuments() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="add-doc-tags" className="block text-sm font-medium text-app mb-2">
               Tags (คั่นด้วยคอมม่า)
             </label>
             <input
+              id="add-doc-tags"
               type="text"
               className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
                        text-app placeholder:text-muted
@@ -473,20 +479,19 @@ export default function AllDocuments() {
                 <p className="text-muted mb-1">สถานะ:</p>
                 <StatusTag variant={getStatusVariant(
                   selectedDocument.status === "Active" ? "Active" :
-                  selectedDocument.status === "Pending" ? "รออนุมัติ" :
-                  selectedDocument.status === "Archived" ? "Leave" : "รออนุมัติ"
+                    selectedDocument.status === "Pending" ? "รออนุมัติ" :
+                      selectedDocument.status === "Archived" ? "Leave" : "รออนุมัติ"
                 )}>
                   {selectedDocument.status}
                 </StatusTag>
               </div>
               <div>
                 <p className="text-muted mb-1">ระดับความลับ:</p>
-                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${
-                  getSecurityLevelColor(selectedDocument.securityLevel)
-                }`}>
+                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${getSecurityLevelColor(selectedDocument.securityLevel)
+                  }`}>
                   <Shield className="w-3 h-3 mr-1" />
                   {selectedDocument.securityLevel === "Public" ? "สาธารณะ" :
-                   selectedDocument.securityLevel === "Internal" ? "ภายใน" : "ลับ"}
+                    selectedDocument.securityLevel === "Internal" ? "ภายใน" : "ลับ"}
                 </span>
               </div>
               {selectedDocument.expiryDate && (
@@ -496,11 +501,10 @@ export default function AllDocuments() {
                   {(() => {
                     const days = getDaysUntilExpiry(selectedDocument.expiryDate);
                     return days !== null && (
-                      <p className={`text-xs ${
-                        days <= 0 ? "text-red-400" :
-                        days <= 7 ? "text-orange-400" :
-                        days <= 30 ? "text-yellow-400" : "text-muted"
-                      }`}>
+                      <p className={`text-xs ${days <= 0 ? "text-red-400" :
+                          days <= 7 ? "text-orange-400" :
+                            days <= 30 ? "text-yellow-400" : "text-muted"
+                        }`}>
                         {days <= 0 ? "หมดอายุแล้ว" : `เหลือ ${days} วัน`}
                       </p>
                     );

@@ -16,7 +16,7 @@ import {
   Search,
   ChevronDown,
 } from "lucide-react";
-import { mockTrucks, mockTrailers } from "./TruckProfiles";
+import { mockTrucks, mockTrailers } from "@/data/truckData";
 import { employees } from "@/data/mockData";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -276,18 +276,20 @@ export default function NewOrderForm({
   };
 
   const updateItem = (index: number, field: keyof OrderItem, value: string | number) => {
-    const newItems = [...items];
-    (newItems[index] as any)[field] = value;
+    let updatedItems = items.map((item, i) =>
+      i === index ? ({ ...item, [field]: value } as OrderItem) : item
+    );
 
-    // ถ้าเปลี่ยน legalEntityId ให้อัพเดต legalEntityName ด้วย
     if (field === "legalEntityId") {
       const legalEntity = legalEntities.find((le) => le.id === value);
       if (legalEntity) {
-        newItems[index].legalEntityName = legalEntity.name;
+        updatedItems = updatedItems.map((item, i) =>
+          i === index ? { ...item, legalEntityName: legalEntity.name } : item
+        );
       }
     }
 
-    onItemsChange(newItems);
+    onItemsChange(updatedItems);
   };
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -304,10 +306,11 @@ export default function NewOrderForm({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* เลือกสาขา */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="branch-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               สาขา *
             </label>
             <select
+              id="branch-select"
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(parseInt(e.target.value))}
               className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -327,10 +330,11 @@ export default function NewOrderForm({
 
           {/* เลือกประเภทน้ำมัน */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="oil-type-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               ประเภทน้ำมัน *
             </label>
             <select
+              id="oil-type-select"
               value={selectedOilType}
               onChange={(e) => setSelectedOilType(e.target.value)}
               className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -346,10 +350,11 @@ export default function NewOrderForm({
 
           {/* จำนวน */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="quantity-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               จำนวน (ลิตร) *
             </label>
             <select
+              id="quantity-select"
               value={selectedQuantity}
               onChange={(e) => setSelectedQuantity(e.target.value)}
               className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -365,10 +370,11 @@ export default function NewOrderForm({
 
           {/* นิติบุคคล */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="legal-entity-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               นิติบุคคล *
             </label>
             <select
+              id="legal-entity-select"
               value={selectedLegalEntity}
               onChange={(e) => setSelectedLegalEntity(parseInt(e.target.value))}
               className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -432,7 +438,9 @@ export default function NewOrderForm({
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <Droplet className="w-4 h-4 text-blue-500" />
+                        <label htmlFor={`oil-type-${index}`} className="sr-only">ประเภทน้ำมัน</label>
                         <select
+                          id={`oil-type-${index}`}
                           value={item.oilType}
                           onChange={(e) => updateItem(index, "oilType", e.target.value)}
                           className="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white text-sm"
@@ -446,7 +454,9 @@ export default function NewOrderForm({
                       </div>
                     </td>
                     <td className="py-3 px-4">
+                      <label htmlFor={`item-quantity-${index}`} className="sr-only">จำนวน (ลิตร)</label>
                       <select
+                        id={`item-quantity-${index}`}
                         value={item.quantity}
                         onChange={(e) => updateItem(index, "quantity", parseFloat(e.target.value) || 0)}
                         className="w-32 px-2 py-1 text-right bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white text-sm"
@@ -459,7 +469,9 @@ export default function NewOrderForm({
                       </select>
                     </td>
                     <td className="py-3 px-4">
+                      <label htmlFor={`item-legal-entity-${index}`} className="sr-only">นิติบุคคล</label>
                       <select
+                        id={`item-legal-entity-${index}`}
                         value={item.legalEntityId}
                         onChange={(e) => updateItem(index, "legalEntityId", parseInt(e.target.value))}
                         className="w-full px-2 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white text-sm"
@@ -747,7 +759,7 @@ export default function NewOrderForm({
                           <>
                             {/* เลือกรถของ PTT */}
                             <div>
-                              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                              <label htmlFor="ptt-truck-btn" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                                 <span className="flex items-center gap-2">
                                   <Truck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                                   เลือกรถของ PTT
@@ -756,6 +768,7 @@ export default function NewOrderForm({
                               </label>
                               <button
                                 type="button"
+                                id="ptt-truck-btn"
                                 onClick={() => setIsPTTTruckSelected(!isPTTTruckSelected)}
                                 className={`w-full px-4 py-4 border-2 rounded-xl transition-all duration-200 font-medium shadow-sm flex items-center justify-center gap-3 ${isPTTTruckSelected
                                   ? "bg-gradient-to-r from-emerald-500 to-teal-500 border-emerald-500 text-white hover:from-emerald-600 hover:to-teal-600"
@@ -777,7 +790,7 @@ export default function NewOrderForm({
                           <>
                             {/* เลือกหัวรถ */}
                             <div>
-                              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                              <label htmlFor="truck-id-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                                 <span className="flex items-center gap-2">
                                   <Truck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                                   เลือกหัวรถ
@@ -785,6 +798,7 @@ export default function NewOrderForm({
                                 </span>
                               </label>
                               <select
+                                id="truck-id-select"
                                 value={truckDriverForm.truckId}
                                 onChange={(e) => setTruckDriverForm({ ...truckDriverForm, truckId: e.target.value })}
                                 className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
@@ -800,7 +814,7 @@ export default function NewOrderForm({
 
                             {/* เลือกหางรถ */}
                             <div>
-                              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                              <label htmlFor="trailer-id-select" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                                 <span className="flex items-center gap-2">
                                   <Droplet className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                                   เลือกหางรถ
@@ -808,6 +822,7 @@ export default function NewOrderForm({
                                 </span>
                               </label>
                               <select
+                                id="trailer-id-select"
                                 value={truckDriverForm.trailerId}
                                 onChange={(e) => setTruckDriverForm({ ...truckDriverForm, trailerId: e.target.value })}
                                 className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
@@ -823,7 +838,7 @@ export default function NewOrderForm({
 
                             {/* เลือกคนขับ */}
                             <div className="relative" ref={driverDropdownRef}>
-                              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                              <label htmlFor="driver-select-btn" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                                 <span className="flex items-center gap-2">
                                   <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                   เลือกคนขับรถ
@@ -834,6 +849,7 @@ export default function NewOrderForm({
                               {/* Dropdown Button */}
                               <button
                                 type="button"
+                                id="driver-select-btn"
                                 onClick={() => setIsDriverDropdownOpen(!isDriverDropdownOpen)}
                                 className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 font-medium shadow-sm hover:border-blue-500 dark:hover:border-blue-500 flex items-center justify-between gap-3"
                               >
@@ -886,7 +902,6 @@ export default function NewOrderForm({
                                           value={driverSearchQuery}
                                           onChange={(e) => setDriverSearchQuery(e.target.value)}
                                           className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                          autoFocus
                                         />
                                       </div>
                                     </div>
@@ -1107,9 +1122,10 @@ export default function NewOrderForm({
               </motion.div>
             </div>
           </>
-        )}
-      </AnimatePresence>
-    </div>
+        )
+        }
+      </AnimatePresence >
+    </div >
   );
 }
 

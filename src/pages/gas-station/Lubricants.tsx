@@ -132,13 +132,13 @@ export default function Lubricants() {
 
   const handleSale = () => {
     if (!selectedProduct || !saleQuantity) return;
-    
+
     const quantity = parseFloat(saleQuantity);
     if (isNaN(quantity) || quantity <= 0) {
       alert("กรุณากรอกจำนวนที่ถูกต้อง");
       return;
     }
-    
+
     if (quantity > selectedProduct.currentStock) {
       alert(`จำนวนที่ขายเกินสต็อกที่มี (สต็อกปัจจุบัน: ${selectedProduct.currentStock} ${selectedProduct.unit})`);
       return;
@@ -153,17 +153,17 @@ export default function Lubricants() {
       prev.map((p) =>
         p.id === selectedProduct.id
           ? {
-              ...p,
-              currentStock: newStock,
-              status: updateProductStatus(newStock, p.minThreshold),
-              lastUpdated: dateString,
-            }
+            ...p,
+            currentStock: newStock,
+            status: updateProductStatus(newStock, p.minThreshold),
+            lastUpdated: dateString,
+          }
           : p
       )
     );
 
     alert(`บันทึกการขายสำเร็จ!\n\nสินค้า: ${selectedProduct.name}\nจำนวน: ${quantity} ${selectedProduct.unit}\nยอดรวม: ${currencyFormatter.format(quantity * selectedProduct.pricePerUnit)}`);
-    
+
     setIsSaleModalOpen(false);
     setSelectedProduct(null);
     setSaleQuantity("");
@@ -171,7 +171,7 @@ export default function Lubricants() {
 
   const handleStockIn = () => {
     if (!selectedProduct || !stockInQuantity) return;
-    
+
     const quantity = parseFloat(stockInQuantity);
     if (isNaN(quantity) || quantity <= 0) {
       alert("กรุณากรอกจำนวนที่ถูกต้อง");
@@ -187,17 +187,17 @@ export default function Lubricants() {
       prev.map((p) =>
         p.id === selectedProduct.id
           ? {
-              ...p,
-              currentStock: newStock,
-              status: updateProductStatus(newStock, p.minThreshold),
-              lastUpdated: dateString,
-            }
+            ...p,
+            currentStock: newStock,
+            status: updateProductStatus(newStock, p.minThreshold),
+            lastUpdated: dateString,
+          }
           : p
       )
     );
 
     alert(`บันทึกการเพิ่มสต็อกสำเร็จ!\n\nสินค้า: ${selectedProduct.name}\nจำนวนที่เพิ่ม: ${quantity} ${selectedProduct.unit}\nสต็อกใหม่: ${newStock} ${selectedProduct.unit}`);
-    
+
     setIsStockInModalOpen(false);
     setSelectedProduct(null);
     setStockInQuantity("");
@@ -395,11 +395,10 @@ export default function Lubricants() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                      product.status === "low-stock" || product.status === "out-of-stock"
+                    className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${product.status === "low-stock" || product.status === "out-of-stock"
                         ? "bg-orange-50/30 dark:bg-orange-900/10"
                         : ""
-                    }`}
+                      }`}
                   >
                     <td className="py-4 px-6 text-sm font-semibold text-gray-800 dark:text-white">
                       {product.name}
@@ -585,7 +584,6 @@ export default function Lubricants() {
                   onChange={(e) => setSaleQuantity(e.target.value)}
                   placeholder="0"
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white"
-                  autoFocus
                 />
               </div>
 
@@ -686,7 +684,6 @@ export default function Lubricants() {
                   onChange={(e) => setStockInQuantity(e.target.value)}
                   placeholder="0"
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
-                  autoFocus
                 />
               </div>
 

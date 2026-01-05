@@ -299,9 +299,9 @@ export default function Reports() {
                   </span>
                 </div>
                 <div className="w-full h-2 bg-soft rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan"
-                    style={{ width: `${percentage}%` }}
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan w-[var(--revenue-percentage)]"
+                    style={{ "--revenue-percentage": `${percentage}%` } as React.CSSProperties}
                   />
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted">
@@ -333,8 +333,8 @@ export default function Reports() {
             >
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${index === 0 ? "bg-ptt-blue/20 text-ptt-cyan" :
-                    index === 1 ? "bg-emerald-500/20 text-emerald-400" :
-                      "bg-muted/20 text-muted"
+                  index === 1 ? "bg-emerald-500/20 text-emerald-400" :
+                    "bg-muted/20 text-muted"
                   }`}>
                   <span className="text-sm font-bold">{index + 1}</span>
                 </div>

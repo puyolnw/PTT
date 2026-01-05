@@ -72,8 +72,8 @@ const getBuddhistYear = (date: Date): number => {
 };
 
 // Mock data ตามรูปภาพ - เก็บข้อมูลเป็น key-value โดยใช้ "year-month" เป็น key
-const mockMonthlyDataMap: Record<string, MonthlySummary> = {
-  "2565-0": {
+const mockMonthlyDataMap = new Map<string, MonthlySummary>([
+  ["2565-0", {
     month: "มกราคม",
     year: 2565,
     rows: [
@@ -235,8 +235,8 @@ const mockMonthlyDataMap: Record<string, MonthlySummary> = {
     totalAccumulatedDifference: -299,
     totalMoneyDifference: -8834.19,
     totalAccumulatedMoney: 6144.71,
-  },
-  "2565-1": {
+  }],
+  ["2565-1", {
     month: "กุมภาพันธ์",
     year: 2565,
     rows: [
@@ -398,8 +398,8 @@ const mockMonthlyDataMap: Record<string, MonthlySummary> = {
     totalAccumulatedDifference: -299,
     totalMoneyDifference: -16249.64,
     totalAccumulatedMoney: 4990.33,
-  },
-};
+  }],
+]);
 
 export default function BalancePetrolMonthly() {
   // ใช้เวลาปัจจุบันเป็นค่าเริ่มต้น
@@ -423,8 +423,8 @@ export default function BalancePetrolMonthly() {
 
   // ดึงข้อมูลตามเดือนและปีที่เลือก
   const dataKey = `${selectedYear}-${selectedMonth}`;
-  const currentData = mockMonthlyDataMap[dataKey] || {
-    month: thaiMonths[selectedMonth],
+  const currentData = mockMonthlyDataMap.get(dataKey) || {
+    month: thaiMonths.find((_, i) => i === selectedMonth) || "",
     year: selectedYear,
     rows: [],
     totalReceive: 0,
@@ -478,7 +478,7 @@ export default function BalancePetrolMonthly() {
             <Calendar className="w-5 h-5 text-gray-400" />
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">เลือกเดือนและปี:</span>
           </div>
-          
+
           <div className="flex items-center gap-3">
             {/* Year Dropdown */}
             <div className="relative">
@@ -497,6 +497,13 @@ export default function BalancePetrolMonthly() {
                   <div
                     className="fixed inset-0 z-10"
                     onClick={() => setShowYearDropdown(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setShowYearDropdown(false);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   />
                   <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto min-w-[120px]">
                     {availableYears.map((year) => (
@@ -506,11 +513,10 @@ export default function BalancePetrolMonthly() {
                           setSelectedYear(year);
                           setShowYearDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          selectedYear === year
-                            ? "bg-blue-500 text-white hover:bg-blue-600"
-                            : "text-gray-700 dark:text-gray-300"
-                        }`}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${selectedYear === year
+                          ? "bg-blue-500 text-white hover:bg-blue-600"
+                          : "text-gray-700 dark:text-gray-300"
+                          }`}
                       >
                         {year}
                       </button>
@@ -529,7 +535,7 @@ export default function BalancePetrolMonthly() {
                 }}
                 className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 min-w-[150px] justify-between"
               >
-                <span>{thaiMonths[selectedMonth]}</span>
+                <span>{thaiMonths.find((_, i) => i === selectedMonth) || ""}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showMonthDropdown ? "rotate-180" : ""}`} />
               </button>
               {showMonthDropdown && (
@@ -537,6 +543,13 @@ export default function BalancePetrolMonthly() {
                   <div
                     className="fixed inset-0 z-10"
                     onClick={() => setShowMonthDropdown(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setShowMonthDropdown(false);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   />
                   <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto min-w-[150px]">
                     {thaiMonths.map((month, index) => (
@@ -546,11 +559,10 @@ export default function BalancePetrolMonthly() {
                           setSelectedMonth(index);
                           setShowMonthDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          selectedMonth === index
-                            ? "bg-blue-500 text-white hover:bg-blue-600"
-                            : "text-gray-700 dark:text-gray-300"
-                        }`}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${selectedMonth === index
+                          ? "bg-blue-500 text-white hover:bg-blue-600"
+                          : "text-gray-700 dark:text-gray-300"
+                          }`}
                       >
                         {month}
                       </button>
@@ -792,9 +804,8 @@ export default function BalancePetrolMonthly() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 ${
-            currentData.totalDifference < 0 ? "border-l-4 border-red-500" : "border-l-4 border-emerald-500"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 ${currentData.totalDifference < 0 ? "border-l-4 border-red-500" : "border-l-4 border-emerald-500"
+            }`}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -814,9 +825,8 @@ export default function BalancePetrolMonthly() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.45 }}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 ${
-            currentData.totalAccumulatedMoney < 0 ? "border-l-4 border-red-500" : "border-l-4 border-emerald-500"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 ${currentData.totalAccumulatedMoney < 0 ? "border-l-4 border-red-500" : "border-l-4 border-emerald-500"
+            }`}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">

@@ -90,10 +90,11 @@ export default function TruckDriverForm({ trucks, trailers, drivers, onAdd }: Tr
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* เลือกรถ */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="truck-driver-truck-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             เลือกรถ <span className="text-red-500">*</span>
           </label>
           <select
+            id="truck-driver-truck-select"
             value={formData.truckId}
             onChange={(e) => {
               setFormData({ ...formData, truckId: e.target.value, trailerId: "" });
@@ -111,10 +112,11 @@ export default function TruckDriverForm({ trucks, trailers, drivers, onAdd }: Tr
 
         {/* เลือกหาง */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="truck-driver-trailer-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             เลือกหาง <span className="text-red-500">*</span>
           </label>
           <select
+            id="truck-driver-trailer-select"
             value={formData.trailerId}
             onChange={(e) => setFormData({ ...formData, trailerId: e.target.value })}
             disabled={!formData.truckId || availableTrailers.length === 0}
@@ -134,10 +136,11 @@ export default function TruckDriverForm({ trucks, trailers, drivers, onAdd }: Tr
 
         {/* เลือกคนขับ */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="truck-driver-driver-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             เลือกคนขับ <span className="text-red-500">*</span>
           </label>
           <select
+            id="truck-driver-driver-select"
             value={formData.driverId}
             onChange={(e) => setFormData({ ...formData, driverId: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"

@@ -243,10 +243,11 @@ export default function POGeneration() {
                             </h3>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="select-truck" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         รถหัว *
                                     </label>
                                     <select
+                                        id="select-truck"
                                         value={selectedTruck}
                                         onChange={(e) => {
                                             setSelectedTruck(e.target.value);
@@ -266,10 +267,11 @@ export default function POGeneration() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="select-trailer" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         หาง *
                                     </label>
                                     <select
+                                        id="select-trailer"
                                         value={selectedTrailer}
                                         onChange={(e) => setSelectedTrailer(e.target.value)}
                                         disabled={!selectedTruck}
@@ -285,10 +287,11 @@ export default function POGeneration() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="select-driver" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         คนขับ *
                                     </label>
                                     <select
+                                        id="select-driver"
                                         value={selectedDriver}
                                         onChange={(e) => setSelectedDriver(e.target.value)}
                                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"

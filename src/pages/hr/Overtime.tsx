@@ -126,40 +126,41 @@ const getEmployeeBaseSalary = (empCode: string): number => {
   if (!employee) return 0;
 
   // Mock base salary (ฐานเงินเดือน)
-  const mockBaseSalaries: Record<string, number> = {
-    "EMP-0001": 30000,
-    "EMP-0002": 25000,
-    "EMP-0003": 22000,
-    "EMP-0004": 18000,
-    "EMP-0005": 25000,
-    "EMP-0006": 19000,
-    "EMP-0007": 20000,
-    "EMP-0008": 25000,
-    "EMP-0009": 18000,
-    "EMP-0012": 17000,
-    "EMP-0013": 23000,
-    "EMP-0014": 24000,
-    "EMP-0015": 19000,
-    "EMP-0016": 20000,
-    "EMP-0017": 20000,
-    "EMP-0018": 19500,
-    "EMP-0019": 24000,
-    "EMP-0020": 22000,
-    "EMP-0021": 21000,
-    "EMP-0022": 21500,
-    "EMP-0023": 28000,
-    "EMP-0024": 27000,
-    "EMP-0025": 17500,
-    "EMP-0026": 25000,
-    "EMP-0027": 26000,
-    "EMP-0028": 24000,
-    "EMP-0029": 20000,
-    "EMP-0030": 21000,
-    "EMP-0031": 18000,
-    "EMP-0032": 22000,
-  };
+  /* SAFE ACCESS: Using Map instead of object for employee base salaries */
+  const mockBaseSalariesMap = new Map([
+    ["EMP-0001", 30000],
+    ["EMP-0002", 25000],
+    ["EMP-0003", 22000],
+    ["EMP-0004", 18000],
+    ["EMP-0005", 25000],
+    ["EMP-0006", 19000],
+    ["EMP-0007", 20000],
+    ["EMP-0008", 25000],
+    ["EMP-0009", 18000],
+    ["EMP-0012", 17000],
+    ["EMP-0013", 23000],
+    ["EMP-0014", 24000],
+    ["EMP-0015", 19000],
+    ["EMP-0016", 20000],
+    ["EMP-0017", 20000],
+    ["EMP-0018", 19500],
+    ["EMP-0019", 24000],
+    ["EMP-0020", 22000],
+    ["EMP-0021", 21000],
+    ["EMP-0022", 21500],
+    ["EMP-0023", 28000],
+    ["EMP-0024", 27000],
+    ["EMP-0025", 17500],
+    ["EMP-0026", 25000],
+    ["EMP-0027", 26000],
+    ["EMP-0028", 24000],
+    ["EMP-0029", 20000],
+    ["EMP-0030", 21000],
+    ["EMP-0031", 18000],
+    ["EMP-0032", 22000],
+  ]);
 
-  return mockBaseSalaries[empCode] || 20000;
+  return mockBaseSalariesMap.get(empCode) || 20000;
 };
 
 export default function Overtime() {
@@ -390,16 +391,16 @@ export default function Overtime() {
 
   // Get status badge
   const getStatusBadge = (status: OTRequestStatus) => {
-    const badges = {
-      pending_manager: { text: "รอผู้จัดการพิจารณา", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-      pending_hr: { text: "รอ HR ส่งเรื่อง", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-      pending_admin: { text: "รอหัวหน้าสถานีอนุมัติ", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
-      approved: { text: "อนุมัติแล้ว", color: "bg-green-500/20 text-green-400 border-green-500/30" },
-      rejected: { text: "ปฏิเสธ", color: "bg-red-500/20 text-red-400 border-red-500/30" },
-      completed: { text: "ทำ OT เสร็จแล้ว", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" }
-    };
+    const badges = new Map([
+      ["pending_manager", { text: "รอผู้จัดการพิจารณา", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" }],
+      ["pending_hr", { text: "รอ HR ส่งเรื่อง", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" }],
+      ["pending_admin", { text: "รอหัวหน้าสถานีอนุมัติ", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" }],
+      ["approved", { text: "อนุมัติแล้ว", color: "bg-green-500/20 text-green-400 border-green-500/30" }],
+      ["rejected", { text: "ปฏิเสธ", color: "bg-red-500/20 text-red-400 border-red-500/30" }],
+      ["completed", { text: "ทำ OT เสร็จแล้ว", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" }]
+    ]);
 
-    const badge = badges[status];
+    const badge = badges.get(status) || { text: status, color: "bg-gray-500/20 text-gray-400 border-gray-500/30" };
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${badge.color}`}>
         {badge.text}
@@ -409,12 +410,12 @@ export default function Overtime() {
 
   // Get rate type label
   const getRateTypeLabel = (rateType: OTRateType) => {
-    const labels = {
-      normal: "1 เท่า (งานทั่วไป)",
-      special: "1.5 เท่า (งานสำคัญ)",
-      seven_eleven_double: "1.5 เท่า (7-Eleven ควงกะ)"
-    };
-    return labels[rateType];
+    const labels = new Map([
+      ["normal", "1 เท่า (งานทั่วไป)"],
+      ["special", "1.5 เท่า (งานสำคัญ)"],
+      ["seven_eleven_double", "1.5 เท่า (7-Eleven ควงกะ)"]
+    ]);
+    return labels.get(rateType) || rateType;
   };
 
   return (
@@ -466,7 +467,9 @@ export default function Overtime() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
         <div className="flex-1 min-w-[200px]">
+          <label htmlFor="ot-search" className="sr-only">ค้นหาพนักงาน</label>
           <input
+            id="ot-search"
             type="text"
             placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
             value={searchQuery}
@@ -474,22 +477,30 @@ export default function Overtime() {
             className="w-full px-4 py-2 bg-soft border border-app rounded-xl text-app placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ptt-blue"
           />
         </div>
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-        >
-          <option value="">ทุกแผนก</option>
-          {categories.map(cat => (
-            <option key={cat} value={cat || ""}>{cat}</option>
-          ))}
-        </select>
-        <input
-          type="month"
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          className="px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
-        />
+        <div>
+          <label htmlFor="ot-category-filter" className="sr-only">กรองตามแผนก</label>
+          <select
+            id="ot-category-filter"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+          >
+            <option value="">ทุกแผนก</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat || ""}>{cat}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="ot-month-filter" className="sr-only">กรองตามเดือน</label>
+          <input
+            id="ot-month-filter"
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
+          />
+        </div>
       </div>
 
       {/* View: Requests (ผู้จัดการยื่นเรื่อง) */}
@@ -807,8 +818,9 @@ export default function Overtime() {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">เลือกพนักงาน *</label>
+                <label htmlFor="req-emp-code" className="block text-sm font-semibold text-app mb-2">เลือกพนักงาน *</label>
                 <select
+                  id="req-emp-code"
                   value={requestForm.empCode}
                   onChange={(e) => {
                     setRequestForm({ ...requestForm, empCode: e.target.value });
@@ -834,8 +846,9 @@ export default function Overtime() {
                 );
               })()}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">วันที่ทำ OT *</label>
+                <label htmlFor="req-date" className="block text-sm font-semibold text-app mb-2">วันที่ทำ OT *</label>
                 <input
+                  id="req-date"
                   type="date"
                   value={requestForm.date}
                   onChange={(e) => setRequestForm({ ...requestForm, date: e.target.value })}
@@ -843,8 +856,9 @@ export default function Overtime() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">ชั่วโมง OT *</label>
+                <label htmlFor="req-hours" className="block text-sm font-semibold text-app mb-2">ชั่วโมง OT *</label>
                 <input
+                  id="req-hours"
                   type="number"
                   step="0.5"
                   min="1"
@@ -855,8 +869,9 @@ export default function Overtime() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">ประเภท OT *</label>
+                <label htmlFor="req-rate-type" className="block text-sm font-semibold text-app mb-2">ประเภท OT *</label>
                 <select
+                  id="req-rate-type"
                   value={requestForm.rateType}
                   onChange={(e) => setRequestForm({ ...requestForm, rateType: e.target.value as OTRateType })}
                   className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -884,8 +899,9 @@ export default function Overtime() {
                 );
               })()}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">เหตุผล *</label>
+                <label htmlFor="req-reason" className="block text-sm font-semibold text-app mb-2">เหตุผล *</label>
                 <textarea
+                  id="req-reason"
                   value={requestForm.reason}
                   onChange={(e) => setRequestForm({ ...requestForm, reason: e.target.value })}
                   className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -931,8 +947,9 @@ export default function Overtime() {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">เลือก OT Request *</label>
+                <label htmlFor="rec-request-id" className="block text-sm font-semibold text-app mb-2">เลือก OT Request *</label>
                 <select
+                  id="rec-request-id"
                   value={recordForm.requestId}
                   onChange={(e) => setRecordForm({ ...recordForm, requestId: e.target.value })}
                   className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -958,8 +975,9 @@ export default function Overtime() {
                 );
               })()}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">เวลาสแกนนิ้วมือเข้า OT</label>
+                <label htmlFor="rec-fingerprint-in" className="block text-sm font-semibold text-app mb-2">เวลาสแกนนิ้วมือเข้า OT</label>
                 <input
+                  id="rec-fingerprint-in"
                   type="time"
                   value={recordForm.fingerprintIn}
                   onChange={(e) => setRecordForm({ ...recordForm, fingerprintIn: e.target.value })}
@@ -967,8 +985,9 @@ export default function Overtime() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">เวลาสแกนนิ้วมือออก OT</label>
+                <label htmlFor="rec-fingerprint-out" className="block text-sm font-semibold text-app mb-2">เวลาสแกนนิ้วมือออก OT</label>
                 <input
+                  id="rec-fingerprint-out"
                   type="time"
                   value={recordForm.fingerprintOut}
                   onChange={(e) => setRecordForm({ ...recordForm, fingerprintOut: e.target.value })}
@@ -976,8 +995,9 @@ export default function Overtime() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">ชั่วโมงที่ยืนยันจากผู้จัดการ *</label>
+                <label htmlFor="rec-confirmed-hours" className="block text-sm font-semibold text-app mb-2">ชั่วโมงที่ยืนยันจากผู้จัดการ *</label>
                 <input
+                  id="rec-confirmed-hours"
                   type="number"
                   step="0.5"
                   min="1"

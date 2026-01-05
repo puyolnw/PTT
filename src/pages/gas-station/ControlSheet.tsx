@@ -156,20 +156,35 @@ export default function ControlSheet() {
         }
     };
 
-    // Handler for updating cell value
     const handleCellUpdate = (
         sectionIndex: number,
         entryIndex: number,
         field: keyof ControlSheetEntry,
         value: string | number
     ) => {
-        const newData = [...controlSheetData];
-        if (field === "amount") {
-            newData[sectionIndex].entries[entryIndex][field] = parseFloat(value as string) || 0;
-        } else {
-            newData[sectionIndex].entries[entryIndex][field] = value as any;
-        }
-        setControlSheetData(newData);
+        setControlSheetData((prevData) =>
+            prevData.map((section, sIdx) => {
+                if (sIdx !== sectionIndex) return section;
+
+                const updatedEntries = section.entries.map((entry, eIdx) => {
+                    if (eIdx !== entryIndex) return entry;
+
+                    const updatedEntry = { ...entry };
+                    if (field === "amount") {
+                        updatedEntry.amount = parseFloat(value as string) || 0;
+                    } else if (field === "code") {
+                        updatedEntry.code = value as string;
+                    } else if (field === "description") {
+                        updatedEntry.description = value as string;
+                    } else if (field === "note") {
+                        updatedEntry.note = value as string;
+                    }
+                    return updatedEntry;
+                });
+
+                return { ...section, entries: updatedEntries };
+            })
+        );
     };
 
     // Handler for starting edit mode
@@ -230,10 +245,11 @@ export default function ControlSheet() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Filter Type Dropdown */}
                     <div className="relative">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="filter-type-button" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             ประเภทการกรอง
                         </label>
                         <button
+                            id="filter-type-button"
                             onClick={() => setShowFilterDropdown(!showFilterDropdown)}
                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-left flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                         >
@@ -280,7 +296,7 @@ export default function ControlSheet() {
 
                     {/* Date Input based on Filter Type */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="filter-date-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             {filterType === "day" && "เลือกวันที่"}
                             {filterType === "month" && "เลือกเดือน"}
                             {filterType === "year" && "เลือกปี"}
@@ -288,6 +304,7 @@ export default function ControlSheet() {
 
                         {filterType === "day" && (
                             <input
+                                id="filter-date-input"
                                 type="date"
                                 value={selectedDate}
                                 onChange={(e) => setSelectedDate(e.target.value)}
@@ -297,6 +314,7 @@ export default function ControlSheet() {
 
                         {filterType === "month" && (
                             <input
+                                id="filter-date-input"
                                 type="month"
                                 value={selectedMonth}
                                 onChange={(e) => setSelectedMonth(e.target.value)}
@@ -306,6 +324,7 @@ export default function ControlSheet() {
 
                         {filterType === "year" && (
                             <input
+                                id="filter-date-input"
                                 type="number"
                                 value={selectedYear}
                                 onChange={(e) => setSelectedYear(e.target.value)}
@@ -439,12 +458,16 @@ export default function ControlSheet() {
                                                             if (e.key === "Enter") finishEditing();
                                                             if (e.key === "Escape") finishEditing();
                                                         }}
-                                                        autoFocus
                                                         className="w-full px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                                     />
                                                 ) : (
                                                     <div
+                                                        role="button"
+                                                        tabIndex={0}
                                                         onClick={() => startEditing(sectionIndex, entryIndex, "code")}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter" || e.key === " ") startEditing(sectionIndex, entryIndex, "code");
+                                                        }}
                                                         className="font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded"
                                                     >
                                                         {entry.code}
@@ -466,12 +489,16 @@ export default function ControlSheet() {
                                                             if (e.key === "Enter") finishEditing();
                                                             if (e.key === "Escape") finishEditing();
                                                         }}
-                                                        autoFocus
                                                         className="w-full px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                                     />
                                                 ) : (
                                                     <div
+                                                        role="button"
+                                                        tabIndex={0}
                                                         onClick={() => startEditing(sectionIndex, entryIndex, "description")}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter" || e.key === " ") startEditing(sectionIndex, entryIndex, "description");
+                                                        }}
                                                         className="text-gray-800 dark:text-gray-200 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded"
                                                     >
                                                         {entry.description}
@@ -494,12 +521,16 @@ export default function ControlSheet() {
                                                             if (e.key === "Enter") finishEditing();
                                                             if (e.key === "Escape") finishEditing();
                                                         }}
-                                                        autoFocus
                                                         className="w-full px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded font-semibold text-gray-800 dark:text-white text-right focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                                     />
                                                 ) : (
                                                     <div
+                                                        role="button"
+                                                        tabIndex={0}
                                                         onClick={() => startEditing(sectionIndex, entryIndex, "amount")}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter" || e.key === " ") startEditing(sectionIndex, entryIndex, "amount");
+                                                        }}
                                                         className="font-semibold text-gray-800 dark:text-white cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded inline-block"
                                                     >
                                                         {entry.amount > 0 ? numberFormatter.format(entry.amount) : "-"}
@@ -521,12 +552,16 @@ export default function ControlSheet() {
                                                             if (e.key === "Enter") finishEditing();
                                                             if (e.key === "Escape") finishEditing();
                                                         }}
-                                                        autoFocus
                                                         className="w-full px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-xs text-gray-600 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                                     />
                                                 ) : (
                                                     <div
+                                                        role="button"
+                                                        tabIndex={0}
                                                         onClick={() => startEditing(sectionIndex, entryIndex, "note")}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter" || e.key === " ") startEditing(sectionIndex, entryIndex, "note");
+                                                        }}
                                                         className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded"
                                                     >
                                                         {entry.note || "-"}

@@ -146,11 +146,11 @@ export default function UpdateStock() {
   const filteredStockItems = useMemo(() => {
     // กรองออกมายมาส และกรองตามสาขาที่เลือก
     let filtered = stockItems.filter(item => item.branch !== "มายมาส");
-    
+
     if (selectedBranch !== "all") {
       filtered = filtered.filter(item => item.branch === selectedBranch);
     }
-    
+
     // เรียงตามสาขา (ไฮโซ -> ดินดำ -> หนองจิก -> ตักสิลา -> บายพาส) แล้วตามหลุม
     return [...filtered].sort((a, b) => {
       if (a.branch !== b.branch) {
@@ -163,17 +163,17 @@ export default function UpdateStock() {
 
   // สรุปข้อมูลตามสาขา (ไม่รวมมายมาส)
   const branchSummary = useMemo(() => {
-    const summary: Record<string, { totalUsage: number; updatedCount: number; totalItems: number }> = {};
-    
+    const summary = new Map<string, { totalUsage: number; updatedCount: number; totalItems: number }>();
+
     branches.forEach(branch => {
       const branchItems = stockItems.filter(item => item.branch === branch.name && item.branch !== "มายมาส");
-      summary[branch.name] = {
+      summary.set(branch.name, {
         totalUsage: branchItems.reduce((sum, item) => sum + item.usageAmount, 0),
         updatedCount: branchItems.filter(item => item.usageAmount > 0).length,
         totalItems: branchItems.length,
-      };
+      });
     });
-    
+
     return summary;
   }, [stockItems]);
 
@@ -215,12 +215,11 @@ export default function UpdateStock() {
           status: "pending",
         }))
       );
-
       setSaveSuccess(true);
       setTimeout(() => {
         setSaveSuccess(false);
       }, 3000);
-    } catch (error) {
+    } catch {
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
     } finally {
       setIsSaving(false);
@@ -270,8 +269,9 @@ export default function UpdateStock() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
             <Building2 className="w-5 h-5 text-gray-500" />
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">เลือกสาขา:</label>
+            <label htmlFor="update-stock-branch-select" className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">เลือกสาขา:</label>
             <select
+              id="update-stock-branch-select"
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
               className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -291,8 +291,9 @@ export default function UpdateStock() {
           </div>
           <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
             <Calendar className="w-5 h-5 text-gray-500" />
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">วันที่อัพเดต:</label>
+            <label htmlFor="update-stock-date-picker" className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">วันที่อัพเดต:</label>
             <input
+              id="update-stock-date-picker"
               type="date"
               value={updateDate}
               onChange={(e) => setUpdateDate(e.target.value)}
@@ -399,7 +400,7 @@ export default function UpdateStock() {
                 )}
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {selectedBranch === "all" 
+                {selectedBranch === "all"
                   ? "กรุณากรอกจำนวนน้ำมันที่ใช้ไปในระหว่างวันสำหรับแต่ละชนิดน้ำมันทุกสาขา"
                   : `กรุณากรอกจำนวนน้ำมันที่ใช้ไปในระหว่างวันสำหรับแต่ละชนิดน้ำมัน - ${selectedBranch}`
                 }
@@ -410,7 +411,7 @@ export default function UpdateStock() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">สรุปทุกสาขา</p>
                 <div className="flex flex-wrap gap-2 justify-end">
                   {branches.map((branch) => {
-                    const summary = branchSummary[branch.name];
+                    const summary = branchSummary.get(branch.name) || { totalUsage: 0, updatedCount: 0, totalItems: 0 };
                     return (
                       <div
                         key={branch.id}
@@ -462,9 +463,8 @@ export default function UpdateStock() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                    item.usageAmount > 0 ? "bg-blue-50/30 dark:bg-blue-900/10" : ""
-                  }`}
+                  className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${item.usageAmount > 0 ? "bg-blue-50/30 dark:bg-blue-900/10" : ""
+                    }`}
                 >
                   {selectedBranch === "all" && (
                     <td className="py-4 px-6 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -490,7 +490,11 @@ export default function UpdateStock() {
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-end gap-2">
+                      <label htmlFor={`usage-amount-${item.id}`} className="sr-only">
+                        จำนวนที่ใช้สำหรับ {item.oilType} ถังที่ {item.tankNumber}
+                      </label>
                       <input
+                        id={`usage-amount-${item.id}`}
                         type="number"
                         min="0"
                         max={item.currentStock}

@@ -250,16 +250,17 @@ export default function AccountingExport() {
 
                                     {/* Date Range */}
                                     <div className="mb-6">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                                        <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                                             <Calendar className="w-4 h-4 inline mr-2" />
                                             ช่วงเวลา
-                                        </label>
+                                        </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                                                <label htmlFor="export-start-date" className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
                                                     วันที่เริ่มต้น
                                                 </label>
                                                 <input
+                                                    id="export-start-date"
                                                     type="date"
                                                     value={startDate}
                                                     onChange={(e) => setStartDate(e.target.value)}
@@ -268,10 +269,11 @@ export default function AccountingExport() {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                                                <label htmlFor="export-end-date" className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
                                                     วันที่สิ้นสุด
                                                 </label>
                                                 <input
+                                                    id="export-end-date"
                                                     type="date"
                                                     value={endDate}
                                                     onChange={(e) => setEndDate(e.target.value)}
@@ -286,11 +288,12 @@ export default function AccountingExport() {
                                     {/* Oil Type Selection (for Stock Card only) */}
                                     {selectedReport === "stock-card" && (
                                         <div className="mb-6">
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                                            <label htmlFor="export-oil-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                                                 <Package className="w-4 h-4 inline mr-2" />
                                                 ประเภทน้ำมัน
                                             </label>
                                             <select
+                                                id="export-oil-type"
                                                 value={selectedOilType}
                                                 onChange={(e) => setSelectedOilType(e.target.value)}
                                                 className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 text-gray-800 dark:text-white"

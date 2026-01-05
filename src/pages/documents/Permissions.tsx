@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  Shield, 
+import {
+  Shield,
   User,
   Folder,
   FileText,
@@ -12,8 +12,8 @@ import {
   X
 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
-import { 
-  documents, 
+import {
+  documents,
   documentCategories,
   employees
 } from "@/data/mockData";
@@ -173,11 +173,10 @@ export default function Permissions() {
             <button
               key={type}
               onClick={() => setFilterType(type)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filterType === type
-                  ? "bg-ptt-blue text-app"
-                  : "bg-soft text-app hover:bg-app/10"
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterType === type
+                ? "bg-ptt-blue text-app"
+                : "bg-soft text-app hover:bg-app/10"
+                }`}
             >
               {type === "all" && "ทั้งหมด"}
               {type === "document" && "ตามเอกสาร"}
@@ -333,10 +332,11 @@ export default function Permissions() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="perm-type" className="block text-sm font-medium text-app mb-2">
               ประเภทสิทธิ์ <span className="text-red-400">*</span>
             </label>
             <select
+              id="perm-type"
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value as "document" | "category" | "user" | "role" })}
               className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
@@ -351,10 +351,11 @@ export default function Permissions() {
 
           {formData.type === "document" && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="perm-doc-id" className="block text-sm font-medium text-app mb-2">
                 เลือกเอกสาร <span className="text-red-400">*</span>
               </label>
               <select
+                id="perm-doc-id"
                 value={formData.documentId}
                 onChange={(e) => setFormData({ ...formData, documentId: e.target.value })}
                 className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
@@ -372,10 +373,11 @@ export default function Permissions() {
 
           {formData.type === "category" && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="perm-cat-id" className="block text-sm font-medium text-app mb-2">
                 เลือกหมวดหมู่ <span className="text-red-400">*</span>
               </label>
               <select
+                id="perm-cat-id"
                 value={formData.categoryId}
                 onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                 className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
@@ -393,10 +395,11 @@ export default function Permissions() {
 
           {formData.type === "user" && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="perm-user-id" className="block text-sm font-medium text-app mb-2">
                 เลือกผู้ใช้ <span className="text-red-400">*</span>
               </label>
               <select
+                id="perm-user-id"
                 value={formData.userId}
                 onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
                 className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
@@ -414,10 +417,11 @@ export default function Permissions() {
 
           {formData.type === "role" && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="perm-role" className="block text-sm font-medium text-app mb-2">
                 บทบาท <span className="text-red-400">*</span>
               </label>
               <input
+                id="perm-role"
                 type="text"
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
@@ -430,26 +434,53 @@ export default function Permissions() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-app mb-3">
+            <div className="block text-sm font-medium text-app mb-3">
               สิทธิ์การเข้าถึง
-            </label>
+            </div>
             <div className="space-y-3">
-              {([
-                { key: "read", label: "Read (R) - อ่านได้" },
-                { key: "write", label: "Write (W) - เขียน/สร้างได้" },
-                { key: "update", label: "Update (U) - แก้ไขได้" },
-                { key: "delete", label: "Delete (D) - ลบได้" }
-              ] as const).map(({ key, label }) => (
-                <label key={key} className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData[key]}
-                    onChange={(e) => setFormData({ ...formData, [key]: e.target.checked })}
-                    className="w-5 h-5 text-ptt-blue rounded focus:ring-ptt-blue"
-                  />
-                  <span className="text-sm text-app">{label}</span>
-                </label>
-              ))}
+              <label htmlFor="perm-checkbox-read" className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
+                <input
+                  id="perm-checkbox-read"
+                  type="checkbox"
+                  checked={formData.read}
+                  onChange={(e) => setFormData({ ...formData, read: e.target.checked })}
+                  className="w-5 h-5 text-ptt-blue rounded focus:ring-ptt-blue"
+                />
+                <span className="text-sm text-app">Read (R) - อ่านได้</span>
+              </label>
+
+              <label htmlFor="perm-checkbox-write" className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
+                <input
+                  id="perm-checkbox-write"
+                  type="checkbox"
+                  checked={formData.write}
+                  onChange={(e) => setFormData({ ...formData, write: e.target.checked })}
+                  className="w-5 h-5 text-ptt-blue rounded focus:ring-ptt-blue"
+                />
+                <span className="text-sm text-app">Write (W) - เขียน/สร้างได้</span>
+              </label>
+
+              <label htmlFor="perm-checkbox-update" className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
+                <input
+                  id="perm-checkbox-update"
+                  type="checkbox"
+                  checked={formData.update}
+                  onChange={(e) => setFormData({ ...formData, update: e.target.checked })}
+                  className="w-5 h-5 text-ptt-blue rounded focus:ring-ptt-blue"
+                />
+                <span className="text-sm text-app">Update (U) - แก้ไขได้</span>
+              </label>
+
+              <label htmlFor="perm-checkbox-delete" className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
+                <input
+                  id="perm-checkbox-delete"
+                  type="checkbox"
+                  checked={formData.delete}
+                  onChange={(e) => setFormData({ ...formData, delete: e.target.checked })}
+                  className="w-5 h-5 text-ptt-blue rounded focus:ring-ptt-blue"
+                />
+                <span className="text-sm text-app">Delete (D) - ลบได้</span>
+              </label>
             </div>
           </div>
         </div>

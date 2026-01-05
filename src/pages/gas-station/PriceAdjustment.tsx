@@ -160,14 +160,14 @@ export default function PriceAdjustment() {
       filteredPrices.length === 0
         ? 0
         : filteredPrices.reduce((sum, p) => sum + p.currentPrice, 0) /
-          filteredPrices.length;
+        filteredPrices.length;
     const avgNewPrice =
       pendingChanges.length === 0
         ? null
         : pendingChanges.reduce(
-            (sum, p) => sum + (p.proposedPrice ?? p.currentPrice),
-            0
-          ) / filteredPrices.length;
+          (sum, p) => sum + (p.proposedPrice ?? p.currentPrice),
+          0
+        ) / filteredPrices.length;
 
     return {
       totalOilTypes,
@@ -185,12 +185,12 @@ export default function PriceAdjustment() {
       prev.map((p) =>
         p.id === id
           ? {
-              ...p,
-              proposedPrice: numeric,
-              effectiveDate: p.effectiveDate ?? globalEffectiveDate,
-              effectiveTime: p.effectiveTime ?? globalEffectiveTime,
-              status: "ร่าง",
-            }
+            ...p,
+            proposedPrice: numeric,
+            effectiveDate: p.effectiveDate ?? globalEffectiveDate,
+            effectiveTime: p.effectiveTime ?? globalEffectiveTime,
+            status: "ร่าง",
+          }
           : p
       )
     );
@@ -201,10 +201,10 @@ export default function PriceAdjustment() {
       prev.map((p) =>
         p.id === id
           ? {
-              ...p,
-              effectiveDate: date,
-              status: p.proposedPrice && p.proposedPrice !== p.currentPrice ? "รอมีผล" : p.status,
-            }
+            ...p,
+            effectiveDate: date,
+            status: p.proposedPrice && p.proposedPrice !== p.currentPrice ? "รอมีผล" : p.status,
+          }
           : p
       )
     );
@@ -215,10 +215,10 @@ export default function PriceAdjustment() {
       prev.map((p) =>
         p.id === id
           ? {
-              ...p,
-              effectiveTime: time,
-              status: p.proposedPrice && p.proposedPrice !== p.currentPrice ? "รอมีผล" : p.status,
-            }
+            ...p,
+            effectiveTime: time,
+            status: p.proposedPrice && p.proposedPrice !== p.currentPrice ? "รอมีผล" : p.status,
+          }
           : p
       )
     );
@@ -295,7 +295,9 @@ export default function PriceAdjustment() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <label htmlFor="branch-filter" className="sr-only">เลือกสาขา</label>
             <select
+              id="branch-filter"
               value={branchFilter}
               onChange={(e) => setBranchFilter(e.target.value)}
               className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
@@ -419,8 +421,10 @@ export default function PriceAdjustment() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="relative">
+              <label htmlFor="global-effective-date" className="sr-only">วันที่มีผลทั่วทั้งสาขา</label>
               <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
+                id="global-effective-date"
                 type="date"
                 value={globalEffectiveDate}
                 onChange={(e) => setGlobalEffectiveDate(e.target.value)}
@@ -428,8 +432,10 @@ export default function PriceAdjustment() {
               />
             </div>
             <div className="relative">
+              <label htmlFor="global-effective-time" className="sr-only">เวลาที่มีผลทั่วทั้งสาขา</label>
               <Clock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
+                id="global-effective-time"
                 type="time"
                 value={globalEffectiveTime}
                 onChange={(e) => setGlobalEffectiveTime(e.target.value)}
@@ -519,9 +525,8 @@ export default function PriceAdjustment() {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.25, delay: index * 0.03 }}
-                    className={`border-b border-gray-100 dark:border-gray-700 ${
-                      hasChange ? "bg-emerald-50/40 dark:bg-emerald-900/10" : ""
-                    }`}
+                    className={`border-b border-gray-100 dark:border-gray-700 ${hasChange ? "bg-emerald-50/40 dark:bg-emerald-900/10" : ""
+                      }`}
                   >
                     <td className="py-3 px-4 align-top">
                       <div className="flex items-center gap-2">
@@ -543,7 +548,9 @@ export default function PriceAdjustment() {
                     </td>
                     <td className="py-3 px-4 text-right align-top">
                       <div className="flex flex-col items-end gap-1">
+                        <label htmlFor={`proposed-price-${index}`} className="sr-only">ราคาขายใหม่สำหรับ {price.oilTypeName}</label>
                         <input
+                          id={`proposed-price-${index}`}
                           type="number"
                           step="0.01"
                           value={
@@ -557,11 +564,10 @@ export default function PriceAdjustment() {
                         />
                         {hasChange && (
                           <p
-                            className={`text-[11px] ${
-                              diff > 0
+                            className={`text-[11px] ${diff > 0
                                 ? "text-emerald-600 dark:text-emerald-400"
                                 : "text-red-500"
-                            }`}
+                              }`}
                           >
                             {diff > 0 ? "+" : ""}
                             {diff.toFixed(2)} บาท
@@ -572,8 +578,10 @@ export default function PriceAdjustment() {
                     <td className="py-3 px-4 align-top">
                       <div className="flex flex-col sm:flex-row gap-2 text-xs">
                         <div className="relative">
+                          <label htmlFor={`effective-date-${index}`} className="sr-only">วันที่เริ่มใช้สำหรับ {price.oilTypeName}</label>
                           <Calendar className="w-3.5 h-3.5 text-gray-400 absolute left-2 top-1/2 -translate-y-1/2" />
                           <input
+                            id={`effective-date-${index}`}
                             type="date"
                             value={price.effectiveDate ?? globalEffectiveDate}
                             onChange={(e) => handleChangeEffectiveDate(price.id, e.target.value)}
@@ -581,8 +589,10 @@ export default function PriceAdjustment() {
                           />
                         </div>
                         <div className="relative">
+                          <label htmlFor={`effective-time-${index}`} className="sr-only">เวลาที่เริ่มใช้สำหรับ {price.oilTypeName}</label>
                           <Clock className="w-3.5 h-3.5 text-gray-400 absolute left-2 top-1/2 -translate-y-1/2" />
                           <input
+                            id={`effective-time-${index}`}
                             type="time"
                             value={price.effectiveTime ?? globalEffectiveTime}
                             onChange={(e) => handleChangeEffectiveTime(price.id, e.target.value)}
@@ -598,8 +608,8 @@ export default function PriceAdjustment() {
                           {price.lastSource === "ไฟล์ ปตท."
                             ? "ไฟล์ราคาจาก ปตท."
                             : price.lastSource === "กรอกมือ"
-                            ? "ปรับเองโดยคุณนิด"
-                            : "API/ระบบอัตโนมัติ"}
+                              ? "ปรับเองโดยคุณนิด"
+                              : "API/ระบบอัตโนมัติ"}
                         </span>
                       </p>
                       <p>แก้ไขล่าสุด: {price.lastUpdated}</p>

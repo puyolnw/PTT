@@ -97,21 +97,19 @@ export default function AdvancedAnalytics() {
           <div className="flex gap-2">
             <button
               onClick={() => setForecastPeriod("3months")}
-              className={`px-4 py-2 rounded-xl text-sm transition-colors ${
-                forecastPeriod === "3months"
-                  ? "bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30"
-                  : "bg-soft text-muted border border-app"
-              }`}
+              className={`px-4 py-2 rounded-xl text-sm transition-colors ${forecastPeriod === "3months"
+                ? "bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30"
+                : "bg-soft text-muted border border-app"
+                }`}
             >
               3 เดือน
             </button>
             <button
               onClick={() => setForecastPeriod("6months")}
-              className={`px-4 py-2 rounded-xl text-sm transition-colors ${
-                forecastPeriod === "6months"
-                  ? "bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30"
-                  : "bg-soft text-muted border border-app"
-              }`}
+              className={`px-4 py-2 rounded-xl text-sm transition-colors ${forecastPeriod === "6months"
+                ? "bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30"
+                : "bg-soft text-muted border border-app"
+                }`}
             >
               6 เดือน
             </button>
@@ -129,8 +127,8 @@ export default function AdvancedAnalytics() {
           </div>
         </div>
         <div className="space-y-3">
-          {(forecastPeriod === "3months" 
-            ? mockAnalytics.cashFlowForecast.next3Months 
+          {(forecastPeriod === "3months"
+            ? mockAnalytics.cashFlowForecast.next3Months
             : mockAnalytics.cashFlowForecast.next6Months
           ).map((forecast, index) => (
             <div
@@ -151,7 +149,7 @@ export default function AdvancedAnalytics() {
                   <div className="flex items-center gap-1 text-xs text-muted mt-1">
                     {index > 0 && (
                       <>
-                        {forecast.forecast > (forecastPeriod === "3months" 
+                        {forecast.forecast > (forecastPeriod === "3months"
                           ? mockAnalytics.cashFlowForecast.next3Months[index - 1].forecast
                           : mockAnalytics.cashFlowForecast.next6Months[index - 1].forecast
                         ) ? (
@@ -160,13 +158,13 @@ export default function AdvancedAnalytics() {
                           <TrendingDown className="w-3 h-3 text-red-400" />
                         )}
                         <span>
-                          {((forecast.forecast - (forecastPeriod === "3months" 
+                          {((forecast.forecast - (forecastPeriod === "3months"
                             ? mockAnalytics.cashFlowForecast.next3Months[index - 1].forecast
                             : mockAnalytics.cashFlowForecast.next6Months[index - 1].forecast
-                          )) / (forecastPeriod === "3months" 
+                          )) / (forecastPeriod === "3months"
                             ? mockAnalytics.cashFlowForecast.next3Months[index - 1].forecast
                             : mockAnalytics.cashFlowForecast.next6Months[index - 1].forecast
-                          ) * 100).toFixed(1)}%
+                            ) * 100).toFixed(1)}%
                         </span>
                       </>
                     )}
@@ -175,9 +173,9 @@ export default function AdvancedAnalytics() {
               </div>
               <div className="mt-2">
                 <div className="h-2 bg-soft rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan"
-                    style={{ width: `${forecast.confidence}%` }}
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan transition-all duration-300 w-[var(--confidence-width)]"
+                    style={{ "--confidence-width": `${forecast.confidence}%` } as React.CSSProperties}
                   />
                 </div>
               </div>
@@ -291,17 +289,15 @@ export default function AdvancedAnalytics() {
               {currencyFormatter.format(mockAnalytics.varianceAnalysis.actual)}
             </p>
           </div>
-          <div className={`rounded-xl p-4 ${
-            mockAnalytics.varianceAnalysis.status === "favorable"
-              ? "bg-emerald-500/10 border border-emerald-500/30"
-              : "bg-red-500/10 border border-red-500/30"
-          }`}>
-            <p className="text-sm text-muted mb-1">ส่วนต่าง (Variance)</p>
-            <p className={`text-2xl font-bold ${
-              mockAnalytics.varianceAnalysis.status === "favorable"
-                ? "text-emerald-400"
-                : "text-red-400"
+          <div className={`rounded-xl p-4 ${mockAnalytics.varianceAnalysis.status === "favorable"
+            ? "bg-emerald-500/10 border border-emerald-500/30"
+            : "bg-red-500/10 border border-red-500/30"
             }`}>
+            <p className="text-sm text-muted mb-1">ส่วนต่าง (Variance)</p>
+            <p className={`text-2xl font-bold ${mockAnalytics.varianceAnalysis.status === "favorable"
+              ? "text-emerald-400"
+              : "text-red-400"
+              }`}>
               {mockAnalytics.varianceAnalysis.variance > 0 ? "+" : ""}
               {currencyFormatter.format(mockAnalytics.varianceAnalysis.variance)}
             </p>

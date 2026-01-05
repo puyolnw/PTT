@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   History,
@@ -210,15 +210,17 @@ export default function StockUpdateHistory() {
   };
 
   // จัดกลุ่มข้อมูลตามวันที่
-  const groupedByDate = filteredHistory.reduce((acc, item) => {
-    if (!acc[item.updateDate]) {
-      acc[item.updateDate] = [];
-    }
-    acc[item.updateDate].push(item);
-    return acc;
-  }, {} as Record<string, StockUpdateHistoryItem[]>);
+  const groupedByDate = useMemo(() => {
+    const groups = new Map<string, StockUpdateHistoryItem[]>();
+    filteredHistory.forEach((item) => {
+      const group = groups.get(item.updateDate) || [];
+      group.push(item);
+      groups.set(item.updateDate, group);
+    });
+    return groups;
+  }, [filteredHistory]);
 
-  const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
+  const sortedDates = useMemo(() => Array.from(groupedByDate.keys()).sort((a, b) => b.localeCompare(a)), [groupedByDate]);
 
   return (
     <div className="space-y-6 p-6">
@@ -320,7 +322,9 @@ export default function StockUpdateHistory() {
         {/* Search */}
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <label htmlFor="stock-history-search" className="sr-only">ค้นหา</label>
           <input
+            id="stock-history-search"
             type="text"
             placeholder="ค้นหาประเภทน้ำมัน, ผู้อัพเดต, รหัส..."
             value={searchTerm}
@@ -332,10 +336,11 @@ export default function StockUpdateHistory() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* ประเภทน้ำมัน */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="stock-history-oil-type" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               ประเภทน้ำมัน
             </label>
             <select
+              id="stock-history-oil-type"
               value={selectedOilType}
               onChange={(e) => setSelectedOilType(e.target.value)}
               className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/50 text-gray-800 dark:text-white transition-all duration-200"
@@ -353,10 +358,11 @@ export default function StockUpdateHistory() {
 
           {/* ช่วงเวลาที่ต้องการกรอง */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="stock-history-period" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               กรองตาม
             </label>
             <select
+              id="stock-history-period"
               value={filterPeriod}
               onChange={(e) => {
                 setFilterPeriod(e.target.value as FilterPeriod);
@@ -375,10 +381,11 @@ export default function StockUpdateHistory() {
           {/* ตัวกรองตามช่วงเวลาที่เลือก */}
           {filterPeriod === "day" && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="stock-history-date" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 เลือกวันที่
               </label>
               <input
+                id="stock-history-date"
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
@@ -390,10 +397,11 @@ export default function StockUpdateHistory() {
           {filterPeriod === "month" && (
             <>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="stock-history-month" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   เลือกเดือน
                 </label>
                 <select
+                  id="stock-history-month"
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/50 text-gray-800 dark:text-white transition-all duration-200"
@@ -407,10 +415,11 @@ export default function StockUpdateHistory() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="stock-history-year" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   เลือกปี
                 </label>
                 <select
+                  id="stock-history-year"
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/50 text-gray-800 dark:text-white transition-all duration-200"
@@ -428,10 +437,11 @@ export default function StockUpdateHistory() {
 
           {filterPeriod === "year" && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="stock-history-year-only" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 เลือกปี
               </label>
               <select
+                id="stock-history-year-only"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/50 text-gray-800 dark:text-white transition-all duration-200"
@@ -462,7 +472,7 @@ export default function StockUpdateHistory() {
       ) : (
         <div className="space-y-6">
           {sortedDates.map((date, dateIndex) => {
-            const items = groupedByDate[date];
+            const items = groupedByDate.get(date) || [];
             const dateUsage = items.reduce((sum, item) => sum + item.usageAmount, 0);
             const dateObj = new Date(date);
             const formattedDate = dateObj.toLocaleDateString("th-TH", {

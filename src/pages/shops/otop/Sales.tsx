@@ -149,17 +149,17 @@ export default function OtopSales() {
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file && selectedImportType && importDate.month && importDate.year) {
-                const typeNames = {
-                  sales: "ยอดขายรายวัน (Sales)",
-                  expenses: "บันทึกรายจ่าย (Expenses)",
-                  pl: "กำไร/ขาดทุน (P&L)",
-                };
+                const typeNames = new Map([
+                  ["sales", "ยอดขายรายวัน (Sales)"],
+                  ["expenses", "บันทึกรายจ่าย (Expenses)"],
+                  ["pl", "กำไร/ขาดทุน (P&L)"],
+                ]);
                 const dateRange =
                   importDate.startDate && importDate.endDate
                     ? `\nช่วงวันที่: ${importDate.startDate} ถึง ${importDate.endDate}`
                     : "";
                 alert(
-                  `กำลังนำเข้าข้อมูล${typeNames[selectedImportType]}\nเดือน: ${importDate.month} ${importDate.year}${dateRange}\nจากไฟล์: ${file.name}\n\n(ฟังก์ชันนี้ยังเป็น Mock - ระบบจะอ่านไฟล์และอัปเดตข้อมูลอัตโนมัติ)`
+                  `กำลังนำเข้าข้อมูล${typeNames.get(selectedImportType)}\nเดือน: ${importDate.month} ${importDate.year}${dateRange}\nจากไฟล์: ${file.name}\n\n(ฟังก์ชันนี้ยังเป็น Mock - ระบบจะอ่านไฟล์และอัปเดตข้อมูลอัตโนมัติ)`
                 );
                 setIsImportModalOpen(false);
                 setSelectedImportType(null);
@@ -191,33 +191,30 @@ export default function OtopSales() {
       <div className="flex border-b border-gray-200 bg-white rounded-t-lg px-4 pt-2">
         <button
           onClick={() => setActiveTab("sales")}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "sales"
-              ? "border-purple-600 text-purple-600 bg-purple-50/50"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
+          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === "sales"
+            ? "border-purple-600 text-purple-600 bg-purple-50/50"
+            : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
         >
           <Banknote className="h-4 w-4" />
           ยอดขายรายวัน (Sales)
         </button>
         <button
           onClick={() => setActiveTab("expenses")}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "expenses"
-              ? "border-purple-600 text-purple-600 bg-purple-50/50"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
+          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === "expenses"
+            ? "border-purple-600 text-purple-600 bg-purple-50/50"
+            : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
         >
           <Wallet className="h-4 w-4" />
           บันทึกรายจ่าย (Expenses)
         </button>
         <button
           onClick={() => setActiveTab("pl")}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "pl"
-              ? "border-purple-600 text-purple-600 bg-purple-50/50"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
+          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === "pl"
+            ? "border-purple-600 text-purple-600 bg-purple-50/50"
+            : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
         >
           <PieChart className="h-4 w-4" />
           กำไร/ขาดทุน (P&L)
@@ -464,8 +461,9 @@ export default function OtopSales() {
               <div className="text-sm font-semibold text-gray-700 mb-3">ช่วงวันที่ของข้อมูล</div>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">เดือน</label>
+                  <label htmlFor="otop-sales-import-month" className="block text-xs text-gray-600 mb-1">เดือน</label>
                   <select
+                    id="otop-sales-import-month"
                     value={importDate.month}
                     onChange={(e) => setImportDate({ ...importDate, month: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -479,8 +477,9 @@ export default function OtopSales() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">ปี (พ.ศ.)</label>
+                  <label htmlFor="otop-sales-import-year" className="block text-xs text-gray-600 mb-1">ปี (พ.ศ.)</label>
                   <select
+                    id="otop-sales-import-year"
                     value={importDate.year}
                     onChange={(e) => setImportDate({ ...importDate, year: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -496,8 +495,9 @@ export default function OtopSales() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">วันที่เริ่มต้น</label>
+                  <label htmlFor="otop-sales-import-start-date" className="block text-xs text-gray-600 mb-1">วันที่เริ่มต้น</label>
                   <input
+                    id="otop-sales-import-start-date"
                     type="date"
                     value={importDate.startDate}
                     onChange={(e) => setImportDate({ ...importDate, startDate: e.target.value })}
@@ -505,8 +505,9 @@ export default function OtopSales() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">วันที่สิ้นสุด</label>
+                  <label htmlFor="otop-sales-import-end-date" className="block text-xs text-gray-600 mb-1">วันที่สิ้นสุด</label>
                   <input
+                    id="otop-sales-import-end-date"
                     type="date"
                     value={importDate.endDate}
                     onChange={(e) => setImportDate({ ...importDate, endDate: e.target.value })}
@@ -520,98 +521,92 @@ export default function OtopSales() {
             <div className="mb-6">
               <div className="text-sm font-semibold text-gray-700 mb-3">ประเภทข้อมูล</div>
               <div className="space-y-3">
-              <button
-                onClick={() => {
-                  if (!importDate.month || !importDate.year) {
-                    alert("กรุณาเลือกเดือนและปีก่อน");
-                    return;
-                  }
-                  setSelectedImportType("sales");
-                  setTimeout(() => {
-                    fileInputRef.current?.click();
-                  }, 100);
-                }}
-                disabled={!importDate.month || !importDate.year}
-                className={`w-full p-4 border-2 rounded-lg transition-all text-left flex items-center gap-3 group ${
-                  selectedImportType === "sales"
+                <button
+                  onClick={() => {
+                    if (!importDate.month || !importDate.year) {
+                      alert("กรุณาเลือกเดือนและปีก่อน");
+                      return;
+                    }
+                    setSelectedImportType("sales");
+                    setTimeout(() => {
+                      fileInputRef.current?.click();
+                    }, 100);
+                  }}
+                  disabled={!importDate.month || !importDate.year}
+                  className={`w-full p-4 border-2 rounded-lg transition-all text-left flex items-center gap-3 group ${selectedImportType === "sales"
                     ? "border-purple-500 bg-purple-50"
                     : "border-gray-200 hover:border-purple-500 hover:bg-purple-50"
-                } ${
-                  !importDate.month || !importDate.year
-                    ? "opacity-50 cursor-not-allowed"
-                    : "cursor-pointer"
-                }`}
-              >
-                <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                  <Banknote className="h-6 w-6 text-purple-600" />
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-800">ยอดขายรายวัน (Sales)</div>
-                  <div className="text-sm text-gray-500">นำเข้าข้อมูลยอดขายรายวัน</div>
-                </div>
-              </button>
+                    } ${!importDate.month || !importDate.year
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
+                    }`}
+                >
+                  <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                    <Banknote className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-800">ยอดขายรายวัน (Sales)</div>
+                    <div className="text-sm text-gray-500">นำเข้าข้อมูลยอดขายรายวัน</div>
+                  </div>
+                </button>
 
-              <button
-                onClick={() => {
-                  if (!importDate.month || !importDate.year) {
-                    alert("กรุณาเลือกเดือนและปีก่อน");
-                    return;
-                  }
-                  setSelectedImportType("expenses");
-                  setTimeout(() => {
-                    fileInputRef.current?.click();
-                  }, 100);
-                }}
-                disabled={!importDate.month || !importDate.year}
-                className={`w-full p-4 border-2 rounded-lg transition-all text-left flex items-center gap-3 group ${
-                  selectedImportType === "expenses"
+                <button
+                  onClick={() => {
+                    if (!importDate.month || !importDate.year) {
+                      alert("กรุณาเลือกเดือนและปีก่อน");
+                      return;
+                    }
+                    setSelectedImportType("expenses");
+                    setTimeout(() => {
+                      fileInputRef.current?.click();
+                    }, 100);
+                  }}
+                  disabled={!importDate.month || !importDate.year}
+                  className={`w-full p-4 border-2 rounded-lg transition-all text-left flex items-center gap-3 group ${selectedImportType === "expenses"
                     ? "border-blue-500 bg-blue-50"
                     : "border-gray-200 hover:border-blue-500 hover:bg-blue-50"
-                } ${
-                  !importDate.month || !importDate.year
-                    ? "opacity-50 cursor-not-allowed"
-                    : "cursor-pointer"
-                }`}
-              >
-                <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                  <Wallet className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-800">บันทึกรายจ่าย (Expenses)</div>
-                  <div className="text-sm text-gray-500">นำเข้าข้อมูลรายจ่ายต่างๆ</div>
-                </div>
-              </button>
+                    } ${!importDate.month || !importDate.year
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
+                    }`}
+                >
+                  <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                    <Wallet className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-800">บันทึกรายจ่าย (Expenses)</div>
+                    <div className="text-sm text-gray-500">นำเข้าข้อมูลรายจ่ายต่างๆ</div>
+                  </div>
+                </button>
 
-              <button
-                onClick={() => {
-                  if (!importDate.month || !importDate.year) {
-                    alert("กรุณาเลือกเดือนและปีก่อน");
-                    return;
-                  }
-                  setSelectedImportType("pl");
-                  setTimeout(() => {
-                    fileInputRef.current?.click();
-                  }, 100);
-                }}
-                disabled={!importDate.month || !importDate.year}
-                className={`w-full p-4 border-2 rounded-lg transition-all text-left flex items-center gap-3 group ${
-                  selectedImportType === "pl"
+                <button
+                  onClick={() => {
+                    if (!importDate.month || !importDate.year) {
+                      alert("กรุณาเลือกเดือนและปีก่อน");
+                      return;
+                    }
+                    setSelectedImportType("pl");
+                    setTimeout(() => {
+                      fileInputRef.current?.click();
+                    }, 100);
+                  }}
+                  disabled={!importDate.month || !importDate.year}
+                  className={`w-full p-4 border-2 rounded-lg transition-all text-left flex items-center gap-3 group ${selectedImportType === "pl"
                     ? "border-green-500 bg-green-50"
                     : "border-gray-200 hover:border-green-500 hover:bg-green-50"
-                } ${
-                  !importDate.month || !importDate.year
-                    ? "opacity-50 cursor-not-allowed"
-                    : "cursor-pointer"
-                }`}
-              >
-                <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                  <PieChart className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-800">กำไร/ขาดทุน (P&L)</div>
-                  <div className="text-sm text-gray-500">นำเข้าข้อมูลกำไร/ขาดทุน</div>
-                </div>
-              </button>
+                    } ${!importDate.month || !importDate.year
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
+                    }`}
+                >
+                  <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                    <PieChart className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-800">กำไร/ขาดทุน (P&L)</div>
+                    <div className="text-sm text-gray-500">นำเข้าข้อมูลกำไร/ขาดทุน</div>
+                  </div>
+                </button>
               </div>
             </div>
 

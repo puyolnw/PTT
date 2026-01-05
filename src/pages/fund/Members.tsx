@@ -1,20 +1,21 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  Users, 
-  UserPlus, 
-  PiggyBank, 
+import {
+  Users,
+  UserPlus,
+  PiggyBank,
   TrendingUp,
   DollarSign
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
-import { 
-  fundMembers, 
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
+import {
+  fundMembers,
   savingsDeductions,
   employees,
-  type FundMember 
+  type FundMember
 } from "@/data/mockData";
 
 const formatCurrency = (amount: number) => {
@@ -341,10 +342,10 @@ export default function Members() {
                   <td className="px-6 py-4 text-center">
                     <StatusTag variant={getStatusVariant(
                       member.status === "Active" ? "Active" :
-                      member.status === "Inactive" ? "Leave" : "Resigned"
+                        member.status === "Inactive" ? "Leave" : "Resigned"
                     )}>
                       {member.status === "Active" ? "Active" :
-                       member.status === "Inactive" ? "Inactive" : "Withdrawn"}
+                        member.status === "Inactive" ? "Inactive" : "Withdrawn"}
                     </StatusTag>
                   </td>
                   <td className="px-6 py-4 text-center">
@@ -384,10 +385,11 @@ export default function Members() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="member-emp-code" className="block text-sm font-medium text-app mb-2">
               รหัสพนักงาน <span className="text-red-400">*</span>
             </label>
             <select
+              id="member-emp-code"
               value={formData.empCode}
               onChange={(e) => setFormData({ ...formData, empCode: e.target.value })}
               className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
@@ -405,10 +407,11 @@ export default function Members() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="member-monthly-savings" className="block text-sm font-medium text-app mb-2">
               เงินสัจจะต่อเดือน (บาท) <span className="text-red-400">*</span>
             </label>
             <input
+              id="member-monthly-savings"
               type="number"
               value={formData.monthlySavings}
               onChange={(e) => setFormData({ ...formData, monthlySavings: e.target.value })}
@@ -463,7 +466,7 @@ export default function Members() {
                   <p className="text-muted mb-1">สถานะ:</p>
                   <StatusTag variant={getStatusVariant(
                     selectedMember.status === "Active" ? "Active" :
-                    selectedMember.status === "Inactive" ? "Leave" : "Resigned"
+                      selectedMember.status === "Inactive" ? "Leave" : "Resigned"
                   )}>
                     {selectedMember.status}
                   </StatusTag>

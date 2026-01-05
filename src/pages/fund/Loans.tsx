@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  CreditCard, 
-  DollarSign, 
+import {
+  CreditCard,
+  DollarSign,
   TrendingDown,
   AlertCircle,
   CheckCircle,
@@ -12,11 +12,12 @@ import {
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
-import { 
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
+import {
   loans,
   employees,
-  type Loan 
+  type Loan
 } from "@/data/mockData";
 
 const formatCurrency = (amount: number) => {
@@ -329,13 +330,12 @@ export default function Loans() {
                       {loan.empName}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium ${
-                        loan.loanType === "สามัญ" 
-                          ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                          : loan.loanType === "ฉุกเฉิน"
+                      <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium ${loan.loanType === "สามัญ"
+                        ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                        : loan.loanType === "ฉุกเฉิน"
                           ? "bg-red-500/20 text-red-400 border border-red-500/30"
                           : "bg-green-500/20 text-green-400 border border-green-500/30"
-                      }`}>
+                        }`}>
                         {loan.loanType}
                       </span>
                     </td>
@@ -351,9 +351,9 @@ export default function Loans() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-2 bg-soft rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan"
-                            style={{ width: `${progress}%` }}
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan transition-all duration-300 w-[var(--loan-progress)]"
+                            style={{ "--loan-progress": `${progress}%` } as React.CSSProperties}
                           />
                         </div>
                         <span className="text-xs text-muted w-12 text-right">
@@ -364,8 +364,8 @@ export default function Loans() {
                     <td className="px-6 py-4 text-center">
                       <StatusTag variant={getStatusVariant(
                         loan.status === "Active" ? "Active" :
-                        loan.status === "Overdue" ? "ขาดงาน" :
-                        loan.status === "Completed" ? "เสร็จสิ้น" : "Resigned"
+                          loan.status === "Overdue" ? "ขาดงาน" :
+                            loan.status === "Completed" ? "เสร็จสิ้น" : "Resigned"
                       )}>
                         {loan.status === "Active" && "Active"}
                         {loan.status === "Overdue" && "ผิดนัด"}
@@ -437,13 +437,12 @@ export default function Loans() {
                 </div>
                 <div>
                   <p className="text-muted mb-1">ประเภทกู้:</p>
-                  <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                    selectedLoan.loanType === "สามัญ" 
-                      ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
-                      : selectedLoan.loanType === "ฉุกเฉิน"
+                  <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${selectedLoan.loanType === "สามัญ"
+                    ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
+                    : selectedLoan.loanType === "ฉุกเฉิน"
                       ? "bg-red-500/10 text-red-400 border border-red-500/30"
                       : "bg-green-500/10 text-green-400 border border-green-500/30"
-                  }`}>
+                    }`}>
                     {selectedLoan.loanType}
                   </span>
                 </div>
@@ -494,9 +493,9 @@ export default function Loans() {
                   <p className="text-muted mb-1">ความคืบหน้า:</p>
                   <div className="flex items-center gap-2 mt-1">
                     <div className="flex-1 h-2 bg-soft rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan"
-                        style={{ width: `${getPaymentProgress(selectedLoan)}%` }}
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan transition-all duration-300 w-[var(--payment-progress)]"
+                        style={{ "--payment-progress": `${getPaymentProgress(selectedLoan)}%` } as React.CSSProperties}
                       />
                     </div>
                     <span className="text-xs text-muted">

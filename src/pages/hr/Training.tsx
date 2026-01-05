@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { GraduationCap, Users, Plus } from "lucide-react";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
 import { courses } from "@/data/mockData";
 
 export default function Training() {
@@ -83,15 +84,14 @@ export default function Training() {
                   <span className="text-sm">ที่นั่ง</span>
                 </div>
                 <span className="text-sm text-app font-medium">
-                  {course.enrolled}/{course.seats}
                 </span>
               </div>
 
               {/* Progress Bar */}
               <div className="w-full bg-ink-800 rounded-full h-2">
-                <div
-                  className="bg-gradient-to-r from-ptt-blue to-ptt-cyan h-2 rounded-full transition-all"
-                  style={{ width: `${(course.enrolled / course.seats) * 100}%` }}
+                <motion.div
+                  className="bg-gradient-to-r from-ptt-blue to-ptt-cyan h-2 rounded-full transition-all w-[var(--progress-width)]"
+                  style={{ "--progress-width": `${(course.enrolled / course.seats) * 100}%` } as React.CSSProperties}
                 />
               </div>
             </div>

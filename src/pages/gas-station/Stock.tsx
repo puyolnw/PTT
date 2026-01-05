@@ -632,7 +632,7 @@ export default function Stock() {
   const [selectedOilType, setSelectedOilType] = useState("ทั้งหมด");
   const [selectedStatus, setSelectedStatus] = useState<"ทั้งหมด" | StockStatus>("ทั้งหมด");
   const [showThresholdModal, setShowThresholdModal] = useState(false);
-  const [editingThresholds, setEditingThresholds] = useState<Record<string, number>>({});
+  const [editingThresholds, setEditingThresholds] = useState<Map<string, number>>(new Map());
 
   const filteredStock = mockStockData
     .filter((item) => {
@@ -1026,13 +1026,13 @@ export default function Stock() {
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-center">
                         <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-500 ${getStockColor(
+                          <motion.div
+                            className={`h-2 rounded-full transition-all duration-500 w-[var(--stock-width)] ${getStockColor(
                               stockPercentage,
                               item.status
                             )}`}
-                            style={{ width: `${Math.min(stockPercentage, 100)}%` }}
-                          ></div>
+                            style={{ "--stock-width": `${Math.min(stockPercentage, 100)}%` } as React.CSSProperties}
+                          ></motion.div>
                         </div>
                         <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
                           {stockPercentage.toFixed(1)}%
@@ -1125,7 +1125,7 @@ export default function Stock() {
               <button
                 onClick={() => {
                   setShowThresholdModal(false);
-                  setEditingThresholds({});
+                  setEditingThresholds(new Map());
                 }}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
@@ -1145,7 +1145,7 @@ export default function Stock() {
                         ข้อควรระวัง
                       </p>
                       <p className="text-xs text-blue-700 dark:text-blue-300">
-                        ปั๊มแบบ Submersible (ปั๊มจุ่ม) ห้ามแห้งเด็ดขาด เนื่องจากเสี่ยงมอเตอร์ไหม้ 
+                        ปั๊มแบบ Submersible (ปั๊มจุ่ม) ห้ามแห้งเด็ดขาด เนื่องจากเสี่ยงมอเตอร์ไหม้
                         ในขณะที่ปั๊ม Suction (ดูด) ยอมรับระดับต่ำกว่าได้ กรุณาตั้งค่าเกณฑ์ให้เหมาะสมกับประเภทปั๊ม
                       </p>
                     </div>
@@ -1194,11 +1194,13 @@ export default function Stock() {
                                   type="number"
                                   min="0"
                                   max={item.maxCapacity}
-                                  defaultValue={editingThresholds[item.id] ?? item.minThreshold}
+                                  defaultValue={editingThresholds.get(item.id) ?? item.minThreshold}
                                   onChange={(e) => {
-                                    setEditingThresholds({
-                                      ...editingThresholds,
-                                      [item.id]: parseInt(e.target.value) || 0,
+                                    const value = parseInt(e.target.value) || 0;
+                                    setEditingThresholds(prev => {
+                                      const next = new Map(prev);
+                                      next.set(item.id, value);
+                                      return next;
                                     });
                                   }}
                                   className="w-32 px-3 py-2 text-right bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm"
@@ -1218,7 +1220,7 @@ export default function Stock() {
               <button
                 onClick={() => {
                   setShowThresholdModal(false);
-                  setEditingThresholds({});
+                  setEditingThresholds(new Map());
                 }}
                 className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700"
               >
@@ -1227,10 +1229,10 @@ export default function Stock() {
               <button
                 onClick={() => {
                   // ในระบบจริงจะบันทึกผ่าน API
-                  console.log("บันทึกเกณฑ์ต่ำสุด:", editingThresholds);
+                  console.log("บันทึกเกณฑ์ต่ำสุด:", Object.fromEntries(editingThresholds));
                   alert("บันทึกการตั้งค่าเกณฑ์ต่ำสุดเรียบร้อยแล้ว");
                   setShowThresholdModal(false);
-                  setEditingThresholds({});
+                  setEditingThresholds(new Map());
                 }}
                 className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
               >

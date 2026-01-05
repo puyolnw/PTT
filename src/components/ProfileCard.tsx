@@ -1,5 +1,6 @@
 import { Mail, Phone, Calendar, Briefcase } from "lucide-react";
-import StatusTag, { getStatusVariant } from "./StatusTag";
+import StatusTag from "./StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
 
 interface ProfileCardProps {
   avatar: string;
@@ -59,21 +60,21 @@ export default function ProfileCard({
                 <span className="font-light">{email}</span>
               </div>
             )}
-            
+
             {phone && (
               <div className="flex items-center gap-2 text-app">
                 <Phone className="w-4 h-4 text-ptt-cyan" />
                 <span className="font-light">{phone}</span>
               </div>
             )}
-            
+
             {startDate && (
               <div className="flex items-center gap-2 text-app">
                 <Calendar className="w-4 h-4 text-ptt-cyan" />
                 <span className="font-light">เริ่มงาน: {startDate}</span>
               </div>
             )}
-            
+
             <div className="flex items-center gap-2 text-app">
               <Briefcase className="w-4 h-4 text-ptt-cyan" />
               <span className="font-light">{dept}</span>

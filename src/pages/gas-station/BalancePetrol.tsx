@@ -33,8 +33,8 @@ type BalanceRow = {
   receive: number;
   pay: number;
   balance: number;
-  pumps: Record<PumpCode, number>;
-  products: Record<ProductCode, number>;
+  pumps: Map<PumpCode, number>;
+  products: Map<ProductCode, number>;
 };
 
 const pumpCodes: PumpCode[] = [
@@ -50,11 +50,11 @@ const pumpCodes: PumpCode[] = [
   "P99",
 ];
 
-const productPrices: Record<ProductCode, number> = {
-  D87: 32.49,
-  B: 54.0,
-  GSH95: 41.49,
-};
+const productPrices = new Map<ProductCode, number>([
+  ["D87", 32.49],
+  ["B", 54.0],
+  ["GSH95", 41.49],
+]);
 
 // Mock data เลียนแบบสมุดจริง (ตัวเลขสมมติ) - เพิ่มข้อมูลหลายเดือน
 const mockBalanceRows: BalanceRow[] = [
@@ -65,23 +65,23 @@ const mockBalanceRows: BalanceRow[] = [
     receive: 297430,
     pay: 442762.19,
     balance: 2393153.86,
-    pumps: {
-      P18: 17005.3,
-      P26: 5377,
-      P34: 3562.6,
-      P42: 4662.2,
-      P59: 0,
-      P67: 0,
-      P75: 4407.5,
-      P83: 3623.8,
-      P91: 4529.8,
-      P99: 3323.9,
-    },
-    products: {
-      D87: 29873.5,
-      B: 12540.2,
-      GSH95: 8740.0,
-    },
+    pumps: new Map<PumpCode, number>([
+      ["P18", 17005.3],
+      ["P26", 5377],
+      ["P34", 3562.6],
+      ["P42", 4662.2],
+      ["P59", 0],
+      ["P67", 0],
+      ["P75", 4407.5],
+      ["P83", 3623.8],
+      ["P91", 4529.8],
+      ["P99", 3323.9],
+    ]),
+    products: new Map<ProductCode, number>([
+      ["D87", 29873.5],
+      ["B", 12540.2],
+      ["GSH95", 8740.0],
+    ]),
   },
   {
     date: "21/5/68",
@@ -89,23 +89,23 @@ const mockBalanceRows: BalanceRow[] = [
     receive: 263560,
     pay: 448747.43,
     balance: 2199821.67,
-    pumps: {
-      P18: 8663.3,
-      P26: 15289.5,
-      P34: 5315.5,
-      P42: 3383.3,
-      P59: 3927,
-      P67: 5251.0,
-      P75: 0,
-      P83: 0,
-      P91: 0,
-      P99: 0,
-    },
-    products: {
-      D87: 21540.0,
-      B: 9520.7,
-      GSH95: 6840.3,
-    },
+    pumps: new Map<PumpCode, number>([
+      ["P18", 8663.3],
+      ["P26", 15289.5],
+      ["P34", 5315.5],
+      ["P42", 3383.3],
+      ["P59", 3927],
+      ["P67", 5251.0],
+      ["P75", 0],
+      ["P83", 0],
+      ["P91", 0],
+      ["P99", 0],
+    ]),
+    products: new Map<ProductCode, number>([
+      ["D87", 21540.0],
+      ["B", 9520.7],
+      ["GSH95", 6840.3],
+    ]),
   },
   {
     date: "22/5/68",
@@ -113,23 +113,23 @@ const mockBalanceRows: BalanceRow[] = [
     receive: 585540,
     pay: 412313.63,
     balance: 2157304.84,
-    pumps: {
-      P18: 15872.1,
-      P26: 14328.3,
-      P34: 5289.8,
-      P42: 6202.2,
-      P59: 3394.0,
-      P67: 0,
-      P75: 4984.3,
-      P83: 4209.9,
-      P91: 4685.0,
-      P99: 2891.1,
-    },
-    products: {
-      D87: 32580.4,
-      B: 14290.8,
-      GSH95: 9785.6,
-    },
+    pumps: new Map<PumpCode, number>([
+      ["P18", 15872.1],
+      ["P26", 14328.3],
+      ["P34", 5289.8],
+      ["P42", 6202.2],
+      ["P59", 3394.0],
+      ["P67", 0],
+      ["P75", 4984.3],
+      ["P83", 4209.9],
+      ["P91", 4685.0],
+      ["P99", 2891.1],
+    ]),
+    products: new Map<ProductCode, number>([
+      ["D87", 32580.4],
+      ["B", 14290.8],
+      ["GSH95", 9785.6],
+    ]),
   },
   // เดือนมิถุนายน 2568
   {
@@ -138,23 +138,23 @@ const mockBalanceRows: BalanceRow[] = [
     receive: 320000,
     pay: 455000,
     balance: 2022304.84,
-    pumps: {
-      P18: 16500,
-      P26: 6200,
-      P34: 4100,
-      P42: 5300,
-      P59: 3800,
-      P67: 4500,
-      P75: 5200,
-      P83: 4800,
-      P91: 5100,
-      P99: 3900,
-    },
-    products: {
-      D87: 31200,
-      B: 13800,
-      GSH95: 9500,
-    },
+    pumps: new Map<PumpCode, number>([
+      ["P18", 16500],
+      ["P26", 6200],
+      ["P34", 4100],
+      ["P42", 5300],
+      ["P59", 3800],
+      ["P67", 4500],
+      ["P75", 5200],
+      ["P83", 4800],
+      ["P91", 5100],
+      ["P99", 3900],
+    ]),
+    products: new Map<ProductCode, number>([
+      ["D87", 31200],
+      ["B", 13800],
+      ["GSH95", 9500],
+    ]),
   },
   {
     date: "2/6/68",
@@ -162,23 +162,23 @@ const mockBalanceRows: BalanceRow[] = [
     receive: 280000,
     pay: 430000,
     balance: 1872304.84,
-    pumps: {
-      P18: 15200,
-      P26: 5800,
-      P34: 3900,
-      P42: 4900,
-      P59: 3500,
-      P67: 4200,
-      P75: 4800,
-      P83: 4400,
-      P91: 4700,
-      P99: 3600,
-    },
-    products: {
-      D87: 28900,
-      B: 12700,
-      GSH95: 8800,
-    },
+    pumps: new Map<PumpCode, number>([
+      ["P18", 15200],
+      ["P26", 5800],
+      ["P34", 3900],
+      ["P42", 4900],
+      ["P59", 3500],
+      ["P67", 4200],
+      ["P75", 4800],
+      ["P83", 4400],
+      ["P91", 4700],
+      ["P99", 3600],
+    ]),
+    products: new Map<ProductCode, number>([
+      ["D87", 28900],
+      ["B", 12700],
+      ["GSH95", 8800],
+    ]),
   },
   // เดือนกรกฎาคม 2568
   {
@@ -187,23 +187,23 @@ const mockBalanceRows: BalanceRow[] = [
     receive: 350000,
     pay: 480000,
     balance: 1742304.84,
-    pumps: {
-      P18: 17800,
-      P26: 6800,
-      P34: 4500,
-      P42: 5800,
-      P59: 4200,
-      P67: 5000,
-      P75: 5700,
-      P83: 5300,
-      P91: 5600,
-      P99: 4300,
-    },
-    products: {
-      D87: 34500,
-      B: 15200,
-      GSH95: 10500,
-    },
+    pumps: new Map<PumpCode, number>([
+      ["P18", 17800],
+      ["P26", 6800],
+      ["P34", 4500],
+      ["P42", 5800],
+      ["P59", 4200],
+      ["P67", 5000],
+      ["P75", 5700],
+      ["P83", 5300],
+      ["P91", 5600],
+      ["P99", 4300],
+    ]),
+    products: new Map<ProductCode, number>([
+      ["D87", 34500],
+      ["B", 15200],
+      ["GSH95", 10500],
+    ]),
   },
   {
     date: "15/7/68",
@@ -211,23 +211,23 @@ const mockBalanceRows: BalanceRow[] = [
     receive: 310000,
     pay: 445000,
     balance: 1607304.84,
-    pumps: {
-      P18: 16200,
-      P26: 6200,
-      P34: 4100,
-      P42: 5300,
-      P59: 3800,
-      P67: 4600,
-      P75: 5200,
-      P83: 4900,
-      P91: 5100,
-      P99: 3900,
-    },
-    products: {
-      D87: 31400,
-      B: 13900,
-      GSH95: 9600,
-    },
+    pumps: new Map<PumpCode, number>([
+      ["P18", 16200],
+      ["P26", 6200],
+      ["P34", 4100],
+      ["P42", 5300],
+      ["P59", 3800],
+      ["P67", 4600],
+      ["P75", 5200],
+      ["P83", 4900],
+      ["P91", 5100],
+      ["P99", 3900],
+    ]),
+    products: new Map<ProductCode, number>([
+      ["D87", 31400],
+      ["B", 13900],
+      ["GSH95", 9600],
+    ]),
   },
 ];
 
@@ -293,8 +293,9 @@ export default function BalancePetrol() {
           <div className="flex flex-wrap items-center gap-3 flex-1">
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-gray-400" />
-              <label className="text-sm text-gray-600 dark:text-gray-400">วัน:</label>
+              <label htmlFor="balance-day" className="text-sm text-gray-600 dark:text-gray-400">วัน:</label>
               <select
+                id="balance-day"
                 value={selectedDay}
                 onChange={(e) => setSelectedDay(e.target.value)}
                 className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm transition-all duration-200"
@@ -309,8 +310,9 @@ export default function BalancePetrol() {
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 dark:text-gray-400">เดือน:</label>
+              <label htmlFor="balance-month" className="text-sm text-gray-600 dark:text-gray-400">เดือน:</label>
               <select
+                id="balance-month"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm transition-all duration-200"
@@ -332,8 +334,9 @@ export default function BalancePetrol() {
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 dark:text-gray-400">ปี:</label>
+              <label htmlFor="balance-year" className="text-sm text-gray-600 dark:text-gray-400">ปี:</label>
               <select
+                id="balance-year"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm transition-all duration-200"
@@ -499,7 +502,7 @@ export default function BalancePetrol() {
                   >
                     {code}
                     <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                      {productPrices[code].toFixed(2)} บาท/ลิตร
+                      {(productPrices.get(code) || 0).toFixed(2)} บาท/ลิตร
                     </div>
                   </th>
                 ))}
@@ -536,7 +539,7 @@ export default function BalancePetrol() {
                   </td>
                   {/* ยอดหัวจ่าย P… */}
                   {pumpCodes.map((code, index) => {
-                    const value = row.pumps[code];
+                    const value = row.pumps.get(code);
                     return (
                       <td
                         key={code}
@@ -555,7 +558,7 @@ export default function BalancePetrol() {
                       key={code}
                       className="py-2 px-3 text-right text-gray-800 dark:text-gray-100"
                     >
-                      {numberFormatter.format(row.products[code])}
+                      {numberFormatter.format(row.products.get(code) || 0)}
                     </td>
                   ))}
                   {/* คงเหลือรวม (แสดงซ้ำเหมือนคอลัมน์คงเหลือด้านซ้าย เพื่อให้เหมือนคอลัมน์สุดท้ายในสมุดจริง) */}

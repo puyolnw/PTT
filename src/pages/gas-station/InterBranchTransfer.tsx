@@ -43,7 +43,7 @@ export default function InterBranchTransfer() {
     const date = new Date(dateStr);
     const fromDate = from ? new Date(from) : null;
     const toDate = to ? new Date(to) : null;
-    
+
     if (fromDate && toDate) {
       fromDate.setHours(0, 0, 0, 0);
       toDate.setHours(23, 59, 59, 999);
@@ -84,7 +84,7 @@ export default function InterBranchTransfer() {
   }, [deliveryNotes, selectedBranchId, searchTerm, filterDateFrom, filterDateTo]);
 
   // กรองใบเสร็จรับเงินที่เกี่ยวข้อง (ถ้ามี) - ไม่ได้ใช้ตอนนี้
-   
+
   // const _relatedReceipts = useMemo(() => {
   /*
     if (activeTab === "outgoing") {
@@ -114,7 +114,7 @@ export default function InterBranchTransfer() {
   // const selectedBranch = branches.find((b) => b.id === selectedBranchId); // Not used
 
   // ฟังก์ชันสำหรับดาวน์โหลดใบส่งของเป็น PDF
-  const handleDownloadDeliveryNotePDF = (deliveryNote: DeliveryNote & { transportNo?: string; trailerPlateNumber?: string; senderSignature?: string; senderSignedAt?: string; receiverSignature?: string; receiverSignedAt?: string }) => {
+  const handleDownloadDeliveryNotePDF = (deliveryNote: DeliveryNote) => {
     const htmlContent = `
       <!DOCTYPE html>
       <html lang="th">
@@ -240,10 +240,10 @@ export default function InterBranchTransfer() {
             <div class="info-value">${deliveryNote.purchaseOrderNo}</div>
           </div>
           ` : ''}
-          ${(deliveryNote as any).transportNo ? `
+          ${deliveryNote.transportNo ? `
           <div class="info-row">
             <div class="info-label">เลขที่ขนส่ง:</div>
-            <div class="info-value">${(deliveryNote as any).transportNo}</div>
+            <div class="info-value">${deliveryNote.transportNo}</div>
           </div>
           ` : ''}
         </div>
@@ -272,10 +272,10 @@ export default function InterBranchTransfer() {
             <div class="info-value">${deliveryNote.truckPlateNumber}</div>
           </div>
           ` : ''}
-          ${(deliveryNote as any).trailerPlateNumber ? `
+          ${deliveryNote.trailerPlateNumber ? `
           <div class="info-row">
             <div class="info-label">หางบรรทุก:</div>
-            <div class="info-value">${(deliveryNote as any).trailerPlateNumber}</div>
+            <div class="info-value">${deliveryNote.trailerPlateNumber}</div>
           </div>
           ` : ''}
           ${deliveryNote.driverName ? `
@@ -297,7 +297,7 @@ export default function InterBranchTransfer() {
             </tr>
           </thead>
           <tbody>
-            ${deliveryNote.items.map((item: any) => `
+            ${deliveryNote.items.map((item) => `
               <tr>
                 <td>${item.oilType}</td>
                 <td>${numberFormatter.format(item.quantity)}</td>
@@ -316,7 +316,7 @@ export default function InterBranchTransfer() {
           <div class="signature-box">
             <div class="signature-line">
               <div>ผู้ส่ง</div>
-              ${(deliveryNote as any).senderSignature ? `<div style="margin-top: 5px;">${(deliveryNote as any).senderSignature}</div>` : ''}
+              ${deliveryNote.senderSignature ? `<div style="margin-top: 5px;">${deliveryNote.senderSignature}</div>` : ''}
             </div>
           </div>
           <div class="signature-box">
@@ -491,7 +491,7 @@ export default function InterBranchTransfer() {
             </tr>
           </thead>
           <tbody>
-            ${receipt.items.map((item: any) => `
+            ${receipt.items.map((item) => `
               <tr>
                 <td>${item.oilType}</td>
                 <td>${numberFormatter.format(item.quantity)}</td>
@@ -611,8 +611,9 @@ export default function InterBranchTransfer() {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <div className="flex items-center gap-4">
           <Building2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">เลือกปั๊ม:</label>
+          <label htmlFor="branch-selector" className="text-sm font-medium text-gray-700 dark:text-gray-300">เลือกปั๊ม:</label>
           <select
+            id="branch-selector"
             value={selectedBranchId}
             onChange={(e) => setSelectedBranchId(Number(e.target.value))}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -637,11 +638,10 @@ export default function InterBranchTransfer() {
           <div className="flex">
             <button
               onClick={() => setActiveTab("outgoing")}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
-                activeTab === "outgoing"
-                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              }`}
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${activeTab === "outgoing"
+                ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
             >
               <div className="flex items-center justify-center gap-2">
                 <ArrowRight className="w-5 h-5" />
@@ -650,11 +650,10 @@ export default function InterBranchTransfer() {
             </button>
             <button
               onClick={() => setActiveTab("incoming")}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
-                activeTab === "incoming"
-                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              }`}
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${activeTab === "incoming"
+                ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
             >
               <div className="flex items-center justify-center gap-2">
                 <ArrowLeft className="w-5 h-5" />
@@ -667,8 +666,10 @@ export default function InterBranchTransfer() {
         {/* Search and Filters */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-4">
           <div className="relative">
+            <label htmlFor="search-transfers" className="sr-only">ค้นหาใบส่งของ/รับของ</label>
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
+              id="search-transfers"
               type="text"
               placeholder="ค้นหาเลขที่, ปั๊มปลายทาง, เลขที่ใบสั่งซื้อ..."
               value={searchTerm}
@@ -678,7 +679,9 @@ export default function InterBranchTransfer() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
+              <label htmlFor="filter-date-from" className="sr-only">วันที่เริ่มต้น</label>
               <input
+                id="filter-date-from"
                 type="date"
                 value={filterDateFrom}
                 onChange={(e) => setFilterDateFrom(e.target.value)}
@@ -686,7 +689,9 @@ export default function InterBranchTransfer() {
                 title="วันที่เริ่มต้น"
               />
               <span className="text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">ถึง</span>
+              <label htmlFor="filter-date-to" className="sr-only">วันที่สิ้นสุด</label>
               <input
+                id="filter-date-to"
                 type="date"
                 value={filterDateTo}
                 onChange={(e) => setFilterDateTo(e.target.value)}
@@ -786,7 +791,7 @@ export default function InterBranchTransfer() {
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDownloadDeliveryNotePDF(dn as any)}
+                            onClick={() => handleDownloadDeliveryNotePDF(dn)}
                             className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                             title="ดาวน์โหลด PDF"
                           >
@@ -845,7 +850,7 @@ export default function InterBranchTransfer() {
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDownloadDeliveryNotePDF(dn as any)}
+                            onClick={() => handleDownloadDeliveryNotePDF(dn)}
                             className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                             title="ดาวน์โหลด PDF"
                           >
@@ -890,7 +895,7 @@ export default function InterBranchTransfer() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleDownloadDeliveryNotePDF(selectedDeliveryNote as any)}
+                        onClick={() => handleDownloadDeliveryNotePDF(selectedDeliveryNote)}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                       >
                         <Download className="w-4 h-4" />

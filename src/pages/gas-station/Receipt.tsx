@@ -373,7 +373,8 @@ export default function ReceiptPage() {
 
   // Handle edit item
   const handleEditItem = (index: number) => {
-    const item = formData.items[index];
+    const item = formData.items.find((_, i) => i === index);
+    if (!item) return;
     setEditingItemIndex(index);
     setItemForm({
       oilType: item.oilType,
@@ -419,8 +420,9 @@ export default function ReceiptPage() {
 
     if (editingItemIndex !== null) {
       // Edit existing item
-      const newItems = [...formData.items];
-      newItems[editingItemIndex] = newItem;
+      const newItems = formData.items.map((item, i) =>
+        i === editingItemIndex ? newItem : item
+      );
       setFormData({ ...formData, items: newItems });
     } else {
       // Add new item
@@ -825,10 +827,11 @@ export default function ReceiptPage() {
                       </div>
                     )}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="receipt-document-type" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         ประเภทเอกสาร
                       </label>
                       <select
+                        id="receipt-document-type"
                         value={formData.documentType}
                         onChange={(e) =>
                           setFormData({
@@ -844,10 +847,11 @@ export default function ReceiptPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="receipt-customer-name" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         ชื่อลูกค้า / นิติบุคคล *
                       </label>
                       <input
+                        id="receipt-customer-name"
                         type="text"
                         value={formData.customerName}
                         onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
@@ -856,10 +860,11 @@ export default function ReceiptPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="receipt-customer-address" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         ที่อยู่ลูกค้า *
                       </label>
                       <textarea
+                        id="receipt-customer-address"
                         value={formData.customerAddress}
                         onChange={(e) => setFormData({ ...formData, customerAddress: e.target.value })}
                         placeholder="กรอกที่อยู่ลูกค้า"
@@ -868,10 +873,11 @@ export default function ReceiptPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="receipt-tax-id" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         เลขประจำตัวผู้เสียภาษี (13 หลัก) *
                       </label>
                       <input
+                        id="receipt-tax-id"
                         type="text"
                         value={formData.customerTaxId}
                         onChange={(e) => setFormData({ ...formData, customerTaxId: e.target.value })}
@@ -882,9 +888,9 @@ export default function ReceiptPage() {
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        <span className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                           รายการสินค้า
-                        </label>
+                        </span>
                         <button
                           type="button"
                           onClick={handleAddItem}
@@ -1229,10 +1235,11 @@ export default function ReceiptPage() {
                 </div>
                 <div className="p-6">
                   <div className="mb-4">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="receipt-signature" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       กรอกลายเซ็นผู้รับเงิน *
                     </label>
                     <input
+                      id="receipt-signature"
                       type="text"
                       value={signature}
                       onChange={(e) => setSignature(e.target.value)}
@@ -1304,10 +1311,11 @@ export default function ReceiptPage() {
                 </div>
                 <div className="p-6 space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="receipt-item-oil-type" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       ประเภทน้ำมัน *
                     </label>
                     <select
+                      id="receipt-item-oil-type"
                       value={itemForm.oilType}
                       onChange={(e) => setItemForm({ ...itemForm, oilType: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1324,10 +1332,11 @@ export default function ReceiptPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="receipt-item-quantity" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       จำนวนลิตร *
                     </label>
                     <input
+                      id="receipt-item-quantity"
                       type="number"
                       value={itemForm.quantity}
                       onChange={(e) => setItemForm({ ...itemForm, quantity: e.target.value })}
@@ -1338,10 +1347,11 @@ export default function ReceiptPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="receipt-item-price" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       ราคาต่อลิตร (บาท) *
                     </label>
                     <input
+                      id="receipt-item-price"
                       type="number"
                       value={itemForm.pricePerLiter}
                       onChange={(e) => setItemForm({ ...itemForm, pricePerLiter: e.target.value })}

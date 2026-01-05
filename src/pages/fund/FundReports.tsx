@@ -4,7 +4,8 @@ import {
   loans
 } from "@/data/mockData";
 import { FileSpreadsheet, Download, PiggyBank, CreditCard, AlertTriangle, Calendar } from "lucide-react";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("th-TH", {

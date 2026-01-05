@@ -19,7 +19,7 @@ export interface LegalEntity {
 }
 
 // ==================== Oil Types ====================
-export type OilType = 
+export type OilType =
   | "Premium Diesel"
   | "Diesel"
   | "Premium Gasohol 95"
@@ -178,6 +178,7 @@ export interface DeliveryNote {
   startOdometer?: number;
   endOdometer?: number;
   receiverName?: string;
+  receiverSignature?: string;
   receiverSignedAt?: string;
   createdAt: string;
   createdBy: string;
@@ -347,7 +348,7 @@ export interface DriverJob {
   transportNo: string;
   transportDate: string;
   transportTime: string;
-  orderType?: "internal" | "external"; // ประเภทเที่ยว: ภายในปั๊ม หรือ รับจาก PTT
+  orderType: "internal" | "external"; // ประเภทเที่ยว: ภายในปั๊ม หรือ รับจาก PTT (Required)
   // สำหรับ Internal Transport
   internalOrderNo?: string; // เลขที่ออเดอร์ภายในปั๊ม
   // สำหรับ External Transport (PTT)
@@ -370,7 +371,15 @@ export interface DriverJob {
       notes?: string;
     };
   }>;
-  compartments: Compartment[];
+  compartments: Array<{
+    id: string;
+    compartmentNumber: number;
+    capacity: number;
+    oilType?: OilType;
+    quantity?: number;
+    destinationBranchId?: number;
+    destinationBranchName?: string;
+  }>;
   truckPlateNumber: string;
   trailerPlateNumber: string;
   driverId?: string;
@@ -388,14 +397,20 @@ export interface DriverJob {
     photos: string[];
     odometerReading: number;
     notes?: string;
-    senderSignature?: string; // Added
-    senderSignedAt?: string; // Added
+    senderSignature?: string;
+    senderSignedAt?: string;
   };
-  endOdometer?: number; // Added
-  notes?: string; // Added
-  createdAt?: string; // Made optional
-  createdBy?: string; // Made optional
-  updatedAt?: string; // Added
+  depotArrival?: {
+    arrivedAt: string;
+    endOdometer: number;
+    endOdometerPhoto?: string;
+    notes?: string;
+  };
+  endOdometer?: number;
+  notes?: string;
+  createdAt?: string;
+  createdBy?: string;
+  updatedAt?: string;
 }
 
 // ==================== Running Number ====================

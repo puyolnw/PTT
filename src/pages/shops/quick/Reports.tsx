@@ -21,22 +21,8 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
 // Mock data สำหรับร้าน Quick - รองรับหลายสาขาและแยกตามบริการ
 const branches = ["สาขา A", "สาขา B", "สาขา C", "สาขา D", "สำนักงานใหญ่"];
 
-const profitLossDataByBranch: Record<string, {
-  revenue: number;
-  cost: number;
-  profit: number;
-  expenses: number;
-  labor: number;
-  netProfit: number;
-  byService: {
-    oilChange: number;
-    tireChange: number;
-    inspection: number;
-    battery: number;
-    others: number;
-  };
-}> = {
-  "สาขา A": {
+const profitLossDataByBranchMap = new Map([
+  ["สาขา A", {
     revenue: 252000,
     cost: 151200,
     profit: 100800,
@@ -44,8 +30,8 @@ const profitLossDataByBranch: Record<string, {
     labor: 12000,
     netProfit: 78800,
     byService: { oilChange: 126000, tireChange: 75600, inspection: 25200, battery: 12600, others: 12600 },
-  },
-  "สาขา B": {
+  }],
+  ["สาขา B", {
     revenue: 224000,
     cost: 134400,
     profit: 89600,
@@ -53,8 +39,8 @@ const profitLossDataByBranch: Record<string, {
     labor: 11000,
     netProfit: 69600,
     byService: { oilChange: 112000, tireChange: 67200, inspection: 22400, battery: 11200, others: 11200 },
-  },
-  "สาขา C": {
+  }],
+  ["สาขา C", {
     revenue: 201600,
     cost: 120960,
     profit: 80640,
@@ -62,8 +48,8 @@ const profitLossDataByBranch: Record<string, {
     labor: 10000,
     netProfit: 62640,
     byService: { oilChange: 100800, tireChange: 60480, inspection: 20160, battery: 10080, others: 10080 },
-  },
-  "สาขา D": {
+  }],
+  ["สาขา D", {
     revenue: 184800,
     cost: 110880,
     profit: 73920,
@@ -71,8 +57,8 @@ const profitLossDataByBranch: Record<string, {
     labor: 9000,
     netProfit: 58920,
     byService: { oilChange: 92400, tireChange: 55440, inspection: 18480, battery: 9240, others: 9240 },
-  },
-  "สำนักงานใหญ่": {
+  }],
+  ["สำนักงานใหญ่", {
     revenue: 280000,
     cost: 168000,
     profit: 112000,
@@ -80,18 +66,20 @@ const profitLossDataByBranch: Record<string, {
     labor: 14000,
     netProfit: 97000,
     byService: { oilChange: 140000, tireChange: 84000, inspection: 28000, battery: 14000, others: 14000 },
-  },
-};
+  }],
+]);
 
 // Calculate totals across all branches
 const totalProfitLoss = branches.reduce((acc, branch) => {
-  const data = profitLossDataByBranch[branch];
-  acc.revenue += data.revenue;
-  acc.cost += data.cost;
-  acc.profit += data.profit;
-  acc.expenses += data.expenses;
-  acc.labor += data.labor;
-  acc.netProfit += data.netProfit;
+  const data = profitLossDataByBranchMap.get(branch);
+  if (data) {
+    acc.revenue += data.revenue;
+    acc.cost += data.cost;
+    acc.profit += data.profit;
+    acc.expenses += data.expenses;
+    acc.labor += data.labor;
+    acc.netProfit += data.netProfit;
+  }
   return acc;
 }, { revenue: 0, cost: 0, profit: 0, expenses: 0, labor: 0, netProfit: 0 });
 
@@ -112,9 +100,9 @@ export default function Reports() {
     alert(`กำลังส่งออกรายงานเป็น ${format.toUpperCase()}...`);
   };
 
-  const currentData = selectedBranch === "ทั้งหมด" 
-    ? totalProfitLoss 
-    : profitLossDataByBranch[selectedBranch] || totalProfitLoss;
+  const currentData = (selectedBranch === "ทั้งหมด"
+    ? totalProfitLoss
+    : profitLossDataByBranchMap.get(selectedBranch)) || totalProfitLoss;
 
   return (
     <div className="space-y-6">
@@ -156,15 +144,14 @@ export default function Reports() {
             <button
               key={period}
               onClick={() => setSelectedPeriod(period)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                selectedPeriod === period
-                  ? "bg-ptt-blue text-white"
-                  : "bg-soft text-app hover:bg-app/10"
-              }`}
+              className={`px-4 py-2 rounded-lg transition-colors ${selectedPeriod === period
+                ? "bg-ptt-blue text-white"
+                : "bg-soft text-app hover:bg-app/10"
+                }`}
             >
               {period === "day" ? "รายวัน" :
-               period === "week" ? "รายสัปดาห์" :
-               period === "month" ? "รายเดือน" : "รายปี"}
+                period === "week" ? "รายสัปดาห์" :
+                  period === "month" ? "รายเดือน" : "รายปี"}
             </button>
           ))}
         </div>
@@ -238,7 +225,7 @@ export default function Reports() {
       </motion.div>
 
       {/* Sales by Service */}
-      {selectedBranch !== "ทั้งหมด" && profitLossDataByBranch[selectedBranch] && (
+      {selectedBranch !== "ทั้งหมด" && profitLossDataByBranchMap.get(selectedBranch) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -250,32 +237,32 @@ export default function Reports() {
             <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
               <p className="text-sm text-muted mb-1">ถ่ายน้ำมันเครื่อง</p>
               <p className="text-2xl font-bold text-orange-400">
-                {currencyFormatter.format(profitLossDataByBranch[selectedBranch].byService.oilChange)}
+                {currencyFormatter.format(profitLossDataByBranchMap.get(selectedBranch)?.byService.oilChange || 0)}
               </p>
               <p className="text-xs text-ptt-cyan mt-1">590 บาท</p>
             </div>
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
               <p className="text-sm text-muted mb-1">เปลี่ยนยาง</p>
               <p className="text-2xl font-bold text-blue-400">
-                {currencyFormatter.format(profitLossDataByBranch[selectedBranch].byService.tireChange)}
+                {currencyFormatter.format(profitLossDataByBranchMap.get(selectedBranch)?.byService.tireChange || 0)}
               </p>
             </div>
             <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
               <p className="text-sm text-muted mb-1">ตรวจสภาพรถ</p>
               <p className="text-2xl font-bold text-purple-400">
-                {currencyFormatter.format(profitLossDataByBranch[selectedBranch].byService.inspection)}
+                {currencyFormatter.format(profitLossDataByBranchMap.get(selectedBranch)?.byService.inspection || 0)}
               </p>
             </div>
             <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
               <p className="text-sm text-muted mb-1">แบตเตอรี่</p>
               <p className="text-2xl font-bold text-green-400">
-                {currencyFormatter.format(profitLossDataByBranch[selectedBranch].byService.battery)}
+                {currencyFormatter.format(profitLossDataByBranchMap.get(selectedBranch)?.byService.battery || 0)}
               </p>
             </div>
             <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4">
               <p className="text-sm text-muted mb-1">ระบบแอร์/ช่วงล่าง</p>
               <p className="text-2xl font-bold text-cyan-400">
-                {currencyFormatter.format(profitLossDataByBranch[selectedBranch].byService.others)}
+                {currencyFormatter.format(profitLossDataByBranchMap.get(selectedBranch)?.byService.others || 0)}
               </p>
             </div>
           </div>
@@ -296,7 +283,8 @@ export default function Reports() {
           </div>
           <div className="space-y-4">
             {branches.map((branch) => {
-              const data = profitLossDataByBranch[branch];
+              const data = profitLossDataByBranchMap.get(branch);
+              if (!data) return null;
               return (
                 <div
                   key={branch}
@@ -366,11 +354,10 @@ export default function Reports() {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    index === 0 ? "bg-ptt-blue/20 text-ptt-cyan" :
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${index === 0 ? "bg-ptt-blue/20 text-ptt-cyan" :
                     index === 1 ? "bg-emerald-500/20 text-emerald-400" :
-                    "bg-muted/20 text-muted"
-                  }`}>
+                      "bg-muted/20 text-muted"
+                    }`}>
                     <span className="text-sm font-bold">{index + 1}</span>
                   </div>
                   <div>
@@ -388,9 +375,8 @@ export default function Reports() {
                   <p className="text-lg font-bold text-app">
                     {currencyFormatter.format(item.sales)}
                   </p>
-                  <div className={`flex items-center gap-1 text-xs ${
-                    item.trend.startsWith('+') ? 'text-emerald-400' : 'text-red-400'
-                  }`}>
+                  <div className={`flex items-center gap-1 text-xs ${item.trend.startsWith('+') ? 'text-emerald-400' : 'text-red-400'
+                    }`}>
                     {item.trend.startsWith('+') ? (
                       <TrendingUp className="w-3 h-3" />
                     ) : (

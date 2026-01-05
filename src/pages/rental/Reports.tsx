@@ -67,8 +67,9 @@ export default function Reports() {
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="flex gap-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">สาขา</label>
+            <label htmlFor="report-branch" className="block text-sm font-medium text-app mb-2">สาขา</label>
             <select
+              id="report-branch"
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
               className="px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -82,8 +83,9 @@ export default function Reports() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ช่วงเวลา</label>
+            <label htmlFor="report-period" className="block text-sm font-medium text-app mb-2">ช่วงเวลา</label>
             <select
+              id="report-period"
               value={reportPeriod}
               onChange={(e) => setReportPeriod(e.target.value)}
               className="px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -161,9 +163,9 @@ export default function Reports() {
                     </span>
                   </div>
                   <div className="w-full h-2 bg-soft rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan"
-                      style={{ width: `${percentage}%` }}
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan w-[var(--shop-percentage)]"
+                      style={{ "--shop-percentage": `${percentage}%` } as React.CSSProperties}
                     />
                   </div>
                   <p className="text-xs text-muted">{percentage.toFixed(1)}% ของรายได้ทั้งหมด</p>
@@ -199,9 +201,9 @@ export default function Reports() {
                     </span>
                   </div>
                   <div className="w-full h-2 bg-soft rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-500"
-                      style={{ width: `${percentage}%` }}
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 w-[var(--branch-percentage)]"
+                      style={{ "--branch-percentage": `${percentage}%` } as React.CSSProperties}
                     />
                   </div>
                 </div>

@@ -51,7 +51,7 @@ const initialTankEntries: TankEntry[] = [
   { id: "5", date: "7/7/68", fullDate: new Date(2024, 6, 7), tankId: 91, fuelType: "E85", quantity1: "", quantity2: "", quantity3: "1000+", isVerified: false },
   { id: "6", date: "7/7/68", fullDate: new Date(2024, 6, 7), tankId: 75, fuelType: "HSP", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
   { id: "7", date: "7/7/68", fullDate: new Date(2024, 6, 7), tankId: 26, fuelType: "695PM", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
-  
+
   // วันที่ 8/7/68
   { id: "8", date: "8/7/68", fullDate: new Date(2024, 6, 8), tankId: 34, fuelType: "HBD", quantity1: "8000+15000+1000+8000", quantity2: "8000", quantity3: "8000", isVerified: true },
   { id: "9", date: "8/7/68", fullDate: new Date(2024, 6, 8), tankId: 59, fuelType: "69491", quantity1: "4000+4000", quantity2: "4000", quantity3: "4000", isVerified: true },
@@ -60,7 +60,7 @@ const initialTankEntries: TankEntry[] = [
   { id: "12", date: "8/7/68", fullDate: new Date(2024, 6, 8), tankId: 91, fuelType: "885", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
   { id: "13", date: "8/7/68", fullDate: new Date(2024, 6, 8), tankId: 75, fuelType: "HSP", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
   { id: "14", date: "8/7/68", fullDate: new Date(2024, 6, 8), tankId: 26, fuelType: "695 PM", quantity1: "", quantity2: "", quantity3: "", isVerified: false },
-  
+
   // วันที่ 9/9/68
   { id: "15", date: "9/9/68", fullDate: new Date(2024, 8, 9), tankId: 34, fuelType: "HSD", quantity1: "8000+7000+8000", quantity2: "7000", quantity3: "8000", isVerified: true },
   { id: "16", date: "9/9/68", fullDate: new Date(2024, 8, 9), tankId: 59, fuelType: "68H91", quantity1: "4000", quantity2: "8000", quantity3: "3000", isVerified: true },
@@ -168,7 +168,7 @@ export default function TankEntryBook() {
   // ฟังก์ชันบันทึกการแก้ไข
   const handleSaveEdit = () => {
     if (!editForm) return;
-    setTankEntries(prev => prev.map(entry => 
+    setTankEntries(prev => prev.map(entry =>
       entry.id === editForm.id ? editForm : entry
     ));
     setEditingId(null);
@@ -204,7 +204,7 @@ export default function TankEntryBook() {
 
   // ฟังก์ชัน toggle verification
   const handleToggleVerify = (id: string) => {
-    setTankEntries(prev => prev.map(entry => 
+    setTankEntries(prev => prev.map(entry =>
       entry.id === id ? { ...entry, isVerified: !entry.isVerified } : entry
     ));
   };
@@ -337,7 +337,9 @@ export default function TankEntryBook() {
           {/* Day Filter */}
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gray-400" />
+            <label htmlFor="tank-entry-filter-day" className="sr-only">วันที่</label>
             <select
+              id="tank-entry-filter-day"
               value={selectedDay}
               onChange={(e) => setSelectedDay(e.target.value === "all" ? "all" : Number(e.target.value))}
               className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -353,7 +355,9 @@ export default function TankEntryBook() {
 
           {/* Month Filter */}
           <div>
+            <label htmlFor="tank-entry-filter-month" className="sr-only">เดือน</label>
             <select
+              id="tank-entry-filter-month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value === "all" ? "all" : Number(e.target.value))}
               className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -369,7 +373,9 @@ export default function TankEntryBook() {
 
           {/* Year Filter */}
           <div>
+            <label htmlFor="tank-entry-filter-year" className="sr-only">ปี</label>
             <select
+              id="tank-entry-filter-year"
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value === "all" ? "all" : Number(e.target.value))}
               className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -458,14 +464,15 @@ export default function TankEntryBook() {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className={`border-b border-red-200 dark:border-red-800 hover:bg-gray-50 dark:hover:bg-gray-900/40 ${
-                          index === 0 ? "border-t-2 border-red-300 dark:border-red-700" : ""
-                        }`}
+                        className={`border-b border-red-200 dark:border-red-800 hover:bg-gray-50 dark:hover:bg-gray-900/40 ${index === 0 ? "border-t-2 border-red-300 dark:border-red-700" : ""
+                          }`}
                       >
                         {/* ด/ป/ว */}
                         <td className="py-2 px-4 text-left font-semibold text-gray-800 dark:text-gray-100 border-r border-red-200 dark:border-red-800">
                           {isEditing ? (
                             <input
+                              id={`tank-entry-edit-date-${entry.id}`}
+                              aria-label="Date"
                               type="text"
                               value={displayEntry.date}
                               onChange={(e) => setEditForm(prev => prev ? { ...prev, date: e.target.value } : null)}
@@ -480,6 +487,8 @@ export default function TankEntryBook() {
                         <td className="py-2 px-4 text-center font-semibold text-gray-800 dark:text-gray-100 border-r border-red-200 dark:border-red-800">
                           {isEditing ? (
                             <input
+                              id={`tank-entry-edit-tank-id-${entry.id}`}
+                              aria-label="Tank ID"
                               type="number"
                               value={displayEntry.tankId}
                               onChange={(e) => setEditForm(prev => prev ? { ...prev, tankId: Number(e.target.value) } : null)}
@@ -494,6 +503,8 @@ export default function TankEntryBook() {
                         <td className="py-2 px-4 text-left text-gray-800 dark:text-gray-100 border-r border-red-200 dark:border-red-800">
                           {isEditing ? (
                             <input
+                              id={`tank-entry-edit-fuel-type-${entry.id}`}
+                              aria-label="Fuel Type"
                               type="text"
                               value={displayEntry.fuelType}
                               onChange={(e) => setEditForm(prev => prev ? { ...prev, fuelType: e.target.value } : null)}
@@ -508,6 +519,8 @@ export default function TankEntryBook() {
                         <td className="py-2 px-4 text-right text-gray-800 dark:text-gray-100 border-r border-red-200 dark:border-red-800">
                           {isEditing ? (
                             <input
+                              id={`tank-entry-edit-q1-${entry.id}`}
+                              aria-label="Quantity 1"
                               type="text"
                               value={displayEntry.quantity1}
                               onChange={(e) => setEditForm(prev => prev ? { ...prev, quantity1: e.target.value } : null)}
@@ -523,6 +536,8 @@ export default function TankEntryBook() {
                         <td className="py-2 px-4 text-right text-gray-800 dark:text-gray-100 border-r border-red-200 dark:border-red-800">
                           {isEditing ? (
                             <input
+                              id={`tank-entry-edit-q2-${entry.id}`}
+                              aria-label="Quantity 2"
                               type="text"
                               value={displayEntry.quantity2}
                               onChange={(e) => setEditForm(prev => prev ? { ...prev, quantity2: e.target.value } : null)}
@@ -538,6 +553,8 @@ export default function TankEntryBook() {
                         <td className="py-2 px-4 text-right text-gray-800 dark:text-gray-100 border-r border-red-200 dark:border-red-800">
                           {isEditing ? (
                             <input
+                              id={`tank-entry-edit-q3-${entry.id}`}
+                              aria-label="Quantity 3"
                               type="text"
                               value={displayEntry.quantity3}
                               onChange={(e) => setEditForm(prev => prev ? { ...prev, quantity3: e.target.value } : null)}
@@ -587,11 +604,10 @@ export default function TankEntryBook() {
                                 </button>
                                 <button
                                   onClick={() => handleToggleVerify(entry.id)}
-                                  className={`p-1.5 rounded transition-colors ${
-                                    entry.isVerified
+                                  className={`p-1.5 rounded transition-colors ${entry.isVerified
                                       ? "bg-green-500 hover:bg-green-600 text-white"
                                       : "bg-gray-300 hover:bg-gray-400 text-gray-700 dark:bg-gray-600 dark:text-gray-300"
-                                  }`}
+                                    }`}
                                   title={entry.isVerified ? "ยกเลิกการยืนยัน" : "ยืนยัน"}
                                 >
                                   <Check className="w-4 h-4" />
@@ -662,10 +678,11 @@ export default function TankEntryBook() {
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="tank-entry-add-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         วันที่ (ด/ป/ว)
                       </label>
                       <input
+                        id="tank-entry-add-date"
                         type="text"
                         value={newEntry.date}
                         onChange={(e) => setNewEntry({ ...newEntry, date: e.target.value })}
@@ -674,10 +691,11 @@ export default function TankEntryBook() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="tank-entry-add-tank-id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         รหัส (ID)
                       </label>
                       <input
+                        id="tank-entry-add-tank-id"
                         type="number"
                         value={newEntry.tankId}
                         onChange={(e) => setNewEntry({ ...newEntry, tankId: Number(e.target.value) })}
@@ -687,10 +705,11 @@ export default function TankEntryBook() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="tank-entry-add-fuel-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       ประเภทน้ำมัน
                     </label>
                     <input
+                      id="tank-entry-add-fuel-type"
                       type="text"
                       value={newEntry.fuelType}
                       onChange={(e) => setNewEntry({ ...newEntry, fuelType: e.target.value })}
@@ -701,10 +720,11 @@ export default function TankEntryBook() {
 
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="tank-entry-add-q1" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         จำนวน 1
                       </label>
                       <input
+                        id="tank-entry-add-q1"
                         type="text"
                         value={newEntry.quantity1}
                         onChange={(e) => setNewEntry({ ...newEntry, quantity1: e.target.value })}
@@ -713,10 +733,11 @@ export default function TankEntryBook() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="tank-entry-add-q2" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         จำนวน 2
                       </label>
                       <input
+                        id="tank-entry-add-q2"
                         type="text"
                         value={newEntry.quantity2}
                         onChange={(e) => setNewEntry({ ...newEntry, quantity2: e.target.value })}
@@ -725,10 +746,11 @@ export default function TankEntryBook() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="tank-entry-add-q3" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         จำนวน 3
                       </label>
                       <input
+                        id="tank-entry-add-q3"
                         type="text"
                         value={newEntry.quantity3}
                         onChange={(e) => setNewEntry({ ...newEntry, quantity3: e.target.value })}
@@ -740,12 +762,13 @@ export default function TankEntryBook() {
 
                   <div className="flex items-center gap-2">
                     <input
+                      id="tank-entry-add-verify"
                       type="checkbox"
                       checked={newEntry.isVerified}
                       onChange={(e) => setNewEntry({ ...newEntry, isVerified: e.target.checked })}
                       className="w-4 h-4"
                     />
-                    <label className="text-sm text-gray-700 dark:text-gray-300">ยืนยันแล้ว (มี checkmark)</label>
+                    <label htmlFor="tank-entry-add-verify" className="text-sm text-gray-700 dark:text-gray-300">ยืนยันแล้ว (มี checkmark)</label>
                   </div>
                 </div>
 

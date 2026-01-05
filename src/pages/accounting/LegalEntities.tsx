@@ -57,11 +57,10 @@ export default function LegalEntities() {
           <button
             key={ent.id}
             onClick={() => setSelectedEntity(ent.id)}
-            className={`flex-1 px-6 py-4 rounded-xl border-2 transition-all ${
-              selectedEntity === ent.id
+            className={`flex-1 px-6 py-4 rounded-xl border-2 transition-all ${selectedEntity === ent.id
                 ? "bg-ptt-blue/10 border-ptt-blue/30 text-ptt-cyan"
                 : "bg-soft border-app text-muted hover:text-app"
-            }`}
+              }`}
           >
             <div className="flex items-center justify-center gap-3">
               <Building2 className="w-5 h-5" />
@@ -93,41 +92,40 @@ export default function LegalEntities() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">เลขประจำตัวผู้เสียภาษี</label>
+              <div className="block text-sm font-medium text-muted mb-2">เลขประจำตัวผู้เสียภาษี</div>
               <p className="text-app font-mono">{entity.taxId}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">สกุลเงิน</label>
+              <div className="block text-sm font-medium text-muted mb-2">สกุลเงิน</div>
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-muted" />
                 <p className="text-app">{entity.currency}</p>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">อัตรา VAT</label>
+              <div className="block text-sm font-medium text-muted mb-2">อัตรา VAT</div>
               <p className="text-app">{entity.vatRate}%</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">ที่อยู่</label>
+              <div className="block text-sm font-medium text-muted mb-2">ที่อยู่</div>
               <p className="text-app">{entity.address}</p>
             </div>
           </div>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">โทรศัพท์</label>
+              <div className="block text-sm font-medium text-muted mb-2">โทรศัพท์</div>
               <p className="text-app">{entity.phone}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">อีเมล</label>
+              <div className="block text-sm font-medium text-muted mb-2">อีเมล</div>
               <p className="text-app">{entity.email}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">สถานะ</label>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                entity.status === "Active"
+              <div className="block text-sm font-medium text-muted mb-2">สถานะ</div>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${entity.status === "Active"
                   ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
                   : "bg-gray-500/10 text-gray-400 border border-gray-500/30"
-              }`}>
+                }`}>
                 {entity.status}
               </span>
             </div>
@@ -153,21 +151,21 @@ export default function LegalEntities() {
           {entity.branches.map((branch) => (
             <div
               key={branch.id}
-                className="p-4 bg-soft rounded-xl border border-app hover:border-ptt-blue/30 transition-all"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <p className="font-semibold text-app">{branch.name}</p>
-                    <p className="text-xs text-muted font-mono">{branch.code}</p>
-                  </div>
-                  {branch.code === "HQ" && (
-                    <span className="px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan text-xs">
-                      สำนักงานใหญ่
-                    </span>
-                  )}
+              className="p-4 bg-soft rounded-xl border border-app hover:border-ptt-blue/30 transition-all"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="font-semibold text-app">{branch.name}</p>
+                  <p className="text-xs text-muted font-mono">{branch.code}</p>
                 </div>
+                {branch.code === "HQ" && (
+                  <span className="px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan text-xs">
+                    สำนักงานใหญ่
+                  </span>
+                )}
               </div>
-            ))}
+            </div>
+          ))}
         </div>
       </motion.div>
 

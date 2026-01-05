@@ -276,8 +276,9 @@ export default function Payments() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">เลขที่ใบแจ้งหนี้</label>
+            <label htmlFor="payment-invoice-no" className="block text-sm font-medium text-app mb-2">เลขที่ใบแจ้งหนี้</label>
             <input
+              id="payment-invoice-no"
               type="text"
               value={formData.invoiceNumber}
               onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
@@ -287,8 +288,9 @@ export default function Payments() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
+            <label htmlFor="payment-shop" className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
             <input
+              id="payment-shop"
               type="text"
               value={formData.shop}
               onChange={(e) => setFormData({ ...formData, shop: e.target.value })}
@@ -298,8 +300,9 @@ export default function Payments() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">สาขา</label>
+              <label htmlFor="payment-branch" className="block text-sm font-medium text-app mb-2">สาขา</label>
               <select
+                id="payment-branch"
                 value={formData.branch}
                 onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -312,8 +315,9 @@ export default function Payments() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่ชำระ</label>
+              <label htmlFor="payment-date" className="block text-sm font-medium text-app mb-2">วันที่ชำระ</label>
               <input
+                id="payment-date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -324,8 +328,9 @@ export default function Payments() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
+              <label htmlFor="payment-amount" className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
               <input
+                id="payment-amount"
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -334,8 +339,9 @@ export default function Payments() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วิธีชำระ</label>
+              <label htmlFor="payment-method" className="block text-sm font-medium text-app mb-2">วิธีชำระ</label>
               <select
+                id="payment-method"
                 value={formData.method}
                 onChange={(e) => setFormData({ ...formData, method: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"

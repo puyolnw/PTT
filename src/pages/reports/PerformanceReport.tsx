@@ -79,9 +79,9 @@ export default function PerformanceReport() {
             </div>
             <div className="text-3xl font-bold text-green-400 mb-2">{excellentCount}</div>
             <div className="h-2 bg-ink-700 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-green-400"
-                style={{ width: `${(excellentCount / performanceReviews.length) * 100}%` }}
+              <motion.div
+                className="h-full bg-green-400 w-[var(--excellent-percentage)]"
+                style={{ "--excellent-percentage": `${(excellentCount / performanceReviews.length) * 100}%` } as React.CSSProperties}
               />
             </div>
           </div>
@@ -93,9 +93,9 @@ export default function PerformanceReport() {
             </div>
             <div className="text-3xl font-bold text-yellow-400 mb-2">{goodCount}</div>
             <div className="h-2 bg-ink-700 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-yellow-400"
-                style={{ width: `${(goodCount / performanceReviews.length) * 100}%` }}
+              <motion.div
+                className="h-full bg-yellow-400 w-[var(--good-percentage)]"
+                style={{ "--good-percentage": `${(goodCount / performanceReviews.length) * 100}%` } as React.CSSProperties}
               />
             </div>
           </div>
@@ -107,9 +107,9 @@ export default function PerformanceReport() {
             </div>
             <div className="text-3xl font-bold text-ptt-red mb-2">{needsImprovement}</div>
             <div className="h-2 bg-ink-700 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-ptt-red"
-                style={{ width: `${(needsImprovement / performanceReviews.length) * 100}%` }}
+              <motion.div
+                className="h-full bg-ptt-red w-[var(--improvement-percentage)]"
+                style={{ "--improvement-percentage": `${(needsImprovement / performanceReviews.length) * 100}%` } as React.CSSProperties}
               />
             </div>
           </div>
@@ -127,8 +127,8 @@ export default function PerformanceReport() {
               return (
                 <div key={perf.id} className="bg-gradient-to-br from-green-500/10 to-green-400/10 border border-green-500/20 rounded-xl p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <img 
-                      src={emp?.avatar} 
+                    <img
+                      src={emp?.avatar}
                       alt={emp?.name}
                       className="w-12 h-12 rounded-full ring-2 ring-green-400/30"
                     />

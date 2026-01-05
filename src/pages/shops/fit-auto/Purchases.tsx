@@ -58,7 +58,7 @@ const initialPurchases = [
 export default function Purchases() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "FIT Auto";
-  
+
   const [purchases, setPurchases] = useState(initialPurchases);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -116,7 +116,7 @@ export default function Purchases() {
     if (file) {
       // Simulate file processing from Stock Program
       alert(`กำลังประมวลผลไฟล์ ${file.name}...\n\nระบบจะสร้างใบสั่งซื้อ (PO) อัตโนมัติจากข้อมูลใน Stock Program`);
-      
+
       // Simulate adding a purchase from file
       const newPurchase = {
         id: String(purchases.length + 1),
@@ -247,10 +247,11 @@ export default function Purchases() {
         />
 
         <div className="flex gap-2">
-          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
+          <label htmlFor="fit-auto-upload-stock" className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
             <Upload className="w-4 h-4" />
             <span>นำเข้าจาก Stock Program</span>
             <input
+              id="fit-auto-upload-stock"
               type="file"
               accept=".xlsx,.xls"
               onChange={handleFileUpload}
@@ -302,11 +303,10 @@ export default function Purchases() {
                   </p>
                   <div className="flex items-center gap-2 mt-2 justify-end">
                     <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        purchase.status === "ชำระแล้ว"
+                      className={`text-xs px-2 py-1 rounded-full ${purchase.status === "ชำระแล้ว"
                           ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
                           : "bg-orange-500/10 text-orange-400 border border-orange-500/30"
-                      }`}
+                        }`}
                     >
                       {purchase.status}
                     </span>
@@ -349,8 +349,9 @@ export default function Purchases() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่</label>
+              <label htmlFor="fit-auto-purchase-date" className="block text-sm font-medium text-app mb-2">วันที่</label>
               <input
+                id="fit-auto-purchase-date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -359,8 +360,9 @@ export default function Purchases() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">สถานะ</label>
+              <label htmlFor="fit-auto-purchase-status" className="block text-sm font-medium text-app mb-2">สถานะ</label>
               <select
+                id="fit-auto-purchase-status"
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -371,8 +373,9 @@ export default function Purchases() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
+            <label htmlFor="fit-auto-purchase-supplier" className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
             <input
+              id="fit-auto-purchase-supplier"
               type="text"
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
@@ -382,8 +385,9 @@ export default function Purchases() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">รายการอะไหล่</label>
+            <label htmlFor="fit-auto-purchase-items" className="block text-sm font-medium text-app mb-2">รายการอะไหล่</label>
             <textarea
+              id="fit-auto-purchase-items"
               value={formData.items}
               onChange={(e) => setFormData({ ...formData, items: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -394,8 +398,9 @@ export default function Purchases() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
+              <label htmlFor="fit-auto-purchase-amount" className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
               <input
+                id="fit-auto-purchase-amount"
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -405,8 +410,9 @@ export default function Purchases() {
             </div>
             {formData.status === "รอชำระ" && (
               <div>
-                <label className="block text-sm font-medium text-app mb-2">ครบกำหนด</label>
+                <label htmlFor="fit-auto-purchase-due-date" className="block text-sm font-medium text-app mb-2">ครบกำหนด</label>
                 <input
+                  id="fit-auto-purchase-due-date"
                   type="date"
                   value={formData.dueDate}
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
@@ -416,8 +422,9 @@ export default function Purchases() {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">แหล่งที่มา</label>
+            <label htmlFor="fit-auto-purchase-source" className="block text-sm font-medium text-app mb-2">แหล่งที่มา</label>
             <select
+              id="fit-auto-purchase-source"
               value={formData.source}
               onChange={(e) => setFormData({ ...formData, source: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"

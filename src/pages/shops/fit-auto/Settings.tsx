@@ -6,7 +6,7 @@ import { useShop } from "@/contexts/ShopContext";
 export default function Settings() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "FIT Auto";
-  
+
   const [settings, setSettings] = useState({
     shopName: shopName,
     rent: 7000,
@@ -48,8 +48,9 @@ export default function Settings() {
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อศูนย์บริการ</label>
+            <label htmlFor="fit-settings-shop-name" className="block text-sm font-medium text-app mb-2">ชื่อศูนย์บริการ</label>
             <input
+              id="fit-settings-shop-name"
               type="text"
               value={settings.shopName}
               onChange={(e) => setSettings({ ...settings, shopName: e.target.value })}
@@ -57,8 +58,9 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ที่อยู่</label>
+            <label htmlFor="fit-settings-address" className="block text-sm font-medium text-app mb-2">ที่อยู่</label>
             <input
+              id="fit-settings-address"
               type="text"
               value={settings.address}
               onChange={(e) => setSettings({ ...settings, address: e.target.value })}
@@ -68,8 +70,9 @@ export default function Settings() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">อีเมล</label>
+              <label htmlFor="fit-settings-email" className="block text-sm font-medium text-app mb-2">อีเมล</label>
               <input
+                id="fit-settings-email"
                 type="email"
                 value={settings.email}
                 onChange={(e) => setSettings({ ...settings, email: e.target.value })}
@@ -78,8 +81,9 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">เบอร์โทร</label>
+              <label htmlFor="fit-settings-phone" className="block text-sm font-medium text-app mb-2">เบอร์โทร</label>
               <input
+                id="fit-settings-phone"
                 type="tel"
                 value={settings.phone}
                 onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
@@ -102,10 +106,11 @@ export default function Settings() {
           <SettingsIcon className="w-6 h-6 text-muted" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-app mb-2">
+          <label htmlFor="fit-settings-threshold" className="block text-sm font-medium text-app mb-2">
             เกณฑ์แจ้งเตือนสต็อกต่ำ (%)
           </label>
           <input
+            id="fit-settings-threshold"
             type="number"
             value={settings.lowStockThreshold}
             onChange={(e) => setSettings({ ...settings, lowStockThreshold: Number(e.target.value) })}
@@ -130,8 +135,9 @@ export default function Settings() {
           <SettingsIcon className="w-6 h-6 text-muted" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-app mb-2">ค่าเช่าพื้นที่ (บาท/เดือน)</label>
+          <label htmlFor="fit-settings-rent" className="block text-sm font-medium text-app mb-2">ค่าเช่าพื้นที่ (บาท/เดือน)</label>
           <input
+            id="fit-settings-rent"
             type="number"
             value={settings.rent}
             onChange={(e) => setSettings({ ...settings, rent: Number(e.target.value) })}
@@ -162,6 +168,7 @@ export default function Settings() {
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
+              <span className="sr-only">เชื่อมต่อ M1</span>
               <input
                 type="checkbox"
                 checked={settings.connectToModule1}
@@ -179,6 +186,7 @@ export default function Settings() {
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
+              <span className="sr-only">เชื่อมต่อ M6</span>
               <input
                 type="checkbox"
                 checked={settings.connectToModule6}
@@ -196,6 +204,7 @@ export default function Settings() {
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
+              <span className="sr-only">เชื่อมต่อ M7</span>
               <input
                 type="checkbox"
                 checked={settings.connectToModule7}
@@ -216,6 +225,7 @@ export default function Settings() {
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
+              <span className="sr-only">เปิดใช้งานบริการ EV</span>
               <input
                 type="checkbox"
                 checked={settings.enableEVService}

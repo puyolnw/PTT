@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { 
-  Package, 
-  Gift, 
-  Home as HomeIcon, 
-  Fuel, 
-  Plane, 
+import {
+  Package,
+  Gift,
+  Home as HomeIcon,
+  Fuel,
+  Plane,
   HeartHandshake,
   GraduationCap,
   Plus,
@@ -61,7 +61,7 @@ export default function WelfareStock() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState({ startDate: "", endDate: "" });
-  
+
   // สต๊อกสินค้า (benefits, dormitory)
   const [stockItems, setStockItems] = useState<StockItem[]>([
     { id: 1, type: "benefits", name: "ชุดฟอร์ม", category: "ปั๊ม", source: "ร้านปั๊มน้ำมัน", quantity: 45, unit: "ชุด", minStock: 20, maxStock: 100, costPerUnit: 500, totalCost: 22500, lastRestockDate: "2025-01-10", status: "ปกติ", notes: "ชุดฟอร์มสำหรับพนักงานปั๊ม" },
@@ -120,7 +120,7 @@ export default function WelfareStock() {
       const month = date.toLocaleDateString('th-TH', { month: 'short' });
       const year = date.getFullYear() + 543;
       return `${day} ${month} ${year}`;
-    } catch (error) {
+    } catch {
       return dateString;
     }
   };
@@ -135,7 +135,7 @@ export default function WelfareStock() {
       const year = date.getFullYear() + 543;
       const dayOfWeek = date.toLocaleDateString('th-TH', { weekday: 'long' });
       return `${dayOfWeek}ที่ ${day} ${month} ${year}`;
-    } catch (error) {
+    } catch {
       return dateString;
     }
   };
@@ -148,7 +148,7 @@ export default function WelfareStock() {
   const filteredStockItems = useMemo(() => {
     return stockItems.filter(item => {
       const matchesTab = item.type === activeTab;
-      const matchesSearch = !searchQuery || 
+      const matchesSearch = !searchQuery ||
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.source.toLowerCase().includes(searchQuery.toLowerCase());
@@ -160,11 +160,11 @@ export default function WelfareStock() {
   const filteredMoneyRecords = useMemo(() => {
     return moneyUsageRecords.filter(record => {
       const matchesTab = record.type === activeTab;
-      const matchesSearch = !searchQuery || 
+      const matchesSearch = !searchQuery ||
         record.empName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         record.empCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
         record.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      
+
       // Date filter
       let matchesDate = true;
       if (dateFilter.startDate) {
@@ -173,7 +173,7 @@ export default function WelfareStock() {
       if (dateFilter.endDate) {
         matchesDate = matchesDate && new Date(record.date) <= new Date(dateFilter.endDate);
       }
-      
+
       return matchesTab && matchesSearch && matchesDate;
     });
   }, [moneyUsageRecords, activeTab, searchQuery, dateFilter]);
@@ -273,7 +273,7 @@ export default function WelfareStock() {
             สต๊อกสวัสดิการ
           </h1>
           <p className="text-muted font-light">
-            {isMoneyTab 
+            {isMoneyTab
               ? "บันทึกประวัติการใช้เงินสวัสดิการ - ดึงเงินจากรายได้ปั๊ม"
               : "จัดการสต๊อกสินค้าสวัสดิการ - ดูที่มาและจำนวนคงเหลือ"
             }
@@ -476,12 +476,12 @@ export default function WelfareStock() {
               <p className="text-xs text-muted">
                 {isMoneyTab ? (
                   <>
-                    จำนวนรายการ: {filteredMoneyRecords.length} รายการ | 
+                    จำนวนรายการ: {filteredMoneyRecords.length} รายการ |
                     ยอดรวม: {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(moneyStats.totalUsed)}
                   </>
                 ) : (
                   <>
-                    จำนวนรายการ: {filteredStockItems.length} รายการ | 
+                    จำนวนรายการ: {filteredStockItems.length} รายการ |
                     {filteredStockItems.length > 0 && (
                       <> จำนวนรวม: {filteredStockItems.reduce((sum, item) => sum + item.quantity, 0)} {filteredStockItems[0]?.unit || "หน่วย"}</>
                     )}
@@ -602,15 +602,15 @@ export default function WelfareStock() {
                       </td>
                       <td className="px-4 py-4 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <button 
-                            className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors" 
+                          <button
+                            className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors"
                             title="แก้ไข"
                           >
                             <Edit2 className="w-4 h-4 text-ptt-cyan" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleDelete(record.id)}
-                            className="p-2 hover:bg-red-500/20 rounded-lg transition-colors" 
+                            className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
                             title="ลบ"
                           >
                             <Trash2 className="w-4 h-4 text-red-400" />
@@ -666,10 +666,9 @@ export default function WelfareStock() {
                         key={item.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`hover:bg-soft/70 transition-colors ${
-                          item.status === "เตือน" ? "bg-yellow-500/5" :
+                        className={`hover:bg-soft/70 transition-colors ${item.status === "เตือน" ? "bg-yellow-500/5" :
                           item.status === "ไม่พอ" ? "bg-red-500/5" : ""
-                        }`}
+                          }`}
                       >
                         <td className="px-4 py-4">
                           <div className="flex flex-col">
@@ -691,21 +690,19 @@ export default function WelfareStock() {
                         <td className="px-4 py-4">
                           <div className="flex flex-col items-center gap-2">
                             <div className="flex items-center gap-2">
-                              <span className={`text-lg font-bold ${
-                                isLowStock ? "text-red-400" : "text-app"
-                              }`}>
+                              <span className={`text-lg font-bold ${isLowStock ? "text-red-400" : "text-app"
+                                }`}>
                                 {item.quantity}
                               </span>
                               <span className="text-xs text-muted">{item.unit}</span>
                             </div>
                             <div className="w-full max-w-[100px] h-2 bg-app/20 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full transition-all ${
-                                  stockPercentage >= 50 ? "bg-green-400" :
+                              <motion.div
+                                className={`h-full transition-all w-[var(--stock-percentage)] ${stockPercentage >= 50 ? "bg-green-400" :
                                   stockPercentage >= 25 ? "bg-yellow-400" :
-                                  "bg-red-400"
-                                }`}
-                                style={{ width: `${stockPercentage}%` }}
+                                    "bg-red-400"
+                                  }`}
+                                style={{ "--stock-percentage": `${stockPercentage}%` } as React.CSSProperties}
                               />
                             </div>
                             <span className="text-[10px] text-muted">
@@ -735,11 +732,10 @@ export default function WelfareStock() {
                           </div>
                         </td>
                         <td className="px-4 py-4 text-center">
-                          <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                            item.status === "ปกติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                          <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${item.status === "ปกติ" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
                             item.status === "เตือน" ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" :
-                            "bg-red-500/20 text-red-400 border border-red-500/30"
-                          }`}>
+                              "bg-red-500/20 text-red-400 border border-red-500/30"
+                            }`}>
                             {item.status === "ปกติ" && "✓ "}
                             {item.status === "เตือน" && "⚠ "}
                             {item.status === "ไม่พอ" && "✗ "}
@@ -748,15 +744,15 @@ export default function WelfareStock() {
                         </td>
                         <td className="px-4 py-4 text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <button 
-                              className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors" 
+                            <button
+                              className="p-2 hover:bg-ptt-cyan/20 rounded-lg transition-colors"
                               title="แก้ไข"
                             >
                               <Edit2 className="w-4 h-4 text-ptt-cyan" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleDelete(item.id)}
-                              className="p-2 hover:bg-red-500/20 rounded-lg transition-colors" 
+                              className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
                               title="ลบ"
                             >
                               <Trash2 className="w-4 h-4 text-red-400" />

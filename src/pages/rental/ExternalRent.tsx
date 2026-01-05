@@ -114,10 +114,10 @@ export default function ExternalRent() {
       externalRents.map((rent) =>
         rent.id === selectedRent.id
           ? {
-              ...selectedRent,
-              ...formData,
-              amount: Number(formData.amount),
-            }
+            ...selectedRent,
+            ...formData,
+            amount: Number(formData.amount),
+          }
           : rent
       )
     );
@@ -322,15 +322,14 @@ export default function ExternalRent() {
             return (
               <div
                 key={rent.id}
-                className={`p-4 rounded-xl border ${
-                  isOverdue
+                className={`p-4 rounded-xl border ${isOverdue
                     ? "bg-red-500/10 border-red-500/30"
                     : isUpcoming
-                    ? "bg-orange-500/10 border-orange-500/30"
-                    : rent.status === "ชำระแล้ว"
-                    ? "bg-soft border-app"
-                    : "bg-soft border-app"
-                } hover:border-ptt-blue/30 transition-colors`}
+                      ? "bg-orange-500/10 border-orange-500/30"
+                      : rent.status === "ชำระแล้ว"
+                        ? "bg-soft border-app"
+                        : "bg-soft border-app"
+                  } hover:border-ptt-blue/30 transition-colors`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -340,15 +339,14 @@ export default function ExternalRent() {
                   <div className="text-right">
                     <p className="text-xl font-bold text-app">{currencyFormatter.format(rent.amount)}</p>
                     <div className="flex items-center gap-2 mt-1 justify-end">
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        rent.status === "ชำระแล้ว"
+                      <span className={`text-xs px-2 py-1 rounded-full ${rent.status === "ชำระแล้ว"
                           ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
                           : isOverdue
-                          ? "bg-red-500/10 text-red-400 border border-red-500/30"
-                          : isUpcoming
-                          ? "bg-orange-500/10 text-orange-400 border border-orange-500/30"
-                          : "bg-gray-500/10 text-gray-400 border border-gray-500/30"
-                      }`}>
+                            ? "bg-red-500/10 text-red-400 border border-red-500/30"
+                            : isUpcoming
+                              ? "bg-orange-500/10 text-orange-400 border border-orange-500/30"
+                              : "bg-gray-500/10 text-gray-400 border border-gray-500/30"
+                        }`}>
                         {rent.status}
                       </span>
                       <span className="text-xs px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30">
@@ -435,8 +433,9 @@ export default function ExternalRent() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ประเภท</label>
+            <label htmlFor="add-rent-type" className="block text-sm font-medium text-app mb-2">ประเภท</label>
             <select
+              id="add-rent-type"
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -447,8 +446,9 @@ export default function ExternalRent() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">รายละเอียด</label>
+            <label htmlFor="add-rent-description" className="block text-sm font-medium text-app mb-2">รายละเอียด</label>
             <input
+              id="add-rent-description"
               type="text"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -458,8 +458,9 @@ export default function ExternalRent() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">สาขา</label>
+            <label htmlFor="add-rent-branch" className="block text-sm font-medium text-app mb-2">สาขา</label>
             <select
+              id="add-rent-branch"
               value={formData.branch}
               onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -473,8 +474,9 @@ export default function ExternalRent() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
+              <label htmlFor="add-rent-amount" className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
               <input
+                id="add-rent-amount"
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -483,8 +485,9 @@ export default function ExternalRent() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ความถี่</label>
+              <label htmlFor="add-rent-frequency" className="block text-sm font-medium text-app mb-2">ความถี่</label>
               <select
+                id="add-rent-frequency"
                 value={formData.frequency}
                 onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -495,8 +498,9 @@ export default function ExternalRent() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ครบกำหนดชำระ</label>
+            <label htmlFor="add-rent-due-date" className="block text-sm font-medium text-app mb-2">ครบกำหนดชำระ</label>
             <input
+              id="add-rent-due-date"
               type="date"
               value={formData.dueDate}
               onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
@@ -521,8 +525,9 @@ export default function ExternalRent() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ประเภท</label>
+            <label htmlFor="edit-rent-type" className="block text-sm font-medium text-app mb-2">ประเภท</label>
             <select
+              id="edit-rent-type"
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -533,8 +538,9 @@ export default function ExternalRent() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">รายละเอียด</label>
+            <label htmlFor="edit-rent-description" className="block text-sm font-medium text-app mb-2">รายละเอียด</label>
             <input
+              id="edit-rent-description"
               type="text"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -543,8 +549,9 @@ export default function ExternalRent() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">สาขา</label>
+            <label htmlFor="edit-rent-branch" className="block text-sm font-medium text-app mb-2">สาขา</label>
             <select
+              id="edit-rent-branch"
               value={formData.branch}
               onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -558,8 +565,9 @@ export default function ExternalRent() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
+              <label htmlFor="edit-rent-amount" className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
               <input
+                id="edit-rent-amount"
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -568,8 +576,9 @@ export default function ExternalRent() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ความถี่</label>
+              <label htmlFor="edit-rent-frequency" className="block text-sm font-medium text-app mb-2">ความถี่</label>
               <select
+                id="edit-rent-frequency"
                 value={formData.frequency}
                 onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -580,8 +589,9 @@ export default function ExternalRent() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ครบกำหนดชำระ</label>
+            <label htmlFor="edit-rent-due-date" className="block text-sm font-medium text-app mb-2">ครบกำหนดชำระ</label>
             <input
+              id="edit-rent-due-date"
               type="date"
               value={formData.dueDate}
               onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}

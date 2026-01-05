@@ -6,7 +6,7 @@ import { useShop } from "@/contexts/ShopContext";
 export default function Settings() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "ร้านเจียง (Jiang Fish Balls)";
-  
+
   const [settings, setSettings] = useState({
     shopName: shopName,
     rent: 4500,
@@ -54,8 +54,9 @@ export default function Settings() {
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
+            <label htmlFor="settings-shop-name" className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
             <input
+              id="settings-shop-name"
               type="text"
               value={settings.shopName}
               onChange={(e) => setSettings({ ...settings, shopName: e.target.value })}
@@ -63,8 +64,9 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ที่อยู่</label>
+            <label htmlFor="settings-address" className="block text-sm font-medium text-app mb-2">ที่อยู่</label>
             <input
+              id="settings-address"
               type="text"
               value={settings.address}
               onChange={(e) => setSettings({ ...settings, address: e.target.value })}
@@ -74,8 +76,9 @@ export default function Settings() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">อีเมล</label>
+              <label htmlFor="settings-email" className="block text-sm font-medium text-app mb-2">อีเมล</label>
               <input
+                id="settings-email"
                 type="email"
                 value={settings.email}
                 onChange={(e) => setSettings({ ...settings, email: e.target.value })}
@@ -84,8 +87,9 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">เบอร์โทร</label>
+              <label htmlFor="settings-phone" className="block text-sm font-medium text-app mb-2">เบอร์โทร</label>
               <input
+                id="settings-phone"
                 type="tel"
                 value={settings.phone}
                 onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
@@ -109,10 +113,11 @@ export default function Settings() {
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="settings-threshold" className="block text-sm font-medium text-app mb-2">
               เกณฑ์แจ้งเตือนสต็อกต่ำ (%)
             </label>
             <input
+              id="settings-threshold"
               type="number"
               value={settings.lowStockThreshold}
               onChange={(e) => setSettings({ ...settings, lowStockThreshold: Number(e.target.value) })}
@@ -125,10 +130,11 @@ export default function Settings() {
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="settings-expiry-days" className="block text-sm font-medium text-app mb-2">
               แจ้งเตือนก่อนหมดอายุ (วัน)
             </label>
             <input
+              id="settings-expiry-days"
               type="number"
               value={settings.expiryWarningDays}
               onChange={(e) => setSettings({ ...settings, expiryWarningDays: Number(e.target.value) })}
@@ -153,8 +159,9 @@ export default function Settings() {
           <SettingsIcon className="w-6 h-6 text-muted" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-app mb-2">ค่าเช่าพื้นที่ (บาท/เดือน)</label>
+          <label htmlFor="settings-rent" className="block text-sm font-medium text-app mb-2">ค่าเช่าพื้นที่ (บาท/เดือน)</label>
           <input
+            id="settings-rent"
             type="number"
             value={settings.rent}
             onChange={(e) => setSettings({ ...settings, rent: Number(e.target.value) })}
@@ -184,12 +191,14 @@ export default function Settings() {
                 ระบบจะแจ้งเตือนเมื่อสต็อกต่ำกว่าเกณฑ์ที่กำหนด
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label htmlFor="settings-alert-low-stock" className="relative inline-flex items-center cursor-pointer">
               <input
+                id="settings-alert-low-stock"
                 type="checkbox"
                 checked={settings.alertLowStock}
                 onChange={(e) => setSettings({ ...settings, alertLowStock: e.target.checked })}
                 className="sr-only peer"
+                aria-label="แจ้งเตือนสินค้าใกล้หมด"
               />
               <div className="w-11 h-6 bg-soft peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-app after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
             </label>
@@ -201,12 +210,14 @@ export default function Settings() {
                 ระบบจะแจ้งเตือนเมื่อสินค้าเหลืออายุน้อยกว่า {settings.expiryWarningDays} วัน
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label htmlFor="settings-alert-expiry" className="relative inline-flex items-center cursor-pointer">
               <input
+                id="settings-alert-expiry"
                 type="checkbox"
                 checked={settings.alertExpiry}
                 onChange={(e) => setSettings({ ...settings, alertExpiry: e.target.checked })}
                 className="sr-only peer"
+                aria-label="แจ้งเตือนสินค้าใกล้หมดอายุ"
               />
               <div className="w-11 h-6 bg-soft peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-app after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
             </label>
@@ -221,20 +232,23 @@ export default function Settings() {
                 ระบบจะส่งอีเมลแจ้งเตือนเมื่อมีสินค้าใกล้หมดหรือใกล้หมดอายุ
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label htmlFor="settings-alert-email" className="relative inline-flex items-center cursor-pointer">
               <input
+                id="settings-alert-email"
                 type="checkbox"
                 checked={settings.alertEmail}
                 onChange={(e) => setSettings({ ...settings, alertEmail: e.target.checked })}
                 className="sr-only peer"
+                aria-label="แจ้งเตือนผ่านอีเมล"
               />
               <div className="w-11 h-6 bg-soft peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-app after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
             </label>
           </div>
           {settings.alertEmail && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">อีเมลสำหรับรับแจ้งเตือน</label>
+              <label htmlFor="settings-alert-email-address" className="block text-sm font-medium text-app mb-2">อีเมลสำหรับรับแจ้งเตือน</label>
               <input
+                id="settings-alert-email-address"
                 type="email"
                 value={settings.alertEmailAddress}
                 onChange={(e) => setSettings({ ...settings, alertEmailAddress: e.target.value })}
@@ -253,20 +267,23 @@ export default function Settings() {
                 ระบบจะส่งข้อความ Line แจ้งเตือนเมื่อมีสินค้าใกล้หมดหรือใกล้หมดอายุ
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label htmlFor="settings-alert-line" className="relative inline-flex items-center cursor-pointer">
               <input
+                id="settings-alert-line"
                 type="checkbox"
                 checked={settings.alertLine}
                 onChange={(e) => setSettings({ ...settings, alertLine: e.target.checked })}
                 className="sr-only peer"
+                aria-label="แจ้งเตือนผ่าน Line"
               />
               <div className="w-11 h-6 bg-soft peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-app after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
             </label>
           </div>
           {settings.alertLine && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">Line Token</label>
+              <label htmlFor="settings-alert-line-token" className="block text-sm font-medium text-app mb-2">Line Token</label>
               <input
+                id="settings-alert-line-token"
                 type="text"
                 value={settings.alertLineToken}
                 onChange={(e) => setSettings({ ...settings, alertLineToken: e.target.value })}
@@ -299,12 +316,14 @@ export default function Settings() {
                 ค่าเช่าร้านเจียงจะถูกบันทึกเป็นรายได้ประจำเดือนอัตโนมัติ + VAT
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label htmlFor="settings-connect-m6" className="relative inline-flex items-center cursor-pointer">
               <input
+                id="settings-connect-m6"
                 type="checkbox"
                 checked={settings.connectToModule6}
                 onChange={(e) => setSettings({ ...settings, connectToModule6: e.target.checked })}
                 className="sr-only peer"
+                aria-label="โมดูล M6: บันทึกค่าเช่าเป็นรายได้"
               />
               <div className="w-11 h-6 bg-soft peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-app after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
             </label>
@@ -316,12 +335,14 @@ export default function Settings() {
                 ข้อมูลยอดขายและกำไรจะแสดงในแดชบอร์ดรวมอัตโนมัติ (เปรียบเทียบกับร้านอื่น)
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label htmlFor="settings-connect-m7" className="relative inline-flex items-center cursor-pointer">
               <input
+                id="settings-connect-m7"
                 type="checkbox"
                 checked={settings.connectToModule7}
                 onChange={(e) => setSettings({ ...settings, connectToModule7: e.target.checked })}
                 className="sr-only peer"
+                aria-label="โมดูล M7: แสดงในแดชบอร์ดรวม"
               />
               <div className="w-11 h-6 bg-soft peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-app after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
             </label>

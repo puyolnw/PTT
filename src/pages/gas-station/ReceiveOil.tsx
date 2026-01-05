@@ -91,7 +91,7 @@ const mockApprovedInternalOrders: InternalOilOrder[] = [
 // Generate receive items from both sources
 const generateReceiveItems = (): ReceiveOilItem[] => {
   const items: ReceiveOilItem[] = [];
-  
+
   // จาก Internal Oil Orders
   mockApprovedInternalOrders.forEach((order) => {
     if (order.status === "อนุมัติแล้ว" && order.assignedFromBranchId) {
@@ -123,7 +123,7 @@ const generateReceiveItems = (): ReceiveOilItem[] => {
       items.push(item);
     }
   });
-  
+
   // จาก Purchase Orders (ฝากปั๊มหลักสั่ง)
   mockApprovedOrders.forEach((po) => {
     po.branches.forEach((branch) => {
@@ -158,7 +158,7 @@ const generateReceiveItems = (): ReceiveOilItem[] => {
       items.push(item);
     });
   });
-  
+
   return items;
 };
 
@@ -170,7 +170,7 @@ export default function ReceiveOil() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ReceiveOilItem | null>(null);
-  
+
   // Form state for receiving oil
   const [receiveFormData, setReceiveFormData] = useState({
     receiveDate: new Date().toISOString().split("T")[0],
@@ -408,7 +408,7 @@ export default function ReceiveOil() {
           </div>
           <select
             value={filterOrderType}
-            onChange={(e) => setFilterOrderType(e.target.value as any)}
+            onChange={(e) => setFilterOrderType(e.target.value as "all" | "internal" | "purchase")}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="all">ประเภททั้งหมด</option>
@@ -417,7 +417,7 @@ export default function ReceiveOil() {
           </select>
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as any)}
+            onChange={(e) => setFilterStatus(e.target.value as "all" | "รอรับ" | "รับแล้ว" | "ยกเลิก")}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="all">สถานะทั้งหมด</option>
@@ -832,10 +832,11 @@ export default function ReceiveOil() {
                 {/* Receive Form */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="receive-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       วันที่รับ *
                     </label>
                     <input
+                      id="receive-date"
                       type="date"
                       value={receiveFormData.receiveDate}
                       onChange={(e) => setReceiveFormData({ ...receiveFormData, receiveDate: e.target.value })}
@@ -844,10 +845,11 @@ export default function ReceiveOil() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="receive-time" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       เวลารับ *
                     </label>
                     <input
+                      id="receive-time"
                       type="time"
                       value={receiveFormData.receiveTime}
                       onChange={(e) => setReceiveFormData({ ...receiveFormData, receiveTime: e.target.value })}
@@ -858,10 +860,11 @@ export default function ReceiveOil() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="receive-receiver-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     ชื่อผู้รับ *
                   </label>
                   <input
+                    id="receive-receiver-name"
                     type="text"
                     value={receiveFormData.receivedByName}
                     onChange={(e) => setReceiveFormData({ ...receiveFormData, receivedByName: e.target.value })}
@@ -873,9 +876,9 @@ export default function ReceiveOil() {
 
                 {/* Items */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     รายการน้ำมันที่รับ
-                  </label>
+                  </span>
                   <div className="space-y-3">
                     {receiveFormData.items.map((item, idx) => (
                       <div
@@ -889,15 +892,18 @@ export default function ReceiveOil() {
                           </p>
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label htmlFor={`receive-quantity-${idx}`} className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                             จำนวนที่รับจริง (ลิตร) *
                           </label>
                           <input
+                            id={`receive-quantity-${idx}`}
                             type="number"
                             value={item.quantityReceived}
                             onChange={(e) => {
-                              const newItems = [...receiveFormData.items];
-                              newItems[idx].quantityReceived = Number(e.target.value);
+                              const value = Number(e.target.value);
+                              const newItems = receiveFormData.items.map((it, i) =>
+                                i === idx ? { ...it, quantityReceived: value } : it
+                              );
                               setReceiveFormData({ ...receiveFormData, items: newItems });
                             }}
                             placeholder="กรอกจำนวนที่รับจริง"
@@ -913,10 +919,11 @@ export default function ReceiveOil() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="receive-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     หมายเหตุ
                   </label>
                   <textarea
+                    id="receive-notes"
                     value={receiveFormData.notes}
                     onChange={(e) => setReceiveFormData({ ...receiveFormData, notes: e.target.value })}
                     placeholder="ระบุหมายเหตุ (ถ้ามี)"

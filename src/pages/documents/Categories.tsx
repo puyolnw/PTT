@@ -1,28 +1,28 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { 
-  Folder, 
-  Plus, 
+import {
+  Folder,
+  Plus,
   Edit,
   Trash2,
   FileText
 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
-import { 
+import {
   documentCategories,
   documents,
   type DocumentCategory
 } from "@/data/mockData";
 
-const categoryColors: Record<string, string> = {
-  blue: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  green: "bg-green-500/20 text-green-400 border-green-500/30",
-  purple: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  orange: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  red: "bg-red-500/20 text-red-400 border-red-500/30",
-  yellow: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  gray: "bg-gray-500/20 text-gray-400 border-gray-500/30"
-};
+const categoryColors = new Map<string, string>([
+  ["blue", "bg-blue-500/20 text-blue-400 border-blue-500/30"],
+  ["green", "bg-green-500/20 text-green-400 border-green-500/30"],
+  ["purple", "bg-purple-500/20 text-purple-400 border-purple-500/30"],
+  ["orange", "bg-orange-500/20 text-orange-400 border-orange-500/30"],
+  ["red", "bg-red-500/20 text-red-400 border-red-500/30"],
+  ["yellow", "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"],
+  ["gray", "bg-gray-500/20 text-gray-400 border-gray-500/30"],
+]);
 
 export default function Categories() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -114,9 +114,8 @@ export default function Categories() {
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className={`p-3 rounded-xl ${
-                    categoryColors[category.color || "blue"] || categoryColors.blue
-                  }`}>
+                  <div className={`p-3 rounded-xl ${categoryColors.get(category.color || "blue") || categoryColors.get("blue")
+                    }`}>
                     <Folder className="w-6 h-6" />
                   </div>
                   <div>
@@ -151,9 +150,8 @@ export default function Categories() {
                   <FileText className="w-4 h-4" />
                   <span>{docCount} เอกสาร</span>
                 </div>
-                <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border ${
-                  categoryColors[category.color || "blue"] || categoryColors.blue
-                }`}>
+                <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border ${categoryColors.get(category.color || "blue") || categoryColors.get("blue")
+                  }`}>
                   {category.name}
                 </span>
               </div>
@@ -175,10 +173,11 @@ export default function Categories() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="add-cat-name" className="block text-sm font-medium text-app mb-2">
               ชื่อหมวดหมู่ <span className="text-red-400">*</span>
             </label>
             <input
+              id="add-cat-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -190,10 +189,11 @@ export default function Categories() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="add-cat-desc" className="block text-sm font-medium text-app mb-2">
               คำอธิบาย
             </label>
             <textarea
+              id="add-cat-desc"
               rows={3}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -205,19 +205,18 @@ export default function Categories() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <div className="block text-sm font-medium text-app mb-2">
               สี
-            </label>
+            </div>
             <div className="grid grid-cols-7 gap-2">
-              {Object.keys(categoryColors).map((color) => (
+              {Array.from(categoryColors.keys()).map((color) => (
                 <button
                   key={color}
                   onClick={() => setFormData({ ...formData, color })}
-                  className={`h-10 rounded-lg border-2 transition-all ${
-                    formData.color === color
-                      ? "border-ptt-cyan scale-110"
-                      : "border-app hover:border-ptt-blue/50"
-                  } ${categoryColors[color]}`}
+                  className={`h-10 rounded-lg border-2 transition-all ${formData.color === color
+                    ? "border-ptt-cyan scale-110"
+                    : "border-app hover:border-ptt-blue/50"
+                    } ${categoryColors.get(color) || ""}`}
                 />
               ))}
             </div>
@@ -239,10 +238,11 @@ export default function Categories() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="edit-cat-name" className="block text-sm font-medium text-app mb-2">
               ชื่อหมวดหมู่ <span className="text-red-400">*</span>
             </label>
             <input
+              id="edit-cat-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -253,10 +253,11 @@ export default function Categories() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="edit-cat-desc" className="block text-sm font-medium text-app mb-2">
               คำอธิบาย
             </label>
             <textarea
+              id="edit-cat-desc"
               rows={3}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -267,19 +268,18 @@ export default function Categories() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <div className="block text-sm font-medium text-app mb-2">
               สี
-            </label>
+            </div>
             <div className="grid grid-cols-7 gap-2">
               {Object.keys(categoryColors).map((color) => (
                 <button
                   key={color}
                   onClick={() => setFormData({ ...formData, color })}
-                  className={`h-10 rounded-lg border-2 transition-all ${
-                    formData.color === color
-                      ? "border-ptt-cyan scale-110"
-                      : "border-app hover:border-ptt-blue/50"
-                  } ${categoryColors[color]}`}
+                  className={`h-10 rounded-lg border-2 transition-all ${formData.color === color
+                    ? "border-ptt-cyan scale-110"
+                    : "border-app hover:border-ptt-blue/50"
+                    } ${categoryColors[color as keyof typeof categoryColors]}`}
                 />
               ))}
             </div>

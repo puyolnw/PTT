@@ -9,8 +9,37 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
+interface OCRItem {
+  name: string;
+  quantity: number;
+  price: number;
+  total: number;
+}
+
+interface ExtractedData {
+  date: string;
+  total?: number;
+  items?: OCRItem[] | string;
+  paymentMethod?: string;
+  supplier?: string;
+  amount?: number;
+  description?: string;
+  dueDate?: string;
+}
+
+interface OCRScan {
+  id: string;
+  fileName: string;
+  scanDate: string;
+  type: string;
+  extractedData: ExtractedData | null;
+  status: "success" | "error";
+  confidence: number;
+  error?: string;
+}
+
 // Mock data - OCR Scan สำหรับร้านเจียง (บิลขาย/ค่าใช้จ่าย)
-const mockOCRScans = [
+const mockOCRScans: OCRScan[] = [
   {
     id: "OCR-JIANG-001",
     fileName: "บิลขาย_2024-12-15.jpg",
@@ -252,11 +281,10 @@ export default function OCRScan() {
           {filteredScans.map((scan) => (
             <div
               key={scan.id}
-              className={`p-4 rounded-xl border-2 ${
-                scan.status === "success"
-                  ? "bg-emerald-500/10 border-emerald-500/30"
-                  : "bg-red-500/10 border-red-500/30"
-              }`}
+              className={`p-4 rounded-xl border-2 ${scan.status === "success"
+                ? "bg-emerald-500/10 border-emerald-500/30"
+                : "bg-red-500/10 border-red-500/30"
+                }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -267,11 +295,10 @@ export default function OCRScan() {
                       <DollarSign className="w-5 h-5 text-orange-400" />
                     )}
                     <h4 className="font-semibold text-app">{scan.fileName}</h4>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      scan.status === "success"
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                        : "bg-red-500/20 text-red-400 border border-red-500/30"
-                    }`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${scan.status === "success"
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : "bg-red-500/20 text-red-400 border border-red-500/30"
+                      }`}>
                       {scan.status === "success" ? "สำเร็จ" : "ผิดพลาด"}
                     </span>
                     <span className="px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan text-xs">
@@ -302,7 +329,7 @@ export default function OCRScan() {
                           {scan.extractedData.items && Array.isArray(scan.extractedData.items) && (
                             <div className="mt-2 pt-2 border-t border-app">
                               <p className="text-xs text-muted mb-1">รายการ:</p>
-                              {scan.extractedData.items.map((item: any, idx: number) => (
+                              {scan.extractedData.items.map((item, idx) => (
                                 <div key={idx} className="text-xs text-app">
                                   {item.name} x {item.quantity} = {currencyFormatter.format(item.total)}
                                 </div>

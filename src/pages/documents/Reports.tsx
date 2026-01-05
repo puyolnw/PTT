@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { 
-  FileSpreadsheet, 
+import {
+  FileSpreadsheet,
   Download,
   FileText,
   Clock,
@@ -8,8 +8,8 @@ import {
   TrendingUp,
   Folder
 } from "lucide-react";
-import { 
-  documents, 
+import {
+  documents,
   documentCategories
 } from "@/data/mockData";
 
@@ -190,7 +190,7 @@ export default function DocumentsReports() {
             >
               <p className="text-sm text-muted mb-1">
                 {level === "Public" ? "สาธารณะ" :
-                 level === "Internal" ? "ภายใน" : "ลับ"}
+                  level === "Internal" ? "ภายใน" : "ลับ"}
               </p>
               <p className="text-2xl font-bold text-app">{count}</p>
               <p className="text-xs text-muted">เอกสาร</p>
@@ -216,9 +216,9 @@ export default function DocumentsReports() {
                       <span className="text-ptt-cyan font-semibold">{item.count}</span>
                     </div>
                     <div className="w-full bg-soft rounded-full h-2">
-                      <div
-                        className="bg-ptt-cyan h-2 rounded-full transition-all"
-                        style={{ width: `${percentage}%` }}
+                      <motion.div
+                        className="bg-ptt-cyan h-2 rounded-full transition-all duration-300 w-[var(--report-percentage)]"
+                        style={{ "--report-percentage": `${percentage}%` } as React.CSSProperties}
                       />
                     </div>
                   </div>
@@ -240,9 +240,9 @@ export default function DocumentsReports() {
                       <span className="text-ptt-cyan font-semibold">{count}</span>
                     </div>
                     <div className="w-full bg-soft rounded-full h-2">
-                      <div
-                        className="bg-blue-400 h-2 rounded-full transition-all"
-                        style={{ width: `${percentage}%` }}
+                      <motion.div
+                        className="bg-blue-400 h-2 rounded-full transition-all duration-300 w-[var(--status-percentage)]"
+                        style={{ "--status-percentage": `${percentage}%` } as React.CSSProperties}
                       />
                     </div>
                   </div>

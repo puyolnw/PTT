@@ -6,7 +6,7 @@ import { useShop } from "@/contexts/ShopContext";
 export default function Settings() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "ปึงหงี่เชียง";
-  
+
   const [settings, setSettings] = useState({
     shopName: shopName,
     rent: 5000,
@@ -45,8 +45,9 @@ export default function Settings() {
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
+            <label htmlFor="pung-ngee-chiang-settings-shop-name" className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
             <input
+              id="pung-ngee-chiang-settings-shop-name"
               type="text"
               value={settings.shopName}
               onChange={(e) => setSettings({ ...settings, shopName: e.target.value })}
@@ -54,8 +55,9 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ที่อยู่</label>
+            <label htmlFor="pung-ngee-chiang-settings-address" className="block text-sm font-medium text-app mb-2">ที่อยู่</label>
             <input
+              id="pung-ngee-chiang-settings-address"
               type="text"
               value={settings.address}
               onChange={(e) => setSettings({ ...settings, address: e.target.value })}
@@ -65,8 +67,9 @@ export default function Settings() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">อีเมล</label>
+              <label htmlFor="pung-ngee-chiang-settings-email" className="block text-sm font-medium text-app mb-2">อีเมล</label>
               <input
+                id="pung-ngee-chiang-settings-email"
                 type="email"
                 value={settings.email}
                 onChange={(e) => setSettings({ ...settings, email: e.target.value })}
@@ -75,8 +78,9 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">เบอร์โทร</label>
+              <label htmlFor="pung-ngee-chiang-settings-phone" className="block text-sm font-medium text-app mb-2">เบอร์โทร</label>
               <input
+                id="pung-ngee-chiang-settings-phone"
                 type="tel"
                 value={settings.phone}
                 onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
@@ -100,10 +104,11 @@ export default function Settings() {
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="pung-ngee-chiang-settings-low-stock" className="block text-sm font-medium text-app mb-2">
               เกณฑ์แจ้งเตือนสต็อกต่ำ (%)
             </label>
             <input
+              id="pung-ngee-chiang-settings-low-stock"
               type="number"
               value={settings.lowStockThreshold}
               onChange={(e) => setSettings({ ...settings, lowStockThreshold: Number(e.target.value) })}
@@ -116,10 +121,11 @@ export default function Settings() {
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="pung-ngee-chiang-settings-expiry" className="block text-sm font-medium text-app mb-2">
               แจ้งเตือนก่อนหมดอายุ (วัน)
             </label>
             <input
+              id="pung-ngee-chiang-settings-expiry"
               type="number"
               value={settings.expiryWarningDays}
               onChange={(e) => setSettings({ ...settings, expiryWarningDays: Number(e.target.value) })}
@@ -144,8 +150,9 @@ export default function Settings() {
           <SettingsIcon className="w-6 h-6 text-muted" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-app mb-2">ค่าเช่าพื้นที่ (บาท/เดือน)</label>
+          <label htmlFor="pung-ngee-chiang-settings-rent" className="block text-sm font-medium text-app mb-2">ค่าเช่าพื้นที่ (บาท/เดือน)</label>
           <input
+            id="pung-ngee-chiang-settings-rent"
             type="number"
             value={settings.rent}
             onChange={(e) => setSettings({ ...settings, rent: Number(e.target.value) })}

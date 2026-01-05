@@ -3,7 +3,8 @@ import { motion } from "framer-motion";
 import { expenditures } from "@/data/mockData";
 import { Plus, FileText } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
 
 export default function Expenditures() {
   const [filteredExpenditures, setFilteredExpenditures] = useState(expenditures);

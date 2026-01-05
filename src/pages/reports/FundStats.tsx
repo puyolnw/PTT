@@ -86,9 +86,9 @@ export default function FundStats() {
                 </div>
                 <div className="text-xs text-muted">{count} รายการ</div>
                 <div className="mt-3 h-2 bg-ink-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-green-500 to-green-400"
-                    style={{ width: `${(amount / donationsByMonth) * 100}%` }}
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-green-500 to-green-400 w-[var(--donation-percentage)]"
+                    style={{ "--donation-percentage": `${(amount / donationsByMonth) * 100}%` } as React.CSSProperties}
                   />
                 </div>
               </div>
@@ -112,9 +112,9 @@ export default function FundStats() {
                   {amount.toLocaleString()} ฿
                 </div>
                 <div className="mt-2 h-2 bg-ink-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-ptt-red to-red-400"
-                    style={{ width: `${amount > 0 ? (amount / expendituresByMonth) * 100 : 0}%` }}
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-ptt-red to-red-400 w-[var(--expenditure-percentage)]"
+                    style={{ "--expenditure-percentage": `${amount > 0 ? (amount / expendituresByMonth) * 100 : 0}%` } as React.CSSProperties}
                   />
                 </div>
               </div>

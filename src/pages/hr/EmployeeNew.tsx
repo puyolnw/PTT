@@ -59,10 +59,11 @@ export default function EmployeeNew() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="emp-name" className="block text-sm font-medium text-app mb-2">
               ชื่อ-นามสกุล <span className="text-ptt-red">*</span>
             </label>
             <input
+              id="emp-name"
               type="text"
               name="name"
               value={formData.name}
@@ -77,10 +78,11 @@ export default function EmployeeNew() {
 
           {/* Department */}
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="emp-dept" className="block text-sm font-medium text-app mb-2">
               แผนก <span className="text-ptt-red">*</span>
             </label>
             <select
+              id="emp-dept"
               name="dept"
               value={formData.dept}
               onChange={handleChange}
@@ -99,10 +101,11 @@ export default function EmployeeNew() {
 
           {/* Position */}
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="emp-position" className="block text-sm font-medium text-app mb-2">
               ตำแหน่ง <span className="text-ptt-red">*</span>
             </label>
             <input
+              id="emp-position"
               type="text"
               name="position"
               value={formData.position}
@@ -117,10 +120,11 @@ export default function EmployeeNew() {
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="emp-email" className="block text-sm font-medium text-app mb-2">
               อีเมล
             </label>
             <input
+              id="emp-email"
               type="email"
               name="email"
               value={formData.email}
@@ -134,10 +138,11 @@ export default function EmployeeNew() {
 
           {/* Phone */}
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="emp-phone" className="block text-sm font-medium text-app mb-2">
               เบอร์โทร
             </label>
             <input
+              id="emp-phone"
               type="tel"
               name="phone"
               value={formData.phone}
@@ -151,10 +156,11 @@ export default function EmployeeNew() {
 
           {/* Start Date */}
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="emp-start-date" className="block text-sm font-medium text-app mb-2">
               วันที่เริ่มงาน <span className="text-ptt-red">*</span>
             </label>
             <input
+              id="emp-start-date"
               type="date"
               name="startDate"
               value={formData.startDate}
@@ -167,10 +173,11 @@ export default function EmployeeNew() {
 
           {/* Shift */}
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="emp-shift" className="block text-sm font-medium text-app mb-2">
               กะการทำงาน
             </label>
             <select
+              id="emp-shift"
               name="shiftId"
               value={formData.shiftId}
               onChange={handleChange}
@@ -188,10 +195,11 @@ export default function EmployeeNew() {
 
           {/* OT Rate */}
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="emp-ot-rate" className="block text-sm font-medium text-app mb-2">
               OT Rate (บาท/ชั่วโมง)
             </label>
             <input
+              id="emp-ot-rate"
               type="number"
               name="otRate"
               value={formData.otRate}
@@ -207,10 +215,11 @@ export default function EmployeeNew() {
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="emp-category" className="block text-sm font-medium text-app mb-2">
               หมวดหมู่
             </label>
             <select
+              id="emp-category"
               name="category"
               value={formData.category}
               onChange={handleChange}
@@ -232,10 +241,11 @@ export default function EmployeeNew() {
 
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="emp-status" className="block text-sm font-medium text-app mb-2">
               สถานะ
             </label>
             <select
+              id="emp-status"
               name="status"
               value={formData.status}
               onChange={handleChange}

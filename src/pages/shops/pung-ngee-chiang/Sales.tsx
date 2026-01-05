@@ -61,7 +61,7 @@ const initialSalesData = [
 export default function Sales() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "ปึงหงี่เชียง";
-  
+
   const [salesData, setSalesData] = useState(initialSalesData);
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -143,15 +143,19 @@ export default function Sales() {
   };
 
   const updateItemInForm = (index: number, field: string, value: string) => {
-    const updatedItems = [...formData.items];
-    updatedItems[index] = {
-      ...updatedItems[index],
-      [field]: value,
-      total: field === "quantity" || field === "price"
-        ? Number(field === "quantity" ? value : updatedItems[index].quantity) *
-          Number(field === "price" ? value : updatedItems[index].price)
-        : updatedItems[index].total,
-    };
+    const updatedItems = formData.items.map((item, i) => {
+      if (i !== index) return item;
+
+      const updatedItem = { ...item, [field]: value };
+      const quantity = field === "quantity" ? Number(value) : Number(item.quantity);
+      const price = field === "price" ? Number(value) : Number(item.price);
+
+      return {
+        ...updatedItem,
+        total: (quantity || 0) * (price || 0),
+      };
+    });
+
     setFormData({ ...formData, items: updatedItems });
   };
 
@@ -246,10 +250,11 @@ export default function Sales() {
         />
 
         <div className="flex gap-2">
-          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
+          <label htmlFor="pung-ngee-chiang-sales-upload" className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
             <Upload className="w-4 h-4" />
             <span>นำเข้า Excel</span>
             <input
+              id="pung-ngee-chiang-sales-upload"
               type="file"
               accept=".xlsx,.xls"
               onChange={(e) => {
@@ -341,8 +346,9 @@ export default function Sales() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่</label>
+              <label htmlFor="pung-ngee-chiang-sales-date" className="block text-sm font-medium text-app mb-2">วันที่</label>
               <input
+                id="pung-ngee-chiang-sales-date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -351,8 +357,9 @@ export default function Sales() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วิธีชำระ</label>
+              <label htmlFor="pung-ngee-chiang-sales-payment" className="block text-sm font-medium text-app mb-2">วิธีชำระ</label>
               <select
+                id="pung-ngee-chiang-sales-payment"
                 value={formData.paymentMethod}
                 onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -365,8 +372,9 @@ export default function Sales() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ลูกค้า (ไม่บังคับ)</label>
+            <label htmlFor="pung-ngee-chiang-sales-customer" className="block text-sm font-medium text-app mb-2">ลูกค้า (ไม่บังคับ)</label>
             <input
+              id="pung-ngee-chiang-sales-customer"
               type="text"
               value={formData.customer}
               onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
@@ -376,7 +384,7 @@ export default function Sales() {
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-app">รายการสินค้า</label>
+              <span className="block text-sm font-medium text-app">รายการสินค้า</span>
               <button
                 type="button"
                 onClick={addItemToForm}
@@ -390,6 +398,7 @@ export default function Sales() {
                 <div key={index} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-5">
                     <input
+                      aria-label={`Product Name ${index + 1}`}
                       type="text"
                       value={item.name}
                       onChange={(e) => updateItemInForm(index, "name", e.target.value)}
@@ -400,6 +409,7 @@ export default function Sales() {
                   </div>
                   <div className="col-span-2">
                     <input
+                      aria-label={`Quantity ${index + 1}`}
                       type="number"
                       value={item.quantity}
                       onChange={(e) => updateItemInForm(index, "quantity", e.target.value)}
@@ -410,6 +420,7 @@ export default function Sales() {
                   </div>
                   <div className="col-span-3">
                     <input
+                      aria-label={`Price ${index + 1}`}
                       type="number"
                       value={item.price}
                       onChange={(e) => updateItemInForm(index, "price", e.target.value)}

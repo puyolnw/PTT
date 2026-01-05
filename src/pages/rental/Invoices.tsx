@@ -130,7 +130,7 @@ export default function Invoices() {
       >
         <h2 className="text-3xl font-bold text-app mb-2 font-display">ใบแจ้งหนี้ - M2</h2>
         <p className="text-muted font-light">
-          สร้างใบแจ้งหนี้ PDF รายเดือนสำหรับค่าเช่า (เช่น "ใบแจ้งหนี้ค่าเช่า ต.ค. 2568") คำนวณอัตโนมัติจากสัญญาเช่า (คงที่ หรือ % จากยอดขาย)
+          สร้างใบแจ้งหนี้ PDF รายเดือนสำหรับค่าเช่า (เช่น &quot;ใบแจ้งหนี้ค่าเช่า ต.ค. 2568&quot;) คำนวณอัตโนมัติจากสัญญาเช่า (คงที่ หรือ % จากยอดขาย)
         </p>
       </motion.div>
 
@@ -238,11 +238,10 @@ export default function Invoices() {
           {filteredInvoices.map((invoice) => (
             <div
               key={invoice.id}
-              className={`p-4 rounded-xl border ${
-                invoice.status === "ค้างชำระ"
-                  ? "bg-orange-500/10 border-orange-500/30"
-                  : "bg-soft border-app"
-              } hover:border-ptt-blue/30 transition-colors`}
+              className={`p-4 rounded-xl border ${invoice.status === "ค้างชำระ"
+                ? "bg-orange-500/10 border-orange-500/30"
+                : "bg-soft border-app"
+                } hover:border-ptt-blue/30 transition-colors`}
             >
               <div className="flex items-center justify-between mb-3">
                 <div>
@@ -252,11 +251,10 @@ export default function Invoices() {
                 <div className="text-right">
                   <p className="text-xl font-bold text-app">{currencyFormatter.format(invoice.amount)}</p>
                   <div className="flex items-center gap-2 mt-1 justify-end">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      invoice.status === "ชำระแล้ว"
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                        : "bg-orange-500/10 text-orange-400 border border-orange-500/30"
-                    }`}>
+                    <span className={`text-xs px-2 py-1 rounded-full ${invoice.status === "ชำระแล้ว"
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                      : "bg-orange-500/10 text-orange-400 border border-orange-500/30"
+                      }`}>
                       {invoice.status}
                     </span>
                     <span className="text-xs px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan border border-ptt-blue/30">
@@ -317,8 +315,9 @@ export default function Invoices() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
+            <label htmlFor="invoice-shop" className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
             <input
+              id="invoice-shop"
               type="text"
               value={formData.shop}
               onChange={(e) => setFormData({ ...formData, shop: e.target.value })}
@@ -328,8 +327,9 @@ export default function Invoices() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">สาขา</label>
+            <label htmlFor="invoice-branch" className="block text-sm font-medium text-app mb-2">สาขา</label>
             <select
+              id="invoice-branch"
               value={formData.branch}
               onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -343,8 +343,9 @@ export default function Invoices() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">เดือน</label>
+              <label htmlFor="invoice-month" className="block text-sm font-medium text-app mb-2">เดือน</label>
               <input
+                id="invoice-month"
                 type="text"
                 value={formData.month}
                 onChange={(e) => setFormData({ ...formData, month: e.target.value })}
@@ -354,8 +355,9 @@ export default function Invoices() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ครบกำหนดชำระ</label>
+              <label htmlFor="invoice-due-date" className="block text-sm font-medium text-app mb-2">ครบกำหนดชำระ</label>
               <input
+                id="invoice-due-date"
                 type="date"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
@@ -365,8 +367,9 @@ export default function Invoices() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ประเภทค่าเช่า</label>
+            <label htmlFor="invoice-rent-type" className="block text-sm font-medium text-app mb-2">ประเภทค่าเช่า</label>
             <select
+              id="invoice-rent-type"
               value={formData.rentType}
               onChange={(e) => setFormData({ ...formData, rentType: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -376,8 +379,9 @@ export default function Invoices() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
+            <label htmlFor="invoice-amount" className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
             <input
+              id="invoice-amount"
               type="number"
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: e.target.value })}

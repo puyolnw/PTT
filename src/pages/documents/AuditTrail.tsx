@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  FileText, 
+import {
+  FileText,
   User,
   Clock,
   Download,
@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
-import { 
+import {
   documentAuditLogs,
   documents,
   employees,
@@ -289,10 +289,11 @@ export default function AuditTrail() {
       <div className="bg-soft border border-app rounded-2xl p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="audit-date-from" className="block text-sm font-medium text-app mb-2">
               ตั้งแต่วันที่
             </label>
             <input
+              id="audit-date-from"
               type="date"
               value={dateFrom}
               onChange={(e) => {
@@ -304,10 +305,11 @@ export default function AuditTrail() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="audit-date-to" className="block text-sm font-medium text-app mb-2">
               ถึงวันที่
             </label>
             <input
+              id="audit-date-to"
               type="date"
               value={dateTo}
               onChange={(e) => {

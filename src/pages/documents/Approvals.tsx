@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  CheckCircle, 
+import {
+  CheckCircle,
   XCircle,
   Clock,
   FileText,
@@ -12,8 +12,9 @@ import {
 import { useRef } from "react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
-import { 
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
+import {
   documentApprovals,
   documents,
   documentCategories,
@@ -152,7 +153,7 @@ export default function Approvals() {
       {/* Filter Bar */}
       <FilterBar
         placeholder="ค้นหาเอกสาร..."
-        onSearch={() => {}}
+        onSearch={() => { }}
         filters={[
           {
             label: "ทุกสถานะ",
@@ -206,10 +207,10 @@ export default function Approvals() {
                 </div>
                 <StatusTag variant={getStatusVariant(
                   currentStep ? "รออนุมัติ" :
-                  sortedApprovals.some(a => a.status === "Rejected") ? "ไม่อนุมัติ" : "อนุมัติแล้ว"
+                    sortedApprovals.some(a => a.status === "Rejected") ? "ไม่อนุมัติ" : "อนุมัติแล้ว"
                 )}>
                   {currentStep ? "รออนุมัติ" :
-                   sortedApprovals.some(a => a.status === "Rejected") ? "ไม่อนุมัติ" : "อนุมัติแล้ว"}
+                    sortedApprovals.some(a => a.status === "Rejected") ? "ไม่อนุมัติ" : "อนุมัติแล้ว"}
                 </StatusTag>
               </div>
 
@@ -218,20 +219,18 @@ export default function Approvals() {
                 {sortedApprovals.map((approval) => (
                   <div
                     key={approval.id}
-                    className={`flex items-center justify-between p-4 rounded-xl border ${
-                      approval.status === "Approved" ? "bg-green-500/10 border-green-500/30" :
-                      approval.status === "Rejected" ? "bg-red-500/10 border-red-500/30" :
-                      approval.status === "Pending" ? "bg-yellow-500/10 border-yellow-500/30" :
-                      "bg-soft border-app"
-                    }`}
+                    className={`flex items-center justify-between p-4 rounded-xl border ${approval.status === "Approved" ? "bg-green-500/10 border-green-500/30" :
+                        approval.status === "Rejected" ? "bg-red-500/10 border-red-500/30" :
+                          approval.status === "Pending" ? "bg-yellow-500/10 border-yellow-500/30" :
+                            "bg-soft border-app"
+                      }`}
                   >
                     <div className="flex items-center gap-3 flex-1">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        approval.status === "Approved" ? "bg-green-500/20" :
-                        approval.status === "Rejected" ? "bg-red-500/20" :
-                        approval.status === "Pending" ? "bg-yellow-500/20" :
-                        "bg-soft"
-                      }`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${approval.status === "Approved" ? "bg-green-500/20" :
+                          approval.status === "Rejected" ? "bg-red-500/20" :
+                            approval.status === "Pending" ? "bg-yellow-500/20" :
+                              "bg-soft"
+                        }`}>
                         {approval.status === "Approved" && <CheckCircle className="w-5 h-5 text-green-400" />}
                         {approval.status === "Rejected" && <XCircle className="w-5 h-5 text-red-400" />}
                         {approval.status === "Pending" && <Clock className="w-5 h-5 text-yellow-400" />}
@@ -244,8 +243,8 @@ export default function Approvals() {
                           </p>
                           <StatusTag variant={getStatusVariant(
                             approval.status === "Approved" ? "อนุมัติแล้ว" :
-                            approval.status === "Rejected" ? "ไม่อนุมัติ" :
-                            approval.status === "Pending" ? "รออนุมัติ" : "ยกเลิก"
+                              approval.status === "Rejected" ? "ไม่อนุมัติ" :
+                                approval.status === "Pending" ? "รออนุมัติ" : "ยกเลิก"
                           )}>
                             {approval.status === "Pending" && "รออนุมัติ"}
                             {approval.status === "Approved" && "อนุมัติแล้ว"}
@@ -319,8 +318,8 @@ export default function Approvals() {
                 <p className="text-muted mb-1">สถานะ:</p>
                 <StatusTag variant={getStatusVariant(
                   selectedApproval.status === "Approved" ? "อนุมัติแล้ว" :
-                  selectedApproval.status === "Rejected" ? "ไม่อนุมัติ" :
-                  selectedApproval.status === "Pending" ? "รออนุมัติ" : "ยกเลิก"
+                    selectedApproval.status === "Rejected" ? "ไม่อนุมัติ" :
+                      selectedApproval.status === "Pending" ? "รออนุมัติ" : "ยกเลิก"
                 )}>
                   {selectedApproval.status}
                 </StatusTag>
@@ -380,22 +379,20 @@ export default function Approvals() {
           <div className="flex gap-2 border-b border-app">
             <button
               onClick={() => setSignatureMode("draw")}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
-                signatureMode === "draw"
+              className={`px-4 py-2 text-sm font-medium transition-colors ${signatureMode === "draw"
                   ? "text-ptt-cyan border-b-2 border-ptt-cyan"
                   : "text-muted hover:text-app"
-              }`}
+                }`}
             >
               <PenTool className="w-4 h-4 inline mr-2" />
               วาดลายเซ็น
             </button>
             <button
               onClick={() => setSignatureMode("upload")}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
-                signatureMode === "upload"
+              className={`px-4 py-2 text-sm font-medium transition-colors ${signatureMode === "upload"
                   ? "text-ptt-cyan border-b-2 border-ptt-cyan"
                   : "text-muted hover:text-app"
-              }`}
+                }`}
             >
               <Upload className="w-4 h-4 inline mr-2" />
               อัปโหลดรูปภาพ
@@ -405,9 +402,9 @@ export default function Approvals() {
           {/* Draw Signature */}
           {signatureMode === "draw" && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <div className="block text-sm font-medium text-app mb-2">
                 วาดลายเซ็นของคุณ
-              </label>
+              </div>
               <div className="border-2 border-dashed border-app rounded-xl p-4 bg-soft">
                 <canvas
                   ref={canvasRef}
@@ -472,7 +469,7 @@ export default function Approvals() {
           {/* Upload Signature */}
           {signatureMode === "upload" && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="signature-upload" className="block text-sm font-medium text-app mb-2">
                 อัปโหลดรูปภาพลายเซ็น
               </label>
               <div className="border-2 border-dashed border-app rounded-xl p-6 text-center">

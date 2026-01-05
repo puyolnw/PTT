@@ -11,8 +11,8 @@ import {
     AlertTriangle,
     Eye,
 } from "lucide-react";
-import { mockTrailers, mockTrucks } from "./TruckProfiles";
-import type { Trailer } from "./TruckProfiles";
+import { mockTrucks, mockTrailers } from "@/data/truckData";
+import { Trailer } from "@/types/truck";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
     maximumFractionDigits: 0,
@@ -62,7 +62,7 @@ export default function TrailerProfiles() {
 
     // รวมข้อมูลหางกับรถที่ใช้อยู่
     const trailersWithTrucks = useMemo(() => {
-        return mockTrailers.map((trailer) => {
+        return mockTrailers.map((trailer: Trailer) => {
             const currentTruck = mockTrucks.find((t) => t.currentTrailerId === trailer.id);
             const compatibleTrucks = mockTrucks.filter((t) =>
                 t.compatibleTrailers.includes(trailer.id)
@@ -276,9 +276,9 @@ export default function TrailerProfiles() {
             </motion.div>
 
             {/* Trailers Table */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
             >
@@ -320,16 +320,16 @@ export default function TrailerProfiles() {
                                 filteredTrailers.map((trailer) => (
                                     <tr
                                         key={trailer.id}
-                        onClick={() => navigate(`/app/gas-station/trailer-profiles/${trailer.id}`)}
+                                        onClick={() => navigate(`/app/gas-station/trailer-profiles/${trailer.id}`)}
                                         className="hover:bg-orange-50/50 dark:hover:bg-gray-700/70 transition-colors cursor-pointer"
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
                                                 <Droplet className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                                                 <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                                            {trailer.plateNumber}
-                                    </div>
-                                </div>
+                                                    {trailer.plateNumber}
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="text-sm text-gray-900 dark:text-white">
@@ -361,14 +361,14 @@ export default function TrailerProfiles() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                <span
+                                            <span
                                                 className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                                        trailer.status
-                                    )}`}
-                                >
-                                    {getStatusIcon(trailer.status)}
-                                    {getStatusText(trailer.status)}
-                                </span>
+                                                    trailer.status
+                                                )}`}
+                                            >
+                                                {getStatusIcon(trailer.status)}
+                                                {getStatusText(trailer.status)}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <button
@@ -387,8 +387,8 @@ export default function TrailerProfiles() {
                             )}
                         </tbody>
                     </table>
-                        </div>
-                    </motion.div>
+                </div>
+            </motion.div>
 
             {filteredTrailers.length === 0 && (
                 <motion.div

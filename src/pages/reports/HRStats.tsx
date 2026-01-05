@@ -70,9 +70,9 @@ export default function HRStats() {
                 <div className="text-sm text-muted mb-2">{dept}</div>
                 <div className="text-2xl font-bold text-app">{count} คน</div>
                 <div className="mt-2 h-2 bg-ink-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan"
-                    style={{ width: `${(count / employees.length) * 100}%` }}
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan w-[var(--count-percentage)]"
+                    style={{ "--count-percentage": `${(count / employees.length) * 100}%` } as React.CSSProperties}
                   />
                 </div>
               </div>

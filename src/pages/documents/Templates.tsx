@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  FileText, 
-  Plus, 
+import {
+  FileText,
+  Plus,
   Trash2,
   Download,
   Eye,
@@ -536,10 +536,11 @@ export default function Templates() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="template-name" className="block text-sm font-medium text-app mb-2">
               ชื่อเทมเพลต <span className="text-red-400">*</span>
             </label>
             <input
+              id="template-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -551,10 +552,11 @@ export default function Templates() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="template-desc" className="block text-sm font-medium text-app mb-2">
               คำอธิบาย
             </label>
             <textarea
+              id="template-desc"
               rows={2}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -567,10 +569,11 @@ export default function Templates() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="template-category" className="block text-sm font-medium text-app mb-2">
                 หมวดหมู่ <span className="text-red-400">*</span>
               </label>
               <select
+                id="template-category"
                 value={formData.categoryId}
                 onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                 className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
@@ -585,10 +588,11 @@ export default function Templates() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="template-department" className="block text-sm font-medium text-app mb-2">
                 แผนก
               </label>
               <select
+                id="template-department"
                 value={formData.department}
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                 className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
@@ -605,7 +609,7 @@ export default function Templates() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="template-file" className="block text-sm font-medium text-app mb-2">
               อัปโหลดไฟล์เอกสาร <span className="text-red-400">*</span>
             </label>
             <div className="border-2 border-dashed border-app rounded-xl p-6 text-center hover:border-ptt-blue/50 transition-colors">
@@ -631,10 +635,11 @@ export default function Templates() {
                   <Upload className="w-12 h-12 text-muted mx-auto mb-2" />
                   <p className="text-sm text-muted mb-2">ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</p>
                   <p className="text-xs text-muted mb-4">รองรับ PDF, DOC, DOCX, XLS, XLSX</p>
-                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-ptt-blue/20 hover:bg-ptt-blue/30 text-ptt-cyan rounded-lg cursor-pointer transition-colors">
+                  <label htmlFor="template-file" className="inline-flex items-center gap-2 px-4 py-2 bg-ptt-blue/20 hover:bg-ptt-blue/30 text-ptt-cyan rounded-lg cursor-pointer transition-colors">
                     <Upload className="w-4 h-4" />
                     <span>เลือกไฟล์</span>
                     <input
+                      id="template-file"
                       type="file"
                       accept=".pdf,.doc,.docx,.xls,.xlsx"
                       onChange={handleFileChange}

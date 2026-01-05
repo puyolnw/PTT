@@ -205,22 +205,22 @@ export default function SocialSecurity() {
   const handlePrintDocument = (docType: string) => {
     if (!selectedEmployee) return;
 
-    const docNames: Record<string, string> = {
-      sso1: "สปส.1-10 (ใบสำคัญแสดงการส่งเงินสมทบ)",
-      sso2: "สปส.2-10 (ใบสำคัญแสดงการส่งเงินสมทบ)",
-      sso3: "สปส.3-10 (ใบสำคัญแสดงการส่งเงินสมทบ)",
-      sso4: "สปส.4-10 (ใบสำคัญแสดงการส่งเงินสมทบ)",
-      sso5: "สปส.5-10 (ใบสำคัญแสดงการส่งเงินสมทบ)",
-      sso6: "สปส.6-10 (ใบสำคัญแสดงการส่งเงินสมทบ)",
-      sso7: "สปส.7-10 (ใบสำคัญแสดงการส่งเงินสมทบ)",
-      sso8: "สปส.8-10 (ใบสำคัญแสดงการส่งเงินสมทบ)",
-      sso9: "สปส.9-10 (ใบสำคัญแสดงการส่งเงินสมทบ)",
-      sso10: "สปส.10-10 (ใบสำคัญแสดงการส่งเงินสมทบ)",
-      registration: "ใบขึ้นทะเบียนประกันสังคม",
-      statement: "ใบแจ้งยอดเงินสมทบ"
-    };
+    const docNames = new Map([
+      ["sso1", "สปส.1-10 (ใบสำคัญแสดงการส่งเงินสมทบ)"],
+      ["sso2", "สปส.2-10 (ใบสำคัญแสดงการส่งเงินสมทบ)"],
+      ["sso3", "สปส.3-10 (ใบสำคัญแสดงการส่งเงินสมทบ)"],
+      ["sso4", "สปส.4-10 (ใบสำคัญแสดงการส่งเงินสมทบ)"],
+      ["sso5", "สปส.5-10 (ใบสำคัญแสดงการส่งเงินสมทบ)"],
+      ["sso6", "สปส.6-10 (ใบสำคัญแสดงการส่งเงินสมทบ)"],
+      ["sso7", "สปส.7-10 (ใบสำคัญแสดงการส่งเงินสมทบ)"],
+      ["sso8", "สปส.8-10 (ใบสำคัญแสดงการส่งเงินสมทบ)"],
+      ["sso9", "สปส.9-10 (ใบสำคัญแสดงการส่งเงินสมทบ)"],
+      ["sso10", "สปส.10-10 (ใบสำคัญแสดงการส่งเงินสมทบ)"],
+      ["registration", "ใบขึ้นทะเบียนประกันสังคม"],
+      ["statement", "ใบแจ้งยอดเงินสมทบ"]
+    ]);
 
-    alert(`กำลังพิมพ์${docNames[docType] || docType} สำหรับ ${selectedEmployee.empName} (Mock)`);
+    alert(`กำลังพิมพ์${docNames.get(docType) || docType} สำหรับ ${selectedEmployee.empName} (Mock)`);
     setIsPrintMenuOpen(false);
   };
 
@@ -416,7 +416,9 @@ export default function SocialSecurity() {
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search Input */}
             <div className="relative flex-1">
+              <label htmlFor="sso-search" className="sr-only">ค้นหาพนักงาน</label>
               <input
+                id="sso-search"
                 type="text"
                 placeholder="ค้นหาชื่อ รหัสพนักงาน หรือเลขประกันสังคม..."
                 value={searchQuery}
@@ -438,65 +440,81 @@ export default function SocialSecurity() {
 
             {/* Filter Dropdowns */}
             <div className="flex flex-wrap gap-3">
-              <select
-                value={deptFilter}
-                onChange={(e) => setDeptFilter(e.target.value)}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกแผนก</option>
-                {Array.from(new Set(employees.map(e => e.dept))).map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col">
+                <label htmlFor="sso-dept-filter" className="sr-only">กรองตามแผนก</label>
+                <select
+                  id="sso-dept-filter"
+                  value={deptFilter}
+                  onChange={(e) => setDeptFilter(e.target.value)}
+                  className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                           text-app text-sm min-w-[150px]
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                           transition-all cursor-pointer hover:border-app/50"
+                >
+                  <option value="">ทุกแผนก</option>
+                  {Array.from(new Set(employees.map(e => e.dept))).map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              <select
-                value={shiftFilter === "" ? "" : String(shiftFilter)}
-                onChange={(e) => setShiftFilter(e.target.value === "" ? "" : Number(e.target.value))}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกกะ</option>
-                {shifts.map((shift) => (
-                  <option key={shift.id} value={String(shift.id)}>
-                    {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col">
+                <label htmlFor="sso-shift-filter" className="sr-only">กรองตามกะ</label>
+                <select
+                  id="sso-shift-filter"
+                  value={shiftFilter === "" ? "" : String(shiftFilter)}
+                  onChange={(e) => setShiftFilter(e.target.value === "" ? "" : Number(e.target.value))}
+                  className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                           text-app text-sm min-w-[150px]
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                           transition-all cursor-pointer hover:border-app/50"
+                >
+                  <option value="">ทุกกะ</option>
+                  {shifts.map((shift) => (
+                    <option key={shift.id} value={String(shift.id)}>
+                      {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              <select
-                value={sectionFilter}
-                onChange={(e) => setSectionFilter(e.target.value)}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกมาตรา</option>
-                <option value="33">มาตรา 33</option>
-                <option value="39">มาตรา 39</option>
-                <option value="40">มาตรา 40</option>
-              </select>
+              <div className="flex flex-col">
+                <label htmlFor="sso-section-filter" className="sr-only">กรองตามมาตรา</label>
+                <select
+                  id="sso-section-filter"
+                  value={sectionFilter}
+                  onChange={(e) => setSectionFilter(e.target.value)}
+                  className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                           text-app text-sm min-w-[150px]
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                           transition-all cursor-pointer hover:border-app/50"
+                >
+                  <option value="">ทุกมาตรา</option>
+                  <option value="33">มาตรา 33</option>
+                  <option value="39">มาตรา 39</option>
+                  <option value="40">มาตรา 40</option>
+                </select>
+              </div>
 
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกสถานะ</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Suspended">Suspended</option>
-              </select>
+              <div className="flex flex-col">
+                <label htmlFor="sso-status-filter" className="sr-only">กรองตามสถานะ</label>
+                <select
+                  id="sso-status-filter"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                           text-app text-sm min-w-[150px]
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                           transition-all cursor-pointer hover:border-app/50"
+                >
+                  <option value="">ทุกสถานะ</option>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Suspended">Suspended</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -654,10 +672,10 @@ export default function SocialSecurity() {
                 <div>
                   <p className="text-muted mb-1">สถานะ:</p>
                   <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${selectedEmployee.status === "Active"
-                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                      : selectedEmployee.status === "Inactive"
-                        ? "bg-gray-500/10 text-gray-400 border border-gray-500/30"
-                        : "bg-red-500/10 text-red-400 border border-red-500/30"
+                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                    : selectedEmployee.status === "Inactive"
+                      ? "bg-gray-500/10 text-gray-400 border border-gray-500/30"
+                      : "bg-red-500/10 text-red-400 border border-red-500/30"
                     }`}>
                     {selectedEmployee.status}
                   </span>
@@ -813,10 +831,11 @@ export default function SocialSecurity() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-sso-emp-code" className="block text-sm font-semibold text-app mb-1.5">
                 รหัสพนักงาน <span className="text-red-400">*</span>
               </label>
               <input
+                id="add-sso-emp-code"
                 type="text"
                 className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
@@ -829,10 +848,11 @@ export default function SocialSecurity() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-sso-emp-name" className="block text-sm font-semibold text-app mb-1.5">
                 ชื่อ-นามสกุล <span className="text-red-400">*</span>
               </label>
               <input
+                id="add-sso-emp-name"
                 type="text"
                 className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
@@ -845,10 +865,11 @@ export default function SocialSecurity() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-sso-number" className="block text-sm font-semibold text-app mb-1.5">
                 เลขประกันสังคม <span className="text-red-400">*</span>
               </label>
               <input
+                id="add-sso-number"
                 type="text"
                 className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                          text-app placeholder:text-muted
@@ -861,10 +882,11 @@ export default function SocialSecurity() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-sso-reg-date" className="block text-sm font-semibold text-app mb-1.5">
                 วันที่ขึ้นทะเบียน
               </label>
               <input
+                id="add-sso-reg-date"
                 type="date"
                 className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
@@ -874,10 +896,11 @@ export default function SocialSecurity() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-sso-section" className="block text-sm font-semibold text-app mb-1.5">
                 มาตรา <span className="text-red-400">*</span>
               </label>
               <select
+                id="add-sso-section"
                 className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
                          transition-all duration-200 hover:border-app/50 cursor-pointer"
@@ -890,10 +913,11 @@ export default function SocialSecurity() {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-sso-status" className="block text-sm font-semibold text-app mb-1.5">
                 สถานะการยื่น <span className="text-red-400">*</span>
               </label>
               <select
+                id="add-sso-status"
                 className="w-full px-4 py-3 bg-soft border border-app rounded-xl
                          text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-ptt-blue/50
                          transition-all duration-200 hover:border-app/50 cursor-pointer"
@@ -906,10 +930,11 @@ export default function SocialSecurity() {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-sso-salary-base" className="block text-sm font-semibold text-app mb-1.5">
                 ฐานเงินเดือน (บาท)
               </label>
               <input
+                id="add-sso-salary-base"
                 type="number"
                 min="0"
                 step="100"
@@ -923,10 +948,11 @@ export default function SocialSecurity() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-sso-emp-contrib" className="block text-sm font-semibold text-app mb-1.5">
                 เงินสมทบฝ่ายลูกจ้าง
               </label>
               <input
+                id="add-sso-emp-contrib"
                 type="number"
                 min="0"
                 step="10"
@@ -940,10 +966,11 @@ export default function SocialSecurity() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-app mb-1.5">
+              <label htmlFor="add-sso-employer-contrib" className="block text-sm font-semibold text-app mb-1.5">
                 เงินสมทบฝั่งนายจ้าง
               </label>
               <input
+                id="add-sso-employer-contrib"
                 type="number"
                 min="0"
                 step="10"

@@ -52,7 +52,7 @@ export default function PendingBook() {
         .split("+")
         .map((val) => parseFloat(val.trim()) || 0)
         .reduce((acc, curr) => acc + curr, 0);
-    } catch (e) {
+    } catch {
       return 0;
     }
   };
@@ -107,10 +107,11 @@ export default function PendingBook() {
 
   // Group entries by Date for visual separation
   const groupedEntries = useMemo(() => {
-    const groups: { [key: string]: LedgerEntry[] } = {};
+    const groups = new Map<string, LedgerEntry[]>();
     entries.forEach((entry) => {
-      if (!groups[entry.date]) groups[entry.date] = [];
-      groups[entry.date].push(entry);
+      const group = groups.get(entry.date) || [];
+      group.push(entry);
+      groups.set(entry.date, group);
     });
     return groups;
   }, [entries]);
@@ -160,8 +161,9 @@ export default function PendingBook() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">วันที่ (ว/ด/ป)</label>
+                  <label htmlFor="entry-date" className="text-xs font-medium text-gray-500">วันที่ (ว/ด/ป)</label>
                   <input
+                    id="entry-date"
                     type="text"
                     placeholder="7/7/68"
                     value={newEntry.date}
@@ -170,8 +172,9 @@ export default function PendingBook() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">เบอร์</label>
+                  <label htmlFor="entry-code" className="text-xs font-medium text-gray-500">เบอร์</label>
                   <input
+                    id="entry-code"
                     type="text"
                     placeholder="34"
                     value={newEntry.code}
@@ -180,8 +183,9 @@ export default function PendingBook() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">สินค้า</label>
+                  <label htmlFor="entry-product" className="text-xs font-medium text-gray-500">สินค้า</label>
                   <input
+                    id="entry-product"
                     type="text"
                     placeholder="HSD"
                     value={newEntry.product}
@@ -190,12 +194,13 @@ export default function PendingBook() {
                   />
                 </div>
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-gray-500">
+                  <label htmlFor="entry-breakdown" className="text-xs font-medium text-gray-500">
                     รายการคำนวณ (ใช้เครื่องหมาย +)
                   </label>
                   <div className="relative">
                     <Calculator className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
+                      id="entry-breakdown"
                       type="text"
                       placeholder="1000+2000+3000"
                       value={newEntry.breakdown}
@@ -208,8 +213,9 @@ export default function PendingBook() {
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">ราคา/หน่วย</label>
+                  <label htmlFor="entry-price" className="text-xs font-medium text-gray-500">ราคา/หน่วย</label>
                   <input
+                    id="entry-price"
                     type="number"
                     value={newEntry.price}
                     onChange={(e) => setNewEntry({ ...newEntry, price: parseFloat(e.target.value) })}
@@ -257,9 +263,9 @@ export default function PendingBook() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {Object.keys(groupedEntries).map((date) => (
+              {Array.from(groupedEntries.keys()).map((date) => (
                 <React.Fragment key={date}>
-                  {groupedEntries[date].map((entry, index) => {
+                  {groupedEntries.get(date)?.map((entry, index) => {
                     const totalVol = calculateVolume(entry.breakdown);
                     const totalAmount = totalVol * entry.price;
                     return (

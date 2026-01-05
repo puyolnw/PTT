@@ -186,12 +186,12 @@ export default function StationProducts() {
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isPOSMode, setIsPOSMode] = useState(false);
-  
+
   // POS Cart
   const [cart, setCart] = useState<CartItem[]>([]);
   const [posSearchTerm, setPosSearchTerm] = useState("");
   const [posCategory, setPosCategory] = useState<ProductCategory | "all">("all");
-  
+
   // Modal states
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
   const [isStockInModalOpen, setIsStockInModalOpen] = useState(false);
@@ -242,13 +242,13 @@ export default function StationProducts() {
   // บันทึกการขายสินค้า
   const handleSale = () => {
     if (!selectedProduct || !saleQuantity) return;
-    
+
     const quantity = parseFloat(saleQuantity);
     if (isNaN(quantity) || quantity <= 0) {
       alert("กรุณากรอกจำนวนที่ถูกต้อง");
       return;
     }
-    
+
     if (quantity > selectedProduct.currentStock) {
       alert(`จำนวนที่ขายเกินสต็อกที่มี (สต็อกปัจจุบัน: ${selectedProduct.currentStock} ${selectedProduct.unit})`);
       return;
@@ -263,17 +263,17 @@ export default function StationProducts() {
       prev.map((p) =>
         p.id === selectedProduct.id
           ? {
-              ...p,
-              currentStock: newStock,
-              status: updateProductStatus(newStock, p.minThreshold),
-              lastUpdated: dateString,
-            }
+            ...p,
+            currentStock: newStock,
+            status: updateProductStatus(newStock, p.minThreshold),
+            lastUpdated: dateString,
+          }
           : p
       )
     );
 
     alert(`บันทึกการขายสำเร็จ!\n\nสินค้า: ${selectedProduct.name}\nจำนวน: ${quantity} ${selectedProduct.unit}\nยอดรวม: ${currencyFormatter.format(quantity * selectedProduct.pricePerUnit)}`);
-    
+
     setIsSaleModalOpen(false);
     setSelectedProduct(null);
     setSaleQuantity("");
@@ -377,7 +377,7 @@ export default function StationProducts() {
   // บันทึกการเพิ่มสต็อก
   const handleStockIn = () => {
     if (!selectedProduct || !stockInQuantity) return;
-    
+
     const quantity = parseFloat(stockInQuantity);
     if (isNaN(quantity) || quantity <= 0) {
       alert("กรุณากรอกจำนวนที่ถูกต้อง");
@@ -393,17 +393,17 @@ export default function StationProducts() {
       prev.map((p) =>
         p.id === selectedProduct.id
           ? {
-              ...p,
-              currentStock: newStock,
-              status: updateProductStatus(newStock, p.minThreshold),
-              lastUpdated: dateString,
-            }
+            ...p,
+            currentStock: newStock,
+            status: updateProductStatus(newStock, p.minThreshold),
+            lastUpdated: dateString,
+          }
           : p
       )
     );
 
     alert(`บันทึกการเพิ่มสต็อกสำเร็จ!\n\nสินค้า: ${selectedProduct.name}\nจำนวนที่เพิ่ม: ${quantity} ${selectedProduct.unit}\nสต็อกใหม่: ${newStock} ${selectedProduct.unit}`);
-    
+
     setIsStockInModalOpen(false);
     setSelectedProduct(null);
     setStockInQuantity("");
@@ -482,43 +482,39 @@ export default function StationProducts() {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setPosCategory("all")}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                    posCategory === "all"
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${posCategory === "all"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                    }`}
                 >
                   ทั้งหมด
                 </button>
                 <button
                   onClick={() => setPosCategory("lubricants")}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
-                    posCategory === "lubricants"
-                      ? "bg-purple-500 text-white"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${posCategory === "lubricants"
+                    ? "bg-purple-500 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                    }`}
                 >
                   <Wrench className="w-4 h-4" />
                   น้ำมันหล่อลื่น
                 </button>
                 <button
                   onClick={() => setPosCategory("gas")}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
-                    posCategory === "gas"
-                      ? "bg-orange-500 text-white"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${posCategory === "gas"
+                    ? "bg-orange-500 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                    }`}
                 >
                   <Flame className="w-4 h-4" />
                   แก๊ส
                 </button>
                 <button
                   onClick={() => setPosCategory("engine-oil")}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
-                    posCategory === "engine-oil"
-                      ? "bg-emerald-500 text-white"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${posCategory === "engine-oil"
+                    ? "bg-emerald-500 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                    }`}
                 >
                   <Droplet className="w-4 h-4" />
                   น้ำมันเครื่อง
@@ -539,11 +535,10 @@ export default function StationProducts() {
                       animate={{ opacity: 1, scale: 1 }}
                       onClick={() => addToCart(product)}
                       disabled={product.currentStock <= 0}
-                      className={`p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all text-left ${
-                        product.currentStock <= 0
-                          ? "opacity-50 cursor-not-allowed"
-                          : "hover:scale-105 active:scale-95"
-                      } ${cartItem ? "ring-2 ring-blue-500" : ""}`}
+                      className={`p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all text-left ${product.currentStock <= 0
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:scale-105 active:scale-95"
+                        } ${cartItem ? "ring-2 ring-blue-500" : ""}`}
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <CategoryIcon className="w-4 h-4 text-gray-500" />
@@ -783,44 +778,40 @@ export default function StationProducts() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setSelectedCategory("all")}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
-              selectedCategory === "all"
-                ? "bg-blue-500 text-white shadow-lg"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-            }`}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${selectedCategory === "all"
+              ? "bg-blue-500 text-white shadow-lg"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+              }`}
           >
             <Package className="w-4 h-4" />
             ทั้งหมด ({summary.totalProducts})
           </button>
           <button
             onClick={() => setSelectedCategory("lubricants")}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
-              selectedCategory === "lubricants"
-                ? "bg-purple-500 text-white shadow-lg"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-            }`}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${selectedCategory === "lubricants"
+              ? "bg-purple-500 text-white shadow-lg"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+              }`}
           >
             <Wrench className="w-4 h-4" />
             น้ำมันหล่อลื่น ({summary.lubricantsCount})
           </button>
           <button
             onClick={() => setSelectedCategory("gas")}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
-              selectedCategory === "gas"
-                ? "bg-orange-500 text-white shadow-lg"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-            }`}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${selectedCategory === "gas"
+              ? "bg-orange-500 text-white shadow-lg"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+              }`}
           >
             <Flame className="w-4 h-4" />
             แก๊ส ({summary.gasCount})
           </button>
           <button
             onClick={() => setSelectedCategory("engine-oil")}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
-              selectedCategory === "engine-oil"
-                ? "bg-emerald-500 text-white shadow-lg"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-            }`}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${selectedCategory === "engine-oil"
+              ? "bg-emerald-500 text-white shadow-lg"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+              }`}
           >
             <Droplet className="w-4 h-4" />
             น้ำมันเครื่อง ({summary.engineOilCount})
@@ -916,11 +907,10 @@ export default function StationProducts() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                      product.status === "low-stock" || product.status === "out-of-stock"
-                        ? "bg-orange-50/30 dark:bg-orange-900/10"
-                        : ""
-                    }`}
+                    className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${product.status === "low-stock" || product.status === "out-of-stock"
+                      ? "bg-orange-50/30 dark:bg-orange-900/10"
+                      : ""
+                      }`}
                   >
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2">
@@ -1114,7 +1104,6 @@ export default function StationProducts() {
                   onChange={(e) => setSaleQuantity(e.target.value)}
                   placeholder="0"
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white"
-                  autoFocus
                 />
               </div>
 
@@ -1215,7 +1204,6 @@ export default function StationProducts() {
                   onChange={(e) => setStockInQuantity(e.target.value)}
                   placeholder="0"
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
-                  autoFocus
                 />
               </div>
 

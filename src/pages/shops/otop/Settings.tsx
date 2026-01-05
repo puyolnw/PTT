@@ -37,11 +37,47 @@ export default function OtopSettings() {
   });
 
   const handleToggle = (key: keyof typeof toggles) => {
-    setToggles({ ...toggles, [key]: !toggles[key] });
+    setToggles((prev) => {
+      switch (key) {
+        case "allowPreOrder":
+          return { ...prev, allowPreOrder: !prev.allowPreOrder };
+        case "allowCoupon":
+          return { ...prev, allowCoupon: !prev.allowCoupon };
+        case "autoNotifyLowStock":
+          return { ...prev, autoNotifyLowStock: !prev.autoNotifyLowStock };
+        case "shareSalesToCommunity":
+          return { ...prev, shareSalesToCommunity: !prev.shareSalesToCommunity };
+        default:
+          return prev;
+      }
+    });
   };
 
   const handleChange = (field: keyof typeof formState, value: string) => {
-    setFormState({ ...formState, [field]: value });
+    setFormState((prev) => {
+      switch (field) {
+        case "contactName":
+          return { ...prev, contactName: value };
+        case "contactPhone":
+          return { ...prev, contactPhone: value };
+        case "contactEmail":
+          return { ...prev, contactEmail: value };
+        case "location":
+          return { ...prev, location: value };
+        case "openTime":
+          return { ...prev, openTime: value };
+        case "closeTime":
+          return { ...prev, closeTime: value };
+        case "warehouseLocation":
+          return { ...prev, warehouseLocation: value };
+        case "supportLine":
+          return { ...prev, supportLine: value };
+        case "remarks":
+          return { ...prev, remarks: value };
+        default:
+          return prev;
+      }
+    });
   };
 
   const handleSave = () => {
@@ -74,8 +110,9 @@ export default function OtopSettings() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-muted mb-1 block">ผู้ประสานงาน</label>
+              <label htmlFor="otop-settings-contact-name" className="text-sm text-muted mb-1 block">ผู้ประสานงาน</label>
               <input
+                id="otop-settings-contact-name"
                 type="text"
                 value={formState.contactName}
                 onChange={(e) => handleChange("contactName", e.target.value)}
@@ -83,10 +120,11 @@ export default function OtopSettings() {
               />
             </div>
             <div>
-              <label className="text-sm text-muted mb-1 block">เบอร์ติดต่อ</label>
+              <label htmlFor="otop-settings-phone" className="text-sm text-muted mb-1 block">เบอร์ติดต่อ</label>
               <div className="relative">
                 <Phone className="w-4 h-4 text-muted absolute left-3 top-3" />
                 <input
+                  id="otop-settings-phone"
                   type="tel"
                   value={formState.contactPhone}
                   onChange={(e) => handleChange("contactPhone", e.target.value)}
@@ -98,10 +136,11 @@ export default function OtopSettings() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-muted mb-1 block">อีเมล</label>
+              <label htmlFor="otop-settings-email" className="text-sm text-muted mb-1 block">อีเมล</label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-muted absolute left-3 top-3" />
                 <input
+                  id="otop-settings-email"
                   type="email"
                   value={formState.contactEmail}
                   onChange={(e) => handleChange("contactEmail", e.target.value)}
@@ -110,8 +149,9 @@ export default function OtopSettings() {
               </div>
             </div>
             <div>
-              <label className="text-sm text-muted mb-1 block">Line / Social</label>
+              <label htmlFor="otop-settings-social" className="text-sm text-muted mb-1 block">Line / Social</label>
               <input
+                id="otop-settings-social"
                 type="text"
                 value={formState.supportLine}
                 onChange={(e) => handleChange("supportLine", e.target.value)}
@@ -122,10 +162,11 @@ export default function OtopSettings() {
           </div>
 
           <div>
-            <label className="text-sm text-muted mb-1 block">ที่ตั้งในปั๊ม</label>
+            <label htmlFor="otop-settings-location" className="text-sm text-muted mb-1 block">ที่ตั้งในปั๊ม</label>
             <div className="relative">
               <MapPin className="w-4 h-4 text-muted absolute left-3 top-3" />
               <textarea
+                id="otop-settings-location"
                 value={formState.location}
                 onChange={(e) => handleChange("location", e.target.value)}
                 className="w-full pl-9 pr-4 py-2 bg-soft border border-app rounded-lg text-sm text-app"
@@ -136,8 +177,9 @@ export default function OtopSettings() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="text-sm text-muted mb-1 block">เปิด</label>
+              <label htmlFor="otop-settings-open" className="text-sm text-muted mb-1 block">เปิด</label>
               <input
+                id="otop-settings-open"
                 type="time"
                 value={formState.openTime}
                 onChange={(e) => handleChange("openTime", e.target.value)}
@@ -145,8 +187,9 @@ export default function OtopSettings() {
               />
             </div>
             <div>
-              <label className="text-sm text-muted mb-1 block">ปิด</label>
+              <label htmlFor="otop-settings-close" className="text-sm text-muted mb-1 block">ปิด</label>
               <input
+                id="otop-settings-close"
                 type="time"
                 value={formState.closeTime}
                 onChange={(e) => handleChange("closeTime", e.target.value)}
@@ -154,8 +197,9 @@ export default function OtopSettings() {
               />
             </div>
             <div>
-              <label className="text-sm text-muted mb-1 block">คลังสินค้า</label>
+              <label htmlFor="otop-settings-warehouse" className="text-sm text-muted mb-1 block">คลังสินค้า</label>
               <input
+                id="otop-settings-warehouse"
                 type="text"
                 value={formState.warehouseLocation}
                 onChange={(e) => handleChange("warehouseLocation", e.target.value)}
@@ -165,8 +209,9 @@ export default function OtopSettings() {
           </div>
 
           <div>
-            <label className="text-sm text-muted mb-1 block">หมายเหตุ</label>
+            <label htmlFor="otop-settings-remarks" className="text-sm text-muted mb-1 block">หมายเหตุ</label>
             <textarea
+              id="otop-settings-remarks"
               value={formState.remarks}
               onChange={(e) => handleChange("remarks", e.target.value)}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-sm text-app"

@@ -67,7 +67,7 @@ export default function AttendanceReport() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {["IT", "HR", "Account", "Marketing"].map((dept) => {
             const deptEmployees = employees.filter(e => e.dept === dept);
-            const deptLogs = attendanceLogs.filter(log => 
+            const deptLogs = attendanceLogs.filter(log =>
               deptEmployees.some(emp => emp.code === log.empCode)
             );
             const onTime = deptLogs.filter(l => l.status === "ตรงเวลา").length;
@@ -79,9 +79,9 @@ export default function AttendanceReport() {
                 <div className="text-2xl font-bold text-app mb-1">{rate}%</div>
                 <div className="text-xs text-muted mb-3">ตรงเวลา</div>
                 <div className="h-2 bg-ink-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-green-500 to-green-400"
-                    style={{ width: `${rate}%` }}
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-green-500 to-green-400 w-[var(--rate-width)]"
+                    style={{ "--rate-width": `${rate}%` } as React.CSSProperties}
                   />
                 </div>
               </div>
@@ -114,12 +114,11 @@ export default function AttendanceReport() {
                   <td className="px-6 py-3 text-center text-sm text-app font-mono">{log.checkIn}</td>
                   <td className="px-6 py-3 text-center text-sm text-app font-mono">{log.checkOut}</td>
                   <td className="px-6 py-3 text-center">
-                    <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                      log.status === "ตรงเวลา" ? "bg-green-500/20 text-green-400" :
+                    <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${log.status === "ตรงเวลา" ? "bg-green-500/20 text-green-400" :
                       log.status.includes("สาย") ? "bg-yellow-500/20 text-yellow-400" :
-                      log.status === "ขาดงาน" ? "bg-ptt-red/20 text-ptt-red" :
-                      "bg-blue-500/20 text-blue-400"
-                    }`}>
+                        log.status === "ขาดงาน" ? "bg-ptt-red/20 text-ptt-red" :
+                          "bg-blue-500/20 text-blue-400"
+                      }`}>
                       {log.status}
                     </span>
                   </td>

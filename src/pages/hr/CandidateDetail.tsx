@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Mail, Phone, Calendar, Star } from "lucide-react";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
 import { candidates } from "@/data/mockData";
 
 export default function CandidateDetail() {

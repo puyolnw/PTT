@@ -1,4 +1,4 @@
-// Helper functions for TruckOrders and OilReceipt integration
+import { TruckOrder } from "@/types/truck";
 
 /**
  * Generate Transport Number (TR-YYYYMMDD-XXX)
@@ -15,27 +15,27 @@ export function generateTransportNo(): string {
 /**
  * Get TruckOrder by Purchase Order Number
  */
-export function getTruckOrderByPO(purchaseOrderNo: string, truckOrders: any[]): any | undefined {
+export function getTruckOrderByPO(purchaseOrderNo: string, truckOrders: TruckOrder[]): TruckOrder | undefined {
     return truckOrders.find(order => order.purchaseOrderNo === purchaseOrderNo);
 }
 
 /**
  * Get TruckOrder by Transport Number
  */
-export function getTruckOrderByTransportNo(transportNo: string, truckOrders: any[]): any | undefined {
+export function getTruckOrderByTransportNo(transportNo: string, truckOrders: TruckOrder[]): TruckOrder | undefined {
     return truckOrders.find(order => order.transportNo === transportNo);
 }
 
 /**
  * Check if TruckOrder has Oil Receipt
  */
-export function hasOilReceipt(order: any): boolean {
+export function hasOilReceipt(order: TruckOrder): boolean {
     return !!order.oilReceiptId;
 }
 
 /**
  * Get Receipt Status for TruckOrder
  */
-export function getReceiptStatus(order: any): 'ยังไม่รับ' | 'รับแล้ว' {
+export function getReceiptStatus(order: TruckOrder): 'ยังไม่รับ' | 'รับแล้ว' {
     return order.oilReceiptId ? 'รับแล้ว' : 'ยังไม่รับ';
 }

@@ -52,15 +52,15 @@ const generateMockSales = () => {
   ];
 
   // ราคาต่อลิตรของแต่ละชนิดน้ำมัน
-  const prices: Record<string, number> = {
-    "Premium Diesel": 33.49,
-    "Premium Gasohol 95": 41.49,
-    "Diesel": 32.49,
-    "E85": 28.99,
-    "E20": 35.99,
-    "Gasohol 91": 38.99,
-    "Gasohol 95": 40.99,
-  };
+  const prices = new Map<string, number>([
+    ["Premium Diesel", 33.49],
+    ["Premium Gasohol 95", 41.49],
+    ["Diesel", 32.49],
+    ["E85", 28.99],
+    ["E20", 35.99],
+    ["Gasohol 91", 38.99],
+    ["Gasohol 95", 40.99],
+  ]);
 
   // สัดส่วนการขายของแต่ละชนิดน้ำมัน (เปอร์เซ็นต์)
   const distribution: Record<string, number> = {
@@ -79,13 +79,13 @@ const generateMockSales = () => {
 
   for (let hour = 6; hour < 24; hour++) {
     const transactionsPerHour = Math.floor(Math.random() * 25) + 15; // 15-40 รายการต่อชั่วโมง
-    
+
     for (let i = 0; i < transactionsPerHour && transactionId <= totalTransactions; i++) {
       // เลือกประเภทน้ำมันตามสัดส่วน
       const rand = Math.random() * 100;
       let cumulative = 0;
       let selectedOilType = oilTypes[0];
-      
+
       for (const [oilType, percentage] of Object.entries(distribution)) {
         cumulative += percentage;
         if (rand <= cumulative) {
@@ -100,7 +100,7 @@ const generateMockSales = () => {
         ? Math.round((Math.random() * 200 + 100) * 10) / 10 // 100-300 ลิตร
         : Math.round((Math.random() * 60 + 20) * 10) / 10; // 20-80 ลิตร
 
-      const price = prices[selectedOilType];
+      const price = prices.get(selectedOilType) || 0;
       const amount = Math.round(quantity * price);
 
       // สุ่มเวลาในชั่วโมงนั้น
@@ -136,18 +136,18 @@ const calculateSalesSummary = () => {
   // คำนวณตามวิธีชำระเงิน
   const byPaymentMethod = mockSales.reduce((acc, sale) => {
     const method = sale.paymentMethod;
-    if (!acc[method]) acc[method] = 0;
-    acc[method] += sale.amount;
+    acc.set(method, (acc.get(method) || 0) + sale.amount);
     return acc;
-  }, {} as Record<string, number>);
+  }, new Map<string, number>());
 
   // คำนวณตามประเภทน้ำมัน
-  const byOilType = mockSales.reduce((acc, sale) => {
+  const byOilTypeMap = mockSales.reduce((acc, sale) => {
     const type = sale.oilType;
-    if (!acc[type]) acc[type] = 0;
-    acc[type] += sale.amount;
+    acc.set(type, (acc.get(type) || 0) + sale.amount);
     return acc;
-  }, {} as Record<string, number>);
+  }, new Map<string, number>());
+
+  const byOilType = Object.fromEntries(byOilTypeMap);
 
   return {
     today: {
@@ -155,10 +155,10 @@ const calculateSalesSummary = () => {
       totalLiters: Math.round(totalLiters),
       transactions,
       byPaymentMethod: {
-        cash: byPaymentMethod["เงินสด"] || 0,
-        card: (byPaymentMethod["VISA"] || 0) + (byPaymentMethod["Master"] || 0),
-        qr: (byPaymentMethod["QR| PROMPTPAY"] || 0) + (byPaymentMethod["QR| KPLUS"] || 0),
-        fleet: byPaymentMethod["Fleet Card"] || 0,
+        cash: byPaymentMethod.get("เงินสด") || 0,
+        card: (byPaymentMethod.get("VISA") || 0) + (byPaymentMethod.get("Master") || 0),
+        qr: (byPaymentMethod.get("QR| PROMPTPAY") || 0) + (byPaymentMethod.get("QR| KPLUS") || 0),
+        fleet: byPaymentMethod.get("Fleet Card") || 0,
       },
       byOilType,
     },
@@ -187,27 +187,29 @@ export default function Sales() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // จัดกลุ่มข้อมูลตามประเภทน้ำมันและรวมยอดขาย
-  const groupedByOilType = mockSales.reduce((acc, sale) => {
+  const groupedByOilTypeMap = mockSales.reduce((acc, sale) => {
     const key = sale.oilType;
-    if (!acc[key]) {
-      acc[key] = {
+    const existing = acc.get(key);
+    if (!existing) {
+      acc.set(key, {
         oilType: sale.oilType,
-        totalQuantity: 0,
-        totalAmount: 0,
-        transactionCount: 0,
-      };
+        totalQuantity: sale.quantity,
+        totalAmount: sale.amount,
+        transactionCount: 1,
+      });
+    } else {
+      existing.totalQuantity += sale.quantity;
+      existing.totalAmount += sale.amount;
+      existing.transactionCount += 1;
     }
-    acc[key].totalQuantity += sale.quantity;
-    acc[key].totalAmount += sale.amount;
-    acc[key].transactionCount += 1;
     return acc;
-  }, {} as Record<string, { oilType: string; totalQuantity: number; totalAmount: number; transactionCount: number }>);
+  }, new Map<string, { oilType: string; totalQuantity: number; totalAmount: number; transactionCount: number }>());
 
   // แปลงเป็น array และกรองตาม search term
-  const filteredSales = Object.values(groupedByOilType).filter((sale) => {
-    const matchesSearch = 
+  const filteredSales = Array.from(groupedByOilTypeMap.values()).filter((sale) => {
+    const matchesSearch =
       sale.oilType.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     return matchesSearch;
   });
 
@@ -397,6 +399,16 @@ export default function Sales() {
                 setImportStatus("idle");
                 setImportMessage("");
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setShowImportModal(false);
+                  setSelectedFile(null);
+                  setImportStatus("idle");
+                  setImportMessage("");
+                }
+              }}
+              role="button"
+              tabIndex={0}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
             />
             {/* Modal */}
@@ -409,6 +421,8 @@ export default function Sales() {
               <div
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full"
                 onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                role="none"
               >
                 {/* Modal Header */}
                 <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
@@ -524,13 +538,12 @@ export default function Sales() {
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`rounded-xl p-4 flex items-center gap-3 ${
-                        importStatus === "success"
-                          ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800"
-                          : importStatus === "error"
+                      className={`rounded-xl p-4 flex items-center gap-3 ${importStatus === "success"
+                        ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800"
+                        : importStatus === "error"
                           ? "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
                           : "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
-                      }`}
+                        }`}
                     >
                       {importStatus === "uploading" && (
                         <Loader className="w-5 h-5 text-blue-500 animate-spin" />
@@ -542,13 +555,12 @@ export default function Sales() {
                         <AlertTriangle className="w-5 h-5 text-red-500" />
                       )}
                       <p
-                        className={`text-sm font-medium ${
-                          importStatus === "success"
-                            ? "text-emerald-800 dark:text-emerald-200"
-                            : importStatus === "error"
+                        className={`text-sm font-medium ${importStatus === "success"
+                          ? "text-emerald-800 dark:text-emerald-200"
+                          : importStatus === "error"
                             ? "text-red-800 dark:text-red-200"
                             : "text-blue-800 dark:text-blue-200"
-                        }`}
+                          }`}
                       >
                         {importMessage || "กำลังประมวลผล..."}
                       </p>
@@ -598,7 +610,7 @@ export default function Sales() {
                             setImportMessage("");
                             // ในอนาคตจะ refresh ข้อมูลในตาราง
                           }, 2000);
-                        } catch (error) {
+                        } catch {
                           setImportStatus("error");
                           setImportMessage("เกิดข้อผิดพลาดในการนำเข้าข้อมูล กรุณาลองใหม่อีกครั้ง");
                         }
@@ -640,6 +652,22 @@ export default function Sales() {
                 });
                 setFormErrors({});
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setShowAddModal(false);
+                  setFormData({
+                    date: new Date().toISOString().split('T')[0],
+                    time: new Date().toTimeString().slice(0, 5),
+                    oilType: "",
+                    quantity: "",
+                    amount: "",
+                    nozzle: "",
+                  });
+                  setFormErrors({});
+                }
+              }}
+              role="button"
+              tabIndex={0}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
             />
             {/* Modal */}
@@ -652,6 +680,8 @@ export default function Sales() {
               <div
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                role="none"
               >
                 {/* Modal Header */}
                 <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
@@ -689,21 +719,21 @@ export default function Sales() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Date */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="sales-date" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         วันที่ <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input
+                          id="sales-date"
                           type="date"
                           value={formData.date}
                           onChange={(e) => {
                             setFormData({ ...formData, date: e.target.value });
                             if (formErrors.date) setFormErrors({ ...formErrors, date: "" });
                           }}
-                          className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${
-                            formErrors.date ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
-                          }`}
+                          className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${formErrors.date ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
+                            }`}
                         />
                       </div>
                       {formErrors.date && (
@@ -713,21 +743,21 @@ export default function Sales() {
 
                     {/* Time */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="sales-time" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         เวลา <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input
+                          id="sales-time"
                           type="time"
                           value={formData.time}
                           onChange={(e) => {
                             setFormData({ ...formData, time: e.target.value });
                             if (formErrors.time) setFormErrors({ ...formErrors, time: "" });
                           }}
-                          className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${
-                            formErrors.time ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
-                          }`}
+                          className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${formErrors.time ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
+                            }`}
                         />
                       </div>
                       {formErrors.time && (
@@ -737,18 +767,18 @@ export default function Sales() {
 
                     {/* Oil Type */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="sales-oil-type" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         ประเภทน้ำมัน <span className="text-red-500">*</span>
                       </label>
                       <select
+                        id="sales-oil-type"
                         value={formData.oilType}
                         onChange={(e) => {
                           setFormData({ ...formData, oilType: e.target.value });
                           if (formErrors.oilType) setFormErrors({ ...formErrors, oilType: "" });
                         }}
-                        className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${
-                          formErrors.oilType ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
-                        }`}
+                        className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${formErrors.oilType ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
+                          }`}
                       >
                         <option value="">เลือกประเภทน้ำมัน</option>
                         <option value="Premium Diesel">Premium Diesel</option>
@@ -766,18 +796,18 @@ export default function Sales() {
 
                     {/* Nozzle */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="sales-nozzle" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         หัวจ่าย <span className="text-red-500">*</span>
                       </label>
                       <select
+                        id="sales-nozzle"
                         value={formData.nozzle}
                         onChange={(e) => {
                           setFormData({ ...formData, nozzle: e.target.value });
                           if (formErrors.nozzle) setFormErrors({ ...formErrors, nozzle: "" });
                         }}
-                        className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${
-                          formErrors.nozzle ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
-                        }`}
+                        className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${formErrors.nozzle ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
+                          }`}
                       >
                         <option value="">เลือกหัวจ่าย</option>
                         <option value="P18">P18</option>
@@ -798,12 +828,13 @@ export default function Sales() {
 
                     {/* Quantity */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="sales-quantity" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         จำนวน (ลิตร) <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <Droplet className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input
+                          id="sales-quantity"
                           type="number"
                           step="0.01"
                           min="0"
@@ -813,9 +844,8 @@ export default function Sales() {
                             if (formErrors.quantity) setFormErrors({ ...formErrors, quantity: "" });
                           }}
                           placeholder="0.00"
-                          className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${
-                            formErrors.quantity ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
-                          }`}
+                          className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${formErrors.quantity ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
+                            }`}
                         />
                       </div>
                       {formErrors.quantity && (
@@ -825,12 +855,13 @@ export default function Sales() {
 
                     {/* Amount */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="sales-amount" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         ยอดเงิน (บาท) <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input
+                          id="sales-amount"
                           type="number"
                           step="0.01"
                           min="0"
@@ -840,9 +871,8 @@ export default function Sales() {
                             if (formErrors.amount) setFormErrors({ ...formErrors, amount: "" });
                           }}
                           placeholder="0.00"
-                          className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${
-                            formErrors.amount ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
-                          }`}
+                          className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all ${formErrors.amount ? "border-red-300 dark:border-red-700" : "border-gray-200 dark:border-gray-700"
+                            }`}
                         />
                       </div>
                       {formErrors.amount && (
@@ -876,7 +906,7 @@ export default function Sales() {
                       onClick={async () => {
                         // Validate form
                         const errors: Record<string, string> = {};
-                        
+
                         if (!formData.date) errors.date = "กรุณาเลือกวันที่";
                         if (!formData.time) errors.time = "กรุณาเลือกเวลา";
                         if (!formData.oilType) errors.oilType = "กรุณาเลือกประเภทน้ำมัน";
@@ -912,7 +942,7 @@ export default function Sales() {
                           setFormErrors({});
                           alert("บันทึกข้อมูลการขายสำเร็จ");
                           // ในอนาคตจะ refresh ข้อมูลในตาราง
-                        } catch (error) {
+                        } catch {
                           alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง");
                         } finally {
                           setIsSubmitting(false);

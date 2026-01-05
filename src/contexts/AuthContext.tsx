@@ -1,11 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-
-export interface AuthUser {
-    name: string;
-    email: string;
-    role: string;
-    avatar?: string;
-}
+import { AuthUser } from "./auth-types";
 
 interface AuthContextType {
     user: AuthUser | null;
@@ -46,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
     const context = useContext(AuthContext);
     if (context === undefined) {

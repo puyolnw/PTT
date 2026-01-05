@@ -26,16 +26,16 @@ const dateFormatter = new Intl.DateTimeFormat("th-TH", {
 });
 
 // Mock data - ราคาน้ำมันต่อลิตร
-const oilPrices: Record<OilType, number> = {
-  "Premium Diesel": 32.50,
-  "Diesel": 30.00,
-  "Premium Gasohol 95": 45.00,
-  "Gasohol 95": 43.00,
-  "Gasohol 91": 38.00,
-  "E20": 35.00,
-  "E85": 33.00,
-  "Gasohol E20": 35.00,
-};
+const oilPrices = new Map<OilType, number>([
+  ["Premium Diesel", 32.50],
+  ["Diesel", 30.00],
+  ["Premium Gasohol 95", 45.00],
+  ["Gasohol 95", 43.00],
+  ["Gasohol 91", 38.00],
+  ["E20", 35.00],
+  ["E85", 33.00],
+  ["Gasohol E20", 35.00],
+]);
 
 // Mock data - Internal Oil Orders
 const mockInternalOrders: InternalOilOrder[] = [
@@ -47,8 +47,8 @@ const mockInternalOrders: InternalOilOrder[] = [
     fromBranchId: 2,
     fromBranchName: "ดินดำ",
     items: [
-      { oilType: "Premium Diesel", quantity: 5000, pricePerLiter: oilPrices["Premium Diesel"], totalAmount: 162500 },
-      { oilType: "Gasohol 95", quantity: 3000, pricePerLiter: oilPrices["Gasohol 95"], totalAmount: 129000 },
+      { oilType: "Premium Diesel", quantity: 5000, pricePerLiter: oilPrices.get("Premium Diesel") || 0, totalAmount: 162500 },
+      { oilType: "Gasohol 95", quantity: 3000, pricePerLiter: oilPrices.get("Gasohol 95") || 0, totalAmount: 129000 },
     ],
     totalAmount: 291500,
     status: "รออนุมัติ",
@@ -115,9 +115,9 @@ export default function InternalOilOrder() {
   };
 
   const handleItemChange = (index: number, field: "oilType" | "quantity", value: OilType | number) => {
-    const newItems = [...orderItems];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setOrderItems(newItems);
+    setOrderItems(orderItems.map((item, i) =>
+      i === index ? { ...item, [field]: value } : item
+    ));
   };
 
   const handleSaveOrder = () => {
@@ -135,11 +135,14 @@ export default function InternalOilOrder() {
     }
 
     // Calculate totals
-    const itemsWithTotal = orderItems.map((item) => ({
-      ...item,
-      pricePerLiter: oilPrices[item.oilType],
-      totalAmount: item.quantity * oilPrices[item.oilType],
-    }));
+    const itemsWithTotal = orderItems.map((item) => {
+      const price = oilPrices.get(item.oilType) || 0;
+      return {
+        ...item,
+        pricePerLiter: price,
+        totalAmount: item.quantity * price,
+      };
+    });
 
     const totalAmount = itemsWithTotal.reduce((sum, item) => sum + item.totalAmount, 0);
 
@@ -314,8 +317,10 @@ export default function InternalOilOrder() {
       >
         <div className="space-y-4">
           <div className="relative">
+            <label htmlFor="search-internal-orders" className="sr-only">ค้นหาเลขที่ออเดอร์, ปั๊ม...</label>
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
+              id="search-internal-orders"
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -325,7 +330,9 @@ export default function InternalOilOrder() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="flex items-center gap-2">
+              <label htmlFor="filter-date-from" className="sr-only">วันที่เริ่มต้น</label>
               <input
+                id="filter-date-from"
                 type="date"
                 value={filterDateFrom}
                 onChange={(e) => setFilterDateFrom(e.target.value)}
@@ -333,7 +340,9 @@ export default function InternalOilOrder() {
                 title="วันที่เริ่มต้น"
               />
               <span className="text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">ถึง</span>
+              <label htmlFor="filter-date-to" className="sr-only">วันที่สิ้นสุด</label>
               <input
+                id="filter-date-to"
                 type="date"
                 value={filterDateTo}
                 onChange={(e) => setFilterDateTo(e.target.value)}
@@ -341,35 +350,43 @@ export default function InternalOilOrder() {
                 title="วันที่สิ้นสุด"
               />
             </div>
-            <select
-              value={filterBranch}
-              onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">ทุกปั๊ม</option>
-              {branches
-                .sort((a, b) => {
-                  const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
-                  return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
-                })
-                .map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-            </select>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">สถานะทั้งหมด</option>
-              <option value="รออนุมัติ">รออนุมัติ</option>
-              <option value="อนุมัติแล้ว">อนุมัติแล้ว</option>
-              <option value="กำลังจัดส่ง">กำลังจัดส่ง</option>
-              <option value="ส่งแล้ว">ส่งแล้ว</option>
-              <option value="ยกเลิก">ยกเลิก</option>
-            </select>
+            <div>
+              <label htmlFor="filter-branch" className="sr-only">กรองปั๊ม</label>
+              <select
+                id="filter-branch"
+                value={filterBranch}
+                onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">ทุกปั๊ม</option>
+                {branches
+                  .sort((a, b) => {
+                    const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                    return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
+                  })
+                  .map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="filter-status" className="sr-only">กรองสถานะ</label>
+              <select
+                id="filter-status"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as InternalOilOrder["status"] | "all")}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">สถานะทั้งหมด</option>
+                <option value="รออนุมัติ">รออนุมัติ</option>
+                <option value="อนุมัติแล้ว">อนุมัติแล้ว</option>
+                <option value="กำลังจัดส่ง">กำลังจัดส่ง</option>
+                <option value="ส่งแล้ว">ส่งแล้ว</option>
+                <option value="ยกเลิก">ยกเลิก</option>
+              </select>
+            </div>
             {(filterDateFrom || filterDateTo || searchTerm || filterStatus !== "all" || filterBranch !== "all") && (
               <button
                 onClick={() => {
@@ -509,10 +526,11 @@ export default function InternalOilOrder() {
 
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="order-branch" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     ปั๊มที่สั่งซื้อ *
                   </label>
                   <select
+                    id="order-branch"
                     value={selectedBranchId}
                     onChange={(e) => setSelectedBranchId(Number(e.target.value))}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -527,10 +545,11 @@ export default function InternalOilOrder() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="order-requested-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     วันที่ต้องการรับ *
                   </label>
                   <input
+                    id="order-requested-date"
                     type="date"
                     value={requestedDate}
                     onChange={(e) => setRequestedDate(e.target.value)}
@@ -542,9 +561,9 @@ export default function InternalOilOrder() {
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       รายการน้ำมัน *
-                    </label>
+                    </span>
                     <button
                       type="button"
                       onClick={handleAddItem}
@@ -561,12 +580,14 @@ export default function InternalOilOrder() {
                         className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600"
                       >
                         <div className="flex-1">
+                          <label htmlFor={`order-item-type-${index}`} className="sr-only">ประเภทน้ำมัน</label>
                           <select
+                            id={`order-item-type-${index}`}
                             value={item.oilType}
                             onChange={(e) => handleItemChange(index, "oilType", e.target.value as OilType)}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                           >
-                            {Object.keys(oilPrices).map((type) => (
+                            {Array.from(oilPrices.keys()).map((type) => (
                               <option key={type} value={type}>
                                 {type}
                               </option>
@@ -574,7 +595,9 @@ export default function InternalOilOrder() {
                           </select>
                         </div>
                         <div className="w-32">
+                          <label htmlFor={`order-item-quantity-${index}`} className="sr-only">จำนวนลิตร</label>
                           <input
+                            id={`order-item-quantity-${index}`}
                             type="number"
                             value={item.quantity}
                             onChange={(e) => handleItemChange(index, "quantity", Number(e.target.value))}
@@ -587,7 +610,7 @@ export default function InternalOilOrder() {
                         <div className="w-24 text-sm text-gray-600 dark:text-gray-400">
                           {item.quantity > 0 && (
                             <span>
-                              {numberFormatter.format(item.quantity * oilPrices[item.oilType])} บาท
+                              {numberFormatter.format(item.quantity * (oilPrices.get(item.oilType) || 0))} บาท
                             </span>
                           )}
                         </div>
@@ -604,7 +627,7 @@ export default function InternalOilOrder() {
                       <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                         <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">ยังไม่มีรายการน้ำมัน</p>
-                        <p className="text-xs mt-1">คลิกปุ่ม "เพิ่มรายการ" เพื่อเพิ่มน้ำมัน</p>
+                        <p className="text-xs mt-1">คลิกปุ่ม &quot;เพิ่มรายการ&quot; เพื่อเพิ่มน้ำมัน</p>
                       </div>
                     )}
                   </div>
@@ -614,7 +637,7 @@ export default function InternalOilOrder() {
                         <span className="text-lg font-semibold text-gray-900 dark:text-white">มูลค่ารวมทั้งหมด:</span>
                         <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                           {numberFormatter.format(
-                            orderItems.reduce((sum, item) => sum + item.quantity * oilPrices[item.oilType], 0)
+                            orderItems.reduce((sum, item) => sum + item.quantity * (oilPrices.get(item.oilType) || 0), 0)
                           )} บาท
                         </span>
                       </div>
@@ -623,10 +646,11 @@ export default function InternalOilOrder() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="order-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     หมายเหตุ
                   </label>
                   <textarea
+                    id="order-notes"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="ระบุหมายเหตุ (ถ้ามี)"

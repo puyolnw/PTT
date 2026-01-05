@@ -254,12 +254,13 @@ export default function OtopPurchases() {
             className="hidden"
           />
           <div className="bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">
-            วันที่ทำรายการ:{" "}
+            <label htmlFor="otop-transaction-date" className="mr-2">วันที่ทำรายการ:</label>
             <input
+              id="otop-transaction-date"
               type="date"
               value={transactionDate}
               onChange={(e) => setTransactionDate(e.target.value)}
-              className="ml-2 font-medium text-slate-800 outline-none"
+              className="font-medium text-slate-800 outline-none"
             />
           </div>
         </div>
@@ -299,6 +300,7 @@ export default function OtopPurchases() {
                   <td className="p-4">
                     <div className="space-y-1">
                       <select
+                        aria-label={`Product Select ${index + 1}`}
                         value={item.productId}
                         onChange={(e) => handleProductSelect(item.id, e.target.value)}
                         className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
@@ -312,6 +314,7 @@ export default function OtopPurchases() {
                         <option value="NEW">+ สินค้าใหม่ (ระบุเอง)</option>
                       </select>
                       <input
+                        aria-label={`Product Name ${index + 1}`}
                         placeholder="ระบุชื่อสินค้า..."
                         value={item.productName}
                         onChange={(e) => handleItemChange(item.id, "productName", e.target.value)}
@@ -322,6 +325,7 @@ export default function OtopPurchases() {
                   </td>
                   <td className="p-4">
                     <input
+                      aria-label={`Quantity ${index + 1}`}
                       min="0"
                       value={item.quantity || ""}
                       onChange={(e) => handleItemChange(item.id, "quantity", Number(e.target.value) || 0)}
@@ -331,6 +335,7 @@ export default function OtopPurchases() {
                   </td>
                   <td className="p-4">
                     <input
+                      aria-label={`Unit ${index + 1}`}
                       value={item.unit}
                       onChange={(e) => handleItemChange(item.id, "unit", e.target.value)}
                       className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-center bg-gray-50"
@@ -339,6 +344,7 @@ export default function OtopPurchases() {
                   </td>
                   <td className="p-4">
                     <input
+                      aria-label={`Price Per Unit ${index + 1}`}
                       min="0"
                       value={item.pricePerUnit || ""}
                       onChange={(e) => handleItemChange(item.id, "pricePerUnit", Number(e.target.value) || 0)}
@@ -351,6 +357,7 @@ export default function OtopPurchases() {
                   </td>
                   <td className="p-4">
                     <input
+                      aria-label={`Supplier ${index + 1}`}
                       value={item.supplier}
                       onChange={(e) => handleItemChange(item.id, "supplier", e.target.value)}
                       className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-purple-500"
@@ -360,6 +367,7 @@ export default function OtopPurchases() {
                   </td>
                   <td className="p-4">
                     <select
+                      aria-label={`Payment Method ${index + 1}`}
                       value={item.paymentMethod}
                       onChange={(e) =>
                         handleItemChange(item.id, "paymentMethod", e.target.value as PurchaseItem["paymentMethod"])
@@ -506,8 +514,9 @@ export default function OtopPurchases() {
               <div className="text-sm font-semibold text-gray-700 mb-3">ช่วงวันที่ของข้อมูล</div>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">เดือน</label>
+                  <label htmlFor="otop-import-month" className="block text-xs text-gray-600 mb-1">เดือน</label>
                   <select
+                    id="otop-import-month"
                     value={importDate.month}
                     onChange={(e) => setImportDate({ ...importDate, month: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -521,8 +530,9 @@ export default function OtopPurchases() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">ปี (พ.ศ.)</label>
+                  <label htmlFor="otop-import-year" className="block text-xs text-gray-600 mb-1">ปี (พ.ศ.)</label>
                   <select
+                    id="otop-import-year"
                     value={importDate.year}
                     onChange={(e) => setImportDate({ ...importDate, year: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -538,8 +548,9 @@ export default function OtopPurchases() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">วันที่เริ่มต้น</label>
+                  <label htmlFor="otop-import-start-date" className="block text-xs text-gray-600 mb-1">วันที่เริ่มต้น</label>
                   <input
+                    id="otop-import-start-date"
                     type="date"
                     value={importDate.startDate}
                     onChange={(e) => setImportDate({ ...importDate, startDate: e.target.value })}
@@ -547,8 +558,9 @@ export default function OtopPurchases() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">วันที่สิ้นสุด</label>
+                  <label htmlFor="otop-import-end-date" className="block text-xs text-gray-600 mb-1">วันที่สิ้นสุด</label>
                   <input
+                    id="otop-import-end-date"
                     type="date"
                     value={importDate.endDate}
                     onChange={(e) => setImportDate({ ...importDate, endDate: e.target.value })}
@@ -592,11 +604,10 @@ export default function OtopPurchases() {
                   }, 100);
                 }}
                 disabled={!importDate.month || !importDate.year}
-                className={`px-6 py-2 rounded-lg transition-colors font-medium ${
-                  !importDate.month || !importDate.year
+                className={`px-6 py-2 rounded-lg transition-colors font-medium ${!importDate.month || !importDate.year
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-purple-600 text-white hover:bg-purple-700"
-                }`}
+                  }`}
               >
                 เลือกไฟล์
               </button>
@@ -692,19 +703,18 @@ export default function OtopPurchases() {
                               <td className="p-3 text-gray-600">{item.supplier}</td>
                               <td className="p-3">
                                 <span
-                                  className={`px-2 py-1 rounded text-xs ${
-                                    item.paymentMethod === "cash"
+                                  className={`px-2 py-1 rounded text-xs ${item.paymentMethod === "cash"
                                       ? "bg-green-100 text-green-700"
                                       : item.paymentMethod === "transfer"
-                                      ? "bg-blue-100 text-blue-700"
-                                      : "bg-orange-100 text-orange-700"
-                                  }`}
+                                        ? "bg-blue-100 text-blue-700"
+                                        : "bg-orange-100 text-orange-700"
+                                    }`}
                                 >
                                   {item.paymentMethod === "cash"
                                     ? "เงินสด"
                                     : item.paymentMethod === "transfer"
-                                    ? "โอนเงิน"
-                                    : "เครดิต"}
+                                      ? "โอนเงิน"
+                                      : "เครดิต"}
                                 </span>
                               </td>
                             </tr>

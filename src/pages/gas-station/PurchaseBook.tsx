@@ -146,10 +146,11 @@ export default function PurchaseBook() {
 
   // Grouping
   const groupedEntries = useMemo(() => {
-    const groups: { [key: string]: PurchaseEntry[] } = {};
+    const groups = new Map<string, PurchaseEntry[]>();
     entries.forEach(entry => {
-      if (!groups[entry.date]) groups[entry.date] = [];
-      groups[entry.date].push(entry);
+      const group = groups.get(entry.date) || [];
+      group.push(entry);
+      groups.set(entry.date, group);
     });
     return groups;
   }, [entries]);
@@ -209,24 +210,24 @@ export default function PurchaseBook() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-8 gap-4">
                 <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-gray-500">วันที่</label>
-                  <input type="text" placeholder="17/10/68" value={newEntry.date} onChange={e => setNewEntry({ ...newEntry, date: e.target.value })} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+                  <label htmlFor="purchase-date" className="text-xs font-medium text-gray-500">วันที่</label>
+                  <input id="purchase-date" type="text" placeholder="17/10/68" value={newEntry.date} onChange={e => setNewEntry({ ...newEntry, date: e.target.value })} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
                 </div>
                 <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-gray-500">เบอร์</label>
-                  <input type="text" placeholder="34" value={newEntry.code} onChange={e => setNewEntry({ ...newEntry, code: e.target.value })} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+                  <label htmlFor="purchase-code" className="text-xs font-medium text-gray-500">เบอร์</label>
+                  <input id="purchase-code" type="text" placeholder="34" value={newEntry.code} onChange={e => setNewEntry({ ...newEntry, code: e.target.value })} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
                 </div>
                 <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-gray-500">สินค้า</label>
-                  <input type="text" placeholder="HSD" value={newEntry.product} onChange={e => setNewEntry({ ...newEntry, product: e.target.value })} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+                  <label htmlFor="purchase-product" className="text-xs font-medium text-gray-500">สินค้า</label>
+                  <input id="purchase-product" type="text" placeholder="HSD" value={newEntry.product} onChange={e => setNewEntry({ ...newEntry, product: e.target.value })} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
                 </div>
                 <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-gray-500">หมายเหตุ</label>
-                  <input type="text" placeholder="" value={newEntry.remark} onChange={e => setNewEntry({ ...newEntry, remark: e.target.value })} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+                  <label htmlFor="purchase-remark" className="text-xs font-medium text-gray-500">หมายเหตุ</label>
+                  <input id="purchase-remark" type="text" placeholder="" value={newEntry.remark} onChange={e => setNewEntry({ ...newEntry, remark: e.target.value })} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
                 </div>
                 <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-gray-500">ปริมาณ (ลิตร)</label>
-                  <input type="number" placeholder="0" value={newEntry.volume}
+                  <label htmlFor="purchase-volume" className="text-xs font-medium text-gray-500">ปริมาณ (ลิตร)</label>
+                  <input id="purchase-volume" type="number" placeholder="0" value={newEntry.volume}
                     onChange={e => {
                       const val = parseFloat(e.target.value);
                       setNewEntry({ ...newEntry, volume: val });
@@ -235,8 +236,8 @@ export default function PurchaseBook() {
                     className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-right" />
                 </div>
                 <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-gray-500">ราคาซื้อ (Ex-VAT)</label>
-                  <input type="number" placeholder="0.0000" value={newEntry.priceA}
+                  <label htmlFor="purchase-price-a" className="text-xs font-medium text-gray-500">ราคาซื้อ (Ex-VAT)</label>
+                  <input id="purchase-price-a" type="number" placeholder="0.0000" value={newEntry.priceA}
                     onChange={e => {
                       const val = parseFloat(e.target.value);
                       setNewEntry({ ...newEntry, priceA: val });
@@ -245,13 +246,13 @@ export default function PurchaseBook() {
                     className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-right" />
                 </div>
                 <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-gray-500">ราคาหน้าป้าย</label>
-                  <input type="number" placeholder="0.00" value={newEntry.priceB} onChange={e => setNewEntry({ ...newEntry, priceB: parseFloat(e.target.value) })} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-right" />
+                  <label htmlFor="purchase-price-b" className="text-xs font-medium text-gray-500">ราคาหน้าป้าย</label>
+                  <input id="purchase-price-b" type="number" placeholder="0.00" value={newEntry.priceB} onChange={e => setNewEntry({ ...newEntry, priceB: parseFloat(e.target.value) })} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-right" />
                 </div>
                 <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-gray-500">จำนวนเงิน (Inc.VAT)</label>
+                  <label htmlFor="purchase-amount" className="text-xs font-medium text-gray-500">จำนวนเงิน (Inc.VAT)</label>
                   <div className="relative">
-                    <input type="number" value={newEntry.amount} onChange={e => setNewEntry({ ...newEntry, amount: parseFloat(e.target.value) })} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-right font-bold text-emerald-600" />
+                    <input id="purchase-amount" type="number" value={newEntry.amount} onChange={e => setNewEntry({ ...newEntry, amount: parseFloat(e.target.value) })} className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-right font-bold text-emerald-600" />
                   </div>
                 </div>
               </div>
@@ -284,9 +285,9 @@ export default function PurchaseBook() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {Object.keys(groupedEntries).map(date => (
+              {Array.from(groupedEntries.keys()).map(date => (
                 <React.Fragment key={date}>
-                  {groupedEntries[date].map((entry, index) => (
+                  {groupedEntries.get(date)?.map((entry, index) => (
                     <tr key={entry.id} className="hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors group">
                       <td className={`py-3 px-4 align-top ${index === 0 ? "text-gray-900 dark:text-white font-medium" : "text-transparent"}`}>
                         {index === 0 ? entry.date : entry.date}

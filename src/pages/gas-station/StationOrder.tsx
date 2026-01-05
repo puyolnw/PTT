@@ -216,7 +216,8 @@ export default function StationOrder() {
 
   // แก้ไขรายการสั่งซื้อ
   const editOrderItem = (index: number) => {
-    const item = orderItems[index];
+    const item = orderItems.find((_, i) => i === index);
+    if (!item) return;
     setSelectedOilType(item.oilType);
     setSelectedQuantity(item.quantity.toString());
     setSelectedLegalEntity(item.legalEntityId);
@@ -228,14 +229,15 @@ export default function StationOrder() {
   const saveEdit = () => {
     if (editingItemIndex === null || !selectedOilType || !selectedQuantity) return;
 
-    const updatedItems = [...orderItems];
-    updatedItems[editingItemIndex] = {
-      ...updatedItems[editingItemIndex],
-      oilType: selectedOilType,
-      quantity: parseInt(selectedQuantity),
-      legalEntityId: selectedLegalEntity,
-      notes: notes || undefined,
-    };
+    const updatedItems = orderItems.map((item, i) =>
+      i === editingItemIndex ? {
+        ...item,
+        oilType: selectedOilType,
+        quantity: parseInt(selectedQuantity),
+        legalEntityId: selectedLegalEntity,
+        notes: notes || undefined,
+      } as OrderItem : item
+    );
 
     setOrderItems(updatedItems);
     setEditingItemIndex(null);
@@ -428,16 +430,16 @@ export default function StationOrder() {
                 <div className="space-y-4">
                   {/* Quick Add - เลือกน้ำมันหลายชนิดพร้อมกัน */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       เลือกน้ำมันหลายชนิดพร้อมกัน
-                    </label>
+                    </span>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                       {oilTypes.map((type) => {
                         const stock = mockCurrentStock.find((s) => s.oilType === type);
                         const isSelected = orderItems.some((item) => item.oilType === type);
                         const isLowStock = stock?.lowStockAlert || false;
                         const recommended = stock ? calculateRecommended(type) : 0;
-                        
+
                         return (
                           <button
                             key={type}
@@ -457,22 +459,20 @@ export default function StationOrder() {
                                 setOrderItems([...orderItems, newItem]);
                               }
                             }}
-                            className={`p-3 rounded-xl border-2 transition-all text-left ${
-                              isSelected
-                                ? "bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-600 shadow-md"
-                                : isLowStock
+                            className={`p-3 rounded-xl border-2 transition-all text-left ${isSelected
+                              ? "bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-600 shadow-md"
+                              : isLowStock
                                 ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 hover:border-red-500"
                                 : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600"
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center justify-between mb-1">
                               <div className="flex items-center gap-2">
                                 <Droplet className={`w-4 h-4 ${isLowStock ? "text-red-500" : "text-blue-500"}`} />
-                                <span className={`text-sm font-semibold ${
-                                  isSelected 
-                                    ? "text-blue-700 dark:text-blue-300" 
-                                    : "text-gray-800 dark:text-white"
-                                }`}>
+                                <span className={`text-sm font-semibold ${isSelected
+                                  ? "text-blue-700 dark:text-blue-300"
+                                  : "text-gray-800 dark:text-white"
+                                  }`}>
                                   {type}
                                 </span>
                               </div>
@@ -508,10 +508,11 @@ export default function StationOrder() {
 
                   {/* นิติบุคคล */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="station-order-legal-entity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       นิติบุคคล * (ใช้กับทุกรายการ)
                     </label>
                     <select
+                      id="station-order-legal-entity"
                       value={selectedLegalEntity}
                       onChange={(e) => {
                         const newEntityId = parseInt(e.target.value);
@@ -534,10 +535,11 @@ export default function StationOrder() {
 
                   {/* หมายเหตุ */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="station-order-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       หมายเหตุ (ถ้ามี) - ใช้กับทุกรายการ
                     </label>
                     <textarea
+                      id="station-order-notes"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="ระบุหมายเหตุเพิ่มเติม..."
@@ -573,15 +575,14 @@ export default function StationOrder() {
                       const isLowStock = stock?.lowStockAlert || false;
                       const recommended = stock ? calculateRecommended(item.oilType) : 0;
                       const isEditing = editingItemIndex === index;
-                      
+
                       return (
                         <div
                           key={item.id}
-                          className={`p-4 rounded-lg border-2 transition-all ${
-                            isLowStock
-                              ? "bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800"
-                              : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700"
-                          }`}
+                          className={`p-4 rounded-lg border-2 transition-all ${isLowStock
+                            ? "bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800"
+                            : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+                            }`}
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1">
@@ -598,16 +599,17 @@ export default function StationOrder() {
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+                                  <label htmlFor={`station-order-item-quantity-${item.id}`} className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
                                     จำนวน (ลิตร) *
                                   </label>
                                   {isEditing ? (
                                     <input
+                                      id={`station-order-item-quantity-${item.id}`}
                                       type="number"
                                       value={selectedQuantity}
                                       onChange={(e) => setSelectedQuantity(e.target.value)}
                                       className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
-                                      autoFocus
+
                                     />
                                   ) : (
                                     <div className="flex items-center gap-2">
@@ -628,18 +630,18 @@ export default function StationOrder() {
                                   )}
                                 </div>
                                 <div>
-                                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
                                     นิติบุคคล
-                                  </label>
+                                  </span>
                                   <span className="font-semibold text-gray-800 dark:text-white">
                                     {legalEntities.find((e) => e.id === item.legalEntityId)?.name}
                                   </span>
                                 </div>
                                 {item.notes && (
                                   <div>
-                                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
                                       หมายเหตุ
-                                    </label>
+                                    </span>
                                     <span className="text-sm text-gray-800 dark:text-white">{item.notes}</span>
                                   </div>
                                 )}
@@ -687,7 +689,7 @@ export default function StationOrder() {
                       );
                     })}
                   </div>
-                  
+
                   {/* Summary */}
                   <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl p-4 mb-4">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -754,7 +756,9 @@ export default function StationOrder() {
         >
           <div className="flex-1 min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <label htmlFor="station-order-search" className="sr-only">ค้นหา</label>
             <input
+              id="station-order-search"
               type="text"
               placeholder="ค้นหาหมายเลขคำสั่งซื้อ, ประเภทน้ำมัน..."
               value={searchTerm}
@@ -764,7 +768,9 @@ export default function StationOrder() {
           </div>
           <div className="flex items-center gap-2">
             <Filter className="w-5 h-5 text-gray-400" />
+            <label htmlFor="station-order-filter-status" className="sr-only">สถานะ</label>
             <select
+              id="station-order-filter-status"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
@@ -789,7 +795,7 @@ export default function StationOrder() {
               ประวัติคำสั่งซื้อ
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              รายการคำสั่งซื้อที่ส่งไปแล้ว (จะไปสรุปรวมที่หน้า "การสั่งซื้อน้ำมัน")
+              รายการคำสั่งซื้อที่ส่งไปแล้ว (จะไปสรุปรวมที่หน้า &quot;การสั่งซื้อน้ำมัน&quot;)
             </p>
           </div>
 

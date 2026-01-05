@@ -337,16 +337,13 @@ class ExcelExportService {
      * Helper: Get action description in Thai
      */
     private getActionDescription(action: string): string {
-        const descriptions: Record<string, string> = {
-            purchase: "รับซื้อ",
-            sale: "ขาย",
-            adjustment: "ปรับปรุง",
-            transfer: "โอนย้าย",
-        };
-        if (Object.prototype.hasOwnProperty.call(descriptions, action)) {
-            return descriptions[action];
-        }
-        return action;
+        const descriptions = new Map<string, string>([
+            ["purchase", "รับซื้อ"],
+            ["sale", "ขาย"],
+            ["adjustment", "ปรับปรุง"],
+            ["transfer", "โอนย้าย"],
+        ]);
+        return descriptions.get(action) || action;
     }
 }
 

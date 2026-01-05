@@ -178,15 +178,19 @@ export default function Sales() {
   };
 
   const updateItemInForm = (index: number, field: string, value: string) => {
-    const updatedItems = [...formData.items];
-    updatedItems[index] = {
-      ...updatedItems[index],
-      [field]: value,
-      total: field === "quantity" || field === "price"
-        ? Number(field === "quantity" ? value : updatedItems[index].quantity) *
-        Number(field === "price" ? value : updatedItems[index].price)
-        : updatedItems[index].total,
-    };
+    const updatedItems = formData.items.map((item, i) => {
+      if (i !== index) return item;
+
+      const updatedItem = { ...item, [field]: value };
+      const quantity = field === "quantity" ? Number(value) : Number(item.quantity);
+      const price = field === "price" ? Number(value) : Number(item.price);
+
+      return {
+        ...updatedItem,
+        total: (quantity || 0) * (price || 0),
+      };
+    });
+
     setFormData({ ...formData, items: updatedItems });
   };
 
@@ -374,10 +378,11 @@ export default function Sales() {
         />
 
         <div className="flex gap-2">
-          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
+          <label htmlFor="ev-sales-upload-stock" className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
             <Upload className="w-4 h-4" />
             <span>นำเข้าจาก Stock Program</span>
             <input
+              id="ev-sales-upload-stock"
               type="file"
               accept=".xlsx,.xls"
               onChange={handleFileUpload}
@@ -519,7 +524,7 @@ export default function Sales() {
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-app">รายการสินค้า</label>
+              <span className="block text-sm font-medium text-app">รายการสินค้า</span>
               <button
                 type="button"
                 onClick={addItemToForm}

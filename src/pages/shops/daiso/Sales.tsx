@@ -66,7 +66,7 @@ const initialSalesData = [
 export default function Sales() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "ร้านไดโซ (Daiso)";
-  
+
   const [salesData, setSalesData] = useState(initialSalesData);
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -114,8 +114,8 @@ export default function Sales() {
     })
     .reduce((sum, sale) => sum + sale.total, 0);
 
-  const salesComparison = lastWeekSales > 0 
-    ? ((todaySales - lastWeekSales) / lastWeekSales) * 100 
+  const salesComparison = lastWeekSales > 0
+    ? ((todaySales - lastWeekSales) / lastWeekSales) * 100
     : 0;
 
   // Filter sales data
@@ -179,15 +179,19 @@ export default function Sales() {
   };
 
   const updateItemInForm = (index: number, field: string, value: string) => {
-    const updatedItems = [...formData.items];
-    updatedItems[index] = {
-      ...updatedItems[index],
-      [field]: value,
-      total: field === "quantity" || field === "price"
-        ? Number(field === "quantity" ? value : updatedItems[index].quantity) *
-          Number(field === "price" ? value : updatedItems[index].price)
-        : updatedItems[index].total,
-    };
+    const updatedItems = formData.items.map((item, i) => {
+      if (i !== index) return item;
+
+      const updatedItem = { ...item, [field]: value };
+      const quantity = field === "quantity" ? Number(value) : Number(item.quantity);
+      const price = field === "price" ? Number(value) : Number(item.price);
+
+      return {
+        ...updatedItem,
+        total: (quantity || 0) * (price || 0),
+      };
+    });
+
     setFormData({ ...formData, items: updatedItems });
   };
 
@@ -243,9 +247,8 @@ export default function Sales() {
             <span className="text-sm text-muted">ยอดขายเดือนนี้</span>
           </div>
           <p className="text-2xl font-bold text-app">{currencyFormatter.format(thisMonthSales)}</p>
-          <div className={`flex items-center gap-1 text-xs mt-1 ${
-            salesComparison >= 0 ? 'text-emerald-400' : 'text-red-400'
-          }`}>
+          <div className={`flex items-center gap-1 text-xs mt-1 ${salesComparison >= 0 ? 'text-emerald-400' : 'text-red-400'
+            }`}>
             {salesComparison >= 0 ? (
               <ArrowUpRight className="w-3 h-3" />
             ) : (
@@ -358,10 +361,11 @@ export default function Sales() {
         />
 
         <div className="flex gap-2">
-          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
+          <label htmlFor="daiso-sales-upload-excel" className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
             <Upload className="w-4 h-4" />
             <span>นำเข้าจาก Excel</span>
             <input
+              id="daiso-sales-upload-excel"
               type="file"
               accept=".xlsx,.xls"
               onChange={handleFileUpload}
@@ -459,8 +463,9 @@ export default function Sales() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่</label>
+              <label htmlFor="daiso-sales-date" className="block text-sm font-medium text-app mb-2">วันที่</label>
               <input
+                id="daiso-sales-date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -469,8 +474,9 @@ export default function Sales() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วิธีชำระ</label>
+              <label htmlFor="daiso-sales-payment" className="block text-sm font-medium text-app mb-2">วิธีชำระ</label>
               <select
+                id="daiso-sales-payment"
                 value={formData.paymentMethod}
                 onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -482,8 +488,9 @@ export default function Sales() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ลูกค้า (ไม่บังคับ)</label>
+            <label htmlFor="daiso-sales-customer" className="block text-sm font-medium text-app mb-2">ลูกค้า (ไม่บังคับ)</label>
             <input
+              id="daiso-sales-customer"
               type="text"
               value={formData.customer}
               onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
@@ -493,7 +500,7 @@ export default function Sales() {
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-app">รายการสินค้า</label>
+              <span className="block text-sm font-medium text-app">รายการสินค้า</span>
               <button
                 type="button"
                 onClick={addItemToForm}
@@ -507,6 +514,7 @@ export default function Sales() {
                 <div key={index} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-4">
                     <input
+                      aria-label={`Product Name ${index + 1}`}
                       type="text"
                       value={item.name}
                       onChange={(e) => updateItemInForm(index, "name", e.target.value)}
@@ -517,6 +525,7 @@ export default function Sales() {
                   </div>
                   <div className="col-span-3">
                     <select
+                      aria-label={`Product Category ${index + 1}`}
                       value={item.category}
                       onChange={(e) => updateItemInForm(index, "category", e.target.value)}
                       className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app text-sm"
@@ -528,6 +537,7 @@ export default function Sales() {
                   </div>
                   <div className="col-span-2">
                     <input
+                      aria-label={`Product Quantity ${index + 1}`}
                       type="number"
                       value={item.quantity}
                       onChange={(e) => updateItemInForm(index, "quantity", e.target.value)}
@@ -538,6 +548,7 @@ export default function Sales() {
                   </div>
                   <div className="col-span-2">
                     <input
+                      aria-label={`Product Price ${index + 1}`}
                       type="number"
                       value={item.price}
                       onChange={(e) => updateItemInForm(index, "price", e.target.value)}

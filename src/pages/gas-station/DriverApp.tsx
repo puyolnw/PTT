@@ -28,70 +28,9 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
     maximumFractionDigits: 0,
 });
 
-// Interface สำหรับงานที่ต้องทำ
-interface DriverJob {
-    id: string;
-    transportNo: string;
-    transportDate: string;
-    transportTime: string;
-    orderType: "internal" | "external"; // ประเภทเที่ยว: ภายในปั๊ม หรือ รับจาก PTT
-    // สำหรับ Internal Transport
-    internalOrderNo?: string; // เลขที่ออเดอร์ภายในปั๊ม
-    // สำหรับ External Transport (PTT)
-    purchaseOrderNo?: string; // เลขที่ใบสั่งซื้อ
-    pttQuotationNo?: string; // เลขที่ใบเสนอราคาจาก PTT
-    sourceBranchId: number;
-    sourceBranchName: string;
-    sourceAddress: string;
-    destinationBranches: Array<{
-        branchId: number;
-        branchName: string;
-        address: string;
-        oilType: string;
-        quantity: number;
-        status: "รอส่ง" | "กำลังส่ง" | "ส่งแล้ว";
-        deliveryConfirmation?: {
-            confirmedAt: string;
-            photos: string[];
-            odometerReading: number;
-            notes?: string;
-        };
-    }>;
-    compartments: Array<{
-        id: string;
-        compartmentNumber: number;
-        capacity: number;
-        oilType?: string;
-        quantity?: number;
-        destinationBranchId?: number;
-        destinationBranchName?: string;
-    }>;
-    truckPlateNumber: string;
-    trailerPlateNumber: string;
-    driverName?: string; // ชื่อคนขับ
-    status: "รอเริ่ม" | "ออกเดินทางแล้ว" | "รับน้ำมันแล้ว" | "จัดเรียงเส้นทางแล้ว" | "กำลังส่ง" | "ส่งเสร็จ";
-    routeOrder?: number[]; // ลำดับการส่ง (branchId)
-    startTrip?: {
-        startedAt: string;
-        startOdometer: number;
-        startOdometerPhoto?: string;
-        startFuel?: number; // น้ำมันตอนเริ่มต้น
-    };
-    pickupConfirmation?: {
-        confirmedAt: string;
-        photos: string[];
-        odometerReading: number;
-        notes?: string;
-    };
-    depotArrival?: {
-        arrivedAt: string;
-        endOdometer: number;
-        endOdometerPhoto?: string;
-        notes?: string;
-    };
-    createdAt?: string;
-    createdBy?: string;
-}
+// Interface สำหรับงานที่ต้องทำ - Removed local definitions
+import type { DriverJob } from "@/types/gasStation";
+
 
 // Mock data - งานของคนขับ
 const mockDriverJobs: DriverJob[] = [
@@ -211,12 +150,12 @@ type Step = "start-trip" | "pickup-oil" | "route-planning" | "delivery" | "arriv
 
 export default function DriverApp() {
     const { driverJobs, updateDriverJob, createDriverJob, branches } = useGasStation();
-    const [selectedJob, setSelectedJob] = useState<DriverJobType | null>(null);
+    const [selectedJob, setSelectedJob] = useState<DriverJob | null>(null);
     const [currentStep, setCurrentStep] = useState<Step>("start-trip");
     const [currentDeliveryIndex, setCurrentDeliveryIndex] = useState(0);
     const [routeOrder, setRouteOrder] = useState<number[]>([]); // ลำดับการส่ง
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null); // สำหรับ drag and drop
-    const [viewingJobDetail, setViewingJobDetail] = useState<DriverJobType | null>(null); // สำหรับดูรายละเอียดรอบส่ง
+    const [viewingJobDetail, setViewingJobDetail] = useState<DriverJob | null>(null); // สำหรับดูรายละเอียดรอบส่ง
     const [searchTerm, setSearchTerm] = useState("");
     const [filterDateFrom, setFilterDateFrom] = useState<string>("");
     const [filterDateTo, setFilterDateTo] = useState<string>("");
@@ -251,13 +190,13 @@ export default function DriverApp() {
                     ...job,
                     destinationBranches: job.destinationBranches.map((b) => ({
                         ...b,
-                        oilType: b.oilType as DriverJobType["destinationBranches"][0]["oilType"],
+                        oilType: b.oilType as DriverJob["destinationBranches"][0]["oilType"],
                     })),
                     compartments: job.compartments.map((c) => ({
                         id: c.id || `comp-${c.compartmentNumber}`,
                         compartmentNumber: c.compartmentNumber,
                         capacity: c.capacity,
-                        oilType: c.oilType ? (c.oilType as DriverJobType["compartments"][0]["oilType"]) : undefined,
+                        oilType: c.oilType ? (c.oilType as DriverJob["compartments"][0]["oilType"]) : undefined,
                         quantity: c.quantity,
                         destinationBranchId: c.destinationBranchId,
                         destinationBranchName: c.destinationBranchName,
@@ -275,7 +214,7 @@ export default function DriverApp() {
         const date = new Date(dateStr);
         const fromDate = from ? new Date(from) : null;
         const toDate = to ? new Date(to) : null;
-        
+
         if (fromDate && toDate) {
             fromDate.setHours(0, 0, 0, 0);
             toDate.setHours(23, 59, 59, 999);
@@ -292,7 +231,7 @@ export default function DriverApp() {
 
     // Separate completed and active jobs - ใช้ข้อมูลจาก context หรือ mock data
     const allJobs = driverJobs.length > 0 ? driverJobs : mockDriverJobs;
-    
+
     // Filter jobs
     const filteredJobs = useMemo(() => {
         return allJobs.filter((job) => {
@@ -302,21 +241,21 @@ export default function DriverApp() {
                 job.driverName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 job.sourceBranchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 job.destinationBranches.some(b => b.branchName.toLowerCase().includes(searchTerm.toLowerCase()));
-            
+
             const matchesDate = isDateInRange(job.transportDate, filterDateFrom, filterDateTo);
-            
-            const matchesBranch = filterBranch === "all" || 
+
+            const matchesBranch = filterBranch === "all" ||
                 job.sourceBranchId === filterBranch ||
                 job.destinationBranches.some(b => b.branchId === filterBranch);
-            
-            const matchesOrderType = filterOrderType === "all" || 
-                (filterOrderType === "internal" && (job as any).orderType === "internal") ||
-                (filterOrderType === "external" && (job as any).orderType === "external");
-            
+
+            const matchesOrderType = filterOrderType === "all" ||
+                (filterOrderType === "internal" && job.orderType === "internal") ||
+                (filterOrderType === "external" && job.orderType === "external");
+
             const matchesStatus = filterStatus === "all" ||
                 (filterStatus === "active" && job.status !== "ส่งเสร็จ") ||
                 (filterStatus === "completed" && job.status === "ส่งเสร็จ");
-            
+
             return matchesSearch && matchesDate && matchesBranch && matchesOrderType && matchesStatus;
         });
     }, [allJobs, searchTerm, filterDateFrom, filterDateTo, filterBranch, filterOrderType, filterStatus]);
@@ -329,7 +268,7 @@ export default function DriverApp() {
         return filteredJobs.filter((job) => job.status !== "ส่งเสร็จ");
     }, [filteredJobs]);
 
-    const handleSelectJob = (job: DriverJobType) => {
+    const handleSelectJob = (job: DriverJob) => {
         setSelectedJob(job);
         // Initialize route order if not set
         if (!job.routeOrder || job.routeOrder.length === 0) {
@@ -362,7 +301,7 @@ export default function DriverApp() {
     };
 
     // Get branches in route order
-    const getOrderedBranches = (job: DriverJobType) => {
+    const getOrderedBranches = (job: DriverJob) => {
         if (!job.routeOrder || job.routeOrder.length === 0) {
             return job.destinationBranches;
         }
@@ -403,7 +342,7 @@ export default function DriverApp() {
     // Function to go back to previous step
     const handleGoBack = () => {
         if (!selectedJob) return;
-        
+
         switch (currentStep) {
             case "pickup-oil": {
                 // Go back to start-trip
@@ -453,13 +392,13 @@ export default function DriverApp() {
                 // Go back to arrive-depot
                 setCurrentStep("arrive-depot");
                 // Load existing data if available
-                if ((selectedJob as any).depotArrival) {
-                    setDepotOdometer((selectedJob as any).depotArrival.endOdometer?.toString() || "");
-                    if ((selectedJob as any).depotArrival.endOdometerPhoto) {
-                        setDepotOdometerPhoto((selectedJob as any).depotArrival.endOdometerPhoto);
+                if (selectedJob.depotArrival) {
+                    setDepotOdometer(selectedJob.depotArrival.endOdometer?.toString() || "");
+                    if (selectedJob.depotArrival.endOdometerPhoto) {
+                        setDepotOdometerPhoto(selectedJob.depotArrival.endOdometerPhoto);
                     }
-                    if ((selectedJob as any).depotArrival.notes) {
-                        setDepotNotes((selectedJob as any).depotArrival.notes);
+                    if (selectedJob.depotArrival.notes) {
+                        setDepotNotes(selectedJob.depotArrival.notes);
                     }
                 }
                 break;
@@ -492,11 +431,11 @@ export default function DriverApp() {
             ...updatedJob,
             destinationBranches: updatedJob.destinationBranches.map((b) => ({
                 ...b,
-                oilType: b.oilType as DriverJobType["destinationBranches"][0]["oilType"],
+                oilType: b.oilType as DriverJob["destinationBranches"][0]["oilType"],
             })),
             compartments: updatedJob.compartments?.map((c) => ({
                 ...c,
-                oilType: c.oilType ? (c.oilType as DriverJobType["compartments"][0]["oilType"]) : undefined,
+                oilType: c.oilType ? (c.oilType as DriverJob["compartments"][0]["oilType"]) : undefined,
             })),
         });
         setSelectedJob(updatedJob);
@@ -532,11 +471,11 @@ export default function DriverApp() {
             ...updatedJob,
             destinationBranches: updatedJob.destinationBranches.map((b) => ({
                 ...b,
-                oilType: b.oilType as DriverJobType["destinationBranches"][0]["oilType"],
+                oilType: b.oilType as DriverJob["destinationBranches"][0]["oilType"],
             })),
             compartments: updatedJob.compartments?.map((c) => ({
                 ...c,
-                oilType: c.oilType ? (c.oilType as DriverJobType["compartments"][0]["oilType"]) : undefined,
+                oilType: c.oilType ? (c.oilType as DriverJob["compartments"][0]["oilType"]) : undefined,
             })),
         });
         setSelectedJob(updatedJob);
@@ -551,11 +490,14 @@ export default function DriverApp() {
 
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault();
-        if (draggedIndex === null || draggedIndex === index) return;
+        const currentDraggedIndex = draggedIndex;
+        if (currentDraggedIndex === null || currentDraggedIndex === index) return;
 
         const newOrder = [...routeOrder];
-        const draggedItem = newOrder[draggedIndex];
-        newOrder.splice(draggedIndex, 1);
+        const draggedItem = newOrder.find((_, i) => i === currentDraggedIndex);
+        if (draggedItem === undefined) return;
+
+        newOrder.splice(currentDraggedIndex, 1);
         newOrder.splice(index, 0, draggedItem);
         setRouteOrder(newOrder);
         setDraggedIndex(index);
@@ -584,11 +526,11 @@ export default function DriverApp() {
             ...updatedJob,
             destinationBranches: updatedJob.destinationBranches.map((b) => ({
                 ...b,
-                oilType: b.oilType as DriverJobType["destinationBranches"][0]["oilType"],
+                oilType: b.oilType as DriverJob["destinationBranches"][0]["oilType"],
             })),
             compartments: updatedJob.compartments?.map((c) => ({
                 ...c,
-                oilType: c.oilType ? (c.oilType as DriverJobType["compartments"][0]["oilType"]) : undefined,
+                oilType: c.oilType ? (c.oilType as DriverJob["compartments"][0]["oilType"]) : undefined,
             })),
         });
         setSelectedJob(updatedJob);
@@ -609,21 +551,22 @@ export default function DriverApp() {
         }
 
         const orderedBranches = getOrderedBranches(selectedJob);
-        const currentBranch = orderedBranches[currentDeliveryIndex];
-        
+        const currentBranch = orderedBranches.find((_, i) => i === currentDeliveryIndex);
+        if (!currentBranch) return;
+
         // Update the branch in the original array
         const updatedBranches = selectedJob.destinationBranches.map((b) =>
             b.branchId === currentBranch.branchId
                 ? {
-                      ...b,
-                      status: "ส่งแล้ว" as const,
-                      deliveryConfirmation: {
-                          confirmedAt: new Date().toISOString(),
-                          photos: deliveryPhotos,
-                          odometerReading: parseFloat(deliveryOdometer),
-                          notes: deliveryNotes || undefined,
-                      },
-                  }
+                    ...b,
+                    status: "ส่งแล้ว" as const,
+                    deliveryConfirmation: {
+                        confirmedAt: new Date().toISOString(),
+                        photos: deliveryPhotos,
+                        odometerReading: parseFloat(deliveryOdometer),
+                        notes: deliveryNotes || undefined,
+                    },
+                }
                 : b
         );
 
@@ -661,11 +604,11 @@ export default function DriverApp() {
                 ...finalUpdatedJob,
                 destinationBranches: finalUpdatedJob.destinationBranches.map((b) => ({
                     ...b,
-                    oilType: b.oilType as DriverJobType["destinationBranches"][0]["oilType"],
+                    oilType: b.oilType as DriverJob["destinationBranches"][0]["oilType"],
                 })),
                 compartments: finalUpdatedJob.compartments?.map((c) => ({
                     ...c,
-                    oilType: c.oilType ? (c.oilType as DriverJobType["compartments"][0]["oilType"]) : undefined,
+                    oilType: c.oilType ? (c.oilType as DriverJob["compartments"][0]["oilType"]) : undefined,
                 })),
             });
             setSelectedJob(finalUpdatedJob);
@@ -706,11 +649,11 @@ export default function DriverApp() {
             ...updatedJob,
             destinationBranches: updatedJob.destinationBranches.map((b) => ({
                 ...b,
-                oilType: b.oilType as DriverJobType["destinationBranches"][0]["oilType"],
+                oilType: b.oilType as DriverJob["destinationBranches"][0]["oilType"],
             })),
             compartments: updatedJob.compartments?.map((c) => ({
                 ...c,
-                oilType: c.oilType ? (c.oilType as DriverJobType["compartments"][0]["oilType"]) : undefined,
+                oilType: c.oilType ? (c.oilType as DriverJob["compartments"][0]["oilType"]) : undefined,
             })),
         });
         setSelectedJob(updatedJob);
@@ -725,8 +668,8 @@ export default function DriverApp() {
             { id: "pickup-oil", label: "รับน้ำมัน", completed: selectedJob.status !== "รอเริ่ม" && selectedJob.status !== "ออกเดินทางแล้ว" },
             { id: "route-planning", label: "จัดเรียงเส้นทาง", completed: selectedJob.status !== "รอเริ่ม" && selectedJob.status !== "ออกเดินทางแล้ว" && selectedJob.status !== "รับน้ำมันแล้ว" },
             { id: "delivery", label: "ส่งน้ำมัน", completed: false },
-            { id: "arrive-depot", label: "รถถึงโรงจอด", completed: (selectedJob as any).depotArrival ? true : false },
-            { id: "completed", label: "เสร็จสิ้น", completed: selectedJob.status === "ส่งเสร็จ" && (selectedJob as any).depotArrival ? true : false },
+            { id: "arrive-depot", label: "รถถึงโรงจอด", completed: selectedJob.depotArrival ? true : false },
+            { id: "completed", label: "เสร็จสิ้น", completed: selectedJob.status === "ส่งเสร็จ" && selectedJob.depotArrival ? true : false },
         ];
         return steps;
     };
@@ -753,13 +696,13 @@ export default function DriverApp() {
                                         <Truck className="h-7 w-7 text-blue-600 dark:text-blue-400" />
                                         รายละเอียดรอบส่ง
                                     </h1>
-                                    {(job as any).orderType === "internal" && (
+                                    {job.orderType === "internal" && (
                                         <span className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-sm font-semibold flex items-center gap-1.5">
                                             <ShoppingCart className="w-4 h-4" />
                                             รอบส่งภายในปั๊ม
                                         </span>
                                     )}
-                                    {(job as any).orderType === "external" && (
+                                    {job.orderType === "external" && (
                                         <span className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-semibold flex items-center gap-1.5">
                                             <Truck className="w-4 h-4" />
                                             รอบส่งจาก PTT
@@ -767,19 +710,19 @@ export default function DriverApp() {
                                     )}
                                 </div>
                                 <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                                    {(job as any).orderType === "internal" && (job as any).internalOrderNo && (
+                                    {job.orderType === "internal" && job.internalOrderNo && (
                                         <span>
-                                            <span className="font-medium">ออเดอร์ภายใน:</span> {(job as any).internalOrderNo}
+                                            <span className="font-medium">ออเดอร์ภายใน:</span> {job.internalOrderNo}
                                         </span>
                                     )}
-                                    {(job as any).orderType === "external" && (job as any).purchaseOrderNo && (
+                                    {job.orderType === "external" && job.purchaseOrderNo && (
                                         <span>
-                                            <span className="font-medium">ใบสั่งซื้อ:</span> {(job as any).purchaseOrderNo}
+                                            <span className="font-medium">ใบสั่งซื้อ:</span> {job.purchaseOrderNo}
                                         </span>
                                     )}
-                                    {(job as any).orderType === "external" && (job as any).pttQuotationNo && (
+                                    {job.orderType === "external" && job.pttQuotationNo && (
                                         <span>
-                                            <span className="font-medium">ใบเสนอราคา PTT:</span> {(job as any).pttQuotationNo}
+                                            <span className="font-medium">ใบเสนอราคา PTT:</span> {job.pttQuotationNo}
                                         </span>
                                     )}
                                 </div>
@@ -793,19 +736,18 @@ export default function DriverApp() {
                         </div>
 
                         {/* Job Info */}
-                        <div className={`mb-6 p-4 border rounded-lg ${
-                            (job as any).orderType === "internal"
-                                ? "bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800"
-                                : "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        }`}>
+                        <div className={`mb-6 p-4 border rounded-lg ${job.orderType === "internal"
+                            ? "bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800"
+                            : "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                            }`}>
                             <div className="flex items-center gap-2 mb-3">
                                 <h2 className="text-lg font-bold text-gray-800 dark:text-white">{job.transportNo}</h2>
-                                {(job as any).orderType === "internal" && (
+                                {job.orderType === "internal" && (
                                     <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-semibold">
                                         ภายในปั๊ม
                                     </span>
                                 )}
-                                {(job as any).orderType === "external" && (
+                                {job.orderType === "external" && (
                                     <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold">
                                         รับจาก PTT
                                     </span>
@@ -839,28 +781,28 @@ export default function DriverApp() {
                                         {job.destinationBranches.length} สาขา
                                     </p>
                                 </div>
-                                {(job as any).driverName && (
+                                {job.driverName && (
                                     <div>
                                         <p className="text-gray-500 dark:text-gray-400 mb-1">คนขับ</p>
-                                        <p className="font-semibold text-gray-800 dark:text-white">{(job as any).driverName}</p>
+                                        <p className="font-semibold text-gray-800 dark:text-white">{job.driverName}</p>
                                     </div>
                                 )}
-                                {(job as any).orderType === "internal" && (job as any).internalOrderNo && (
+                                {job.orderType === "internal" && job.internalOrderNo && (
                                     <div>
                                         <p className="text-gray-500 dark:text-gray-400 mb-1">เลขที่ออเดอร์ภายใน</p>
-                                        <p className="font-semibold text-purple-600 dark:text-purple-400">{(job as any).internalOrderNo}</p>
+                                        <p className="font-semibold text-purple-600 dark:text-purple-400">{job.internalOrderNo}</p>
                                     </div>
                                 )}
-                                {(job as any).orderType === "external" && (job as any).purchaseOrderNo && (
+                                {job.orderType === "external" && job.purchaseOrderNo && (
                                     <div>
                                         <p className="text-gray-500 dark:text-gray-400 mb-1">เลขที่ใบสั่งซื้อ</p>
-                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{(job as any).purchaseOrderNo}</p>
+                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{job.purchaseOrderNo}</p>
                                     </div>
                                 )}
-                                {(job as any).orderType === "external" && (job as any).pttQuotationNo && (
+                                {job.orderType === "external" && job.pttQuotationNo && (
                                     <div>
                                         <p className="text-gray-500 dark:text-gray-400 mb-1">เลขที่ใบเสนอราคา PTT</p>
-                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{(job as any).pttQuotationNo}</p>
+                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{job.pttQuotationNo}</p>
                                     </div>
                                 )}
                             </div>
@@ -991,70 +933,82 @@ export default function DriverApp() {
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                                 <input
+                                    id="driver-search"
                                     type="text"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     placeholder="ค้นหาเลขขนส่ง, รถ, คนขับ, ปั๊ม..."
                                     className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    aria-label="ค้นหาข้อมูลคนขับและรอบส่ง"
                                 />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                                 <select
+                                    id="filter-status"
                                     value={filterStatus}
                                     onChange={(e) => setFilterStatus(e.target.value as "all" | "active" | "completed")}
                                     className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    aria-label="กรองตามสถานะ"
                                 >
                                     <option value="all">ทุกสถานะ</option>
                                     <option value="active">ยังไม่เสร็จ</option>
                                     <option value="completed">เสร็จแล้ว</option>
                                 </select>
-                                
+
                                 <select
+                                    id="filter-order-type"
                                     value={filterOrderType}
                                     onChange={(e) => setFilterOrderType(e.target.value as "all" | "internal" | "external")}
                                     className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    aria-label="กรองตามประเภทออเดอร์"
                                 >
                                     <option value="all">ทุกประเภท</option>
                                     <option value="internal">ส่งภายในปั๊ม</option>
                                     <option value="external">รับจาก PTT</option>
                                 </select>
-                                
+
                                 <select
+                                    id="filter-branch"
                                     value={filterBranch === "all" ? "all" : filterBranch}
                                     onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
                                     className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    aria-label="กรองตามสาขา"
                                 >
                                     <option value="all">ทุกปั๊ม</option>
                                     {branches
-                                      .sort((a, b) => {
-                                        const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
-                                        return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
-                                      })
-                                      .map((branch) => (
-                                        <option key={branch.id} value={branch.id}>
-                                          {branch.name}
-                                        </option>
-                                      ))}
+                                        .sort((a, b) => {
+                                            const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                                            return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
+                                        })
+                                        .map((branch) => (
+                                            <option key={branch.id} value={branch.id}>
+                                                {branch.name}
+                                            </option>
+                                        ))}
                                 </select>
-                                
+
                                 <div className="flex items-center gap-2">
                                     <input
+                                        id="filter-date-from"
                                         type="date"
                                         value={filterDateFrom}
                                         onChange={(e) => setFilterDateFrom(e.target.value)}
                                         className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         title="วันที่เริ่มต้น"
+                                        aria-label="วันที่เริ่มต้น"
                                     />
                                     <span className="text-gray-500 dark:text-gray-400 font-medium">ถึง</span>
                                     <input
+                                        id="filter-date-to"
                                         type="date"
                                         value={filterDateTo}
                                         onChange={(e) => setFilterDateTo(e.target.value)}
                                         className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         title="วันที่สิ้นสุด"
+                                        aria-label="วันที่สิ้นสุด"
                                     />
                                 </div>
-                                
+
                                 {(filterDateFrom || filterDateTo || searchTerm || filterStatus !== "all" || filterBranch !== "all" || filterOrderType !== "all") && (
                                     <button
                                         onClick={() => {
@@ -1073,7 +1027,7 @@ export default function DriverApp() {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Jobs Table */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                         <div className="overflow-x-auto">
@@ -1116,8 +1070,8 @@ export default function DriverApp() {
                                     ) : (
                                         filteredJobs.map((job) => {
                                             const deliveredBranches = job.destinationBranches.filter((b) => b.status === "ส่งแล้ว");
-                                            const isInternal = (job as any).orderType === "internal";
-                                            const isExternal = (job as any).orderType === "external";
+                                            const isInternal = job.orderType === "internal";
+                                            const isExternal = job.orderType === "external";
                                             return (
                                                 <tr
                                                     key={job.id}
@@ -1277,14 +1231,14 @@ export default function DriverApp() {
                                     const deliveredBranches = job.destinationBranches.filter((b) => b.status === "ส่งแล้ว");
                                     const undeliveredBranches = job.destinationBranches.filter((b) => b.status !== "ส่งแล้ว");
                                     const hasUndelivered = undeliveredBranches.length > 0;
-                                    const isInternal = (job as any).orderType === "internal";
-                                    const isExternal = (job as any).orderType === "external";
+                                    const isInternal = job.orderType === "internal";
+                                    const isExternal = job.orderType === "external";
                                     return (
                                         <motion.div
                                             key={job.id}
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            onClick={() => setViewingJobDetail(job as DriverJobType)}
+                                            onClick={() => setViewingJobDetail(job)}
                                             className="rounded-2xl shadow bg-white dark:bg-gray-800 border border-green-100 dark:border-gray-700 p-4 flex flex-col gap-2 cursor-pointer hover:shadow-xl transition-all"
                                         >
                                             <div className="flex items-center gap-3 mb-1">
@@ -1310,9 +1264,9 @@ export default function DriverApp() {
                                                     <p className="text-xs text-gray-500 dark:text-gray-400">
                                                         {new Date(job.transportDate).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })} เวลา {job.transportTime}
                                                     </p>
-                                                    {(job as any).driverName && (
+                                                    {job.driverName && (
                                                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                            คนขับ: {(job as any).driverName}
+                                                            คนขับ: {job.driverName}
                                                         </p>
                                                     )}
                                                 </div>
@@ -1325,14 +1279,14 @@ export default function DriverApp() {
                                                 <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                                                     <Building2 className="h-3 w-3" /> {job.destinationBranches.length} สาขา
                                                 </span>
-                                                {isInternal && (job as any).internalOrderNo && (
+                                                {isInternal && job.internalOrderNo && (
                                                     <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400">
-                                                        <ShoppingCart className="h-3 w-3" /> {(job as any).internalOrderNo}
+                                                        <ShoppingCart className="h-3 w-3" /> {job.internalOrderNo}
                                                     </span>
                                                 )}
-                                                {isExternal && (job as any).purchaseOrderNo && (
+                                                {isExternal && job.purchaseOrderNo && (
                                                     <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">
-                                                        <FileText className="h-3 w-3" /> {(job as any).purchaseOrderNo}
+                                                        <FileText className="h-3 w-3" /> {job.purchaseOrderNo}
                                                     </span>
                                                 )}
                                             </div>
@@ -1377,7 +1331,9 @@ export default function DriverApp() {
     const completedUndeliveredBranches = selectedJob ? selectedJob.destinationBranches.filter((b) => b.status !== "ส่งแล้ว") : [];
     const completedHasUndelivered = completedUndeliveredBranches.length > 0;
 
-    const currentBranch = currentStep === "delivery" && orderedBranches.length > 0 ? orderedBranches[currentDeliveryIndex] : null;
+    const currentBranch = currentStep === "delivery" && orderedBranches.length > 0
+        ? orderedBranches.find((_, i) => i === currentDeliveryIndex) || null
+        : null;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -1390,13 +1346,13 @@ export default function DriverApp() {
                                 <h1 className="text-xl font-bold text-gray-800 dark:text-white">
                                     {selectedJob.transportNo}
                                 </h1>
-                                {(selectedJob as any).orderType === "internal" && (
+                                {selectedJob.orderType === "internal" && (
                                     <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-semibold flex items-center gap-1.5">
                                         <ShoppingCart className="w-3.5 h-3.5" />
                                         รอบส่งภายในปั๊ม
                                     </span>
                                 )}
-                                {(selectedJob as any).orderType === "external" && (
+                                {selectedJob.orderType === "external" && (
                                     <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold flex items-center gap-1.5">
                                         <Truck className="w-3.5 h-3.5" />
                                         รอบส่งจาก PTT
@@ -1407,19 +1363,19 @@ export default function DriverApp() {
                                 <p className="text-gray-500 dark:text-gray-400">
                                     <span className="font-medium">รถ:</span> {selectedJob.truckPlateNumber} / {selectedJob.trailerPlateNumber}
                                 </p>
-                                {(selectedJob as any).driverName && (
+                                {selectedJob.driverName && (
                                     <p className="text-gray-500 dark:text-gray-400">
-                                        <span className="font-medium">คนขับ:</span> {(selectedJob as any).driverName}
+                                        <span className="font-medium">คนขับ:</span> {selectedJob.driverName}
                                     </p>
                                 )}
-                                {(selectedJob as any).orderType === "internal" && (selectedJob as any).internalOrderNo && (
+                                {selectedJob.orderType === "internal" && selectedJob.internalOrderNo && (
                                     <p className="text-purple-600 dark:text-purple-400">
-                                        <span className="font-medium">ออเดอร์:</span> {(selectedJob as any).internalOrderNo}
+                                        <span className="font-medium">ออเดอร์:</span> {selectedJob.internalOrderNo}
                                     </p>
                                 )}
-                                {(selectedJob as any).orderType === "external" && (selectedJob as any).purchaseOrderNo && (
+                                {selectedJob.orderType === "external" && selectedJob.purchaseOrderNo && (
                                     <p className="text-blue-600 dark:text-blue-400">
-                                        <span className="font-medium">PO:</span> {(selectedJob as any).purchaseOrderNo}
+                                        <span className="font-medium">PO:</span> {selectedJob.purchaseOrderNo}
                                     </p>
                                 )}
                             </div>
@@ -1441,13 +1397,12 @@ export default function DriverApp() {
                             <div key={step.id} className="flex items-center flex-1">
                                 <div className="flex flex-col items-center flex-1">
                                     <div
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
-                                            step.completed
-                                                ? "bg-green-500 text-white"
-                                                : index === currentStepIndex
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${step.completed
+                                            ? "bg-green-500 text-white"
+                                            : index === currentStepIndex
                                                 ? "bg-blue-500 text-white ring-4 ring-blue-200 dark:ring-blue-800"
                                                 : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
-                                        }`}
+                                            }`}
                                     >
                                         {step.completed ? (
                                             <CheckCircle className="h-6 w-6" />
@@ -1456,22 +1411,20 @@ export default function DriverApp() {
                                         )}
                                     </div>
                                     <p
-                                        className={`text-xs mt-2 text-center font-medium ${
-                                            index === currentStepIndex
-                                                ? "text-blue-600 dark:text-blue-400"
-                                                : step.completed
+                                        className={`text-xs mt-2 text-center font-medium ${index === currentStepIndex
+                                            ? "text-blue-600 dark:text-blue-400"
+                                            : step.completed
                                                 ? "text-green-600 dark:text-green-400"
                                                 : "text-gray-500 dark:text-gray-400"
-                                        }`}
+                                            }`}
                                     >
                                         {step.label}
                                     </p>
                                 </div>
                                 {index < steps.length - 1 && (
                                     <div
-                                        className={`flex-1 h-1 mx-2 ${
-                                            step.completed ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"
-                                        }`}
+                                        className={`flex-1 h-1 mx-2 ${step.completed ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"
+                                            }`}
                                     />
                                 )}
                             </div>
@@ -1496,52 +1449,48 @@ export default function DriverApp() {
                                     ขั้นตอนที่ 1: ออกเดินทาง
                                 </h2>
 
-                                <div className={`mb-6 p-4 border rounded-lg ${
-                                    (selectedJob as any).orderType === "internal"
-                                        ? "bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800"
-                                        : "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                                }`}>
+                                <div className={`mb-6 p-4 border rounded-lg ${selectedJob.orderType === "internal"
+                                    ? "bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800"
+                                    : "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                                    }`}>
                                     <div className="flex items-center gap-2 mb-3">
-                                        {(selectedJob as any).orderType === "internal" && (
+                                        {selectedJob.orderType === "internal" && (
                                             <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-semibold">
                                                 ภายในปั๊ม
                                             </span>
                                         )}
-                                        {(selectedJob as any).orderType === "external" && (
+                                        {selectedJob.orderType === "external" && (
                                             <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold">
                                                 รับจาก PTT
                                             </span>
                                         )}
-                                        {(selectedJob as any).internalOrderNo && (
+                                        {selectedJob.internalOrderNo && (
                                             <span className="px-2 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-full text-xs">
-                                                ออเดอร์: {(selectedJob as any).internalOrderNo}
+                                                ออเดอร์: {selectedJob.internalOrderNo}
                                             </span>
                                         )}
-                                        {(selectedJob as any).purchaseOrderNo && (
+                                        {selectedJob.purchaseOrderNo && (
                                             <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-xs">
-                                                PO: {(selectedJob as any).purchaseOrderNo}
+                                                PO: {selectedJob.purchaseOrderNo}
                                             </span>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-3 mb-3">
-                                        <MapPin className={`h-5 w-5 ${
-                                            (selectedJob as any).orderType === "internal"
-                                                ? "text-purple-600 dark:text-purple-400"
-                                                : "text-blue-600 dark:text-blue-400"
-                                        }`} />
+                                        <MapPin className={`h-5 w-5 ${selectedJob.orderType === "internal"
+                                            ? "text-purple-600 dark:text-purple-400"
+                                            : "text-blue-600 dark:text-blue-400"
+                                            }`} />
                                         <div>
-                                            <p className={`font-semibold ${
-                                                (selectedJob as any).orderType === "internal"
-                                                    ? "text-purple-800 dark:text-purple-300"
-                                                    : "text-blue-800 dark:text-blue-300"
-                                            }`}>
+                                            <p className={`font-semibold ${selectedJob.orderType === "internal"
+                                                ? "text-purple-800 dark:text-purple-300"
+                                                : "text-blue-800 dark:text-blue-300"
+                                                }`}>
                                                 ต้นทาง: {selectedJob.sourceBranchName}
                                             </p>
-                                            <p className={`text-sm ${
-                                                (selectedJob as any).orderType === "internal"
-                                                    ? "text-purple-700 dark:text-purple-400"
-                                                    : "text-blue-700 dark:text-blue-400"
-                                            }`}>
+                                            <p className={`text-sm ${selectedJob.orderType === "internal"
+                                                ? "text-purple-700 dark:text-purple-400"
+                                                : "text-blue-700 dark:text-blue-400"
+                                                }`}>
                                                 {selectedJob.sourceAddress}
                                             </p>
                                         </div>
@@ -1560,10 +1509,11 @@ export default function DriverApp() {
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="start-odometer" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         📏 เลขไมล์เริ่มต้น *
                                     </label>
                                     <input
+                                        id="start-odometer"
                                         type="number"
                                         value={startOdometer}
                                         onChange={(e) => setStartOdometer(e.target.value)}
@@ -1573,7 +1523,7 @@ export default function DriverApp() {
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="start-odometer-photo" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         📷 ถ่ายรูปไมล์เริ่มต้น (ถ้ามี)
                                     </label>
                                     <div className="flex items-center gap-4">
@@ -1592,12 +1542,13 @@ export default function DriverApp() {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <label className="cursor-pointer">
+                                            <label htmlFor="start-odometer-photo" className="cursor-pointer">
                                                 <div className="w-32 h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
                                                     <Camera className="h-8 w-8 text-gray-400" />
                                                     <span className="text-xs text-gray-500 dark:text-gray-400">เพิ่มรูป</span>
                                                 </div>
                                                 <input
+                                                    id="start-odometer-photo"
                                                     type="file"
                                                     accept="image/*"
                                                     onChange={(e) => {
@@ -1700,7 +1651,7 @@ export default function DriverApp() {
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                    <label htmlFor="pickup-photos" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                                         📷 ถ่ายรูปหลักฐานการรับน้ำมัน * (อย่างน้อย 1 รูป)
                                     </label>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
@@ -1720,12 +1671,13 @@ export default function DriverApp() {
                                             </div>
                                         ))}
                                         {pickupPhotos.length < 6 && (
-                                            <label className="cursor-pointer">
+                                            <label htmlFor="pickup-photos" className="cursor-pointer">
                                                 <div className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
                                                     <Camera className="h-8 w-8 text-gray-400" />
                                                     <span className="text-xs text-gray-500 dark:text-gray-400">เพิ่มรูป</span>
                                                 </div>
                                                 <input
+                                                    id="pickup-photos"
                                                     type="file"
                                                     accept="image/*"
                                                     multiple
@@ -1738,10 +1690,11 @@ export default function DriverApp() {
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="pickup-odometer" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         📏 เลขไมล์หลังรับน้ำมัน *
                                     </label>
                                     <input
+                                        id="pickup-odometer"
                                         type="number"
                                         value={pickupOdometer}
                                         onChange={(e) => setPickupOdometer(e.target.value)}
@@ -1751,10 +1704,11 @@ export default function DriverApp() {
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="pickup-notes" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         📝 หมายเหตุ (ถ้ามี)
                                     </label>
                                     <textarea
+                                        id="pickup-notes"
                                         value={pickupNotes}
                                         onChange={(e) => setPickupNotes(e.target.value)}
                                         placeholder="กรอกหมายเหตุเพิ่มเติม..."
@@ -1835,11 +1789,10 @@ export default function DriverApp() {
                                                     onDragStart={() => handleDragStart(index)}
                                                     onDragOver={(e) => handleDragOver(e, index)}
                                                     onDragEnd={handleDragEnd}
-                                                    className={`p-4 border-2 rounded-lg transition-all cursor-move ${
-                                                        draggedIndex === index
-                                                            ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 opacity-50"
-                                                            : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 hover:border-blue-500 dark:hover:border-blue-400"
-                                                    }`}
+                                                    className={`p-4 border-2 rounded-lg transition-all cursor-move ${draggedIndex === index
+                                                        ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 opacity-50"
+                                                        : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 hover:border-blue-500 dark:hover:border-blue-400"
+                                                        }`}
                                                 >
                                                     <div className="flex items-center gap-4">
                                                         <div className="flex-shrink-0 cursor-grab active:cursor-grabbing">
@@ -1906,11 +1859,10 @@ export default function DriverApp() {
                                 <button
                                     onClick={handleConfirmRoutePlanning}
                                     disabled={routeOrder.length === 0}
-                                    className={`w-full px-6 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2 ${
-                                        routeOrder.length === 0
-                                            ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                                            : "bg-purple-600 hover:bg-purple-700 text-white"
-                                    }`}
+                                    className={`w-full px-6 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2 ${routeOrder.length === 0
+                                        ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                                        : "bg-purple-600 hover:bg-purple-700 text-white"
+                                        }`}
                                 >
                                     <CheckCircle className="h-6 w-6" />
                                     ยืนยันเส้นทางและเริ่มส่ง
@@ -1954,11 +1906,11 @@ export default function DriverApp() {
                                         </span>
                                     </div>
                                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div
-                                            className="bg-green-500 h-2 rounded-full transition-all"
+                                        <motion.div
+                                            className="bg-green-500 h-2 rounded-full transition-all duration-500 w-[var(--prog)]"
                                             style={{
-                                                width: `${(orderedBranches.filter((b) => b.status === "ส่งแล้ว").length / orderedBranches.length) * 100}%`,
-                                            }}
+                                                "--prog": `${orderedBranches.length > 0 ? (orderedBranches.filter((b) => b.status === "ส่งแล้ว").length / orderedBranches.length) * 100 : 0}%`
+                                            } as React.CSSProperties}
                                         />
                                     </div>
                                 </div>
@@ -1986,7 +1938,7 @@ export default function DriverApp() {
 
                                 {/* Delivery Form */}
                                 <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                    <label htmlFor="delivery-photos" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                                         📷 ถ่ายรูปหลักฐานการส่งน้ำมัน * (อย่างน้อย 1 รูป)
                                     </label>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
@@ -2006,12 +1958,13 @@ export default function DriverApp() {
                                             </div>
                                         ))}
                                         {deliveryPhotos.length < 6 && (
-                                            <label className="cursor-pointer">
+                                            <label htmlFor="delivery-photos" className="cursor-pointer">
                                                 <div className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-green-500 dark:hover:border-green-400 transition-colors">
                                                     <Camera className="h-8 w-8 text-gray-400" />
                                                     <span className="text-xs text-gray-500 dark:text-gray-400">เพิ่มรูป</span>
                                                 </div>
                                                 <input
+                                                    id="delivery-photos"
                                                     type="file"
                                                     accept="image/*"
                                                     multiple
@@ -2024,10 +1977,11 @@ export default function DriverApp() {
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="delivery-odometer" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         📏 เลขไมล์หลังส่ง *
                                     </label>
                                     <input
+                                        id="delivery-odometer"
                                         type="number"
                                         value={deliveryOdometer}
                                         onChange={(e) => setDeliveryOdometer(e.target.value)}
@@ -2037,10 +1991,11 @@ export default function DriverApp() {
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="delivery-notes" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         📝 หมายเหตุ (ถ้ามี)
                                     </label>
                                     <textarea
+                                        id="delivery-notes"
                                         value={deliveryNotes}
                                         onChange={(e) => setDeliveryNotes(e.target.value)}
                                         placeholder="กรอกหมายเหตุเพิ่มเติม..."
@@ -2113,10 +2068,11 @@ export default function DriverApp() {
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="depot-odometer" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         📏 เลขไมล์เมื่อถึงโรงจอด *
                                     </label>
                                     <input
+                                        id="depot-odometer"
                                         type="number"
                                         value={depotOdometer}
                                         onChange={(e) => setDepotOdometer(e.target.value)}
@@ -2131,7 +2087,7 @@ export default function DriverApp() {
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="depot-odometer-photo" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         📷 ถ่ายรูปเลขไมล์ (ถ้ามี)
                                     </label>
                                     {depotOdometerPhoto ? (
@@ -2149,12 +2105,13 @@ export default function DriverApp() {
                                             </button>
                                         </div>
                                     ) : (
-                                        <label className="cursor-pointer">
+                                        <label htmlFor="depot-odometer-photo" className="cursor-pointer">
                                             <div className="w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
                                                 <Camera className="h-12 w-12 text-gray-400" />
                                                 <span className="text-sm text-gray-500 dark:text-gray-400">ถ่ายรูปเลขไมล์</span>
                                             </div>
                                             <input
+                                                id="depot-odometer-photo"
                                                 type="file"
                                                 accept="image/*"
                                                 onChange={(e) => {
@@ -2174,10 +2131,11 @@ export default function DriverApp() {
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="depot-notes" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         📝 หมายเหตุ (ถ้ามี)
                                     </label>
                                     <textarea
+                                        id="depot-notes"
                                         value={depotNotes}
                                         onChange={(e) => setDepotNotes(e.target.value)}
                                         placeholder="กรอกหมายเหตุเพิ่มเติม..."
@@ -2227,7 +2185,7 @@ export default function DriverApp() {
                                     <p className="text-gray-600 dark:text-gray-400">
                                         ส่งน้ำมันครบทุกปั๊มและกลับถึงโรงจอดเรียบร้อยแล้ว
                                     </p>
-                                    {selectedJob.startTrip && (selectedJob as any).depotArrival && (
+                                    {selectedJob.startTrip && selectedJob.depotArrival && (
                                         <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
                                             <div className="grid grid-cols-2 gap-4 text-sm">
                                                 <div>
@@ -2239,13 +2197,13 @@ export default function DriverApp() {
                                                 <div>
                                                     <p className="text-gray-600 dark:text-gray-400 mb-1">เลขไมล์เมื่อถึงโรงจอด</p>
                                                     <p className="font-semibold text-gray-800 dark:text-white">
-                                                        {numberFormatter.format((selectedJob as any).depotArrival.endOdometer)} กม.
+                                                        {numberFormatter.format(selectedJob.depotArrival.endOdometer)} กม.
                                                     </p>
                                                 </div>
                                                 <div className="col-span-2">
                                                     <p className="text-gray-600 dark:text-gray-400 mb-1">ระยะทางรวม</p>
                                                     <p className="font-semibold text-blue-600 dark:text-blue-400 text-lg">
-                                                        {numberFormatter.format((selectedJob as any).depotArrival.endOdometer - selectedJob.startTrip.startOdometer)} กม.
+                                                        {numberFormatter.format(selectedJob.depotArrival.endOdometer - selectedJob.startTrip.startOdometer)} กม.
                                                     </p>
                                                 </div>
                                             </div>
@@ -2368,9 +2326,8 @@ export default function DriverApp() {
                                             setSelectedJob(null);
                                             resetFormStates();
                                         }}
-                                        className={`px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors ${
-                                            completedHasUndelivered ? "flex-1" : "w-full"
-                                        }`}
+                                        className={`px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors ${completedHasUndelivered ? "flex-1" : "w-full"
+                                            }`}
                                     >
                                         {completedHasUndelivered ? "เสร็จสิ้นเลย" : "กลับไปเลือกงานใหม่"}
                                     </button>

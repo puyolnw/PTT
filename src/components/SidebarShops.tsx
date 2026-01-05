@@ -1,6 +1,6 @@
-import { 
-  Home, 
-  Settings as SettingsIcon, 
+import {
+  Home,
+  Settings as SettingsIcon,
   X,
   Store,
   Package,
@@ -54,7 +54,7 @@ export default function SidebarShops({ onClose, isMobile = false, isExpanded = t
         { to: `${basePath}/purchase-planning`, icon: Target, label: "วางแผนสั่งซื้อ", end: false }
       );
     }
-    
+
     if (currentShop.id === "jao-sua") {
       baseMenuItems.push(
         { to: `${basePath}/ocr-scan`, icon: Camera, label: "OCR สแกนบิล", end: false },
@@ -76,7 +76,7 @@ export default function SidebarShops({ onClose, isMobile = false, isExpanded = t
   const sidebarWidth = isMobile ? 'w-64' : (isExpanded ? 'w-64' : 'w-16');
 
   return (
-    <aside 
+    <aside
       className={`
         ${sidebarWidth} 
         bg-[var(--bg)]
@@ -104,7 +104,7 @@ export default function SidebarShops({ onClose, isMobile = false, isExpanded = t
             </div>
           )}
         </div>
-        
+
         {/* Close button - Mobile only */}
         {isMobile && onClose && (
           <button
@@ -128,13 +128,9 @@ export default function SidebarShops({ onClose, isMobile = false, isExpanded = t
             aria-label={label}
             onClick={isMobile ? onClose : undefined}
             className={({ isActive }) =>
-              `p-3 rounded-xl hover:panel relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-ptt-blue/30 ${
-                isActive ? "panel shadow-md" : ""
+              `p-3 rounded-xl hover:panel relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-ptt-blue/30 transition-all duration-300 ease-in-out ${isActive ? "panel shadow-md" : ""
               } ${showText ? 'flex items-center gap-3 w-full' : 'justify-center'}`
             }
-            style={{
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
           >
             {({ isActive }) => (
               <>
@@ -142,27 +138,19 @@ export default function SidebarShops({ onClose, isMobile = false, isExpanded = t
                 {isActive && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-ptt-blue rounded-r-full shadow-[0_0_8px_rgba(40,103,224,0.6)]" />
                 )}
-                
+
                 {/* Icon */}
                 <Icon
-                  className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${
-                    isActive ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
-                  }`}
+                  className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 transition-all duration-300 ${isActive ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
+                    }`}
                   strokeWidth={1.5}
-                  style={{
-                    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                  }}
                 />
 
                 {/* Label - Show when expanded or mobile */}
                 {showText && (
-                  <span 
-                    className={`text-sm font-medium whitespace-nowrap overflow-hidden ${
-                      isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
-                    }`}
-                    style={{
-                      transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                    }}
+                  <span
+                    className={`text-sm font-medium whitespace-nowrap overflow-hidden transition-colors duration-300 ${isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
+                      }`}
                   >
                     {label}
                   </span>

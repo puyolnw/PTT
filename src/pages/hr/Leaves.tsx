@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { UserPlus, Calendar, CheckCircle, Clock, X, View, FileText, Download, Upload, UserCheck, AlertCircle, Printer } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
 import { leaves as initialLeaves, attendanceLogs as initialAttendanceLogs, employees as initialEmployees, shifts, type Leave, type AttendanceLog } from "@/data/mockData";
 import { useBranch } from "@/contexts/BranchContext";
 

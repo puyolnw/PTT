@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  FileText, 
+import {
+  FileText,
   Download,
   RotateCcw,
   GitCompare,
@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
-import { 
+import {
   documentVersions,
   documents,
   employees,
@@ -35,7 +35,7 @@ const formatDate = (dateString: string) => {
 export default function DocumentVersions() {
   const [filteredVersions, setFilteredVersions] = useState<DocumentVersion[]>(documentVersions);
   const [documentFilter, setDocumentFilter] = useState("");
-  const [compareVersions, setCompareVersions] = useState<{v1: DocumentVersion | null, v2: DocumentVersion | null}>({v1: null, v2: null});
+  const [compareVersions, setCompareVersions] = useState<{ v1: DocumentVersion | null, v2: DocumentVersion | null }>({ v1: null, v2: null });
 
   // Group versions by document
   const versionsByDocument = filteredVersions.reduce((acc, version) => {
@@ -84,7 +84,7 @@ export default function DocumentVersions() {
       {/* Filter */}
       <FilterBar
         placeholder="ค้นหาเอกสาร..."
-        onSearch={() => {}}
+        onSearch={() => { }}
         filters={[
           {
             label: "ทุกเอกสาร",
@@ -135,21 +135,18 @@ export default function DocumentVersions() {
                 {versions.map((version, index) => (
                   <div
                     key={version.id}
-                    className={`flex items-center justify-between p-4 rounded-xl border ${
-                      index === 0
+                    className={`flex items-center justify-between p-4 rounded-xl border ${index === 0
                         ? "bg-green-500/10 border-green-500/30"
                         : "bg-soft border-app"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-4 flex-1">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                        index === 0
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${index === 0
                           ? "bg-green-500/20"
                           : "bg-soft"
-                      }`}>
-                        <span className={`text-lg font-bold ${
-                          index === 0 ? "text-green-400" : "text-muted"
                         }`}>
+                        <span className={`text-lg font-bold ${index === 0 ? "text-green-400" : "text-muted"
+                          }`}>
                           v{version.version}
                         </span>
                       </div>
@@ -179,7 +176,7 @@ export default function DocumentVersions() {
                         </div>
                         {version.changeNote && (
                           <p className="text-sm text-muted mt-2 italic">
-                            "{version.changeNote}"
+                            &quot;{version.changeNote}&quot;
                           </p>
                         )}
                       </div>

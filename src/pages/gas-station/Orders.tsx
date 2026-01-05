@@ -33,7 +33,8 @@ import {
   Paperclip,
 } from "lucide-react";
 import NewOrderForm from "./NewOrderForm";
-import { mockTruckOrders, type TruckOrder, mockTrucks, mockTrailers } from "./TruckProfiles";
+import { mockTrucks, mockTrailers, mockTruckOrders } from "@/data/truckData";
+import type { TruckOrder } from "@/types/truck";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -290,8 +291,10 @@ export default function Orders() {
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="flex-1">
               <div className="relative">
+                <label htmlFor="search-branches" className="sr-only">ค้นหาสาขา, ประเภทน้ำมัน...</label>
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
+                  id="search-branches"
                   type="text"
                   placeholder="ค้นหาสาขา, ประเภทน้ำมัน..."
                   value={searchTerm}
@@ -302,7 +305,9 @@ export default function Orders() {
             </div>
             {/* Date filter: single date or range */}
             <div className="flex gap-2 items-center">
+              <label htmlFor="filter-date-from" className="sr-only">วันที่เริ่มต้น</label>
               <input
+                id="filter-date-from"
                 type="date"
                 value={filterDate}
                 onChange={e => setFilterDate(e.target.value)}
@@ -310,7 +315,9 @@ export default function Orders() {
                 title="วันที่เริ่มต้น"
               />
               <span className="text-gray-500 dark:text-gray-400">-</span>
+              <label htmlFor="filter-date-to" className="sr-only">วันที่สิ้นสุด</label>
               <input
+                id="filter-date-to"
                 type="date"
                 value={filterDateTo}
                 onChange={e => setFilterDateTo(e.target.value)}
@@ -509,8 +516,9 @@ export default function Orders() {
                       <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">รอบเช้า</h4>
                       <div className="space-y-3">
                         <div className="flex items-center gap-3">
-                          <label className="text-sm text-gray-600 dark:text-gray-400 w-24">จำนวนรถ:</label>
+                          <label htmlFor="morning-truck-count" className="text-sm text-gray-600 dark:text-gray-400 w-24">จำนวนรถ:</label>
                           <input
+                            id="morning-truck-count"
                             type="number"
                             defaultValue={mockTruckCapacity.morning.truckCount}
                             className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -521,8 +529,9 @@ export default function Orders() {
                             const chamberData = mockTruckCapacity.morning.chambers.find((c) => c.chamber === chamber);
                             return (
                               <div key={chamber} className="space-y-1">
-                                <label className="text-xs text-gray-600 dark:text-gray-400 font-medium">ช่อง {chamber}</label>
+                                <label htmlFor={`morning-chamber-${chamber}`} className="text-xs text-gray-600 dark:text-gray-400 font-medium">ช่อง {chamber}</label>
                                 <input
+                                  id={`morning-chamber-${chamber}`}
                                   type="number"
                                   defaultValue={chamberData?.capacity || 0}
                                   placeholder="0"
@@ -540,8 +549,9 @@ export default function Orders() {
                       <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">รอบบ่าย</h4>
                       <div className="space-y-3">
                         <div className="flex items-center gap-3">
-                          <label className="text-sm text-gray-600 dark:text-gray-400 w-24">จำนวนรถ:</label>
+                          <label htmlFor="afternoon-truck-count" className="text-sm text-gray-600 dark:text-gray-400 w-24">จำนวนรถ:</label>
                           <input
+                            id="afternoon-truck-count"
                             type="number"
                             defaultValue={mockTruckCapacity.afternoon.truckCount}
                             className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -552,8 +562,9 @@ export default function Orders() {
                             const chamberData = mockTruckCapacity.afternoon.chambers.find((c) => c.chamber === chamber);
                             return (
                               <div key={chamber} className="space-y-1">
-                                <label className="text-xs text-gray-600 dark:text-gray-400 font-medium">ช่อง {chamber}</label>
+                                <label htmlFor={`afternoon-chamber-${chamber}`} className="text-xs text-gray-600 dark:text-gray-400 font-medium">ช่อง {chamber}</label>
                                 <input
+                                  id={`afternoon-chamber-${chamber}`}
                                   type="number"
                                   defaultValue={chamberData?.capacity || 0}
                                   placeholder="0"
@@ -931,9 +942,9 @@ export default function Orders() {
                   <div className="space-y-4">
                     {editingOrders.map((order, index) => {
                       const handleUpdateOrder = (field: keyof typeof order, value: string | number | boolean) => {
-                        const updated = [...editingOrders];
-                        (updated[index] as unknown as Record<string, string | number | boolean>)[field] = value;
-                        setEditingOrders(updated);
+                        setEditingOrders(prev => prev.map((ord, idx) =>
+                          idx === index ? { ...ord, [field]: value } : ord
+                        ));
                       };
 
                       return (
@@ -969,10 +980,11 @@ export default function Orders() {
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {/* ยอดขอจากสาขา */}
                             <div>
-                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
+                              <label htmlFor={`estimated-order-${index}`} className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
                                 ยอดขอจากสาขา (ลิตร)
                               </label>
                               <select
+                                id={`estimated-order-${index}`}
                                 value={order.estimatedOrderAmount}
                                 onChange={(e) => handleUpdateOrder('estimatedOrderAmount', parseInt(e.target.value) || 0)}
                                 className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -988,12 +1000,13 @@ export default function Orders() {
 
                             {/* ยอดวิเคราะห์จากระบบ */}
                             <div>
-                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
+                              <label htmlFor={`system-recommended-${index}`} className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
                                 ยอดวิเคราะห์จากระบบ (ลิตร)
                               </label>
                               <div className="relative">
                                 <input
                                   type="number"
+                                  id={`system-recommended-${index}`}
                                   value={order.systemRecommended}
                                   readOnly
                                   className="w-full px-3 py-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl text-blue-600 dark:text-blue-400 font-semibold"
@@ -1005,12 +1018,13 @@ export default function Orders() {
 
                             {/* สต็อกปัจจุบัน */}
                             <div>
-                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
+                              <label htmlFor={`current-stock-${index}`} className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
                                 สต็อกปัจจุบัน (ลิตร) {order.lowStockAlert && <AlertTriangle className="w-3 h-3 text-red-500 inline ml-1" />}
                               </label>
                               <div className="relative">
                                 <input
                                   type="number"
+                                  id={`current-stock-${index}`}
                                   value={order.currentStock}
                                   readOnly
                                   className={`w-full px-3 py-2 bg-white dark:bg-gray-800 border rounded-xl ${order.lowStockAlert ? 'border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' : 'border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white'
@@ -1025,10 +1039,11 @@ export default function Orders() {
 
                             {/* ยอดสั่งจริง (แก้ไขได้) */}
                             <div>
-                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
+                              <label htmlFor={`quantity-ordered-${index}`} className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
                                 ยอดสั่งจริง (ลิตร)
                               </label>
                               <select
+                                id={`quantity-ordered-${index}`}
                                 value={order.quantityOrdered}
                                 onChange={(e) => handleUpdateOrder('quantityOrdered', parseInt(e.target.value) || 0)}
                                 className="w-full px-3 py-2 bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-orange-600 dark:text-orange-400 font-semibold"
@@ -1050,10 +1065,11 @@ export default function Orders() {
 
                             {/* นิติบุคคล (แก้ไขได้) */}
                             <div>
-                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
+                              <label htmlFor={`legal-entity-${index}`} className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
                                 นิติบุคคล
                               </label>
                               <select
+                                id={`legal-entity-${index}`}
                                 value={order.legalEntityId}
                                 onChange={(e) => {
                                   const entity = legalEntities.find(le => le.id === parseInt(e.target.value));
@@ -1074,10 +1090,11 @@ export default function Orders() {
 
                             {/* วันที่ต้องการรับ */}
                             <div>
-                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
+                              <label htmlFor={`delivery-date-${index}`} className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
                                 วันที่ต้องการรับ
                               </label>
                               <input
+                                id={`delivery-date-${index}`}
                                 type="date"
                                 defaultValue="2024-12-16"
                                 className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -1091,7 +1108,7 @@ export default function Orders() {
                               <div>
                                 <span className="text-gray-600 dark:text-gray-400">ส่วนต่างจากที่ขอ:</span>
                                 <span className={`ml-2 font-semibold ${order.quantityOrdered - order.estimatedOrderAmount > 0 ? 'text-blue-600 dark:text-blue-400' :
-                                    order.quantityOrdered - order.estimatedOrderAmount < 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                  order.quantityOrdered - order.estimatedOrderAmount < 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
                                   }`}>
                                   {order.quantityOrdered - order.estimatedOrderAmount > 0 ? '+' : ''}
                                   {numberFormatter.format(order.quantityOrdered - order.estimatedOrderAmount)} ลิตร
@@ -1100,7 +1117,7 @@ export default function Orders() {
                               <div>
                                 <span className="text-gray-600 dark:text-gray-400">ส่วนต่างจากระบบ:</span>
                                 <span className={`ml-2 font-semibold ${order.quantityOrdered - order.systemRecommended > 0 ? 'text-blue-600 dark:text-blue-400' :
-                                    order.quantityOrdered - order.systemRecommended < 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
+                                  order.quantityOrdered - order.systemRecommended < 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400'
                                   }`}>
                                   {order.quantityOrdered - order.systemRecommended > 0 ? '+' : ''}
                                   {numberFormatter.format(order.quantityOrdered - order.systemRecommended)} ลิตร
@@ -1579,8 +1596,8 @@ export default function Orders() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected
-                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
+                              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                              : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
                               }`}
                             onClick={() => {
                               if (isSelected) {
@@ -2041,8 +2058,8 @@ export default function Orders() {
                               <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-start gap-4 flex-1">
                                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 ${hasItems
-                                      ? "bg-gradient-to-br from-blue-500 to-cyan-500"
-                                      : "bg-gray-200 dark:bg-gray-700"
+                                    ? "bg-gradient-to-br from-blue-500 to-cyan-500"
+                                    : "bg-gray-200 dark:bg-gray-700"
                                     }`}>
                                     <MapPin className={`w-6 h-6 ${hasItems ? "text-white" : "text-gray-400"}`} />
                                   </div>
@@ -2060,8 +2077,8 @@ export default function Orders() {
                                 <div className="text-right ml-4">
                                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">ยอดรวมสาขา</p>
                                   <p className={`text-lg font-bold ${hasItems
-                                      ? "text-blue-600 dark:text-blue-400"
-                                      : "text-gray-400 dark:text-gray-500"
+                                    ? "text-blue-600 dark:text-blue-400"
+                                    : "text-gray-400 dark:text-gray-500"
                                     }`}>
                                     {hasItems
                                       ? currencyFormatter.format(branchData.totalAmount || 0)

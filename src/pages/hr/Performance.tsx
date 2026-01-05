@@ -2,7 +2,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, Target } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
 import { evaluations } from "@/data/mockData";
 
 export default function Performance() {
@@ -167,10 +168,10 @@ export default function Performance() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="eval-round" className="block text-sm font-medium text-slate-300 mb-2">
               รอบประเมิน
             </label>
-            <select className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl text-app">
+            <select id="eval-round" className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl text-app">
               <option value="Q1">Q1</option>
               <option value="Q2">Q2</option>
               <option value="Q3">Q3</option>
@@ -178,10 +179,11 @@ export default function Performance() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="eval-year" className="block text-sm font-medium text-slate-300 mb-2">
               ปี
             </label>
             <input
+              id="eval-year"
               type="number"
               defaultValue={2025}
               className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl text-app"
@@ -192,4 +194,3 @@ export default function Performance() {
     </div>
   );
 }
-

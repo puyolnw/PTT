@@ -20,7 +20,7 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
 // Mock data สำหรับร้านเชสเตอร์ - รองรับหลายสาขาและแยกตามเมนู
 const branches = ["สาขา A", "สาขา B", "สาขา C", "สาขา D", "สำนักงานใหญ่"];
 
-const profitLossDataByBranch: Record<string, {
+const profitLossDataByBranchMap = new Map<string, {
   revenue: number;
   cost: number;
   profit: number;
@@ -31,57 +31,59 @@ const profitLossDataByBranch: Record<string, {
     fries: number;
     others: number;
   };
-}> = {
-  "สาขา A": {
+}>([
+  ["สาขา A", {
     revenue: 480000,
     cost: 288000,
     profit: 192000,
     expenses: 60000,
     netProfit: 132000,
     byMenu: { chicken: 336000, fries: 96000, others: 48000 },
-  },
-  "สาขา B": {
+  }],
+  ["สาขา B", {
     revenue: 440000,
     cost: 264000,
     profit: 176000,
     expenses: 55000,
     netProfit: 121000,
     byMenu: { chicken: 308000, fries: 88000, others: 44000 },
-  },
-  "สาขา C": {
+  }],
+  ["สาขา C", {
     revenue: 400000,
     cost: 240000,
     profit: 160000,
     expenses: 50000,
     netProfit: 110000,
     byMenu: { chicken: 280000, fries: 80000, others: 40000 },
-  },
-  "สาขา D": {
+  }],
+  ["สาขา D", {
     revenue: 360000,
     cost: 216000,
     profit: 144000,
     expenses: 45000,
     netProfit: 99000,
     byMenu: { chicken: 252000, fries: 72000, others: 36000 },
-  },
-  "สำนักงานใหญ่": {
+  }],
+  ["สำนักงานใหญ่", {
     revenue: 600000,
     cost: 360000,
     profit: 240000,
     expenses: 75000,
     netProfit: 165000,
     byMenu: { chicken: 420000, fries: 120000, others: 60000 },
-  },
-};
+  }],
+]);
 
 // Calculate totals across all branches
 const totalProfitLoss = branches.reduce((acc, branch) => {
-  const data = profitLossDataByBranch[branch];
-  acc.revenue += data.revenue;
-  acc.cost += data.cost;
-  acc.profit += data.profit;
-  acc.expenses += data.expenses;
-  acc.netProfit += data.netProfit;
+  const data = profitLossDataByBranchMap.get(branch);
+  if (data) {
+    acc.revenue += data.revenue;
+    acc.cost += data.cost;
+    acc.profit += data.profit;
+    acc.expenses += data.expenses;
+    acc.netProfit += data.netProfit;
+  }
   return acc;
 }, { revenue: 0, cost: 0, profit: 0, expenses: 0, netProfit: 0 });
 
@@ -102,9 +104,9 @@ export default function Reports() {
     alert(`กำลังส่งออกรายงานเป็น ${format.toUpperCase()}...`);
   };
 
-  const currentData = selectedBranch === "ทั้งหมด" 
-    ? totalProfitLoss 
-    : profitLossDataByBranch[selectedBranch] || totalProfitLoss;
+  const currentData = (selectedBranch === "ทั้งหมด"
+    ? totalProfitLoss
+    : profitLossDataByBranchMap.get(selectedBranch)) || totalProfitLoss;
 
   return (
     <div className="space-y-6">
@@ -146,15 +148,14 @@ export default function Reports() {
             <button
               key={period}
               onClick={() => setSelectedPeriod(period)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                selectedPeriod === period
-                  ? "bg-ptt-blue text-white"
-                  : "bg-soft text-app hover:bg-app/10"
-              }`}
+              className={`px-4 py-2 rounded-lg transition-colors ${selectedPeriod === period
+                ? "bg-ptt-blue text-white"
+                : "bg-soft text-app hover:bg-app/10"
+                }`}
             >
               {period === "day" ? "รายวัน" :
-               period === "week" ? "รายสัปดาห์" :
-               period === "month" ? "รายเดือน" : "รายปี"}
+                period === "week" ? "รายสัปดาห์" :
+                  period === "month" ? "รายเดือน" : "รายปี"}
             </button>
           ))}
         </div>
@@ -222,7 +223,7 @@ export default function Reports() {
       </motion.div>
 
       {/* Sales by Menu */}
-      {selectedBranch !== "ทั้งหมด" && profitLossDataByBranch[selectedBranch] && (
+      {selectedBranch !== "ทั้งหมด" && profitLossDataByBranchMap.get(selectedBranch) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -234,19 +235,19 @@ export default function Reports() {
             <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
               <p className="text-sm text-muted mb-1">ไก่ทอด</p>
               <p className="text-2xl font-bold text-orange-400">
-                {currencyFormatter.format(profitLossDataByBranch[selectedBranch].byMenu.chicken)}
+                {currencyFormatter.format(profitLossDataByBranchMap.get(selectedBranch)?.byMenu.chicken || 0)}
               </p>
             </div>
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
               <p className="text-sm text-muted mb-1">เฟรนช์ฟรายส์</p>
               <p className="text-2xl font-bold text-yellow-400">
-                {currencyFormatter.format(profitLossDataByBranch[selectedBranch].byMenu.fries)}
+                {currencyFormatter.format(profitLossDataByBranchMap.get(selectedBranch)?.byMenu.fries || 0)}
               </p>
             </div>
             <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
               <p className="text-sm text-muted mb-1">อื่นๆ</p>
               <p className="text-2xl font-bold text-purple-400">
-                {currencyFormatter.format(profitLossDataByBranch[selectedBranch].byMenu.others)}
+                {currencyFormatter.format(profitLossDataByBranchMap.get(selectedBranch)?.byMenu.others || 0)}
               </p>
             </div>
           </div>
@@ -267,7 +268,8 @@ export default function Reports() {
           </div>
           <div className="space-y-4">
             {branches.map((branch) => {
-              const data = profitLossDataByBranch[branch];
+              const data = profitLossDataByBranchMap.get(branch);
+              if (!data) return null;
               return (
                 <div
                   key={branch}
@@ -331,11 +333,10 @@ export default function Reports() {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    index === 0 ? "bg-ptt-blue/20 text-ptt-cyan" :
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${index === 0 ? "bg-ptt-blue/20 text-ptt-cyan" :
                     index === 1 ? "bg-emerald-500/20 text-emerald-400" :
-                    "bg-muted/20 text-muted"
-                  }`}>
+                      "bg-muted/20 text-muted"
+                    }`}>
                     <span className="text-sm font-bold">{index + 1}</span>
                   </div>
                   <div>
@@ -347,9 +348,8 @@ export default function Reports() {
                   <p className="text-lg font-bold text-app">
                     {currencyFormatter.format(item.sales)}
                   </p>
-                  <div className={`flex items-center gap-1 text-xs ${
-                    item.trend.startsWith('+') ? 'text-emerald-400' : 'text-red-400'
-                  }`}>
+                  <div className={`flex items-center gap-1 text-xs ${item.trend.startsWith('+') ? 'text-emerald-400' : 'text-red-400'
+                    }`}>
                     {item.trend.startsWith('+') ? (
                       <TrendingUp className="w-3 h-3" />
                     ) : (

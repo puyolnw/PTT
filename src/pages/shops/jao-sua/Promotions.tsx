@@ -92,7 +92,7 @@ const initialPromotions = [
 export default function Promotions() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "ร้านเจ้าสัว (Chaosua's)";
-  
+
   const [promotions, setPromotions] = useState(initialPromotions);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -150,13 +150,13 @@ export default function Promotions() {
       promotions.map((p) =>
         p.id === selectedPromotion.id
           ? {
-              ...selectedPromotion,
-              ...formData,
-              buyQuantity: Number(formData.buyQuantity) || 0,
-              getQuantity: Number(formData.getQuantity) || 0,
-              discount: Number(formData.discount) || 0,
-              discountPercent: Number(formData.discountPercent) || 0,
-            }
+            ...selectedPromotion,
+            ...formData,
+            buyQuantity: Number(formData.buyQuantity) || 0,
+            getQuantity: Number(formData.getQuantity) || 0,
+            discount: Number(formData.discount) || 0,
+            discountPercent: Number(formData.discountPercent) || 0,
+          }
           : p
       )
     );
@@ -337,22 +337,20 @@ export default function Promotions() {
           {filteredPromotions.map((promo) => (
             <div
               key={promo.id}
-              className={`p-4 rounded-xl border-2 ${
-                promo.status === "active"
-                  ? "bg-emerald-500/10 border-emerald-500/30"
-                  : "bg-gray-500/10 border-gray-500/30"
-              }`}
+              className={`p-4 rounded-xl border-2 ${promo.status === "active"
+                ? "bg-emerald-500/10 border-emerald-500/30"
+                : "bg-gray-500/10 border-gray-500/30"
+                }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <Tag className="w-5 h-5 text-ptt-cyan" />
                     <h4 className="font-semibold text-app">{promo.name}</h4>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      promo.status === "active"
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                        : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
-                    }`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${promo.status === "active"
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
+                      }`}>
                       {promo.status === "active" ? "กำลังใช้งาน" : "หมดอายุ"}
                     </span>
                     <span className="px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan text-xs">
@@ -443,8 +441,9 @@ export default function Promotions() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อโปรโมชัน</label>
+            <label htmlFor="add-promo-name" className="block text-sm font-medium text-app mb-2">ชื่อโปรโมชัน</label>
             <input
+              id="add-promo-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -454,8 +453,9 @@ export default function Promotions() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ประเภทโปรโมชัน</label>
+            <label htmlFor="add-promo-type" className="block text-sm font-medium text-app mb-2">ประเภทโปรโมชัน</label>
             <select
+              id="add-promo-type"
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -467,8 +467,9 @@ export default function Promotions() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">รายละเอียด</label>
+            <label htmlFor="add-promo-description" className="block text-sm font-medium text-app mb-2">รายละเอียด</label>
             <textarea
+              id="add-promo-description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -478,8 +479,9 @@ export default function Promotions() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">สินค้า</label>
+            <label htmlFor="add-promo-product" className="block text-sm font-medium text-app mb-2">สินค้า</label>
             <input
+              id="add-promo-product"
               type="text"
               value={formData.product}
               onChange={(e) => setFormData({ ...formData, product: e.target.value })}
@@ -492,8 +494,9 @@ export default function Promotions() {
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-app mb-2">ซื้อ (จำนวน)</label>
+                  <label htmlFor="add-promo-buy-qty" className="block text-sm font-medium text-app mb-2">ซื้อ (จำนวน)</label>
                   <input
+                    id="add-promo-buy-qty"
                     type="number"
                     value={formData.buyQuantity}
                     onChange={(e) => setFormData({ ...formData, buyQuantity: e.target.value })}
@@ -502,8 +505,9 @@ export default function Promotions() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-app mb-2">แถม (จำนวน)</label>
+                  <label htmlFor="add-promo-get-qty" className="block text-sm font-medium text-app mb-2">แถม (จำนวน)</label>
                   <input
+                    id="add-promo-get-qty"
                     type="number"
                     value={formData.getQuantity}
                     onChange={(e) => setFormData({ ...formData, getQuantity: e.target.value })}
@@ -516,8 +520,9 @@ export default function Promotions() {
           )}
           {formData.type === "discount_percent" && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ลด (%)</label>
+              <label htmlFor="add-promo-discount-percent" className="block text-sm font-medium text-app mb-2">ลด (%)</label>
               <input
+                id="add-promo-discount-percent"
                 type="number"
                 value={formData.discountPercent}
                 onChange={(e) => setFormData({ ...formData, discountPercent: e.target.value })}
@@ -530,8 +535,9 @@ export default function Promotions() {
           )}
           {formData.type === "discount_amount" && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ลด (บาท)</label>
+              <label htmlFor="add-promo-discount-amount" className="block text-sm font-medium text-app mb-2">ลด (บาท)</label>
               <input
+                id="add-promo-discount-amount"
                 type="number"
                 value={formData.discount}
                 onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
@@ -545,8 +551,9 @@ export default function Promotions() {
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-app mb-2">สะสม (ดวง)</label>
+                  <label htmlFor="add-promo-stamp-buy" className="block text-sm font-medium text-app mb-2">สะสม (ดวง)</label>
                   <input
+                    id="add-promo-stamp-buy"
                     type="number"
                     value={formData.buyQuantity}
                     onChange={(e) => setFormData({ ...formData, buyQuantity: e.target.value })}
@@ -555,8 +562,9 @@ export default function Promotions() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-app mb-2">แลก (ชิ้น)</label>
+                  <label htmlFor="add-promo-stamp-get" className="block text-sm font-medium text-app mb-2">แลก (ชิ้น)</label>
                   <input
+                    id="add-promo-stamp-get"
                     type="number"
                     value={formData.getQuantity}
                     onChange={(e) => setFormData({ ...formData, getQuantity: e.target.value })}
@@ -569,8 +577,9 @@ export default function Promotions() {
           )}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่เริ่ม</label>
+              <label htmlFor="add-promo-start-date" className="block text-sm font-medium text-app mb-2">วันที่เริ่ม</label>
               <input
+                id="add-promo-start-date"
                 type="date"
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
@@ -579,8 +588,9 @@ export default function Promotions() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่สิ้นสุด</label>
+              <label htmlFor="add-promo-end-date" className="block text-sm font-medium text-app mb-2">วันที่สิ้นสุด</label>
               <input
+                id="add-promo-end-date"
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
@@ -605,8 +615,9 @@ export default function Promotions() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อโปรโมชัน</label>
+            <label htmlFor="edit-promo-name" className="block text-sm font-medium text-app mb-2">ชื่อโปรโมชัน</label>
             <input
+              id="edit-promo-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -615,8 +626,9 @@ export default function Promotions() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ประเภทโปรโมชัน</label>
+            <label htmlFor="edit-promo-type" className="block text-sm font-medium text-app mb-2">ประเภทโปรโมชัน</label>
             <select
+              id="edit-promo-type"
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -628,8 +640,9 @@ export default function Promotions() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">รายละเอียด</label>
+            <label htmlFor="edit-promo-description" className="block text-sm font-medium text-app mb-2">รายละเอียด</label>
             <textarea
+              id="edit-promo-description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -638,8 +651,9 @@ export default function Promotions() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">สินค้า</label>
+            <label htmlFor="edit-promo-product" className="block text-sm font-medium text-app mb-2">สินค้า</label>
             <input
+              id="edit-promo-product"
               type="text"
               value={formData.product}
               onChange={(e) => setFormData({ ...formData, product: e.target.value })}
@@ -650,8 +664,9 @@ export default function Promotions() {
           {formData.type === "buy_x_get_y" && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-app mb-2">ซื้อ (จำนวน)</label>
+                <label htmlFor="edit-promo-buy-qty" className="block text-sm font-medium text-app mb-2">ซื้อ (จำนวน)</label>
                 <input
+                  id="edit-promo-buy-qty"
                   type="number"
                   value={formData.buyQuantity}
                   onChange={(e) => setFormData({ ...formData, buyQuantity: e.target.value })}
@@ -660,8 +675,9 @@ export default function Promotions() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-app mb-2">แถม (จำนวน)</label>
+                <label htmlFor="edit-promo-get-qty" className="block text-sm font-medium text-app mb-2">แถม (จำนวน)</label>
                 <input
+                  id="edit-promo-get-qty"
                   type="number"
                   value={formData.getQuantity}
                   onChange={(e) => setFormData({ ...formData, getQuantity: e.target.value })}
@@ -673,8 +689,9 @@ export default function Promotions() {
           )}
           {formData.type === "discount_percent" && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ลด (%)</label>
+              <label htmlFor="edit-promo-discount-percent" className="block text-sm font-medium text-app mb-2">ลด (%)</label>
               <input
+                id="edit-promo-discount-percent"
                 type="number"
                 value={formData.discountPercent}
                 onChange={(e) => setFormData({ ...formData, discountPercent: e.target.value })}
@@ -687,8 +704,9 @@ export default function Promotions() {
           )}
           {formData.type === "discount_amount" && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ลด (บาท)</label>
+              <label htmlFor="edit-promo-discount-amount" className="block text-sm font-medium text-app mb-2">ลด (บาท)</label>
               <input
+                id="edit-promo-discount-amount"
                 type="number"
                 value={formData.discount}
                 onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
@@ -701,8 +719,9 @@ export default function Promotions() {
           {formData.type === "stamp_card" && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-app mb-2">สะสม (ดวง)</label>
+                <label htmlFor="edit-promo-stamp-buy" className="block text-sm font-medium text-app mb-2">สะสม (ดวง)</label>
                 <input
+                  id="edit-promo-stamp-buy"
                   type="number"
                   value={formData.buyQuantity}
                   onChange={(e) => setFormData({ ...formData, buyQuantity: e.target.value })}
@@ -711,8 +730,9 @@ export default function Promotions() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-app mb-2">แลก (ชิ้น)</label>
+                <label htmlFor="edit-promo-stamp-get" className="block text-sm font-medium text-app mb-2">แลก (ชิ้น)</label>
                 <input
+                  id="edit-promo-stamp-get"
                   type="number"
                   value={formData.getQuantity}
                   onChange={(e) => setFormData({ ...formData, getQuantity: e.target.value })}
@@ -724,8 +744,9 @@ export default function Promotions() {
           )}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่เริ่ม</label>
+              <label htmlFor="edit-promo-start-date" className="block text-sm font-medium text-app mb-2">วันที่เริ่ม</label>
               <input
+                id="edit-promo-start-date"
                 type="date"
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
@@ -734,8 +755,9 @@ export default function Promotions() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่สิ้นสุด</label>
+              <label htmlFor="edit-promo-end-date" className="block text-sm font-medium text-app mb-2">วันที่สิ้นสุด</label>
               <input
+                id="edit-promo-end-date"
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}

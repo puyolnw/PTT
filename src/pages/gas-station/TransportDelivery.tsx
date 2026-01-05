@@ -28,7 +28,7 @@ import {
 // Import shared data
 import { branches, mockOrderSummary, mockApprovedOrders } from "@/data/gasStationOrders";
 // Import truck data
-import { mockTrucks, mockTrailers } from "./TruckProfiles";
+import { mockTrucks, mockTrailers } from "@/data/truckData";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -240,8 +240,8 @@ function generateTransportNo(): string {
 }
 
 export default function TransportDelivery() {
-  const { 
-    transportDeliveries, 
+  const {
+    transportDeliveries,
     createTransportDelivery,
     startTransport,
     createDriverJob,
@@ -286,7 +286,7 @@ export default function TransportDelivery() {
   // Filter transports
   // ใช้ข้อมูลจาก context หรือ mock data ถ้ายังไม่มี
   const allTransports = transportDeliveries.length > 0 ? transportDeliveries : mockTransportDeliveries;
-  
+
   const filteredTransports = allTransports.filter((transport) => {
     const matchesSearch =
       transport.transportNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -429,6 +429,7 @@ export default function TransportDelivery() {
       transportNo: newTransportData.transportNo,
       transportDate: newTransportData.transportDate,
       transportTime: newTransportData.transportTime,
+      orderType: "internal",
       sourceBranchId: newTransport.sourceBranchId,
       sourceBranchName: sourceBranch?.name || "",
       sourceAddress: sourceBranch?.address || "",
@@ -478,13 +479,13 @@ export default function TransportDelivery() {
 
     // อัปเดตสถานะใน context
     startTransport(transport.id, transport.startOdometer || 0);
-    
+
     // อัปเดต DriverJob status
     const driverJob = getDriverJobByTransportNo(transport.transportNo);
     if (driverJob) {
       // DriverJob จะถูกอัปเดตโดย DriverApp เมื่อคนขับกด "ออกเดินทาง"
     }
-    
+
     alert("เริ่มขนส่งแล้ว!");
   };
 
@@ -598,7 +599,9 @@ export default function TransportDelivery() {
       >
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <label htmlFor="transport-delivery-search" className="sr-only">ค้นหา</label>
           <input
+            id="transport-delivery-search"
             type="text"
             placeholder="ค้นหาเลขขนส่ง, ทะเบียนรถ, คนขับ, สาขา..."
             value={searchTerm}
@@ -608,7 +611,9 @@ export default function TransportDelivery() {
         </div>
         <div className="flex items-center gap-2">
           <Filter className="w-5 h-5 text-gray-400" />
+          <label htmlFor="transport-delivery-filter-status" className="sr-only">สถานะ</label>
           <select
+            id="transport-delivery-filter-status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
@@ -645,8 +650,13 @@ export default function TransportDelivery() {
             >
               {/* Transport Header */}
               <div
+                role="button"
+                tabIndex={0}
                 className="p-5 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 onClick={() => toggleTransport(transport.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") toggleTransport(transport.id);
+                }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4 flex-1">
@@ -900,6 +910,11 @@ export default function TransportDelivery() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowCreateModal(false)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setShowCreateModal(false);
+              }}
               className="fixed inset-0 bg-black/50 z-50"
             />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -932,10 +947,11 @@ export default function TransportDelivery() {
                     {/* Date & Time */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="create-transport-date" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           วันที่ส่ง <span className="text-red-500">*</span>
                         </label>
                         <input
+                          id="create-transport-date"
                           type="date"
                           value={newTransport.transportDate}
                           onChange={(e) => setNewTransport({ ...newTransport, transportDate: e.target.value })}
@@ -943,10 +959,11 @@ export default function TransportDelivery() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="create-transport-time" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           เวลาส่ง <span className="text-red-500">*</span>
                         </label>
                         <input
+                          id="create-transport-time"
                           type="time"
                           value={newTransport.transportTime}
                           onChange={(e) => setNewTransport({ ...newTransport, transportTime: e.target.value })}
@@ -957,10 +974,11 @@ export default function TransportDelivery() {
 
                     {/* Purchase Order Selection */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="create-transport-po" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         เลขที่ใบสั่งซื้อ (Purchase Order) <span className="text-red-500">*</span>
                       </label>
                       <select
+                        id="create-transport-po"
                         value={newTransport.purchaseOrderNo}
                         onChange={(e) => {
                           setNewTransport({ ...newTransport, purchaseOrderNo: e.target.value, selectedBranches: [] });
@@ -990,6 +1008,8 @@ export default function TransportDelivery() {
                             return (
                               <div
                                 key={branch.branchId}
+                                role="button"
+                                tabIndex={0}
                                 onClick={() => {
                                   if (isSelected) {
                                     setNewTransport({
@@ -1003,6 +1023,21 @@ export default function TransportDelivery() {
                                     });
                                   }
                                 }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    if (isSelected) {
+                                      setNewTransport({
+                                        ...newTransport,
+                                        selectedBranches: newTransport.selectedBranches.filter(id => id !== branch.branchId)
+                                      });
+                                    } else {
+                                      setNewTransport({
+                                        ...newTransport,
+                                        selectedBranches: [...newTransport.selectedBranches, branch.branchId]
+                                      });
+                                    }
+                                  }
+                                }}
                                 className={`p-3 border rounded-lg cursor-pointer transition-all ${isSelected
                                   ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
                                   : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300"
@@ -1011,6 +1046,7 @@ export default function TransportDelivery() {
                                 <div className="flex items-start gap-3">
                                   <input
                                     type="checkbox"
+                                    aria-label={`เลือกสาขา ${branch.branchName}`}
                                     checked={isSelected}
                                     onChange={() => { }} // Handled by parent div
                                     className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
@@ -1082,10 +1118,11 @@ export default function TransportDelivery() {
                       <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">เลือกรถ</h4>
                       <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                          <label htmlFor="create-transport-truck-head" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             หัวรถ <span className="text-red-500">*</span>
                           </label>
                           <select
+                            id="create-transport-truck-head"
                             value={newTransport.truckId}
                             onChange={(e) => setNewTransport({ ...newTransport, truckId: e.target.value })}
                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -1099,10 +1136,11 @@ export default function TransportDelivery() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                          <label htmlFor="create-transport-trailer" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             หางรถ <span className="text-red-500">*</span>
                           </label>
                           <select
+                            id="create-transport-trailer"
                             value={newTransport.trailerId}
                             onChange={(e) => setNewTransport({ ...newTransport, trailerId: e.target.value })}
                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -1118,10 +1156,11 @@ export default function TransportDelivery() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                          <label htmlFor="create-transport-driver" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             คนขับ <span className="text-red-500">*</span>
                           </label>
                           <select
+                            id="create-transport-driver"
                             value={newTransport.driverId}
                             onChange={(e) => setNewTransport({ ...newTransport, driverId: e.target.value })}
                             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -1139,10 +1178,11 @@ export default function TransportDelivery() {
 
                     {/* Source Branch */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="create-transport-source" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         ต้นทาง <span className="text-red-500">*</span>
                       </label>
                       <select
+                        id="create-transport-source"
                         value={newTransport.sourceBranchId}
                         onChange={(e) => setNewTransport({ ...newTransport, sourceBranchId: parseInt(e.target.value) })}
                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
@@ -1163,10 +1203,11 @@ export default function TransportDelivery() {
 
                     {/* Start Odometer */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="create-transport-odometer" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         เลขไมล์เริ่มต้น (กม.)
                       </label>
                       <input
+                        id="create-transport-odometer"
                         type="number"
                         value={newTransport.startOdometer}
                         onChange={(e) => setNewTransport({ ...newTransport, startOdometer: e.target.value })}
@@ -1177,8 +1218,9 @@ export default function TransportDelivery() {
 
                     {/* Notes */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">หมายเหตุ</label>
+                      <label htmlFor="create-transport-notes" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">หมายเหตุ</label>
                       <textarea
+                        id="create-transport-notes"
                         value={newTransport.notes}
                         onChange={(e) => setNewTransport({ ...newTransport, notes: e.target.value })}
                         rows={3}

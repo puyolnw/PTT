@@ -68,16 +68,16 @@ const oilPrices: Record<OilType, number> = {
 
 // ชื่อภาษาไทยของแต่ละชนิดน้ำมัน
 const getOilTypeLabel = (oilType: OilType): string => {
-  const labels: Record<OilType, string> = {
-    "Premium Diesel": "ดีเซลพรีเมียม",
-    "Premium Gasohol 95": "แก๊สโซฮอล์ 95 พรีเมียม",
-    "Diesel": "ดีเซล",
-    "E85": "E85",
-    "E20": "E20",
-    "Gasohol 91": "แก๊สโซฮอล์ 91",
-    "Gasohol 95": "แก๊สโซฮอล์ 95",
-  };
-  return labels[oilType];
+  const labels = new Map<OilType, string>([
+    ["Premium Diesel", "ดีเซลพรีเมียม"],
+    ["Premium Gasohol 95", "แก๊สโซฮอล์ 95 พรีเมียม"],
+    ["Diesel", "ดีเซล"],
+    ["E85", "E85"],
+    ["E20", "E20"],
+    ["Gasohol 91", "แก๊สโซฮอล์ 91"],
+    ["Gasohol 95", "แก๊สโซฮอล์ 95"],
+  ]);
+  return labels.get(oilType) || "";
 };
 
 // Mock data - สร้างข้อมูลรายเดือนของแต่ละสาขา
@@ -95,15 +95,17 @@ const generateBranchData = (): BranchMonthlyData[] => {
   const data: BranchMonthlyData[] = [];
 
   // สัดส่วนการขายของแต่ละชนิดน้ำมัน (เปอร์เซ็นต์)
-  const oilDistribution: Record<OilType, number> = {
-    "Premium Diesel": 25,
-    "Premium Gasohol 95": 20,
-    "Diesel": 30,
-    "E85": 5,
-    "E20": 8,
-    "Gasohol 91": 7,
-    "Gasohol 95": 5,
-  };
+  const oilDistribution = new Map<OilType, number>([
+    ["Premium Diesel", 25],
+    ["Premium Gasohol 95", 20],
+    ["Diesel", 30],
+    ["E85", 5],
+    ["E20", 8],
+    ["Gasohol 91", 7],
+    ["Gasohol 95", 5],
+  ]);
+
+  const oilPricesMap = new Map(Object.entries(oilPrices));
 
   // ข้อมูลปี 2567
   branches.forEach((branch, branchIdx) => {
@@ -114,9 +116,9 @@ const generateBranchData = (): BranchMonthlyData[] => {
 
       // สร้างข้อมูลแยกตามชนิดน้ำมัน
       oilTypes.forEach((oilType) => {
-        const percentage = oilDistribution[oilType];
+        const percentage = oilDistribution.get(oilType) || 0;
         const oilSales = Math.round((baseSales * percentage) / 100);
-        const price = oilPrices[oilType];
+        const price = oilPricesMap.get(oilType) || 0;
         const quantity = Math.round(oilSales / price);
 
         oilQuantities.push({
@@ -149,9 +151,9 @@ const generateBranchData = (): BranchMonthlyData[] => {
 
       // สร้างข้อมูลแยกตามชนิดน้ำมัน
       oilTypes.forEach((oilType) => {
-        const percentage = oilDistribution[oilType];
+        const percentage = oilDistribution.get(oilType) || 0;
         const oilSales = Math.round((baseSales * percentage) / 100);
-        const price = oilPrices[oilType];
+        const price = oilPricesMap.get(oilType) || 0;
         const quantity = Math.round(oilSales / price);
 
         oilQuantities.push({
@@ -179,25 +181,25 @@ const generateBranchData = (): BranchMonthlyData[] => {
 };
 
 const getBranchLabel = (branch: BranchType): string => {
-  const labels: Record<BranchType, string> = {
-    HISO: "ไฮโซ",
-    Dindam: "ดินดำ",
-    NongChik: "หนองจิก",
-    Taksila: "ตักสิลา",
-    Bypass: "บายพาส",
-  };
-  return labels[branch];
+  const labels = new Map<BranchType, string>([
+    ["HISO", "ไฮโซ"],
+    ["Dindam", "ดินดำ"],
+    ["NongChik", "หนองจิก"],
+    ["Taksila", "ตักสิลา"],
+    ["Bypass", "บายพาส"],
+  ]);
+  return labels.get(branch) || "";
 };
 
 const getBranchColorClasses = (branch: BranchType): { border: string; bg: string; icon: string } => {
-  const colors: Record<BranchType, { border: string; bg: string; icon: string }> = {
-    HISO: { border: "border-blue-500", bg: "bg-gradient-to-r from-blue-500 to-blue-600", icon: "text-blue-500" },
-    Dindam: { border: "border-purple-500", bg: "bg-gradient-to-r from-purple-500 to-purple-600", icon: "text-purple-500" },
-    NongChik: { border: "border-orange-500", bg: "bg-gradient-to-r from-orange-500 to-orange-600", icon: "text-orange-500" },
-    Taksila: { border: "border-emerald-500", bg: "bg-gradient-to-r from-emerald-500 to-emerald-600", icon: "text-emerald-500" },
-    Bypass: { border: "border-red-500", bg: "bg-gradient-to-r from-red-500 to-red-600", icon: "text-red-500" },
-  };
-  return colors[branch];
+  const colors = new Map<BranchType, { border: string; bg: string; icon: string }>([
+    ["HISO", { border: "border-blue-500", bg: "bg-gradient-to-r from-blue-500 to-blue-600", icon: "text-blue-500" }],
+    ["Dindam", { border: "border-purple-500", bg: "bg-gradient-to-r from-purple-500 to-purple-600", icon: "text-purple-500" }],
+    ["NongChik", { border: "border-orange-500", bg: "bg-gradient-to-r from-orange-500 to-orange-600", icon: "text-orange-500" }],
+    ["Taksila", { border: "border-emerald-500", bg: "bg-gradient-to-r from-emerald-500 to-emerald-600", icon: "text-emerald-500" }],
+    ["Bypass", { border: "border-red-500", bg: "bg-gradient-to-r from-red-500 to-red-600", icon: "text-red-500" }],
+  ]);
+  return colors.get(branch) || { border: "", bg: "", icon: "" };
 };
 
 export default function OilDeficitReport() {
@@ -228,21 +230,19 @@ export default function OilDeficitReport() {
 
   // จัดกลุ่มข้อมูลตามสาขา
   const groupedByBranch = useMemo(() => {
-    const grouped: Record<BranchType, BranchMonthlyData[]> = {
-      HISO: [],
-      Dindam: [],
-      NongChik: [],
-      Taksila: [],
-      Bypass: [],
-    };
+    const grouped = new Map<BranchType, BranchMonthlyData[]>(
+      (["HISO", "Dindam", "NongChik", "Taksila", "Bypass"] as BranchType[]).map(b => [b, []])
+    );
 
     filteredData.forEach(data => {
-      grouped[data.branch].push(data);
+      const list = grouped.get(data.branch);
+      if (list) list.push(data);
     });
 
     // เรียงตามเดือน
-    Object.keys(grouped).forEach(branch => {
-      grouped[branch as BranchType].sort((a, b) => a.month - b.month);
+    Array.from(grouped.keys()).forEach(branch => {
+      const list = grouped.get(branch);
+      if (list) list.sort((a, b) => a.month - b.month);
     });
 
     return grouped;
@@ -251,18 +251,19 @@ export default function OilDeficitReport() {
 
   // คำนวณสรุปข้อมูล
   const summary = useMemo(() => {
-    const summaryData: Record<BranchType, { totalSales: number; totalQuantitySold: number; count: number }> = {
-      HISO: { totalSales: 0, totalQuantitySold: 0, count: 0 },
-      Dindam: { totalSales: 0, totalQuantitySold: 0, count: 0 },
-      NongChik: { totalSales: 0, totalQuantitySold: 0, count: 0 },
-      Taksila: { totalSales: 0, totalQuantitySold: 0, count: 0 },
-      Bypass: { totalSales: 0, totalQuantitySold: 0, count: 0 },
-    };
+    const summaryData = new Map<BranchType, { totalSales: number; totalQuantitySold: number; count: number }>(
+      (["HISO", "Dindam", "NongChik", "Taksila", "Bypass"] as BranchType[]).map(b => [
+        b, { totalSales: 0, totalQuantitySold: 0, count: 0 }
+      ])
+    );
 
     filteredData.forEach(data => {
-      summaryData[data.branch].totalSales += data.sales;
-      summaryData[data.branch].totalQuantitySold += data.quantitySold;
-      summaryData[data.branch].count += 1;
+      const stats = summaryData.get(data.branch);
+      if (stats) {
+        stats.totalSales += data.sales;
+        stats.totalQuantitySold += data.quantitySold;
+        stats.count += 1;
+      }
     });
 
     return summaryData;
@@ -289,7 +290,7 @@ export default function OilDeficitReport() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {(["HISO", "Dindam", "NongChik", "Taksila", "Bypass"] as BranchType[]).map((branch) => {
           const branchColors = getBranchColorClasses(branch);
-          const data = summary[branch];
+          const data = summary.get(branch) || { totalSales: 0, totalQuantitySold: 0, count: 0 };
           return (
             <motion.div
               key={branch}
@@ -333,55 +334,58 @@ export default function OilDeficitReport() {
       >
         <div className="flex items-center gap-2">
           <Filter className="w-5 h-5 text-gray-400" />
-          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">กรองข้อมูล:</label>
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">กรองข้อมูล:</span>
         </div>
 
-            <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">เลือกปี</label>
-              <select
-                value={selectedYear}
+        <div>
+          <label htmlFor="filter-year" className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">เลือกปี</label>
+          <select
+            id="filter-year"
+            value={selectedYear}
             onChange={(e) => {
               setSelectedYear(Number(e.target.value));
               setSelectedMonth("all");
             }}
-                className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
-              >
-                <option value={2567}>2567</option>
-                <option value={2566}>2566</option>
-              </select>
-            </div>
+            className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
+          >
+            <option value={2567}>2567</option>
+            <option value={2566}>2566</option>
+          </select>
+        </div>
 
-            <div>
-          <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">เลือกเดือน</label>
-              <select
+        <div>
+          <label htmlFor="filter-month" className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">เลือกเดือน</label>
+          <select
+            id="filter-month"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
-              >
+            className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
+          >
             <option value="all">ทุกเดือน</option>
             {thaiMonths.map((month, index) => (
               <option key={index} value={String(index + 1)}>
                 {month}
               </option>
             ))}
-              </select>
-            </div>
+          </select>
+        </div>
 
-          <div>
-          <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">กรองตามสาขา</label>
-            <select
+        <div>
+          <label htmlFor="filter-branch" className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">กรองตามสาขา</label>
+          <select
+            id="filter-branch"
             value={selectedBranch}
             onChange={(e) => setSelectedBranch(e.target.value as BranchType | "all")}
-              className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
-            >
+            className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
+          >
             <option value="all">ทุกสาขา</option>
             <option value="HISO">ไฮโซ</option>
             <option value="Dindam">ดินดำ</option>
             <option value="NongChik">หนองจิก</option>
             <option value="Taksila">ตักสิลา</option>
             <option value="Bypass">บายพาส</option>
-            </select>
-          </div>
+          </select>
+        </div>
 
         <div className="flex-1"></div>
         <button
@@ -398,20 +402,20 @@ export default function OilDeficitReport() {
         {(["HISO", "Dindam", "NongChik", "Taksila", "Bypass"] as BranchType[])
           .filter(branch => selectedBranch === "all" || selectedBranch === branch)
           .map((branch, branchIndex) => {
-            const branchData = groupedByBranch[branch];
+            const branchDataList = groupedByBranch.get(branch) || [];
             const branchColors = getBranchColorClasses(branch);
             const branchLabel = getBranchLabel(branch);
 
-            if (branchData.length === 0) return null;
+            if (branchDataList.length === 0) return null;
 
             return (
-      <motion.div
+              <motion.div
                 key={branch}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: branchIndex * 0.1 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
-      >
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
+              >
                 {/* Branch Header */}
                 <div className={`${branchColors.bg} p-6 text-white`}>
                   <div className="flex items-center gap-3">
@@ -427,13 +431,13 @@ export default function OilDeficitReport() {
                 </div>
 
                 {/* Branch Table */}
-        <div className="overflow-x-auto">
+                <div className="overflow-x-auto">
                   <table className="w-full">
-            <thead>
+                    <thead>
                       <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                         <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
                           เดือน
-                </th>
+                        </th>
                         <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700 dark:text-gray-300">
                           ยอดขาย (บาท)
                         </th>
@@ -443,10 +447,10 @@ export default function OilDeficitReport() {
                         <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
                           รายละเอียดตามชนิดน้ำมัน
                         </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {branchData.map((data, index) => (
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {branchDataList.map((data, index) => (
                         <motion.tr
                           key={data.id}
                           initial={{ opacity: 0, x: -20 }}
@@ -456,7 +460,7 @@ export default function OilDeficitReport() {
                         >
                           <td className="px-6 py-4 text-sm font-semibold text-gray-800 dark:text-white">
                             {thaiMonths[data.month - 1]}
-                </td>
+                          </td>
                           <td className="px-6 py-4 text-sm text-right font-semibold text-gray-800 dark:text-white">
                             {currencyFormatter.format(data.sales)}
                           </td>
@@ -490,11 +494,11 @@ export default function OilDeficitReport() {
                           รวม
                         </td>
                         <td className="px-6 py-4 text-sm text-right font-bold text-gray-800 dark:text-white">
-                          {currencyFormatter.format(summary[branch].totalSales)}
+                          {currencyFormatter.format(summary.get(branch)?.totalSales || 0)}
                         </td>
                         <td className="px-6 py-4 text-sm text-right">
                           <span className="font-bold text-blue-600 dark:text-blue-400">
-                            {numberFormatter.format(summary[branch].totalQuantitySold)} ลิตร
+                            {numberFormatter.format(summary.get(branch)?.totalQuantitySold || 0)} ลิตร
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -511,10 +515,13 @@ export default function OilDeficitReport() {
                                 "Gasohol 95": { quantity: 0, sales: 0 },
                               };
 
-                              branchData.forEach((data) => {
+                              branchDataList.forEach((data) => {
                                 data.oilQuantities.forEach((oil) => {
-                                  oilTotals[oil.oilType].quantity += oil.quantity;
-                                  oilTotals[oil.oilType].sales += oil.sales;
+                                  const totals = oilTotals[oil.oilType];
+                                  if (totals) {
+                                    totals.quantity += oil.quantity;
+                                    totals.sales += oil.sales;
+                                  }
                                 });
                               });
 
@@ -535,10 +542,10 @@ export default function OilDeficitReport() {
                           </div>
                         </td>
                       </tr>
-            </tbody>
-          </table>
-        </div>
-      </motion.div>
+                    </tbody>
+                  </table>
+                </div>
+              </motion.div>
             );
           })}
       </div>

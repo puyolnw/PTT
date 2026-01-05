@@ -7,7 +7,7 @@ import {
     ShoppingCart,
 } from "lucide-react";
 import { mockApprovedOrders } from "@/data/gasStationOrders";
-import { mockTrucks, mockTrailers } from "./TruckProfiles";
+import { mockTrucks, mockTrailers } from "@/data/truckData";
 import { employees } from "@/data/mockData";
 import { logActivity } from "@/types/gasStationActivity";
 
@@ -64,6 +64,7 @@ export default function PTTQuotationForm({ existingQuotations = [], onClose, onS
     );
 
     // Get selected truck/trailer/driver
+    // Get selected truck/trailer/driver
     const selectedTruck = mockTrucks.find((t) => t.id === formData.truckId);
     const selectedTrailer = mockTrailers.find((t) => t.id === formData.trailerId);
     const selectedDriver = employees.find((e) => e.id.toString() === formData.driverId);
@@ -119,7 +120,7 @@ export default function PTTQuotationForm({ existingQuotations = [], onClose, onS
             },
             status: "success",
         });
-        
+
         onSave(formData as PTTQuotationData);
     };
 
@@ -153,7 +154,9 @@ export default function PTTQuotationForm({ existingQuotations = [], onClose, onS
                     <ShoppingCart className="w-5 h-5 text-blue-500" />
                     1. เลือกใบสั่งซื้อ (PO)
                 </h4>
+                <label htmlFor="po-selection" className="sr-only">เลือกใบสั่งซื้อ (PO)</label>
                 <select
+                    id="po-selection"
                     value={formData.purchaseOrderNo}
                     onChange={(e) => handlePOChange(e.target.value)}
                     className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
@@ -227,11 +230,12 @@ export default function PTTQuotationForm({ existingQuotations = [], onClose, onS
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* เลขที่ใบเสนอราคา */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <label htmlFor="ptt-quotation-no" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 เลขที่ใบเสนอราคา ปตท. <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
+                                id="ptt-quotation-no"
                                 value={formData.pttQuotationNo}
                                 onChange={(e) => setFormData({ ...formData, pttQuotationNo: e.target.value })}
                                 placeholder="เช่น QT-2024-001"
@@ -241,11 +245,12 @@ export default function PTTQuotationForm({ existingQuotations = [], onClose, onS
 
                         {/* วันที่ใบเสนอราคา */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <label htmlFor="ptt-quotation-date" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 วันที่ใบเสนอราคา <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="date"
+                                id="ptt-quotation-date"
                                 value={formData.pttQuotationDate}
                                 onChange={(e) => setFormData({ ...formData, pttQuotationDate: e.target.value })}
                                 className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -254,11 +259,12 @@ export default function PTTQuotationForm({ existingQuotations = [], onClose, onS
 
                         {/* มูลค่ารวม */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <label htmlFor="ptt-quotation-amount" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 มูลค่ารวม (บาท) <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="number"
+                                id="ptt-quotation-amount"
                                 value={formData.pttQuotationAmount || ""}
                                 onChange={(e) => setFormData({ ...formData, pttQuotationAmount: parseFloat(e.target.value) || 0 })}
                                 placeholder="0.00"
@@ -268,11 +274,12 @@ export default function PTTQuotationForm({ existingQuotations = [], onClose, onS
 
                         {/* วันที่นัดรับ */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <label htmlFor="scheduled-pickup-date" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 วันที่นัดรับน้ำมัน
                             </label>
                             <input
                                 type="date"
+                                id="scheduled-pickup-date"
                                 value={formData.scheduledPickupDate}
                                 onChange={(e) => setFormData({ ...formData, scheduledPickupDate: e.target.value })}
                                 className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -281,11 +288,12 @@ export default function PTTQuotationForm({ existingQuotations = [], onClose, onS
 
                         {/* เวลานัดรับ */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <label htmlFor="scheduled-pickup-time" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 เวลานัดรับ
                             </label>
                             <input
                                 type="time"
+                                id="scheduled-pickup-time"
                                 value={formData.scheduledPickupTime}
                                 onChange={(e) => setFormData({ ...formData, scheduledPickupTime: e.target.value })}
                                 className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -310,10 +318,11 @@ export default function PTTQuotationForm({ existingQuotations = [], onClose, onS
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* เลือกหัวรถ */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <label htmlFor="truck-id-form" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 เลือกหัวรถ <span className="text-red-500">*</span>
                             </label>
                             <select
+                                id="truck-id-form"
                                 value={formData.truckId}
                                 onChange={(e) => setFormData({ ...formData, truckId: e.target.value })}
                                 className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -329,10 +338,11 @@ export default function PTTQuotationForm({ existingQuotations = [], onClose, onS
 
                         {/* เลือกหางรถ */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <label htmlFor="trailer-id-form" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 เลือกหางรถ <span className="text-red-500">*</span>
                             </label>
                             <select
+                                id="trailer-id-form"
                                 value={formData.trailerId}
                                 onChange={(e) => setFormData({ ...formData, trailerId: e.target.value })}
                                 className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -348,10 +358,11 @@ export default function PTTQuotationForm({ existingQuotations = [], onClose, onS
 
                         {/* เลือกคนขับ */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <label htmlFor="driver-id-form" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 เลือกคนขับ <span className="text-red-500">*</span>
                             </label>
                             <select
+                                id="driver-id-form"
                                 value={formData.driverId}
                                 onChange={(e) => setFormData({ ...formData, driverId: e.target.value })}
                                 className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

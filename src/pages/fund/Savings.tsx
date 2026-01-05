@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  PiggyBank, 
-  TrendingUp, 
+import {
+  PiggyBank,
+  TrendingUp,
   Download,
   Upload,
   AlertCircle,
@@ -14,9 +14,10 @@ import {
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
-import { 
-  savingsDeductions, 
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
+import {
+  savingsDeductions,
   savingsWithdrawals,
   savingsDeposits,
   fundMembers,
@@ -397,51 +398,46 @@ export default function Savings() {
         <div className="flex gap-4 mb-6 border-b border-app overflow-x-auto">
           <button
             onClick={() => setActiveTab("balances")}
-            className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
-              activeTab === "balances"
+            className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === "balances"
                 ? "text-ptt-cyan border-b-2 border-ptt-cyan font-semibold"
                 : "text-muted hover:text-app"
-            }`}
+              }`}
           >
             ยอดเงินรวม
           </button>
           <button
             onClick={() => setActiveTab("deductions")}
-            className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
-              activeTab === "deductions"
+            className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === "deductions"
                 ? "text-ptt-cyan border-b-2 border-ptt-cyan font-semibold"
                 : "text-muted hover:text-app"
-            }`}
+              }`}
           >
             ประวัติการหักเงินสัจจะ
           </button>
           <button
             onClick={() => setActiveTab("deposits")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === "deposits"
+            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "deposits"
                 ? "text-ptt-cyan border-b-2 border-ptt-cyan font-semibold"
                 : "text-muted hover:text-app"
-            }`}
+              }`}
           >
             ประวัติการฝากเงิน
           </button>
           <button
             onClick={() => setActiveTab("withdrawals")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === "withdrawals"
+            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "withdrawals"
                 ? "text-ptt-cyan border-b-2 border-ptt-cyan font-semibold"
                 : "text-muted hover:text-app"
-            }`}
+              }`}
           >
             ประวัติการถอนเงิน
           </button>
           <button
             onClick={() => setActiveTab("dividends")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === "dividends"
+            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "dividends"
                 ? "text-ptt-cyan border-b-2 border-ptt-cyan font-semibold"
                 : "text-muted hover:text-app"
-            }`}
+              }`}
           >
             การปันผล
           </button>
@@ -471,7 +467,7 @@ export default function Savings() {
                     .filter(m => {
                       if (searchQuery) {
                         const matchesSearch = m.empName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                               m.empCode.toLowerCase().includes(searchQuery.toLowerCase());
+                          m.empCode.toLowerCase().includes(searchQuery.toLowerCase());
                         if (!matchesSearch) return false;
                       }
                       if (deptFilter) {
@@ -493,10 +489,10 @@ export default function Savings() {
                         <td className="px-6 py-4 text-center">
                           <StatusTag variant={getStatusVariant(
                             member.status === "Active" ? "อนุมัติแล้ว" :
-                            member.status === "Inactive" ? "ระงับ" : "ยกเลิก"
+                              member.status === "Inactive" ? "ระงับ" : "ยกเลิก"
                           )}>
                             {member.status === "Active" ? "ใช้งาน" :
-                             member.status === "Inactive" ? "ระงับ" : "ถอนตัว"}
+                              member.status === "Inactive" ? "ระงับ" : "ถอนตัว"}
                           </StatusTag>
                         </td>
                         <td className="px-6 py-4 text-right">
@@ -639,10 +635,10 @@ export default function Savings() {
                     <td className="px-6 py-4 text-center">
                       <StatusTag variant={getStatusVariant(
                         deposit.status === "Completed" ? "อนุมัติแล้ว" :
-                        deposit.status === "Cancelled" ? "ไม่อนุมัติ" : "รออนุมัติ"
+                          deposit.status === "Cancelled" ? "ไม่อนุมัติ" : "รออนุมัติ"
                       )}>
                         {deposit.status === "Completed" ? "เสร็จสิ้น" :
-                         deposit.status === "Pending" ? "รอดำเนินการ" : "ยกเลิก"}
+                          deposit.status === "Pending" ? "รอดำเนินการ" : "ยกเลิก"}
                       </StatusTag>
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -697,7 +693,7 @@ export default function Savings() {
                   <p className="text-app font-semibold font-mono">{formatCurrency(withdrawal.amount)}</p>
                   <StatusTag variant={getStatusVariant(
                     withdrawal.status === "Approved" || withdrawal.status === "Completed" ? "อนุมัติแล้ว" :
-                    withdrawal.status === "Rejected" ? "ไม่อนุมัติ" : "รออนุมัติ"
+                      withdrawal.status === "Rejected" ? "ไม่อนุมัติ" : "รออนุมัติ"
                   )}>
                     {withdrawal.status === "Pending" && "รออนุมัติ"}
                     {withdrawal.status === "Approved" && "อนุมัติแล้ว"}
@@ -830,7 +826,7 @@ export default function Savings() {
                       const years = (today.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
                       const shares = Math.floor(member.totalSavings / 20); // หุ้นละ 20 บาท
                       const estimatedDividend = member.totalSavings * 0.15 * Math.min(years, 5) / 5; // ตัวอย่างการคำนวณ
-                      
+
                       return (
                         <motion.tr
                           key={member.id}
@@ -888,10 +884,11 @@ export default function Savings() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="withdrawal-member" className="block text-sm font-medium text-app mb-2">
               สมาชิกกองทุน <span className="text-red-400">*</span>
             </label>
             <select
+              id="withdrawal-member"
               value={withdrawalFormData.empCode}
               onChange={(e) => {
                 setWithdrawalFormData({ ...withdrawalFormData, empCode: e.target.value });
@@ -923,10 +920,11 @@ export default function Savings() {
           })()}
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="withdrawal-amount" className="block text-sm font-medium text-app mb-2">
               จำนวนเงินที่ถอน (บาท) <span className="text-red-400">*</span>
             </label>
             <input
+              id="withdrawal-amount"
               type="number"
               value={withdrawalFormData.amount}
               onChange={(e) => setWithdrawalFormData({ ...withdrawalFormData, amount: e.target.value })}
@@ -943,10 +941,11 @@ export default function Savings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="withdrawal-reason" className="block text-sm font-medium text-app mb-2">
               เหตุผล <span className="text-red-400">*</span>
             </label>
             <select
+              id="withdrawal-reason"
               value={withdrawalFormData.reason}
               onChange={(e) => setWithdrawalFormData({ ...withdrawalFormData, reason: e.target.value as SavingsWithdrawal["reason"] })}
               className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
@@ -963,10 +962,11 @@ export default function Savings() {
 
           {withdrawalFormData.reason === "อื่นๆ" && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="withdrawal-reason-detail" className="block text-sm font-medium text-app mb-2">
                 รายละเอียดเพิ่มเติม
               </label>
               <textarea
+                id="withdrawal-reason-detail"
                 value={withdrawalFormData.reasonDetail}
                 onChange={(e) => setWithdrawalFormData({ ...withdrawalFormData, reasonDetail: e.target.value })}
                 rows={3}
@@ -1012,10 +1012,11 @@ export default function Savings() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="deposit-member" className="block text-sm font-medium text-app mb-2">
               สมาชิกกองทุน <span className="text-red-400">*</span>
             </label>
             <select
+              id="deposit-member"
               value={depositFormData.empCode}
               onChange={(e) => setDepositFormData({ ...depositFormData, empCode: e.target.value })}
               className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
@@ -1045,10 +1046,11 @@ export default function Savings() {
           })()}
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="deposit-amount" className="block text-sm font-medium text-app mb-2">
               จำนวนเงินที่ฝาก (บาท) <span className="text-red-400">*</span>
             </label>
             <input
+              id="deposit-amount"
               type="number"
               value={depositFormData.amount}
               onChange={(e) => setDepositFormData({ ...depositFormData, amount: e.target.value })}
@@ -1063,10 +1065,11 @@ export default function Savings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="deposit-method" className="block text-sm font-medium text-app mb-2">
               วิธีการฝาก <span className="text-red-400">*</span>
             </label>
             <select
+              id="deposit-method"
               value={depositFormData.depositMethod}
               onChange={(e) => setDepositFormData({ ...depositFormData, depositMethod: e.target.value as SavingsDeposit["depositMethod"] })}
               className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
@@ -1079,10 +1082,11 @@ export default function Savings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="deposit-receipt" className="block text-sm font-medium text-app mb-2">
               เลขที่ใบเสร็จ (ถ้ามี)
             </label>
             <input
+              id="deposit-receipt"
               type="text"
               value={depositFormData.receiptNumber}
               onChange={(e) => setDepositFormData({ ...depositFormData, receiptNumber: e.target.value })}
@@ -1094,10 +1098,11 @@ export default function Savings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="deposit-notes" className="block text-sm font-medium text-app mb-2">
               หมายเหตุ (ถ้ามี)
             </label>
             <textarea
+              id="deposit-notes"
               value={depositFormData.notes}
               onChange={(e) => setDepositFormData({ ...depositFormData, notes: e.target.value })}
               rows={3}
@@ -1153,10 +1158,10 @@ export default function Savings() {
                 <p className="text-muted mb-1">สถานะ:</p>
                 <StatusTag variant={getStatusVariant(
                   selectedDeposit.status === "Completed" ? "อนุมัติแล้ว" :
-                  selectedDeposit.status === "Cancelled" ? "ไม่อนุมัติ" : "รออนุมัติ"
+                    selectedDeposit.status === "Cancelled" ? "ไม่อนุมัติ" : "รออนุมัติ"
                 )}>
                   {selectedDeposit.status === "Completed" ? "เสร็จสิ้น" :
-                   selectedDeposit.status === "Pending" ? "รอดำเนินการ" : "ยกเลิก"}
+                    selectedDeposit.status === "Pending" ? "รอดำเนินการ" : "ยกเลิก"}
                 </StatusTag>
               </div>
               <div>
@@ -1205,7 +1210,7 @@ export default function Savings() {
                 <p className="text-muted mb-1">สถานะ:</p>
                 <StatusTag variant={getStatusVariant(
                   selectedWithdrawal.status === "Approved" || selectedWithdrawal.status === "Completed" ? "อนุมัติแล้ว" :
-                  selectedWithdrawal.status === "Rejected" ? "ไม่อนุมัติ" : "รออนุมัติ"
+                    selectedWithdrawal.status === "Rejected" ? "ไม่อนุมัติ" : "รออนุมัติ"
                 )}>
                   {selectedWithdrawal.status}
                 </StatusTag>

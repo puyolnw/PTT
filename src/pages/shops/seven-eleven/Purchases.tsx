@@ -85,7 +85,7 @@ const initialPurchases = [
 export default function Purchases() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "เซเว่น (7-Eleven)";
-  
+
   const [purchases, setPurchases] = useState(initialPurchases);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -147,7 +147,7 @@ export default function Purchases() {
     if (file) {
       // Simulate file processing
       alert(`กำลังประมวลผลไฟล์ ${file.name}...\n\nระบบจะสร้างใบสั่งซื้อ (PO) อัตโนมัติจากข้อมูลในไฟล์`);
-      
+
       // Simulate adding a purchase from file
       const newPurchase = {
         id: String(purchases.length + 1),
@@ -290,20 +290,22 @@ export default function Purchases() {
         />
 
         <div className="flex gap-2">
-          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
+          <label htmlFor="seven-purchase-excel-upload" className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
             <FileSpreadsheet className="w-4 h-4" />
             <span>นำเข้า Excel</span>
             <input
+              id="seven-purchase-excel-upload"
               type="file"
               accept=".xlsx,.xls"
               onChange={(e) => handleFileUpload(e, "excel")}
               className="hidden"
             />
           </label>
-          <label className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
+          <label htmlFor="seven-purchase-pdf-upload" className="flex items-center gap-2 px-4 py-2 bg-soft text-app rounded-lg hover:bg-app/10 transition-colors cursor-pointer">
             <FileText className="w-4 h-4" />
             <span>นำเข้า PDF</span>
             <input
+              id="seven-purchase-pdf-upload"
               type="file"
               accept=".pdf"
               onChange={(e) => handleFileUpload(e, "pdf")}
@@ -349,22 +351,20 @@ export default function Purchases() {
                   </p>
                   <div className="flex items-center gap-2 mt-2 justify-end flex-wrap">
                     <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        purchase.status === "ชำระแล้ว"
+                      className={`text-xs px-2 py-1 rounded-full ${purchase.status === "ชำระแล้ว"
                           ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
                           : "bg-orange-500/10 text-orange-400 border border-orange-500/30"
-                      }`}
+                        }`}
                     >
                       {purchase.status}
                     </span>
                     <span className="text-xs px-2 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/30">
                       {purchase.source}
                     </span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      purchase.type === "ค่าใช้จ่ายอื่น"
+                    <span className={`text-xs px-2 py-1 rounded-full ${purchase.type === "ค่าใช้จ่ายอื่น"
                         ? "bg-orange-500/10 text-orange-400 border border-orange-500/30"
                         : "bg-blue-500/10 text-blue-400 border border-blue-500/30"
-                    }`}>
+                      }`}>
                       {purchase.type}
                     </span>
                   </div>
@@ -403,8 +403,9 @@ export default function Purchases() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่</label>
+              <label htmlFor="seven-purchase-date" className="block text-sm font-medium text-app mb-2">วันที่</label>
               <input
+                id="seven-purchase-date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -413,8 +414,9 @@ export default function Purchases() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">สถานะ</label>
+              <label htmlFor="seven-purchase-status" className="block text-sm font-medium text-app mb-2">สถานะ</label>
               <select
+                id="seven-purchase-status"
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -425,8 +427,9 @@ export default function Purchases() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
+            <label htmlFor="seven-purchase-supplier" className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
             <input
+              id="seven-purchase-supplier"
               type="text"
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
@@ -436,8 +439,9 @@ export default function Purchases() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">รายการสินค้า</label>
+            <label htmlFor="seven-purchase-items" className="block text-sm font-medium text-app mb-2">รายการสินค้า</label>
             <textarea
+              id="seven-purchase-items"
               value={formData.items}
               onChange={(e) => setFormData({ ...formData, items: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -448,8 +452,9 @@ export default function Purchases() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
+              <label htmlFor="seven-purchase-amount" className="block text-sm font-medium text-app mb-2">จำนวนเงิน (บาท)</label>
               <input
+                id="seven-purchase-amount"
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -459,8 +464,9 @@ export default function Purchases() {
             </div>
             {formData.status === "รอชำระ" && (
               <div>
-                <label className="block text-sm font-medium text-app mb-2">ครบกำหนด</label>
+                <label htmlFor="seven-purchase-due-date" className="block text-sm font-medium text-app mb-2">ครบกำหนด</label>
                 <input
+                  id="seven-purchase-due-date"
                   type="date"
                   value={formData.dueDate}
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
@@ -471,8 +477,9 @@ export default function Purchases() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ประเภท</label>
+              <label htmlFor="seven-purchase-type" className="block text-sm font-medium text-app mb-2">ประเภท</label>
               <select
+                id="seven-purchase-type"
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -482,8 +489,9 @@ export default function Purchases() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">แหล่งที่มา</label>
+              <label htmlFor="seven-purchase-source" className="block text-sm font-medium text-app mb-2">แหล่งที่มา</label>
               <select
+                id="seven-purchase-source"
                 value={formData.source}
                 onChange={(e) => setFormData({ ...formData, source: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"

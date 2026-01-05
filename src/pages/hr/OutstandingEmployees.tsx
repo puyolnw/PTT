@@ -109,7 +109,7 @@ const diligenceBonusRates = {
 const isEligibleDept = (dept: string, category: string): boolean => {
   const deptLower = dept.toLowerCase();
   const categoryLower = (category || "").toLowerCase();
-  
+
   return Object.values(eligibleDepts).some(deptList =>
     deptList.some(eligibleDept =>
       deptLower.includes(eligibleDept.toLowerCase()) ||
@@ -176,7 +176,7 @@ const calculateDiligenceBonus = (
   // ตรวจสอบเงื่อนไข
   const hasAbsence = monthLogs.some(log => log.status === "ขาดงาน");
   const hasLeave = monthLogs.some(log => log.status === "ลา");
-  const hasLate = monthLogs.some(log => 
+  const hasLate = monthLogs.some(log =>
     log.status.includes("สาย") || (log.lateMinutes && log.lateMinutes > 0)
   );
 
@@ -186,9 +186,9 @@ const calculateDiligenceBonus = (
 
   // ตรวจสอบว่าหยุดเกินสิทธิ์ (ตรวจสอบจาก leaves)
   const monthLeaves = leaves.filter(
-    l => l.empCode === empCode && 
-    l.fromDate.startsWith(month) && 
-    l.status === "อนุมัติแล้ว"
+    l => l.empCode === empCode &&
+      l.fromDate.startsWith(month) &&
+      l.status === "อนุมัติแล้ว"
   );
   const totalLeaveDays = monthLeaves.reduce((sum, l) => sum + l.days, 0);
   const exceededLeaveLimit = totalLeaveDays > 0; // ในระบบจริงจะตรวจสอบสิทธิ์การลา
@@ -198,17 +198,17 @@ const calculateDiligenceBonus = (
     .filter(h => h.empCode === empCode && h.status === "eligible")
     .sort((a, b) => b.month.localeCompare(a.month));
 
-    let consecutiveMonths = 0;
-    const currentMonth = month;
-    
-    for (const record of sortedHistory) {
-      const recordDate = new Date(record.month + "-01");
-      const currentDate = new Date(currentMonth + "-01");
-    
+  let consecutiveMonths = 0;
+  const currentMonth = month;
+
+  for (const record of sortedHistory) {
+    const recordDate = new Date(record.month + "-01");
+    const currentDate = new Date(currentMonth + "-01");
+
     // ตรวจสอบว่าเป็นเดือนก่อนหน้าหรือไม่
     const monthsDiff = (currentDate.getFullYear() - recordDate.getFullYear()) * 12 +
       (currentDate.getMonth() - recordDate.getMonth());
-    
+
     if (monthsDiff === 1) {
       consecutiveMonths = record.consecutiveMonths + 1;
       break;
@@ -373,7 +373,7 @@ export default function OutstandingEmployees() {
   const [rewardHistory, setRewardHistory] = useState<RewardRecord[]>(mockRewardHistory);
   const [isAddAuditModalOpen, setIsAddAuditModalOpen] = useState(false);
   const [isAddFuelModalOpen, setIsAddFuelModalOpen] = useState(false);
-  
+
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDept, setSelectedDept] = useState<string>("all");
@@ -385,7 +385,7 @@ export default function OutstandingEmployees() {
     endDate: "",
   });
   const [showFilters, setShowFilters] = useState(false);
-  
+
   const [auditForm, setAuditForm] = useState({
     empCode: "",
     month: selectedMonth,
@@ -410,7 +410,7 @@ export default function OutstandingEmployees() {
     // กรองพนักงานตามแผนกที่เลือก (ถ้าเลือก "all" แสดงทุกแผนก)
     let filteredEmployees = employees;
     if (selectedDept !== "all") {
-      filteredEmployees = employees.filter(emp => 
+      filteredEmployees = employees.filter(emp =>
         emp.dept === selectedDept || emp.category === selectedDept
       );
     }
@@ -449,7 +449,7 @@ export default function OutstandingEmployees() {
   // กรองประวัติรางวัล
   const filteredHistory = useMemo(() => {
     let filtered = rewardHistory;
-    
+
     // กรองตาม viewMode
     if (viewMode === "diligence") {
       filtered = filtered.filter(r => r.rewardType === "เบี้ยขยัน");
@@ -458,14 +458,14 @@ export default function OutstandingEmployees() {
     } else if (viewMode === "fuel") {
       filtered = filtered.filter(r => r.rewardType === "ค่าเรทน้ำมัน");
     }
-    
+
     // กรองตามแผนก
     if (selectedDept !== "all") {
-      filtered = filtered.filter(r => 
+      filtered = filtered.filter(r =>
         r.dept === selectedDept || r.category === selectedDept
       );
     }
-    
+
     // กรองตาม search query
     if (searchQuery) {
       filtered = filtered.filter(r =>
@@ -475,7 +475,7 @@ export default function OutstandingEmployees() {
         r.details.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    
+
     // กรองตามวันที่
     if (dateFilter.startDate) {
       filtered = filtered.filter(r => r.month >= dateFilter.startDate);
@@ -483,7 +483,7 @@ export default function OutstandingEmployees() {
     if (dateFilter.endDate) {
       filtered = filtered.filter(r => r.month <= dateFilter.endDate);
     }
-    
+
     return filtered.sort((a, b) => b.month.localeCompare(a.month));
   }, [rewardHistory, viewMode, selectedDept, searchQuery, dateFilter]);
 
@@ -592,8 +592,8 @@ export default function OutstandingEmployees() {
 
     const existing = rewardHistory.find(
       r => r.empCode === calculation.empCode &&
-      r.month === calculation.month &&
-      r.rewardType === "เบี้ยขยัน"
+        r.month === calculation.month &&
+        r.rewardType === "เบี้ยขยัน"
     );
 
     if (existing) {
@@ -640,11 +640,12 @@ export default function OutstandingEmployees() {
         <div className="flex gap-2 flex-wrap">
           <input
             type="month"
+            aria-label="เลือกเดือน"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
           />
-          <button 
+          <button
             onClick={() => setShowFilters(!showFilters)}
             className="px-4 py-2 bg-soft hover:bg-app/10 text-app rounded-xl transition-colors flex items-center gap-2"
           >
@@ -753,7 +754,7 @@ export default function OutstandingEmployees() {
               ล้างการกรอง
             </button>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Search */}
             <div className="relative">
@@ -761,16 +762,18 @@ export default function OutstandingEmployees() {
               <input
                 type="text"
                 placeholder="ค้นหาชื่อ, รหัส, แผนก..."
+                aria-label="ค้นหา"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               />
             </div>
-            
+
             {/* Department Filter */}
             <div>
               <select
                 value={selectedDept}
+                aria-label="เลือกแผนก"
                 onChange={(e) => setSelectedDept(e.target.value)}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               >
@@ -780,32 +783,34 @@ export default function OutstandingEmployees() {
                 ))}
               </select>
             </div>
-            
+
             {/* Start Date */}
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
               <input
                 type="month"
                 placeholder="วันที่เริ่มต้น"
+                aria-label="วันที่เริ่มต้น"
                 value={dateFilter.startDate}
                 onChange={(e) => setDateFilter({ ...dateFilter, startDate: e.target.value })}
                 className="w-full pl-10 pr-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               />
             </div>
-            
+
             {/* End Date */}
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
               <input
                 type="month"
                 placeholder="วันที่สิ้นสุด"
+                aria-label="วันที่สิ้นสุด"
                 value={dateFilter.endDate}
                 onChange={(e) => setDateFilter({ ...dateFilter, endDate: e.target.value })}
                 className="w-full pl-10 pr-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
               />
             </div>
           </div>
-          
+
           {/* Active Filters Display */}
           {(searchQuery || selectedDept !== "all" || dateFilter.startDate || dateFilter.endDate) && (
             <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-app">
@@ -839,44 +844,40 @@ export default function OutstandingEmployees() {
       <div className="flex gap-2 border-b border-app">
         <button
           onClick={() => setViewMode("diligence")}
-          className={`px-4 py-2 rounded-t-xl transition-colors ${
-            viewMode === "diligence"
-              ? "bg-ptt-blue text-app border-t-2 border-l-2 border-r-2 border-ptt-blue"
-              : "bg-soft hover:bg-app/10 text-app"
-          }`}
+          className={`px-4 py-2 rounded-t-xl transition-colors ${viewMode === "diligence"
+            ? "bg-ptt-blue text-app border-t-2 border-l-2 border-r-2 border-ptt-blue"
+            : "bg-soft hover:bg-app/10 text-app"
+            }`}
         >
           <Star className="w-4 h-4 inline mr-2" />
           เบี้ยขยัน
         </button>
         <button
           onClick={() => setViewMode("audit")}
-          className={`px-4 py-2 rounded-t-xl transition-colors ${
-            viewMode === "audit"
-              ? "bg-ptt-blue text-app border-t-2 border-l-2 border-r-2 border-ptt-blue"
-              : "bg-soft hover:bg-app/10 text-app"
-          }`}
+          className={`px-4 py-2 rounded-t-xl transition-colors ${viewMode === "audit"
+            ? "bg-ptt-blue text-app border-t-2 border-l-2 border-r-2 border-ptt-blue"
+            : "bg-soft hover:bg-app/10 text-app"
+            }`}
         >
           <Medal className="w-4 h-4 inline mr-2" />
           รางวัล Audit
         </button>
         <button
           onClick={() => setViewMode("fuel")}
-          className={`px-4 py-2 rounded-t-xl transition-colors ${
-            viewMode === "fuel"
-              ? "bg-ptt-blue text-app border-t-2 border-l-2 border-r-2 border-ptt-blue"
-              : "bg-soft hover:bg-app/10 text-app"
-          }`}
+          className={`px-4 py-2 rounded-t-xl transition-colors ${viewMode === "fuel"
+            ? "bg-ptt-blue text-app border-t-2 border-l-2 border-r-2 border-ptt-blue"
+            : "bg-soft hover:bg-app/10 text-app"
+            }`}
         >
           <Fuel className="w-4 h-4 inline mr-2" />
           ค่าเรทน้ำมัน
         </button>
         <button
           onClick={() => setViewMode("history")}
-          className={`px-4 py-2 rounded-t-xl transition-colors ${
-            viewMode === "history"
-              ? "bg-ptt-blue text-app border-t-2 border-l-2 border-r-2 border-ptt-blue"
-              : "bg-soft hover:bg-app/10 text-app"
-          }`}
+          className={`px-4 py-2 rounded-t-xl transition-colors ${viewMode === "history"
+            ? "bg-ptt-blue text-app border-t-2 border-l-2 border-r-2 border-ptt-blue"
+            : "bg-soft hover:bg-app/10 text-app"
+            }`}
         >
           <FileText className="w-4 h-4 inline mr-2" />
           ประวัติทั้งหมด
@@ -1190,7 +1191,7 @@ export default function OutstandingEmployees() {
                     <td className="px-4 py-3 text-sm text-app font-medium">{reward.empName}</td>
                     <td className="px-4 py-3 text-sm text-app">{reward.dept}</td>
                     <td className="px-4 py-3 text-center text-sm text-app">
-                      {reward.details.includes("กิโลเมตร") 
+                      {reward.details.includes("กิโลเมตร")
                         ? reward.details.match(/1 ลิตร = ([\d.]+) กิโลเมตร/)?.[1] + " km/L"
                         : "3.6 km/L"}
                     </td>
@@ -1250,13 +1251,12 @@ export default function OutstandingEmployees() {
                     <td className="px-4 py-3 text-sm text-app font-medium">{reward.empName}</td>
                     <td className="px-4 py-3 text-sm text-app">{reward.dept}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${
-                        reward.rewardType === "เบี้ยขยัน" 
-                          ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                          : reward.rewardType === "รางวัล Audit"
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${reward.rewardType === "เบี้ยขยัน"
+                        ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                        : reward.rewardType === "รางวัล Audit"
                           ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
                           : "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                      }`}>
+                        }`}>
                         {reward.rewardType}
                       </span>
                     </td>
@@ -1295,8 +1295,9 @@ export default function OutstandingEmployees() {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">เลือกพนักงาน *</label>
+                <label htmlFor="audit-empCode" className="block text-sm font-semibold text-app mb-2">เลือกพนักงาน *</label>
                 <select
+                  id="audit-empCode"
                   value={auditForm.empCode}
                   onChange={(e) => {
                     setAuditForm({ ...auditForm, empCode: e.target.value });
@@ -1312,8 +1313,9 @@ export default function OutstandingEmployees() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">เดือน *</label>
+                <label htmlFor="audit-month" className="block text-sm font-semibold text-app mb-2">เดือน *</label>
                 <input
+                  id="audit-month"
                   type="month"
                   value={auditForm.month}
                   onChange={(e) => setAuditForm({ ...auditForm, month: e.target.value })}
@@ -1321,8 +1323,9 @@ export default function OutstandingEmployees() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">ประเภท Audit *</label>
+                <label htmlFor="audit-category" className="block text-sm font-semibold text-app mb-2">ประเภท Audit *</label>
                 <select
+                  id="audit-category"
                   value={auditForm.auditCategory}
                   onChange={(e) => setAuditForm({ ...auditForm, auditCategory: e.target.value as "7-Eleven" | "Amazon" | "OTOP" | "PTT" })}
                   className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -1334,8 +1337,9 @@ export default function OutstandingEmployees() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">จำนวนเงิน (บาท) *</label>
+                <label htmlFor="audit-amount" className="block text-sm font-semibold text-app mb-2">จำนวนเงิน (บาท) *</label>
                 <input
+                  id="audit-amount"
                   type="number"
                   value={auditForm.amount}
                   onChange={(e) => setAuditForm({ ...auditForm, amount: e.target.value })}
@@ -1347,8 +1351,9 @@ export default function OutstandingEmployees() {
               {auditForm.auditCategory === "PTT" && (
                 <>
                   <div>
-                    <label className="block text-sm font-semibold text-app mb-2">คะแนนที่ได้ (98-99 หรือ 100) *</label>
+                    <label htmlFor="audit-score" className="block text-sm font-semibold text-app mb-2">คะแนนที่ได้ (98-99 หรือ 100) *</label>
                     <input
+                      id="audit-score"
                       type="number"
                       value={auditForm.auditScore}
                       onChange={(e) => setAuditForm({ ...auditForm, auditScore: e.target.value })}
@@ -1360,8 +1365,9 @@ export default function OutstandingEmployees() {
                   </div>
                   {auditForm.auditScore === "100" && (
                     <div>
-                      <label className="block text-sm font-semibold text-app mb-2">ครั้งที่ (สำหรับ 100 คะแนน) *</label>
+                      <label htmlFor="audit-remarks-ptt" className="block text-sm font-semibold text-app mb-2">ครั้งที่ (สำหรับ 100 คะแนน) *</label>
                       <select
+                        id="audit-remarks-ptt"
                         value={auditForm.auditRemarks || ""}
                         onChange={(e) => setAuditForm({ ...auditForm, auditRemarks: e.target.value })}
                         className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -1386,8 +1392,9 @@ export default function OutstandingEmployees() {
               {/* ฟิลด์เพิ่มเติมสำหรับรางวัล Amazon */}
               {auditForm.auditCategory === "Amazon" && (
                 <div>
-                  <label className="block text-sm font-semibold text-app mb-2">ครั้งที่ *</label>
+                  <label htmlFor="audit-remarks-amazon" className="block text-sm font-semibold text-app mb-2">ครั้งที่ *</label>
                   <select
+                    id="audit-remarks-amazon"
                     value={auditForm.auditRemarks || ""}
                     onChange={(e) => setAuditForm({ ...auditForm, auditRemarks: e.target.value })}
                     className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -1404,8 +1411,9 @@ export default function OutstandingEmployees() {
               {auditForm.auditCategory === "7-Eleven" && (
                 <>
                   <div>
-                    <label className="block text-sm font-semibold text-app mb-2">ประเภทรางวัล *</label>
+                    <label htmlFor="audit-remarks-711" className="block text-sm font-semibold text-app mb-2">ประเภทรางวัล *</label>
                     <select
+                      id="audit-remarks-711"
                       value={auditForm.auditRemarks || ""}
                       onChange={(e) => setAuditForm({ ...auditForm, auditRemarks: e.target.value })}
                       className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -1417,8 +1425,9 @@ export default function OutstandingEmployees() {
                   </div>
                   {auditForm.auditRemarks === "sales_bonus" && (
                     <div>
-                      <label className="block text-sm font-semibold text-app mb-2">% เพิ่มขึ้นของยอดขาย</label>
+                      <label htmlFor="audit-score-sales" className="block text-sm font-semibold text-app mb-2">% เพิ่มขึ้นของยอดขาย</label>
                       <input
+                        id="audit-score-sales"
                         type="number"
                         step="0.01"
                         value={auditForm.auditScore}
@@ -1433,8 +1442,9 @@ export default function OutstandingEmployees() {
               {/* ฟิลด์คะแนน Audit สำหรับประเภทอื่นๆ */}
               {auditForm.auditCategory !== "PTT" && auditForm.auditCategory !== "Amazon" && auditForm.auditCategory !== "7-Eleven" && (
                 <div>
-                  <label className="block text-sm font-semibold text-app mb-2">คะแนน Audit</label>
+                  <label htmlFor="audit-score-other" className="block text-sm font-semibold text-app mb-2">คะแนน Audit</label>
                   <input
+                    id="audit-score-other"
                     type="number"
                     value={auditForm.auditScore}
                     onChange={(e) => setAuditForm({ ...auditForm, auditScore: e.target.value })}
@@ -1444,8 +1454,9 @@ export default function OutstandingEmployees() {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">รายละเอียด/หมายเหตุ</label>
+                <label htmlFor="audit-details" className="block text-sm font-semibold text-app mb-2">รายละเอียด/หมายเหตุ</label>
                 <textarea
+                  id="audit-details"
                   value={auditForm.notes}
                   onChange={(e) => setAuditForm({ ...auditForm, notes: e.target.value })}
                   rows={3}
@@ -1454,8 +1465,9 @@ export default function OutstandingEmployees() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">หมายเหตุเพิ่มเติม</label>
+                <label htmlFor="audit-notes" className="block text-sm font-semibold text-app mb-2">หมายเหตุเพิ่มเติม</label>
                 <textarea
+                  id="audit-notes"
                   value={auditForm.notes}
                   onChange={(e) => setAuditForm({ ...auditForm, notes: e.target.value })}
                   rows={2}
@@ -1501,8 +1513,9 @@ export default function OutstandingEmployees() {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">เลือกพนักงาน *</label>
+                <label htmlFor="fuel-empCode" className="block text-sm font-semibold text-app mb-2">เลือกพนักงาน *</label>
                 <select
+                  id="fuel-empCode"
                   value={fuelForm.empCode}
                   onChange={(e) => setFuelForm({ ...fuelForm, empCode: e.target.value })}
                   className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -1516,8 +1529,9 @@ export default function OutstandingEmployees() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">เดือน *</label>
+                <label htmlFor="fuel-month" className="block text-sm font-semibold text-app mb-2">เดือน *</label>
                 <input
+                  id="fuel-month"
                   type="month"
                   value={fuelForm.month}
                   onChange={(e) => setFuelForm({ ...fuelForm, month: e.target.value })}
@@ -1525,8 +1539,9 @@ export default function OutstandingEmployees() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">ประสิทธิภาพน้ำมัน (กิโลเมตร/ลิตร) *</label>
+                <label htmlFor="fuel-efficiency" className="block text-sm font-semibold text-app mb-2">ประสิทธิภาพน้ำมัน (กิโลเมตร/ลิตร) *</label>
                 <input
+                  id="fuel-efficiency"
                   type="number"
                   step="0.1"
                   value={fuelForm.fuelEfficiency}
@@ -1537,8 +1552,9 @@ export default function OutstandingEmployees() {
                 <p className="text-xs text-muted mt-1">เป้าหมาย: {fuelForm.targetEfficiency} กิโลเมตร/ลิตร</p>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">จำนวนเงิน (บาท) *</label>
+                <label htmlFor="fuel-amount" className="block text-sm font-semibold text-app mb-2">จำนวนเงิน (บาท) *</label>
                 <input
+                  id="fuel-amount"
                   type="number"
                   value={fuelForm.amount}
                   onChange={(e) => setFuelForm({ ...fuelForm, amount: e.target.value })}
@@ -1547,8 +1563,9 @@ export default function OutstandingEmployees() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">หมายเหตุ</label>
+                <label htmlFor="fuel-notes" className="block text-sm font-semibold text-app mb-2">หมายเหตุ</label>
                 <textarea
+                  id="fuel-notes"
                   value={fuelForm.notes}
                   onChange={(e) => setFuelForm({ ...fuelForm, notes: e.target.value })}
                   rows={2}

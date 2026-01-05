@@ -3,13 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Clock, Calendar, Wallet, TrendingUp, AlertCircle, CheckCircle, XCircle, FileText, Download, Eye, Image as ImageIcon, ZoomIn, Filter, CalendarDays, CalendarRange, Award, AlertTriangle, ArrowRightLeft, ArrowUp, Briefcase, DollarSign, ChevronRight, Edit, Settings, ChevronDown, ChevronLeft, Search, Trophy, Star, Medal, Gift, Heart, Package, Shield } from "lucide-react";
 import ProfileCard from "@/components/ProfileCard";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
 import ModalForm from "@/components/ModalForm";
-import { 
-  employees, 
-  shifts, 
-  attendanceLogs, 
-  leaves, 
+import {
+  employees,
+  shifts,
+  attendanceLogs,
+  leaves,
   payroll,
   salaryHistory,
   rewardPenaltyHistory,
@@ -40,7 +41,7 @@ export default function EmployeeDetail() {
   const [activeTab, setActiveTab] = useState("general");
   const [selectedPayslip, setSelectedPayslip] = useState<typeof payroll[0] | null>(null);
   const [selectedReceiptImage, setSelectedReceiptImage] = useState<string | null>(null);
-  
+
   // View mode states
   const [attendanceViewMode, setAttendanceViewMode] = useState<ViewMode>("day");
   const [leavesViewMode, setLeavesViewMode] = useState<ViewMode>("day");
@@ -50,19 +51,19 @@ export default function EmployeeDetail() {
   });
   const [calendarViewMode, setCalendarViewMode] = useState<"month" | "year">("month");
   const [calendarYear, setCalendarYear] = useState<string>(() => new Date().getFullYear().toString());
-  
+
   // Modal states for history details
   const [showWorkHistoryModal, setShowWorkHistoryModal] = useState(false);
   const [showSalaryHistoryModal, setShowSalaryHistoryModal] = useState(false);
   const [showRewardPenaltyModal, setShowRewardPenaltyModal] = useState(false);
   const [showTransferHistoryModal, setShowTransferHistoryModal] = useState(false);
-  
+
   // Management states
   const [showManagementDropdown, setShowManagementDropdown] = useState(false);
   const [showSalaryAdjustModal, setShowSalaryAdjustModal] = useState(false);
   const [showRewardPenaltyManageModal, setShowRewardPenaltyManageModal] = useState(false);
   const [showTransferPositionModal, setShowTransferPositionModal] = useState(false);
-  
+
   // Form states for modals
   const [salaryFormData, setSalaryFormData] = useState({
     type: "ขึ้นเงินเดือน",
@@ -73,7 +74,7 @@ export default function EmployeeDetail() {
     note: "",
     date: new Date().toISOString().split('T')[0]
   });
-  
+
   const [rewardPenaltyFormData, setRewardPenaltyFormData] = useState({
     type: "ทันบน",
     category: "",
@@ -84,7 +85,7 @@ export default function EmployeeDetail() {
     note: "",
     issuedBy: ""
   });
-  
+
   const [transferFormData, setTransferFormData] = useState({
     type: "โยกย้าย",
     oldPosition: "",
@@ -98,7 +99,7 @@ export default function EmployeeDetail() {
   });
 
   const [expandedTransferId, setExpandedTransferId] = useState<string | number | null>(null);
-  
+
   // Date range filters
   const [attendanceDateFrom, setAttendanceDateFrom] = useState("");
   const [attendanceDateTo, setAttendanceDateTo] = useState("");
@@ -131,7 +132,7 @@ export default function EmployeeDetail() {
   const workDuration = employee ? Math.floor(
     (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
   ) : 0;
-  
+
   // Filter data to show only since employee started working
   // Attendance: only from start date onwards
   const allAttendance = useMemo(() => {
@@ -198,13 +199,13 @@ export default function EmployeeDetail() {
   const absentCount = allAttendance.filter(log => log.status === "ขาดงาน").length;
   const leaveCount = allAttendance.filter(log => log.status === "ลา").length;
   const attendanceRate = totalDays > 0 ? ((onTimeCount / totalDays) * 100).toFixed(1) : "0.0";
-  
+
   // Leave statistics
   const totalLeaveDays = allLeaves.reduce((sum, leave) => sum + leave.days, 0);
   const approvedLeaves = allLeaves.filter(l => l.status === "อนุมัติแล้ว");
   const pendingLeaves = allLeaves.filter(l => l.status === "รอผู้จัดการ" || l.status === "รอ HR" || l.status === "รอหัวหน้าสถานี");
   const rejectedLeaves = allLeaves.filter(l => l.status === "ไม่อนุมัติ");
-  
+
   // Group leaves by type
   const leavesByType = allLeaves.reduce((acc, leave) => {
     if (!acc[leave.type]) {
@@ -219,8 +220,8 @@ export default function EmployeeDetail() {
   }, {} as Record<string, { count: number; days: number; approved: number; pending: number; rejected: number }>);
 
   // Payroll statistics
-  const avgSalary = allPayroll.length > 0 
-    ? allPayroll.reduce((sum, p) => sum + p.salary, 0) / allPayroll.length 
+  const avgSalary = allPayroll.length > 0
+    ? allPayroll.reduce((sum, p) => sum + p.salary, 0) / allPayroll.length
     : 0;
   const totalOT = allPayroll.reduce((sum, p) => sum + p.ot, 0);
   const avgOTRate = employee?.otRate || 200;
@@ -228,7 +229,7 @@ export default function EmployeeDetail() {
   const avgNetPay = allPayroll.length > 0
     ? allPayroll.reduce((sum, p) => sum + p.net, 0) / allPayroll.length
     : 0;
-  
+
   // Calculate working hours from attendance logs
   const calculateWorkingHours = useCallback((checkIn: string, checkOut: string): number => {
     if (checkIn === "-" || checkOut === "-") return 0;
@@ -249,8 +250,8 @@ export default function EmployeeDetail() {
     }));
 
   const totalWorkingHours = workingHoursData.reduce((sum, log) => sum + log.hours, 0);
-  const avgWorkingHours = workingHoursData.length > 0 
-    ? totalWorkingHours / workingHoursData.length 
+  const avgWorkingHours = workingHoursData.length > 0
+    ? totalWorkingHours / workingHoursData.length
     : 0;
 
   // Calculate late minutes
@@ -443,9 +444,9 @@ export default function EmployeeDetail() {
     if (attendanceViewMode === "day") {
       return allAttendance.map(log => ({
         key: log.date,
-        label: new Date(log.date).toLocaleDateString("th-TH", { 
-          year: "numeric", 
-          month: "short", 
+        label: new Date(log.date).toLocaleDateString("th-TH", {
+          year: "numeric",
+          month: "short",
           day: "numeric",
           weekday: "short"
         }),
@@ -455,20 +456,18 @@ export default function EmployeeDetail() {
     } else if (attendanceViewMode === "month") {
       const grouped = allAttendance.reduce((acc, log) => {
         const month = log.date.substring(0, 7); // YYYY-MM
-        if (!acc[month]) {
-          acc[month] = [];
-        }
-        acc[month].push(log);
+        const existing = acc.get(month) || [];
+        acc.set(month, [...existing, log]);
         return acc;
-      }, {} as Record<string, typeof allAttendance>);
-      
-      return Object.entries(grouped)
+      }, new Map<string, typeof allAttendance>());
+
+      return Array.from(grouped.entries())
         .sort((a, b) => b[0].localeCompare(a[0]))
         .map(([month, logs]) => ({
           key: month,
-          label: new Date(month + "-01").toLocaleDateString("th-TH", { 
-            year: "numeric", 
-            month: "long" 
+          label: new Date(month + "-01").toLocaleDateString("th-TH", {
+            year: "numeric",
+            month: "long"
           }),
           logs,
           date: month
@@ -476,14 +475,12 @@ export default function EmployeeDetail() {
     } else { // year
       const grouped = allAttendance.reduce((acc, log) => {
         const year = log.date.substring(0, 4); // YYYY
-        if (!acc[year]) {
-          acc[year] = [];
-        }
-        acc[year].push(log);
+        const existing = acc.get(year) || [];
+        acc.set(year, [...existing, log]);
         return acc;
-      }, {} as Record<string, typeof allAttendance>);
-      
-      return Object.entries(grouped)
+      }, new Map<string, typeof allAttendance>());
+
+      return Array.from(grouped.entries())
         .sort((a, b) => b[0].localeCompare(a[0]))
         .map(([year, logs]) => ({
           key: year,
@@ -500,9 +497,9 @@ export default function EmployeeDetail() {
     if (leavesViewMode === "day") {
       return allLeaves.map(leave => ({
         key: leave.id.toString(),
-        label: new Date(leave.fromDate).toLocaleDateString("th-TH", { 
-          year: "numeric", 
-          month: "short", 
+        label: new Date(leave.fromDate).toLocaleDateString("th-TH", {
+          year: "numeric",
+          month: "short",
           day: "numeric"
         }),
         leaves: [leave],
@@ -511,20 +508,18 @@ export default function EmployeeDetail() {
     } else if (leavesViewMode === "month") {
       const grouped = allLeaves.reduce((acc, leave) => {
         const month = leave.fromDate.substring(0, 7); // YYYY-MM
-        if (!acc[month]) {
-          acc[month] = [];
-        }
-        acc[month].push(leave);
+        const existing = acc.get(month) || [];
+        acc.set(month, [...existing, leave]);
         return acc;
-      }, {} as Record<string, typeof allLeaves>);
-      
-      return Object.entries(grouped)
+      }, new Map<string, typeof allLeaves>());
+
+      return Array.from(grouped.entries())
         .sort((a, b) => b[0].localeCompare(a[0]))
         .map(([month, leaves]) => ({
           key: month,
-          label: new Date(month + "-01").toLocaleDateString("th-TH", { 
-            year: "numeric", 
-            month: "long" 
+          label: new Date(month + "-01").toLocaleDateString("th-TH", {
+            year: "numeric",
+            month: "long"
           }),
           leaves,
           date: month
@@ -532,14 +527,12 @@ export default function EmployeeDetail() {
     } else { // year
       const grouped = allLeaves.reduce((acc, leave) => {
         const year = leave.fromDate.substring(0, 4); // YYYY
-        if (!acc[year]) {
-          acc[year] = [];
-        }
-        acc[year].push(leave);
+        const existing = acc.get(year) || [];
+        acc.set(year, [...existing, leave]);
         return acc;
-      }, {} as Record<string, typeof allLeaves>);
-      
-      return Object.entries(grouped)
+      }, new Map<string, typeof allLeaves>());
+
+      return Array.from(grouped.entries())
         .sort((a, b) => b[0].localeCompare(a[0]))
         .map(([year, leaves]) => ({
           key: year,
@@ -748,8 +741,8 @@ export default function EmployeeDetail() {
   // Initialize form data when modals open
   useEffect(() => {
     if (showSalaryAdjustModal && employee) {
-      const currentSalary = allPayroll.length > 0 
-        ? allPayroll[allPayroll.length - 1].salary 
+      const currentSalary = allPayroll.length > 0
+        ? allPayroll[allPayroll.length - 1].salary
         : 0;
       setSalaryFormData({
         type: "ขึ้นเงินเดือน",
@@ -891,7 +884,7 @@ export default function EmployeeDetail() {
             <p className="text-muted font-light">รายละเอียดและประวัติการทำงาน</p>
           </div>
         </div>
-        
+
         {/* Action Buttons */}
         <div className="flex items-center gap-3">
           <button
@@ -902,7 +895,7 @@ export default function EmployeeDetail() {
             <Edit className="w-4 h-4" />
             แก้ไขพนักงาน
           </button>
-          
+
           {/* Management Dropdown */}
           <div className="relative">
             <button
@@ -914,12 +907,18 @@ export default function EmployeeDetail() {
               จัดการ
               <ChevronDown className={`w-4 h-4 transition-transform ${showManagementDropdown ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {showManagementDropdown && (
               <>
-                <div 
-                  className="fixed inset-0 z-40" 
+                <div
+                  className="fixed inset-0 z-40"
                   onClick={() => setShowManagementDropdown(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setShowManagementDropdown(false);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Close dropdown"
                 />
                 <div className="absolute right-0 mt-2 w-56 bg-soft border border-app rounded-lg shadow-xl z-50 overflow-hidden">
                   <button
@@ -1052,11 +1051,10 @@ export default function EmployeeDetail() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "text-ptt-cyan border-b-2 border-ptt-cyan"
-                  : "text-muted hover:text-app"
-              }`}
+              className={`px-6 py-4 font-medium transition-colors whitespace-nowrap ${activeTab === tab.id
+                ? "text-ptt-cyan border-b-2 border-ptt-cyan"
+                : "text-muted hover:text-app"
+                }`}
             >
               {tab.label}
             </button>
@@ -1151,7 +1149,7 @@ export default function EmployeeDetail() {
                 <h3 className="text-lg font-semibold text-app mb-4 font-display">
                   ประวัติการทำงาน
                 </h3>
-                
+
                 {/* Work Duration */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 bg-soft rounded-xl">
@@ -1190,7 +1188,7 @@ export default function EmployeeDetail() {
                         const durationYears = Math.floor(durationMonths / 12);
                         const remainingMonths = durationMonths % 12;
                         const remainingDays = durationDays % 30;
-                        
+
                         let durationText = "";
                         if (durationYears > 0) {
                           durationText = `${durationYears} ปี`;
@@ -1205,7 +1203,7 @@ export default function EmployeeDetail() {
                         } else {
                           durationText = `${durationDays} วัน`;
                         }
-                        
+
                         return (
                           <div key={work.id} className="p-4 bg-soft rounded-xl border border-app">
                             <div className="flex items-start justify-between mb-2">
@@ -1242,196 +1240,194 @@ export default function EmployeeDetail() {
                   </div>
                 )}
 
-              {/* Attendance Summary */}
-              <div>
-                <h4 className="text-md font-semibold text-app mb-3 font-display flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  สรุปการเข้างาน (ตั้งแต่เริ่มงาน)
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                    <p className="text-xs text-muted">เข้างานตรงเวลา</p>
-                    <p className="text-lg font-bold text-green-400">{onTimeCount} ครั้ง</p>
-                    <p className="text-xs text-muted mt-1">
-                      {totalDays > 0 ? ((onTimeCount / totalDays) * 100).toFixed(0) : 0}% ของทั้งหมด
-                    </p>
-                  </div>
-                  <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                    <p className="text-xs text-muted">มาสาย</p>
-                    <p className="text-lg font-bold text-yellow-400">{lateCount} ครั้ง</p>
-                    <p className="text-xs text-muted mt-1">
-                      {totalDays > 0 ? ((lateCount / totalDays) * 100).toFixed(0) : 0}% ของทั้งหมด
-                    </p>
-                  </div>
-                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                    <p className="text-xs text-muted">ขาดงาน</p>
-                    <p className="text-lg font-bold text-red-400">{absentCount} ครั้ง</p>
-                    <p className="text-xs text-muted mt-1">
-                      {totalDays > 0 ? ((absentCount / totalDays) * 100).toFixed(0) : 0}% ของทั้งหมด
-                    </p>
-                  </div>
-                  <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                    <p className="text-xs text-muted">ลา</p>
-                    <p className="text-lg font-bold text-blue-400">{leaveCount} ครั้ง</p>
-                    <p className="text-xs text-muted mt-1">
-                      {totalDays > 0 ? ((leaveCount / totalDays) * 100).toFixed(0) : 0}% ของทั้งหมด
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted">อัตราการเข้างาน: <span className="text-ptt-cyan font-semibold">{attendanceRate}%</span></p>
-                      <p className="text-xs text-muted mt-1">จากทั้งหมด {totalDays} วัน (ตั้งแต่ {employee.startDate})</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted">ระยะเวลาทำงาน</p>
-                      <p className="text-sm font-semibold text-ptt-cyan">{workDuration} เดือน</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Leave Summary */}
-              <div>
-                <h4 className="text-md font-semibold text-app mb-3 font-display flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  สรุปการลา (ตั้งแต่เริ่มงาน)
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="p-3 bg-soft rounded-lg">
-                    <p className="text-xs text-muted">การลาทั้งหมด</p>
-                    <p className="text-lg font-bold text-app">{allLeaves.length} รายการ</p>
-                    <p className="text-xs text-muted mt-1">{totalLeaveDays} วัน</p>
-                    <p className="text-xs text-ptt-cyan mt-1">
-                      เฉลี่ย {workDuration > 0 ? (totalLeaveDays / workDuration).toFixed(1) : 0} วัน/เดือน
-                    </p>
-                  </div>
-                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                    <p className="text-xs text-muted">อนุมัติแล้ว</p>
-                    <p className="text-lg font-bold text-green-400">{approvedLeaves.length} รายการ</p>
-                    <p className="text-xs text-muted mt-1">
-                      {approvedLeaves.reduce((sum, l) => sum + l.days, 0)} วัน
-                    </p>
-                  </div>
-                  <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                    <p className="text-xs text-muted">รออนุมัติ</p>
-                    <p className="text-lg font-bold text-yellow-400">{pendingLeaves.length} รายการ</p>
-                    <p className="text-xs text-muted mt-1">
-                      {pendingLeaves.reduce((sum, l) => sum + l.days, 0)} วัน
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payroll Summary */}
-              <div>
-                <h4 className="text-md font-semibold text-app mb-3 font-display flex items-center gap-2">
-                  <Wallet className="w-4 h-4" />
-                  สรุปเงินเดือน (ตั้งแต่เริ่มงาน)
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="p-3 bg-soft rounded-lg">
-                    <p className="text-xs text-muted">เงินเดือนเฉลี่ย</p>
-                    <p className="text-lg font-bold text-app font-mono">{formatCurrency(avgSalary)}</p>
-                    <p className="text-xs text-muted mt-1">
-                      จาก {allPayroll.length} เดือนที่ทำงาน
-                    </p>
-                  </div>
-                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                    <p className="text-xs text-muted">OT สะสม</p>
-                    <p className="text-lg font-bold text-green-400 font-mono">{formatCurrency(totalOT)}</p>
-                    <p className="text-xs text-muted mt-1">
-                      {totalOTHours} ชั่วโมง
-                      {workDuration > 0 && (
-                        <span className="ml-1">(เฉลี่ย {Math.round(totalOTHours / workDuration)} ชม./เดือน)</span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
-                    <p className="text-xs text-muted">รับสุทธิเฉลี่ย</p>
-                    <p className="text-lg font-bold text-ptt-cyan font-mono">{formatCurrency(avgNetPay)}</p>
-                    <p className="text-xs text-muted mt-1">
-                      รวมทั้งหมด {formatCurrency(allPayroll.reduce((sum, p) => sum + p.net, 0))}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Salary History */}
-              {empSalaryHistory.length > 0 && (
+                {/* Attendance Summary */}
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-md font-semibold text-app font-display flex items-center gap-2">
-                      <DollarSign className="w-4 h-4" />
-                      ประวัติการขึ้น-ลดเงินเดือน
-                    </h4>
-                    <button
-                      onClick={() => setShowSalaryHistoryModal(true)}
-                      className="text-sm text-ptt-cyan hover:text-ptt-blue flex items-center gap-1 transition-colors"
-                    >
-                      ดูทั้งหมด ({empSalaryHistory.length})
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                  <h4 className="text-md font-semibold text-app mb-3 font-display flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    สรุปการเข้างาน (ตั้งแต่เริ่มงาน)
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                      <p className="text-xs text-muted">เข้างานตรงเวลา</p>
+                      <p className="text-lg font-bold text-green-400">{onTimeCount} ครั้ง</p>
+                      <p className="text-xs text-muted mt-1">
+                        {totalDays > 0 ? ((onTimeCount / totalDays) * 100).toFixed(0) : 0}% ของทั้งหมด
+                      </p>
+                    </div>
+                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                      <p className="text-xs text-muted">มาสาย</p>
+                      <p className="text-lg font-bold text-yellow-400">{lateCount} ครั้ง</p>
+                      <p className="text-xs text-muted mt-1">
+                        {totalDays > 0 ? ((lateCount / totalDays) * 100).toFixed(0) : 0}% ของทั้งหมด
+                      </p>
+                    </div>
+                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                      <p className="text-xs text-muted">ขาดงาน</p>
+                      <p className="text-lg font-bold text-red-400">{absentCount} ครั้ง</p>
+                      <p className="text-xs text-muted mt-1">
+                        {totalDays > 0 ? ((absentCount / totalDays) * 100).toFixed(0) : 0}% ของทั้งหมด
+                      </p>
+                    </div>
+                    <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <p className="text-xs text-muted">ลา</p>
+                      <p className="text-lg font-bold text-blue-400">{leaveCount} ครั้ง</p>
+                      <p className="text-xs text-muted mt-1">
+                        {totalDays > 0 ? ((leaveCount / totalDays) * 100).toFixed(0) : 0}% ของทั้งหมด
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-3">
-                    {empSalaryHistory.slice(0, 2).map((salary) => (
-                      <div key={salary.id} className="p-4 bg-soft rounded-xl border border-app">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                                salary.type === "ขึ้นเงินเดือน" 
+                  <div className="mt-3 p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted">อัตราการเข้างาน: <span className="text-ptt-cyan font-semibold">{attendanceRate}%</span></p>
+                        <p className="text-xs text-muted mt-1">จากทั้งหมด {totalDays} วัน (ตั้งแต่ {employee.startDate})</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted">ระยะเวลาทำงาน</p>
+                        <p className="text-sm font-semibold text-ptt-cyan">{workDuration} เดือน</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Leave Summary */}
+                <div>
+                  <h4 className="text-md font-semibold text-app mb-3 font-display flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    สรุปการลา (ตั้งแต่เริ่มงาน)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="p-3 bg-soft rounded-lg">
+                      <p className="text-xs text-muted">การลาทั้งหมด</p>
+                      <p className="text-lg font-bold text-app">{allLeaves.length} รายการ</p>
+                      <p className="text-xs text-muted mt-1">{totalLeaveDays} วัน</p>
+                      <p className="text-xs text-ptt-cyan mt-1">
+                        เฉลี่ย {workDuration > 0 ? (totalLeaveDays / workDuration).toFixed(1) : 0} วัน/เดือน
+                      </p>
+                    </div>
+                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                      <p className="text-xs text-muted">อนุมัติแล้ว</p>
+                      <p className="text-lg font-bold text-green-400">{approvedLeaves.length} รายการ</p>
+                      <p className="text-xs text-muted mt-1">
+                        {approvedLeaves.reduce((sum, l) => sum + l.days, 0)} วัน
+                      </p>
+                    </div>
+                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                      <p className="text-xs text-muted">รออนุมัติ</p>
+                      <p className="text-lg font-bold text-yellow-400">{pendingLeaves.length} รายการ</p>
+                      <p className="text-xs text-muted mt-1">
+                        {pendingLeaves.reduce((sum, l) => sum + l.days, 0)} วัน
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payroll Summary */}
+                <div>
+                  <h4 className="text-md font-semibold text-app mb-3 font-display flex items-center gap-2">
+                    <Wallet className="w-4 h-4" />
+                    สรุปเงินเดือน (ตั้งแต่เริ่มงาน)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="p-3 bg-soft rounded-lg">
+                      <p className="text-xs text-muted">เงินเดือนเฉลี่ย</p>
+                      <p className="text-lg font-bold text-app font-mono">{formatCurrency(avgSalary)}</p>
+                      <p className="text-xs text-muted mt-1">
+                        จาก {allPayroll.length} เดือนที่ทำงาน
+                      </p>
+                    </div>
+                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                      <p className="text-xs text-muted">OT สะสม</p>
+                      <p className="text-lg font-bold text-green-400 font-mono">{formatCurrency(totalOT)}</p>
+                      <p className="text-xs text-muted mt-1">
+                        {totalOTHours} ชั่วโมง
+                        {workDuration > 0 && (
+                          <span className="ml-1">(เฉลี่ย {Math.round(totalOTHours / workDuration)} ชม./เดือน)</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
+                      <p className="text-xs text-muted">รับสุทธิเฉลี่ย</p>
+                      <p className="text-lg font-bold text-ptt-cyan font-mono">{formatCurrency(avgNetPay)}</p>
+                      <p className="text-xs text-muted mt-1">
+                        รวมทั้งหมด {formatCurrency(allPayroll.reduce((sum, p) => sum + p.net, 0))}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Salary History */}
+                {empSalaryHistory.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-md font-semibold text-app font-display flex items-center gap-2">
+                        <DollarSign className="w-4 h-4" />
+                        ประวัติการขึ้น-ลดเงินเดือน
+                      </h4>
+                      <button
+                        onClick={() => setShowSalaryHistoryModal(true)}
+                        className="text-sm text-ptt-cyan hover:text-ptt-blue flex items-center gap-1 transition-colors"
+                      >
+                        ดูทั้งหมด ({empSalaryHistory.length})
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="space-y-3">
+                      {empSalaryHistory.slice(0, 2).map((salary) => (
+                        <div key={salary.id} className="p-4 bg-soft rounded-xl border border-app">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`px-3 py-1 rounded-lg text-xs font-medium ${salary.type === "ขึ้นเงินเดือน"
                                   ? "bg-green-500/20 text-green-400 border border-green-500/30"
                                   : salary.type === "ลดเงินเดือน"
-                                  ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                                  : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                              }`}>
-                                {salary.type}
-                              </span>
-                              <span className="text-sm text-muted">
-                                {new Date(salary.date).toLocaleDateString("th-TH", { 
-                                  year: "numeric", 
-                                  month: "long", 
-                                  day: "numeric" 
-                                })}
-                              </span>
+                                    ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                    : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                                  }`}>
+                                  {salary.type}
+                                </span>
+                                <span className="text-sm text-muted">
+                                  {new Date(salary.date).toLocaleDateString("th-TH", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric"
+                                  })}
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted mb-2">{salary.reason}</p>
                             </div>
-                            <p className="text-sm text-muted mb-2">{salary.reason}</p>
+                            <div className="text-right">
+                              <p className="text-xs text-muted">เปลี่ยน</p>
+                              <p className={`text-sm font-semibold ${salary.changeAmount > 0 ? "text-green-400" : "text-red-400"
+                                }`}>
+                                {salary.changeAmount > 0 ? "+" : ""}{formatCurrency(salary.changeAmount)}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-xs text-muted">เปลี่ยน</p>
-                            <p className={`text-sm font-semibold ${
-                              salary.changeAmount > 0 ? "text-green-400" : "text-red-400"
-                            }`}>
-                              {salary.changeAmount > 0 ? "+" : ""}{formatCurrency(salary.changeAmount)}
-                            </p>
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <p className="text-xs text-muted">เงินเดือนเดิม</p>
+                              <p className="text-sm font-semibold text-app font-mono">{formatCurrency(salary.oldSalary)}</p>
+                            </div>
+                            <ArrowRightLeft className="w-4 h-4 text-muted" />
+                            <div>
+                              <p className="text-xs text-muted">เงินเดือนใหม่</p>
+                              <p className="text-sm font-semibold text-ptt-cyan font-mono">{formatCurrency(salary.newSalary)}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
+                            <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
+                            <p className="text-sm text-app">{salary.note}</p>
+                            <p className="text-xs text-muted mt-2">อนุมัติโดย: {salary.approvedBy}</p>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <p className="text-xs text-muted">เงินเดือนเดิม</p>
-                            <p className="text-sm font-semibold text-app font-mono">{formatCurrency(salary.oldSalary)}</p>
-                          </div>
-                          <ArrowRightLeft className="w-4 h-4 text-muted" />
-                          <div>
-                            <p className="text-xs text-muted">เงินเดือนใหม่</p>
-                            <p className="text-sm font-semibold text-ptt-cyan font-mono">{formatCurrency(salary.newSalary)}</p>
-                          </div>
-                        </div>
-                        <div className="mt-3 p-3 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg">
-                          <p className="text-xs text-muted mb-1">หมายเหตุ:</p>
-                          <p className="text-sm text-app">{salary.note}</p>
-                          <p className="text-xs text-muted mt-2">อนุมัติโดย: {salary.approvedBy}</p>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
 
-            </div>
+              </div>
             );
           })()}
 
@@ -1449,18 +1445,17 @@ export default function EmployeeDetail() {
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
                   {/* View Mode Selector - Button Group */}
                   <div className="flex flex-col gap-2">
-                    <label className="text-xs text-muted flex items-center gap-1">
+                    <span className="text-xs text-muted flex items-center gap-1">
                       <Filter className="w-3 h-3" />
                       แสดงข้อมูลแบบ:
-                    </label>
+                    </span>
                     <div className="flex items-center gap-1 bg-soft p-1 rounded-lg border border-app">
                       <button
                         onClick={() => handleLeavesViewModeChange("day")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-                          leavesViewMode === "day"
-                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-app/10"
-                        }`}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${leavesViewMode === "day"
+                          ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                          : "text-muted hover:text-app hover:bg-app/10"
+                          }`}
                         title="แสดงรายละเอียดแต่ละวัน"
                       >
                         <CalendarDays className="w-3.5 h-3.5" />
@@ -1468,11 +1463,10 @@ export default function EmployeeDetail() {
                       </button>
                       <button
                         onClick={() => handleLeavesViewModeChange("month")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-                          leavesViewMode === "month"
-                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-app/10"
-                        }`}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${leavesViewMode === "month"
+                          ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                          : "text-muted hover:text-app hover:bg-app/10"
+                          }`}
                         title="จัดกลุ่มตามเดือน"
                       >
                         <Calendar className="w-3.5 h-3.5" />
@@ -1480,11 +1474,10 @@ export default function EmployeeDetail() {
                       </button>
                       <button
                         onClick={() => handleLeavesViewModeChange("year")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-                          leavesViewMode === "year"
-                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-app/10"
-                        }`}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${leavesViewMode === "year"
+                          ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                          : "text-muted hover:text-app hover:bg-app/10"
+                          }`}
                         title="จัดกลุ่มตามปี"
                       >
                         <CalendarRange className="w-3.5 h-3.5" />
@@ -1492,15 +1485,16 @@ export default function EmployeeDetail() {
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Date Range Filters */}
                   <div className="flex flex-col gap-2">
-                    <label className="text-xs text-muted flex items-center gap-1">
+                    <span className="text-xs text-muted flex items-center gap-1">
                       <CalendarRange className="w-3 h-3" />
                       กรองตามวันที่:
-                    </label>
+                    </span>
                     <div className="flex items-center gap-2">
                       <input
+                        aria-label="Leaves Date From"
                         type="date"
                         value={leavesDateFrom}
                         onChange={(e) => setLeavesDateFrom(e.target.value)}
@@ -1510,6 +1504,7 @@ export default function EmployeeDetail() {
                       />
                       <span className="text-muted text-sm">ถึง</span>
                       <input
+                        aria-label="Leaves Date To"
                         type="date"
                         value={leavesDateTo}
                         onChange={(e) => setLeavesDateTo(e.target.value)}
@@ -1531,7 +1526,7 @@ export default function EmployeeDetail() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="text-sm text-right">
                     <div>
                       <span className="text-muted">รวมทั้งหมด: </span>
@@ -1709,17 +1704,17 @@ export default function EmployeeDetail() {
                                     <td className="px-4 py-3 text-sm text-app">
                                       <div>
                                         <div className="font-medium">
-                                          {fromDate.toLocaleDateString("th-TH", { 
-                                            year: "numeric", 
-                                            month: "short", 
-                                            day: "numeric" 
+                                          {fromDate.toLocaleDateString("th-TH", {
+                                            year: "numeric",
+                                            month: "short",
+                                            day: "numeric"
                                           })}
                                         </div>
                                         <div className="text-xs text-muted">
-                                          ถึง {toDate.toLocaleDateString("th-TH", { 
-                                            year: "numeric", 
-                                            month: "short", 
-                                            day: "numeric" 
+                                          ถึง {toDate.toLocaleDateString("th-TH", {
+                                            year: "numeric",
+                                            month: "short",
+                                            day: "numeric"
                                           })}
                                         </div>
                                         {(isPast || isCurrent) && (
@@ -1756,8 +1751,8 @@ export default function EmployeeDetail() {
                     ))}
                     <div className="text-center pt-4">
                       <p className="text-xs text-muted">
-                        แสดงทั้งหมด {allLeaves.length} รายการ • 
-                        รวม {totalLeaveDays} วัน • 
+                        แสดงทั้งหมด {allLeaves.length} รายการ •
+                        รวม {totalLeaveDays} วัน •
                         เฉลี่ย {workDuration > 0 ? (totalLeaveDays / workDuration).toFixed(1) : 0} วัน/เดือน
                       </p>
                     </div>
@@ -1815,9 +1810,9 @@ export default function EmployeeDetail() {
                         {allPayroll.map((pay) => (
                           <tr key={pay.id} className="hover:bg-soft transition-colors">
                             <td className="px-4 py-3 text-sm text-app font-medium">
-                              {new Date(pay.month + "-01").toLocaleDateString("th-TH", { 
-                                year: "numeric", 
-                                month: "long" 
+                              {new Date(pay.month + "-01").toLocaleDateString("th-TH", {
+                                year: "numeric",
+                                month: "long"
                               })}
                             </td>
                             <td className="px-4 py-3 text-right text-sm text-app font-mono">{formatCurrency(pay.salary)}</td>
@@ -1959,9 +1954,9 @@ export default function EmployeeDetail() {
                             return (
                               <tr key={pay.id} className="hover:bg-soft transition-colors">
                                 <td className="px-4 py-3 text-sm text-app font-medium">
-                                  {new Date(pay.month + "-01").toLocaleDateString("th-TH", { 
-                                    year: "numeric", 
-                                    month: "long" 
+                                  {new Date(pay.month + "-01").toLocaleDateString("th-TH", {
+                                    year: "numeric",
+                                    month: "long"
                                   })}
                                 </td>
                                 <td className="px-4 py-3 text-right text-sm text-ptt-cyan font-semibold">
@@ -2017,9 +2012,9 @@ export default function EmployeeDetail() {
                             return (
                               <tr key={log.id} className="hover:bg-soft transition-colors">
                                 <td className="px-4 py-3 text-sm text-app">
-                                  {new Date(log.date).toLocaleDateString("th-TH", { 
-                                    year: "numeric", 
-                                    month: "short", 
+                                  {new Date(log.date).toLocaleDateString("th-TH", {
+                                    year: "numeric",
+                                    month: "short",
                                     day: "numeric",
                                     weekday: "short"
                                   })}
@@ -2086,7 +2081,7 @@ export default function EmployeeDetail() {
                   <div className="mt-4 p-3 bg-soft rounded-lg border border-app">
                     <p className="text-xs text-muted mb-1">ข้อมูลกะการทำงาน</p>
                     <p className="text-sm text-app">
-                      กะ{employeeShift.name}: {employeeShift.startTime} - {employeeShift.endTime} 
+                      กะ{employeeShift.name}: {employeeShift.startTime} - {employeeShift.endTime}
                       <span className="text-muted ml-2">({shiftHours} ชั่วโมง/วัน)</span>
                     </p>
                     <p className="text-xs text-muted mt-1">
@@ -2211,15 +2206,23 @@ export default function EmployeeDetail() {
                                       <ArrowUp className="w-4 h-4 text-app/40 mb-2" />
                                     )}
                                     <div
-                                      className={`w-full md:w-2/3 bg-white/90 dark:bg-ink-900 border rounded-2xl px-5 py-4 shadow-lg transition-all ${
-                                        isInteractive
-                                          ? "cursor-pointer border-ptt-blue/40 hover:border-ptt-cyan/70 hover:shadow-ptt-blue/20 hover:shadow-xl"
-                                          : "border-app"
-                                      }`}
+                                      className={`w-full md:w-2/3 bg-white/90 dark:bg-ink-900 border rounded-2xl px-5 py-4 shadow-lg transition-all ${isInteractive
+                                        ? "cursor-pointer border-ptt-blue/40 hover:border-ptt-cyan/70 hover:shadow-ptt-blue/20 hover:shadow-xl"
+                                        : "border-app"
+                                        }`}
                                       onClick={() => {
                                         if (!isInteractive) return;
                                         setExpandedTransferId(isExpanded ? null : step.id);
                                       }}
+                                      onKeyDown={(e) => {
+                                        if (!isInteractive) return;
+                                        if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          setExpandedTransferId(isExpanded ? null : step.id);
+                                        }
+                                      }}
+                                      role={isInteractive ? "button" : undefined}
+                                      tabIndex={isInteractive ? 0 : -1}
                                     >
                                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                         <div>
@@ -2368,8 +2371,8 @@ export default function EmployeeDetail() {
                             {rewardStats.warnings.length >= 3
                               ? "ควรพิจารณาเตือนเป็นลายลักษณ์อักษร"
                               : rewardStats.disciplinary.length > 0
-                              ? "ติดตามผลหลังมาตรการ"
-                              : "อยู่ในขั้นเตือนเบื้องต้น"}
+                                ? "ติดตามผลหลังมาตรการ"
+                                : "อยู่ในขั้นเตือนเบื้องต้น"}
                           </p>
                         </div>
                       </div>
@@ -2449,12 +2452,12 @@ export default function EmployeeDetail() {
                       <div className="space-y-3">
                         {mockRewards.map((reward) => {
                           const Icon = reward.icon;
-                          const bgClass = reward.color === "yellow" ? "bg-yellow-500/20" : 
-                                         reward.color === "blue" ? "bg-blue-500/20" : 
-                                         "bg-orange-500/20";
-                          const textClass = reward.color === "yellow" ? "text-yellow-400" : 
-                                           reward.color === "blue" ? "text-blue-400" : 
-                                           "text-orange-400";
+                          const bgClass = reward.color === "yellow" ? "bg-yellow-500/20" :
+                            reward.color === "blue" ? "bg-blue-500/20" :
+                              "bg-orange-500/20";
+                          const textClass = reward.color === "yellow" ? "text-yellow-400" :
+                            reward.color === "blue" ? "text-blue-400" :
+                              "text-orange-400";
                           return (
                             <div
                               key={reward.id}
@@ -2531,33 +2534,33 @@ export default function EmployeeDetail() {
                     ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
                     const getWelfareTypeLabel = (type: string) => {
-                      const labels: Record<string, string> = {
-                        benefits: "การเบิก",
-                        bonus: "BONUS รายปี",
-                        dormitory: "หอพัก",
-                        fuel: "ค่าน้ำมัน",
-                        trip: "ทัศนศึกษาพาสุข",
-                        holidays: "หยุดงานตามกฎหมาย",
-                        condolence: "เยี่ยมไข้/คลอด/งานศพ",
-                        scholarship: "ทุนการศึกษาบุตร",
-                        insurance: "ประกันชีวิตหัวหน้างาน"
-                      };
-                      return labels[type] || type;
+                      const labelsMap = new Map<string, string>([
+                        ["benefits", "การเบิก"],
+                        ["bonus", "BONUS รายปี"],
+                        ["dormitory", "หอพัก"],
+                        ["fuel", "ค่าน้ำมัน"],
+                        ["trip", "ทัศนศึกษาพาสุข"],
+                        ["holidays", "หยุดงานตามกฎหมาย"],
+                        ["condolence", "เยี่ยมไข้/คลอด/งานศพ"],
+                        ["scholarship", "ทุนการศึกษาบุตร"],
+                        ["insurance", "ประกันชีวิตหัวหน้างาน"]
+                      ]);
+                      return labelsMap.get(type) || type;
                     };
 
                     const getWelfareIcon = (type: string) => {
-                      const icons: Record<string, typeof Package> = {
-                        benefits: Package,
-                        bonus: Gift,
-                        dormitory: Briefcase,
-                        fuel: TrendingUp,
-                        trip: Calendar,
-                        holidays: Calendar,
-                        condolence: Heart,
-                        scholarship: FileText,
-                        insurance: Shield
-                      };
-                      return icons[type] || Package;
+                      const iconsMap = new Map<string, typeof Package>([
+                        ["benefits", Package],
+                        ["bonus", Gift],
+                        ["dormitory", Briefcase],
+                        ["fuel", TrendingUp],
+                        ["trip", Calendar],
+                        ["holidays", Calendar],
+                        ["condolence", Heart],
+                        ["scholarship", FileText],
+                        ["insurance", Shield]
+                      ]);
+                      return iconsMap.get(type) || Package;
                     };
 
                     return employeeWelfare.length > 0 ? (
@@ -2628,28 +2631,26 @@ export default function EmployeeDetail() {
                 </div>
                 <div className="flex flex-col md:flex-row md:items-center gap-4">
                   <div className="flex flex-col gap-2">
-                    <label className="text-xs text-muted flex items-center gap-1">
+                    <span className="text-xs text-muted flex items-center gap-1">
                       <Filter className="w-3 h-3" />
                       แสดงแบบ:
-                    </label>
+                    </span>
                     <div className="flex items-center gap-1 bg-soft p-1 rounded-lg border border-app">
                       <button
                         onClick={() => handleCalendarViewModeChange("month")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                          calendarViewMode === "month"
-                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-app/10"
-                        }`}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${calendarViewMode === "month"
+                          ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                          : "text-muted hover:text-app hover:bg-app/10"
+                          }`}
                       >
                         รายเดือน
                       </button>
                       <button
                         onClick={() => handleCalendarViewModeChange("year")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                          calendarViewMode === "year"
-                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-app/10"
-                        }`}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${calendarViewMode === "year"
+                          ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                          : "text-muted hover:text-app hover:bg-app/10"
+                          }`}
                       >
                         รายปี
                       </button>
@@ -2664,6 +2665,7 @@ export default function EmployeeDetail() {
                         <ChevronLeft className="w-4 h-4 text-app" />
                       </button>
                       <input
+                        aria-label="Filter by month"
                         type="month"
                         value={calendarMonth}
                         onChange={(e) => setCalendarMonth(e.target.value)}
@@ -2685,6 +2687,7 @@ export default function EmployeeDetail() {
                         <ChevronLeft className="w-4 h-4 text-app" />
                       </button>
                       <select
+                        aria-label="Filter by year"
                         value={calendarYear}
                         onChange={(e) => handleCalendarYearChange(e.target.value)}
                         className="px-4 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
@@ -2733,20 +2736,17 @@ export default function EmployeeDetail() {
                           {calendarData.map((dayData) => {
                             const isToday = dayData.date === new Date().toISOString().split('T')[0];
                             const isPast = new Date(dayData.date) < new Date(new Date().setHours(0, 0, 0, 0));
-                            
+
                             return (
                               <div
                                 key={dayData.date}
-                                className={`min-h-[100px] border-r border-b border-app last:border-r-0 p-2 ${
-                                  dayData.statusColor
-                                } ${isToday ? "ring-2 ring-ptt-cyan" : ""} ${
-                                  isPast ? "opacity-80" : ""
-                                }`}
+                                className={`min-h-[100px] border-r border-b border-app last:border-r-0 p-2 ${dayData.statusColor
+                                  } ${isToday ? "ring-2 ring-ptt-cyan" : ""} ${isPast ? "opacity-80" : ""
+                                  }`}
                               >
                                 <div className="flex items-start justify-between mb-1">
-                                  <span className={`text-sm font-semibold ${
-                                    isToday ? "text-ptt-cyan" : "text-app"
-                                  }`}>
+                                  <span className={`text-sm font-semibold ${isToday ? "text-ptt-cyan" : "text-app"
+                                    }`}>
                                     {dayData.day}
                                   </span>
                                   {dayData.otHours > 0 && (
@@ -2755,7 +2755,7 @@ export default function EmployeeDetail() {
                                     </span>
                                   )}
                                 </div>
-                                
+
                                 <div className="space-y-1 text-xs">
                                   {dayData.log && (
                                     <>
@@ -2805,7 +2805,7 @@ export default function EmployeeDetail() {
                     const monthOTDays = calendarData.filter(d => d.otHours > 0).length;
                     const monthTotalOT = calendarData.reduce((sum, d) => sum + d.otHours, 0);
                     const monthTotalHours = calendarData.reduce((sum, d) => sum + d.workingHours, 0);
-                    
+
                     return (
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
@@ -2846,9 +2846,8 @@ export default function EmployeeDetail() {
                     {yearlyCalendars.map((month) => (
                       <div
                         key={month.monthNumber}
-                        className={`p-4 rounded-xl border ${
-                          month.stats.hasData ? "bg-soft" : "bg-soft/60 opacity-80"
-                        } space-y-3`}
+                        className={`p-4 rounded-xl border ${month.stats.hasData ? "bg-soft" : "bg-soft/60 opacity-80"
+                          } space-y-3`}
                       >
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-semibold text-app">{month.label}</p>
@@ -2888,9 +2887,8 @@ export default function EmployeeDetail() {
                               return (
                                 <div
                                   key={`${month.monthNumber}-${dayData.date}`}
-                                  className={`min-h-[60px] rounded-lg border border-app/20 p-1.5 text-[11px] ${dayData.statusColor} ${
-                                    isToday ? "ring-2 ring-ptt-cyan" : ""
-                                  }`}
+                                  className={`min-h-[60px] rounded-lg border border-app/20 p-1.5 text-[11px] ${dayData.statusColor} ${isToday ? "ring-2 ring-ptt-cyan" : ""
+                                    }`}
                                 >
                                   <div className="flex items-center justify-between font-semibold">
                                     <span className={isToday ? "text-ptt-cyan" : "text-app"}>{dayData.day}</span>
@@ -2968,9 +2966,9 @@ export default function EmployeeDetail() {
                     <div>
                       <p className="text-xs text-muted mb-1">เดือน</p>
                       <p className="text-sm font-semibold text-app">
-                        {new Date(selectedPayslip.month + "-01").toLocaleDateString("th-TH", { 
-                          year: "numeric", 
-                          month: "long" 
+                        {new Date(selectedPayslip.month + "-01").toLocaleDateString("th-TH", {
+                          year: "numeric",
+                          month: "long"
                         })}
                       </p>
                     </div>
@@ -2980,34 +2978,34 @@ export default function EmployeeDetail() {
                 {/* Payroll Details */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-semibold text-app">รายละเอียดเงินเดือน</h4>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center justify-between p-3 bg-soft rounded-lg">
                       <span className="text-sm text-muted">เงินเดือน</span>
                       <span className="text-sm font-semibold text-app font-mono">{formatCurrency(selectedPayslip.salary)}</span>
                     </div>
-                    
+
                     {selectedPayslip.ot > 0 && (
                       <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg">
                         <span className="text-sm text-muted">ค่าล่วงเวลา (OT)</span>
                         <span className="text-sm font-semibold text-green-400 font-mono">+{formatCurrency(selectedPayslip.ot)}</span>
                       </div>
                     )}
-                    
+
                     {selectedPayslip.bonus > 0 && (
                       <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg">
                         <span className="text-sm text-muted">โบนัส</span>
                         <span className="text-sm font-semibold text-green-400 font-mono">+{formatCurrency(selectedPayslip.bonus)}</span>
                       </div>
                     )}
-                    
+
                     {selectedPayslip.deduction > 0 && (
                       <div className="flex items-center justify-between p-3 bg-red-500/10 rounded-lg">
                         <span className="text-sm text-muted">หักลดหย่อน</span>
                         <span className="text-sm font-semibold text-red-400 font-mono">-{formatCurrency(selectedPayslip.deduction)}</span>
                       </div>
                     )}
-                    
+
                     <div className="flex items-center justify-between p-4 bg-ptt-blue/10 border border-ptt-blue/30 rounded-lg mt-3">
                       <span className="text-base font-semibold text-app">รับสุทธิ</span>
                       <span className="text-xl font-bold text-ptt-cyan font-mono">{formatCurrency(selectedPayslip.net)}</span>
@@ -3022,9 +3020,16 @@ export default function EmployeeDetail() {
                       <ImageIcon className="w-4 h-4" />
                       หลักฐานการโอนเงิน
                     </h4>
-                    <div 
+                    <div
                       className="relative group cursor-pointer bg-soft rounded-lg overflow-hidden border border-app"
                       onClick={() => setSelectedReceiptImage(getReceiptImage(selectedPayslip))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          setSelectedReceiptImage(getReceiptImage(selectedPayslip));
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
                     >
                       <img
                         src={getReceiptImage(selectedPayslip) || ""}
@@ -3082,9 +3087,14 @@ export default function EmployeeDetail() {
 
           {/* Receipt Image Modal */}
           {selectedReceiptImage && (
-            <div 
+            <div
               className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
               onClick={() => setSelectedReceiptImage(null)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setSelectedReceiptImage(null);
+              }}
+              role="button"
+              tabIndex={0}
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -3131,7 +3141,7 @@ export default function EmployeeDetail() {
             {(() => {
               const empWorkHistory = workHistory.filter(w => w.empCode === employee.code)
                 .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-              
+
               return (
                 <div className="space-y-4">
                   {empWorkHistory.map((work) => {
@@ -3143,7 +3153,7 @@ export default function EmployeeDetail() {
                     const durationYears = Math.floor(durationMonths / 12);
                     const remainingMonths = durationMonths % 12;
                     const remainingDays = durationDays % 30;
-                    
+
                     let durationText = "";
                     if (durationYears > 0) {
                       durationText = `${durationYears} ปี`;
@@ -3158,7 +3168,7 @@ export default function EmployeeDetail() {
                     } else {
                       durationText = `${durationDays} วัน`;
                     }
-                    
+
                     return (
                       <div key={work.id} className="p-4 bg-soft rounded-xl border border-app">
                         <div className="flex items-start justify-between mb-2">
@@ -3206,7 +3216,7 @@ export default function EmployeeDetail() {
             {(() => {
               const empSalaryHistory = salaryHistory.filter(s => s.empCode === employee.code)
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-              
+
               return (
                 <div className="space-y-4">
                   {empSalaryHistory.map((salary) => (
@@ -3214,20 +3224,19 @@ export default function EmployeeDetail() {
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                              salary.type === "ขึ้นเงินเดือน" 
-                                ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                : salary.type === "ลดเงินเดือน"
+                            <span className={`px-3 py-1 rounded-lg text-xs font-medium ${salary.type === "ขึ้นเงินเดือน"
+                              ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                              : salary.type === "ลดเงินเดือน"
                                 ? "bg-red-500/20 text-red-400 border border-red-500/30"
                                 : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                            }`}>
+                              }`}>
                               {salary.type}
                             </span>
                             <span className="text-sm text-muted">
-                              {new Date(salary.date).toLocaleDateString("th-TH", { 
-                                year: "numeric", 
-                                month: "long", 
-                                day: "numeric" 
+                              {new Date(salary.date).toLocaleDateString("th-TH", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric"
                               })}
                             </span>
                           </div>
@@ -3235,9 +3244,8 @@ export default function EmployeeDetail() {
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-muted">เปลี่ยน</p>
-                          <p className={`text-sm font-semibold ${
-                            salary.changeAmount > 0 ? "text-green-400" : "text-red-400"
-                          }`}>
+                          <p className={`text-sm font-semibold ${salary.changeAmount > 0 ? "text-green-400" : "text-red-400"
+                            }`}>
                             {salary.changeAmount > 0 ? "+" : ""}{formatCurrency(salary.changeAmount)}
                           </p>
                         </div>
@@ -3280,11 +3288,10 @@ export default function EmployeeDetail() {
                     return (
                       <div
                         key={item.id}
-                        className={`p-4 rounded-xl border ${
-                          isWarning
-                            ? "bg-yellow-500/10 border-yellow-500/30"
-                            : "bg-red-500/10 border-red-500/30"
-                        }`}
+                        className={`p-4 rounded-xl border ${isWarning
+                          ? "bg-yellow-500/10 border-yellow-500/30"
+                          : "bg-red-500/10 border-red-500/30"
+                          }`}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
@@ -3295,11 +3302,10 @@ export default function EmployeeDetail() {
                                 <AlertTriangle className="w-4 h-4 text-red-400" />
                               )}
                               <span
-                                className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                                  isWarning
-                                    ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                                    : "bg-red-500/20 text-red-400 border border-red-500/30"
-                                }`}
+                                className={`px-3 py-1 rounded-lg text-xs font-medium ${isWarning
+                                  ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                                  : "bg-red-500/20 text-red-400 border border-red-500/30"
+                                  }`}
                               >
                                 {item.category}
                               </span>
@@ -3349,20 +3355,19 @@ export default function EmployeeDetail() {
                   {employeeTransfers.map((transfer) => (
                     <div key={transfer.id} className="p-4 bg-soft rounded-xl border border-app">
                       <div className="flex items-center justify-between mb-3">
-                        <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                          transfer.type === "เลื่อนตำแหน่ง"
-                            ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                            : transfer.type === "ลดตำแหน่ง"
+                        <span className={`px-3 py-1 rounded-lg text-xs font-medium ${transfer.type === "เลื่อนตำแหน่ง"
+                          ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                          : transfer.type === "ลดตำแหน่ง"
                             ? "bg-red-500/20 text-red-400 border border-red-500/30"
                             : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                        }`}>
+                          }`}>
                           {transfer.type}
                         </span>
                         <span className="text-sm text-muted">
-                          {new Date(transfer.date).toLocaleDateString("th-TH", { 
-                            year: "numeric", 
-                            month: "long", 
-                            day: "numeric" 
+                          {new Date(transfer.date).toLocaleDateString("th-TH", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric"
                           })}
                         </span>
                       </div>
@@ -3403,18 +3408,17 @@ export default function EmployeeDetail() {
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
                   {/* View Mode Selector - Button Group */}
                   <div className="flex flex-col gap-2">
-                    <label className="text-xs text-muted flex items-center gap-1">
+                    <span className="text-xs text-muted flex items-center gap-1">
                       <Filter className="w-3 h-3" />
                       แสดงข้อมูลแบบ:
-                    </label>
+                    </span>
                     <div className="flex items-center gap-1 bg-soft p-1 rounded-lg border border-app">
                       <button
                         onClick={() => handleAttendanceViewModeChange("day")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-                          attendanceViewMode === "day"
-                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-app/10"
-                        }`}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${attendanceViewMode === "day"
+                          ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                          : "text-muted hover:text-app hover:bg-app/10"
+                          }`}
                         title="แสดงรายละเอียดแต่ละวัน"
                       >
                         <CalendarDays className="w-3.5 h-3.5" />
@@ -3422,11 +3426,10 @@ export default function EmployeeDetail() {
                       </button>
                       <button
                         onClick={() => handleAttendanceViewModeChange("month")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-                          attendanceViewMode === "month"
-                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-app/10"
-                        }`}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${attendanceViewMode === "month"
+                          ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                          : "text-muted hover:text-app hover:bg-app/10"
+                          }`}
                         title="จัดกลุ่มตามเดือน"
                       >
                         <Calendar className="w-3.5 h-3.5" />
@@ -3434,11 +3437,10 @@ export default function EmployeeDetail() {
                       </button>
                       <button
                         onClick={() => handleAttendanceViewModeChange("year")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
-                          attendanceViewMode === "year"
-                            ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
-                            : "text-muted hover:text-app hover:bg-app/10"
-                        }`}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${attendanceViewMode === "year"
+                          ? "bg-ptt-blue text-ptt-cyan shadow-lg shadow-ptt-blue/20"
+                          : "text-muted hover:text-app hover:bg-app/10"
+                          }`}
                         title="จัดกลุ่มตามปี"
                       >
                         <CalendarRange className="w-3.5 h-3.5" />
@@ -3446,15 +3448,16 @@ export default function EmployeeDetail() {
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Date Range Filters */}
                   <div className="flex flex-col gap-2">
-                    <label className="text-xs text-muted flex items-center gap-1">
+                    <span className="text-xs text-muted flex items-center gap-1">
                       <CalendarRange className="w-3 h-3" />
                       กรองตามวันที่:
-                    </label>
+                    </span>
                     <div className="flex items-center gap-2">
                       <input
+                        aria-label="Attendance Date From"
                         type="date"
                         value={attendanceDateFrom}
                         onChange={(e) => setAttendanceDateFrom(e.target.value)}
@@ -3464,6 +3467,7 @@ export default function EmployeeDetail() {
                       />
                       <span className="text-muted text-sm">ถึง</span>
                       <input
+                        aria-label="Attendance Date To"
                         type="date"
                         value={attendanceDateTo}
                         onChange={(e) => setAttendanceDateTo(e.target.value)}
@@ -3485,7 +3489,7 @@ export default function EmployeeDetail() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 bg-green-500 rounded"></div>
@@ -3595,7 +3599,7 @@ export default function EmployeeDetail() {
                       const groupWorkingHours = group.logs
                         .filter(l => l.checkIn !== "-" && l.checkOut !== "-")
                         .reduce((sum, l) => sum + calculateWorkingHours(l.checkIn, l.checkOut), 0);
-                      
+
                       return (
                         <div key={group.key} className="border border-app rounded-xl overflow-hidden">
                           {(attendanceViewMode === "month" || attendanceViewMode === "year") && (
@@ -3635,20 +3639,20 @@ export default function EmployeeDetail() {
                               </thead>
                               <tbody className="divide-y divide-app">
                                 {group.logs.map((log) => {
-                                  const hours = log.checkIn !== "-" && log.checkOut !== "-" 
-                                    ? calculateWorkingHours(log.checkIn, log.checkOut) 
+                                  const hours = log.checkIn !== "-" && log.checkOut !== "-"
+                                    ? calculateWorkingHours(log.checkIn, log.checkOut)
                                     : 0;
                                   const otHours = employeeShift && hours > shiftHours ? hours - shiftHours : 0;
                                   return (
                                     <tr key={log.id} className="hover:bg-soft transition-colors">
                                       <td className="px-4 py-3 text-sm text-app">
-                                        {attendanceViewMode === "day" 
-                                          ? new Date(log.date).toLocaleDateString("th-TH", { 
-                                              year: "numeric", 
-                                              month: "short", 
-                                              day: "numeric",
-                                              weekday: "short"
-                                            })
+                                        {attendanceViewMode === "day"
+                                          ? new Date(log.date).toLocaleDateString("th-TH", {
+                                            year: "numeric",
+                                            month: "short",
+                                            day: "numeric",
+                                            weekday: "short"
+                                          })
                                           : log.date
                                         }
                                       </td>
@@ -3688,8 +3692,8 @@ export default function EmployeeDetail() {
                     })}
                     <div className="text-center pt-4">
                       <p className="text-xs text-muted">
-                        แสดงทั้งหมด {allAttendance.length} รายการ • 
-                        ชั่วโมงทำงานรวม: {formatTime(totalWorkingHours)} • 
+                        แสดงทั้งหมด {allAttendance.length} รายการ •
+                        ชั่วโมงทำงานรวม: {formatTime(totalWorkingHours)} •
                         เฉลี่ย: {formatTime(avgWorkingHours)}/วัน
                       </p>
                     </div>
@@ -3735,8 +3739,9 @@ export default function EmployeeDetail() {
           return (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-app mb-2">ประเภทการเปลี่ยนแปลง</label>
-                  <select
+                <label htmlFor="salary-type-select" className="block text-sm font-medium text-app mb-2">ประเภทการเปลี่ยนแปลง</label>
+                <select
+                  id="salary-type-select"
                   name="type"
                   value={salaryFormData.type}
                   onChange={handleChange}
@@ -3751,8 +3756,9 @@ export default function EmployeeDetail() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-app mb-2">เงินเดือนเดิม</label>
+                  <label htmlFor="salary-old" className="block text-sm font-medium text-app mb-2">เงินเดือนเดิม</label>
                   <input
+                    id="salary-old"
                     type="number"
                     name="oldSalary"
                     value={salaryFormData.oldSalary}
@@ -3763,8 +3769,9 @@ export default function EmployeeDetail() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-app mb-2">เงินเดือนใหม่</label>
+                  <label htmlFor="salary-new" className="block text-sm font-medium text-app mb-2">เงินเดือนใหม่</label>
                   <input
+                    id="salary-new"
                     type="number"
                     name="newSalary"
                     value={salaryFormData.newSalary}
@@ -3777,8 +3784,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">จำนวนเงินที่เปลี่ยนแปลง</label>
+                <label htmlFor="salary-change" className="block text-sm font-medium text-app mb-2">จำนวนเงินที่เปลี่ยนแปลง</label>
                 <input
+                  id="salary-change"
                   type="number"
                   name="changeAmount"
                   value={salaryFormData.changeAmount}
@@ -3791,8 +3799,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">วันที่เปลี่ยนแปลง</label>
+                <label htmlFor="salary-date" className="block text-sm font-medium text-app mb-2">วันที่เปลี่ยนแปลง</label>
                 <input
+                  id="salary-date"
                   type="date"
                   name="date"
                   value={salaryFormData.date}
@@ -3804,8 +3813,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">เหตุผล</label>
+                <label htmlFor="salary-reason" className="block text-sm font-medium text-app mb-2">เหตุผล</label>
                 <textarea
+                  id="salary-reason"
                   name="reason"
                   value={salaryFormData.reason}
                   onChange={handleChange}
@@ -3818,8 +3828,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">หมายเหตุ</label>
+                <label htmlFor="salary-note" className="block text-sm font-medium text-app mb-2">หมายเหตุ</label>
                 <textarea
+                  id="salary-note"
                   name="note"
                   value={salaryFormData.note}
                   onChange={handleChange}
@@ -3871,8 +3882,9 @@ export default function EmployeeDetail() {
           return (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-app mb-2">ประเภท</label>
+                <label htmlFor="reward-type-select" className="block text-sm font-medium text-app mb-2">ประเภท</label>
                 <select
+                  id="reward-type-select"
                   name="type"
                   value={rewardPenaltyFormData.type}
                   onChange={handleChange}
@@ -3885,8 +3897,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
+                <label htmlFor="reward-category" className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
                 <input
+                  id="reward-category"
                   type="text"
                   name="category"
                   value={rewardPenaltyFormData.category}
@@ -3899,8 +3912,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">หัวข้อ</label>
+                <label htmlFor="reward-title" className="block text-sm font-medium text-app mb-2">หัวข้อ</label>
                 <input
+                  id="reward-title"
                   type="text"
                   name="title"
                   value={rewardPenaltyFormData.title}
@@ -3913,8 +3927,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">รายละเอียด</label>
+                <label htmlFor="reward-description" className="block text-sm font-medium text-app mb-2">รายละเอียด</label>
                 <textarea
+                  id="reward-description"
                   name="description"
                   value={rewardPenaltyFormData.description}
                   onChange={handleChange}
@@ -3927,8 +3942,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">จำนวนเงินค่าปรับ (บาท)</label>
+                <label htmlFor="reward-amount" className="block text-sm font-medium text-app mb-2">จำนวนเงินค่าปรับ (บาท)</label>
                 <input
+                  id="reward-amount"
                   type="number"
                   name="amount"
                   value={rewardPenaltyFormData.amount}
@@ -3941,8 +3957,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">วันที่</label>
+                <label htmlFor="reward-date" className="block text-sm font-medium text-app mb-2">วันที่</label>
                 <input
+                  id="reward-date"
                   type="date"
                   name="date"
                   value={rewardPenaltyFormData.date}
@@ -3954,8 +3971,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">หมายเหตุ</label>
+                <label htmlFor="reward-note" className="block text-sm font-medium text-app mb-2">หมายเหตุ</label>
                 <textarea
+                  id="reward-note"
                   name="note"
                   value={rewardPenaltyFormData.note}
                   onChange={handleChange}
@@ -3967,8 +3985,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">ออกโดย</label>
+                <label htmlFor="reward-issued-by" className="block text-sm font-medium text-app mb-2">ออกโดย</label>
                 <input
+                  id="reward-issued-by"
                   type="text"
                   name="issuedBy"
                   value={rewardPenaltyFormData.issuedBy}
@@ -4021,8 +4040,9 @@ export default function EmployeeDetail() {
           return (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-app mb-2">ประเภทการเปลี่ยนแปลง</label>
+                <label htmlFor="transfer-type-select" className="block text-sm font-medium text-app mb-2">ประเภทการเปลี่ยนแปลง</label>
                 <select
+                  id="transfer-type-select"
                   name="type"
                   value={transferFormData.type}
                   onChange={handleChange}
@@ -4037,8 +4057,9 @@ export default function EmployeeDetail() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-app mb-2">ตำแหน่งเดิม</label>
+                  <label htmlFor="transfer-old-position" className="block text-sm font-medium text-app mb-2">ตำแหน่งเดิม</label>
                   <input
+                    id="transfer-old-position"
                     type="text"
                     name="oldPosition"
                     value={transferFormData.oldPosition}
@@ -4049,8 +4070,9 @@ export default function EmployeeDetail() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-app mb-2">แผนกเดิม</label>
+                  <label htmlFor="transfer-old-dept" className="block text-sm font-medium text-app mb-2">แผนกเดิม</label>
                   <input
+                    id="transfer-old-dept"
                     type="text"
                     name="oldDept"
                     value={transferFormData.oldDept}
@@ -4064,8 +4086,9 @@ export default function EmployeeDetail() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-app mb-2">ตำแหน่งใหม่</label>
+                  <label htmlFor="transfer-new-position" className="block text-sm font-medium text-app mb-2">ตำแหน่งใหม่</label>
                   <input
+                    id="transfer-new-position"
                     type="text"
                     name="newPosition"
                     value={transferFormData.newPosition}
@@ -4077,8 +4100,9 @@ export default function EmployeeDetail() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-app mb-2">แผนกใหม่</label>
+                  <label htmlFor="transfer-new-dept" className="block text-sm font-medium text-app mb-2">แผนกใหม่</label>
                   <input
+                    id="transfer-new-dept"
                     type="text"
                     name="newDept"
                     value={transferFormData.newDept}
@@ -4092,8 +4116,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">วันที่เปลี่ยนแปลง</label>
+                <label htmlFor="transfer-date" className="block text-sm font-medium text-app mb-2">วันที่เปลี่ยนแปลง</label>
                 <input
+                  id="transfer-date"
                   type="date"
                   name="date"
                   value={transferFormData.date}
@@ -4105,8 +4130,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">เหตุผล</label>
+                <label htmlFor="transfer-reason" className="block text-sm font-medium text-app mb-2">เหตุผล</label>
                 <textarea
+                  id="transfer-reason"
                   name="reason"
                   value={transferFormData.reason}
                   onChange={handleChange}
@@ -4119,8 +4145,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">หมายเหตุ</label>
+                <label htmlFor="transfer-note" className="block text-sm font-medium text-app mb-2">หมายเหตุ</label>
                 <textarea
+                  id="transfer-note"
                   name="note"
                   value={transferFormData.note}
                   onChange={handleChange}
@@ -4132,8 +4159,9 @@ export default function EmployeeDetail() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-app mb-2">อนุมัติโดย</label>
+                <label htmlFor="transfer-approved-by" className="block text-sm font-medium text-app mb-2">อนุมัติโดย</label>
                 <input
+                  id="transfer-approved-by"
                   type="text"
                   name="approvedBy"
                   value={transferFormData.approvedBy}

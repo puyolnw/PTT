@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "@/index.css";
 import ErrorPage from "@/components/ErrorPage";
 import LayoutAuth from "@/layouts/LayoutAuth";
@@ -236,31 +236,14 @@ import InternalTransport from "@/pages/gas-station/InternalTransport";
 import ReceiveOil from "@/pages/gas-station/ReceiveOil";
 import InterBranchTransfer from "@/pages/gas-station/InterBranchTransfer";
 
-import { isAuthenticated } from "@/lib/auth";
 import Forbidden from "@/components/Forbidden";
-import { useAuth } from "@/contexts/AuthContext";
 
-// Component to handle role-based redirection
-const RoleBasedRedirect = () => {
-  const { user } = useAuth();
-  const role = user?.role || "employee";
 
-  if (role === "admin") return <Navigate to="/app/hr" replace />;
-  if (role === "hr") return <Navigate to="/app/hr" replace />;
-  if (role === "finance") return <Navigate to="/app/accounting" replace />;
-  if (role === "accountant") return <Navigate to="/app/accounting" replace />;
-  if (role === "manager") return <Navigate to="/app/hr" replace />;
-  if (role === "gas-station") return <Navigate to="/app/gas-station" replace />;
-  if (role === "shop") return <Navigate to="/app/shops" replace />;
-  if (role === "property") return <Navigate to="/app/rental" replace />;
 
-  // Default fallback
-  return <Navigate to="/app/documents" replace />;
-};
+import { RoleBasedRedirect } from "@/components/auth/RoleBasedRedirect";
+import { Protected } from "@/components/auth/Protected";
 
-// Protected Route Component
-const Protected = ({ children }: { children: React.ReactNode }) =>
-  isAuthenticated() ? <>{children}</> : <Navigate to="/" replace />;
+
 
 // Router Configuration
 const router = createBrowserRouter([

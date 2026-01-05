@@ -20,58 +20,54 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
 // Mock data สำหรับเซเว่น - รองรับหลายสาขา
 const branches = ["สาขา A", "สาขา B", "สาขา C", "สาขา D", "สำนักงานใหญ่"];
 
-const profitLossDataByBranch: Record<string, {
-  revenue: number;
-  cost: number;
-  profit: number;
-  expenses: number;
-  netProfit: number;
-}> = {
-  "สาขา A": {
+const profitLossDataByBranchMap = new Map([
+  ["สาขา A", {
     revenue: 1350000,
     cost: 810000,
     profit: 540000,
     expenses: 150000,
     netProfit: 390000,
-  },
-  "สาขา B": {
+  }],
+  ["สาขา B", {
     revenue: 1200000,
     cost: 720000,
     profit: 480000,
     expenses: 130000,
     netProfit: 350000,
-  },
-  "สาขา C": {
+  }],
+  ["สาขา C", {
     revenue: 1100000,
     cost: 660000,
     profit: 440000,
     expenses: 120000,
     netProfit: 320000,
-  },
-  "สาขา D": {
+  }],
+  ["สาขา D", {
     revenue: 1000000,
     cost: 600000,
     profit: 400000,
     expenses: 110000,
     netProfit: 290000,
-  },
-  "สำนักงานใหญ่": {
+  }],
+  ["สำนักงานใหญ่", {
     revenue: 1500000,
     cost: 900000,
     profit: 600000,
     expenses: 180000,
     netProfit: 420000,
-  },
-};
+  }],
+]);
 
 // Calculate totals across all branches
 const totalProfitLoss = branches.reduce((acc, branch) => {
-  const data = profitLossDataByBranch[branch];
-  acc.revenue += data.revenue;
-  acc.cost += data.cost;
-  acc.profit += data.profit;
-  acc.expenses += data.expenses;
-  acc.netProfit += data.netProfit;
+  const data = profitLossDataByBranchMap.get(branch);
+  if (data) {
+    acc.revenue += data.revenue;
+    acc.cost += data.cost;
+    acc.profit += data.profit;
+    acc.expenses += data.expenses;
+    acc.netProfit += data.netProfit;
+  }
   return acc;
 }, { revenue: 0, cost: 0, profit: 0, expenses: 0, netProfit: 0 });
 
@@ -92,9 +88,9 @@ export default function Reports() {
     alert(`กำลังส่งออกรายงานเป็น ${format.toUpperCase()}...`);
   };
 
-  const currentData = selectedBranch === "ทั้งหมด" 
-    ? totalProfitLoss 
-    : profitLossDataByBranch[selectedBranch] || totalProfitLoss;
+  const currentData = (selectedBranch === "ทั้งหมด"
+    ? totalProfitLoss
+    : profitLossDataByBranchMap.get(selectedBranch)) || totalProfitLoss;
 
   return (
     <div className="space-y-6">
@@ -136,15 +132,14 @@ export default function Reports() {
             <button
               key={period}
               onClick={() => setSelectedPeriod(period)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                selectedPeriod === period
-                  ? "bg-ptt-blue text-white"
-                  : "bg-soft text-app hover:bg-app/10"
-              }`}
+              className={`px-4 py-2 rounded-lg transition-colors ${selectedPeriod === period
+                ? "bg-ptt-blue text-white"
+                : "bg-soft text-app hover:bg-app/10"
+                }`}
             >
               {period === "day" ? "รายวัน" :
-               period === "week" ? "รายสัปดาห์" :
-               period === "month" ? "รายเดือน" : "รายปี"}
+                period === "week" ? "รายสัปดาห์" :
+                  period === "month" ? "รายเดือน" : "รายปี"}
             </button>
           ))}
         </div>
@@ -225,7 +220,8 @@ export default function Reports() {
           </div>
           <div className="space-y-4">
             {branches.map((branch) => {
-              const data = profitLossDataByBranch[branch];
+              const data = profitLossDataByBranchMap.get(branch);
+              if (!data) return null;
               return (
                 <div
                   key={branch}
@@ -289,11 +285,10 @@ export default function Reports() {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    index === 0 ? "bg-ptt-blue/20 text-ptt-cyan" :
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${index === 0 ? "bg-ptt-blue/20 text-ptt-cyan" :
                     index === 1 ? "bg-emerald-500/20 text-emerald-400" :
-                    "bg-muted/20 text-muted"
-                  }`}>
+                      "bg-muted/20 text-muted"
+                    }`}>
                     <span className="text-sm font-bold">{index + 1}</span>
                   </div>
                   <div>

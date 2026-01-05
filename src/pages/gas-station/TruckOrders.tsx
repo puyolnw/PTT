@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, CheckCircle, Clock, Activity, XCircle, X, PackageCheck, User, GripVertical, Truck, MapPin, Eye, Droplet, Search } from "lucide-react";
 import { mockApprovedOrders, mockPTTQuotations } from "../../data/gasStationOrders";
-import { mockTrucks, mockTrailers } from "../gas-station/TruckProfiles";
+import { mockTrucks, mockTrailers } from "@/data/truckData";
+
 import { mockDrivers } from "../../data/mockData";
 import { mockOilReceipts } from "../../data/gasStationReceipts";
 import { useGasStation } from "@/contexts/GasStationContext";
@@ -47,29 +48,43 @@ const calculateTripMetrics = (startOdo: number, endOdo: number, startTime: strin
 };
 
 const numberFormatter = new Intl.NumberFormat("th-TH");
-const dateFormatter = new Intl.DateTimeFormat("th-TH", { 
-    year: "numeric", 
-    month: "long", 
+const dateFormatter = new Intl.DateTimeFormat("th-TH", {
+    year: "numeric",
+    month: "long",
     day: "numeric",
     weekday: "long"
 });
-const dateFormatterShort = new Intl.DateTimeFormat("th-TH", { 
-    year: "numeric", 
-    month: "long", 
+const dateFormatterShort = new Intl.DateTimeFormat("th-TH", {
+    year: "numeric",
+    month: "long",
     day: "numeric"
 });
 
 // Import TruckOrder type from TruckProfiles
-import type { TruckOrder } from "./TruckProfiles";
+import type { TruckOrder } from "@/types/truck";
 
 // Extended interface for local use (with branches)
 interface ExtendedTruckOrder extends TruckOrder {
-    branches?: any[];
+    branches?: {
+        branchId: number;
+        branchName: string;
+        legalEntityName?: string;
+        address?: string;
+        items: Array<{
+            oilType: string;
+            quantity: number;
+            pricePerLiter: number;
+            totalAmount: number;
+        }>;
+        totalAmount: number;
+        deliveryStatus?: string;
+    }[];
     departureDate?: string;
 }
 
 // Sortable Branch Item Component
-function SortableBranchItem({ branch, index }: { branch: any; index: number }) {
+// Sortable Branch Item Component
+function SortableBranchItem({ branch, index }: { branch: NonNullable<ExtendedTruckOrder["branches"]>[number]; index: number }) {
     const {
         attributes,
         listeners,
@@ -79,14 +94,14 @@ function SortableBranchItem({ branch, index }: { branch: any; index: number }) {
         isDragging,
     } = useSortable({ id: branch.branchId });
 
-    const style = {
+    const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
     };
 
     return (
-        <div
+        <motion.div
             ref={setNodeRef}
             style={style}
             className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600 flex items-start gap-3"
@@ -107,7 +122,7 @@ function SortableBranchItem({ branch, index }: { branch: any; index: number }) {
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{branch.address}</p>
                 <ul className="list-disc ml-5 mt-2 space-y-1">
-                    {branch.items.map((item: any, i: number) => (
+                    {branch.items.map((item, i) => (
                         <li key={i} className="text-sm text-gray-600 dark:text-gray-300">
                             <span className="font-medium">{item.oilType}</span>: {numberFormatter.format(item.quantity)} ลิตร
                         </li>
@@ -117,13 +132,13 @@ function SortableBranchItem({ branch, index }: { branch: any; index: number }) {
                     รวม: {numberFormatter.format(branch.totalAmount)} บาท
                 </p>
             </div>
-        </div>
+        </motion.div>
     );
 }
 
 export default function TruckOrders() {
     const { branches } = useGasStation();
-    
+
     // State definitions
     const [newOrder, setNewOrder] = useState({
         orderDate: new Date().toISOString().split("T")[0],
@@ -142,7 +157,7 @@ export default function TruckOrders() {
     const [showStartTripModal, setShowStartTripModal] = useState(false);
     const [showEndTripModal, setShowEndTripModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<ExtendedTruckOrder | null>(null);
-    const [orderedBranches, setOrderedBranches] = useState<any[]>([]);
+    const [orderedBranches, setOrderedBranches] = useState<NonNullable<ExtendedTruckOrder["branches"]>>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
     const [filterDateFrom, setFilterDateFrom] = useState<string>("");
@@ -164,15 +179,15 @@ export default function TruckOrders() {
 
     // Get selected truck and trailer info
     const selectedTruck = useMemo(() => {
-        return mockTrucks.find((t: any) => t.id === newOrder.truckId) || null;
+        return mockTrucks.find((t) => t.id === newOrder.truckId) || null;
     }, [newOrder.truckId]);
 
     const selectedTrailer = useMemo(() => {
-        return mockTrailers.find((t: any) => t.id === newOrder.trailerId) || null;
+        return mockTrailers.find((t) => t.id === newOrder.trailerId) || null;
     }, [newOrder.trailerId]);
 
     const selectedDriver = useMemo(() => {
-        return mockDrivers.find((d: any) => String(d.id) === newOrder.driverId) || null;
+        return mockDrivers.find((d) => String(d.id) === newOrder.driverId) || null;
     }, [newOrder.driverId]);
 
     // Auto-fill data when purchase order is selected
@@ -238,14 +253,14 @@ export default function TruckOrders() {
         return mockApprovedOrders.map((order) => {
             // Find matching PTT Quotation
             const quotation = mockPTTQuotations.find(q => q.purchaseOrderNo === order.orderNo);
-            
+
             // Base merged order structure - ดึงข้อมูลจาก Purchase Order ก่อน
             let mergedOrder: ExtendedTruckOrder = {
                 id: order.orderNo, // Use orderNo as ID
                 orderNo: order.orderNo,
                 orderDate: order.orderDate,
                 purchaseOrderNo: order.orderNo,
-                transportNo: (quotation as any)?.transportNo || generateTransportNo(),
+                transportNo: quotation?.transportNo || generateTransportNo(),
                 truckId: order.truckId || "",
                 truckPlateNumber: order.truckPlateNumber || quotation?.truckPlateNumber || "-",
                 trailerId: order.trailerId || "",
@@ -254,11 +269,11 @@ export default function TruckOrders() {
                 currentOdometer: order.currentOdometer || 0,
                 startFuel: 0, // จะถูกบันทึกเมื่อเริ่มเที่ยว
                 fromBranch: order.branches[0]?.branchName || "สาขาใหญ่",
-                toBranch: order.branches.length > 0 
-                    ? order.branches.map((b: any) => b.branchName).join(", ")
+                toBranch: order.branches.length > 0
+                    ? order.branches.map((b) => b.branchName).join(", ")
                     : "หลายสาขา",
                 oilType: order.items[0]?.oilType || "Premium Diesel",
-                quantity: order.items.reduce((sum: number, item: any) => sum + item.quantity, 0),
+                quantity: order.items.reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0),
                 status: order.status as TruckOrder["status"],
                 branches: order.branches,
                 createdAt: order.approvedAt || new Date().toISOString(),
@@ -268,13 +283,13 @@ export default function TruckOrders() {
             // Update details from Quotation if exists (fallback ถ้า Purchase Order ไม่มีข้อมูล)
             if (quotation) {
                 // Get truck and trailer IDs from quotation if not already set from Purchase Order
-                const truckFromQuotation = !mergedOrder.truckId 
-                    ? mockTrucks.find((t: any) => t.plateNumber === quotation.truckPlateNumber)
+                const truckFromQuotation = !mergedOrder.truckId
+                    ? mockTrucks.find((t) => t.plateNumber === quotation.truckPlateNumber)
                     : null;
                 const trailerFromQuotation = !mergedOrder.trailerId
-                    ? mockTrailers.find((t: any) => t.plateNumber === quotation.trailerPlateNumber)
+                    ? mockTrailers.find((t) => t.plateNumber === quotation.trailerPlateNumber)
                     : null;
-                
+
                 mergedOrder = {
                     ...mergedOrder,
                     truckId: mergedOrder.truckId || truckFromQuotation?.id || "",
@@ -295,9 +310,9 @@ export default function TruckOrders() {
             }
 
             // Find matching Oil Receipt
-             // Note: In real app, we need a better link than implicit orderNo or logic
+            // Note: In real app, we need a better link than implicit orderNo or logic
             const receipt = mockOilReceipts?.find(r => r.deliveryNoteNo === order.supplierOrderNo); // Example link
-            
+
             if (receipt) {
                 mergedOrder.deliveryNoteNo = receipt.deliveryNoteNo;
                 mergedOrder.oilReceiptId = receipt.id;
@@ -314,7 +329,7 @@ export default function TruckOrders() {
         const date = new Date(dateStr);
         const fromDate = from ? new Date(from) : null;
         const toDate = to ? new Date(to) : null;
-        
+
         if (fromDate && toDate) {
             fromDate.setHours(0, 0, 0, 0);
             toDate.setHours(23, 59, 59, 999);
@@ -340,14 +355,14 @@ export default function TruckOrders() {
                 order.purchaseOrderNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 order.pttQuotationNo?.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesStatus = filterStatus === "all" || order.status === filterStatus;
-            
+
             // Date filter
             const matchesDate = isDateInRange(order.orderDate, filterDateFrom, filterDateTo);
-            
+
             // Branch filter
-            const matchesBranch = filterBranch === "all" || 
-                (order.branches && order.branches.some((b: any) => b.branchId === filterBranch));
-            
+            const matchesBranch = filterBranch === "all" ||
+                (order.branches && order.branches.some((b: { branchId: number }) => b.branchId === filterBranch));
+
             return matchesSearch && matchesStatus && matchesDate && matchesBranch;
         });
     }, [searchTerm, filterStatus, filterDateFrom, filterDateTo, filterBranch, combinedOrders]);
@@ -503,19 +518,19 @@ export default function TruckOrders() {
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                         <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                             <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                            <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                         </div>
-                         รายการขนส่ง (Truck Orders)
+                        รายการขนส่ง (Truck Orders)
                     </h1>
-                     <p className="text-gray-600 dark:text-gray-400 mt-2">
+                    <p className="text-gray-600 dark:text-gray-400 mt-2">
                         จัดการเที่ยวรถขนส่ง บันทึกเลขไมล์ และติดตามสถานะการจัดส่ง
                     </p>
                 </div>
-                 <button
+                <button
                     onClick={() => setShowCreateOrderModal(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                 >
-                     <PackageCheck className="w-5 h-5" />
+                    <PackageCheck className="w-5 h-5" />
                     สร้างการขนส่งใหม่
                 </button>
             </motion.div>
@@ -531,20 +546,24 @@ export default function TruckOrders() {
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input
+                            id="search-truck-order"
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="ค้นหาเลขออเดอร์, เลขขนส่ง, รถ, คนขับ..."
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            aria-label="ค้นหาเลขออเดอร์, เลขขนส่ง, รถ, คนขับ..."
                         />
                     </div>
-                    
+
                     {/* Row 2: Filters */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <select
+                            id="filter-status"
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            aria-label="กรองตามสถานะ"
                         >
                             <option value="all">สถานะทั้งหมด</option>
                             <option value="draft">ร่าง</option>
@@ -554,43 +573,49 @@ export default function TruckOrders() {
                             <option value="completed">เสร็จสิ้น</option>
                             <option value="cancelled">ยกเลิก</option>
                         </select>
-                        
+
                         <select
+                            id="filter-branch"
                             value={filterBranch === "all" ? "all" : filterBranch}
                             onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            aria-label="กรองตามปั๊ม"
                         >
                             <option value="all">ทุกปั๊ม</option>
                             {branches
-                              .sort((a, b) => {
-                                const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
-                                return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
-                              })
-                              .map((branch) => (
-                                <option key={branch.id} value={branch.id}>
-                                  {branch.name}
-                                </option>
-                              ))}
+                                .sort((a, b) => {
+                                    const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                                    return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
+                                })
+                                .map((branch) => (
+                                    <option key={branch.id} value={branch.id}>
+                                        {branch.name}
+                                    </option>
+                                ))}
                         </select>
-                        
+
                         <div className="flex items-center gap-2">
                             <input
+                                id="filter-date-from"
                                 type="date"
                                 value={filterDateFrom}
                                 onChange={(e) => setFilterDateFrom(e.target.value)}
                                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 title="วันที่เริ่มต้น"
+                                aria-label="วันที่เริ่มต้น"
                             />
                             <span className="text-gray-500 dark:text-gray-400 font-medium">ถึง</span>
                             <input
+                                id="filter-date-to"
                                 type="date"
                                 value={filterDateTo}
                                 onChange={(e) => setFilterDateTo(e.target.value)}
                                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 title="วันที่สิ้นสุด"
+                                aria-label="วันที่สิ้นสุด"
                             />
                         </div>
-                        
+
                         {(filterDateFrom || filterDateTo || searchTerm || filterStatus !== "all" || filterBranch !== "all") && (
                             <button
                                 onClick={() => {
@@ -733,8 +758,8 @@ export default function TruckOrders() {
                                         <div className="flex items-center gap-2">
                                             <MapPin className="w-4 h-4 text-gray-400" />
                                             <span className="text-sm text-gray-700 dark:text-gray-300">
-                                                {order.branches && order.branches.length > 0 
-                                                    ? `${order.branches.length} ปั๊ม` 
+                                                {order.branches && order.branches.length > 0
+                                                    ? `${order.branches.length} ปั๊ม`
                                                     : order.toBranch || '-'}
                                             </span>
                                         </div>
@@ -763,8 +788,8 @@ export default function TruckOrders() {
                                     <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center gap-2 justify-center">
                                             {order.status === "ready-to-pickup" && (
-                                                <button 
-                                                    onClick={() => handleStartTrip(order)} 
+                                                <button
+                                                    onClick={() => handleStartTrip(order)}
                                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
                                                 >
                                                     เริ่มเดินทาง
@@ -772,15 +797,15 @@ export default function TruckOrders() {
                                             )}
                                             {order.status === "picking-up" && !order.oilReceiptId && (
                                                 <>
-                                                    <button 
-                                                        onClick={() => window.location.href = `/app/gas-station/oil-receipt?orderId=${order.id}`} 
+                                                    <button
+                                                        onClick={() => window.location.href = `/app/gas-station/oil-receipt?orderId=${order.id}`}
                                                         className="flex items-center gap-1.5 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
                                                     >
                                                         <PackageCheck className="w-4 h-4" />
                                                         บันทึกการรับน้ำมัน
                                                     </button>
-                                                    <button 
-                                                        onClick={() => handleEndTrip(order)} 
+                                                    <button
+                                                        onClick={() => handleEndTrip(order)}
                                                         className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
                                                     >
                                                         จบงาน
@@ -788,8 +813,8 @@ export default function TruckOrders() {
                                                 </>
                                             )}
                                             {order.status === "picking-up" && order.oilReceiptId && (
-                                                <button 
-                                                    onClick={() => handleEndTrip(order)} 
+                                                <button
+                                                    onClick={() => handleEndTrip(order)}
                                                     className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
                                                 >
                                                     จบงาน
@@ -821,7 +846,7 @@ export default function TruckOrders() {
                             <FileText className="w-8 h-8 text-gray-400" />
                         </div>
                         <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">ไม่พบรายการขนส่ง</p>
-                        <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">คลิกปุ่ม "สร้างการขนส่งใหม่" เพื่อเพิ่มรายการ</p>
+                        <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">คลิกปุ่ม &quot;สร้างการขนส่งใหม่&quot; เพื่อเพิ่มรายการ</p>
                     </div>
                 )}
             </motion.div>
@@ -856,11 +881,12 @@ export default function TruckOrders() {
                             <div className="p-6 space-y-4">
                                 {/* เลขขนส่ง */}
                                 <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="new-transport-no" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         เลขขนส่ง (Transport No.) *
                                     </label>
                                     <div className="flex items-center gap-2">
                                         <input
+                                            id="new-transport-no"
                                             type="text"
                                             value={newOrder.transportNo}
                                             onChange={(e) => setNewOrder({ ...newOrder, transportNo: e.target.value })}
@@ -878,42 +904,45 @@ export default function TruckOrders() {
                                         </button>
                                     </div>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        💡 เลขขนส่งจะถูกสร้างอัตโนมัติเมื่อเปิดฟอร์มนี้ หรือคลิกปุ่ม "สร้างใหม่" เพื่อสร้างเลขใหม่
+                                        💡 เลขขนส่งจะถูกสร้างอัตโนมัติเมื่อเปิดฟอร์มนี้ หรือคลิกปุ่ม &quot;สร้างใหม่&quot; เพื่อสร้างเลขใหม่
                                     </p>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <div>
+                                        <label htmlFor="new-order-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             วันที่สร้างออเดอร์รถ *
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={newOrder.orderDate}
-                                        onChange={(e) => setNewOrder({ ...newOrder, orderDate: e.target.value })}
-                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                        </label>
+                                        <input
+                                            id="new-order-date"
+                                            type="date"
+                                            value={newOrder.orderDate}
+                                            onChange={(e) => setNewOrder({ ...newOrder, orderDate: e.target.value })}
+                                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                             required
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <label htmlFor="new-departure-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             วันที่ออกไปรับ *
                                         </label>
                                         <input
+                                            id="new-departure-date"
                                             type="date"
                                             value={newOrder.departureDate}
                                             onChange={(e) => setNewOrder({ ...newOrder, departureDate: e.target.value })}
                                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                             required
-                                    />
+                                        />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="new-purchase-order" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         เลือกใบสั่งซื้อ (Purchase Order) *
                                     </label>
                                     <select
+                                        id="new-purchase-order"
                                         value={newOrder.purchaseOrderNo}
                                         onChange={(e) => setNewOrder({ ...newOrder, purchaseOrderNo: e.target.value })}
                                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -936,10 +965,10 @@ export default function TruckOrders() {
                                                     <span className="text-gray-600 dark:text-gray-400">จำนวนน้ำมันรวม:</span>
                                                     <span className="font-semibold text-blue-600 dark:text-blue-400 ml-1">
                                                         {numberFormatter.format(
-                                                selectedPurchaseOrder.branches.reduce((sum, branch) =>
-                                                    sum + branch.items.reduce((s, item) => s + item.quantity, 0), 0
-                                                )
-                                            )} ลิตร
+                                                            selectedPurchaseOrder.branches.reduce((sum, branch) =>
+                                                                sum + branch.items.reduce((s, item) => s + item.quantity, 0), 0
+                                                            )
+                                                        )} ลิตร
                                                     </span>
                                                 </div>
                                                 <div>
@@ -994,17 +1023,18 @@ export default function TruckOrders() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <label htmlFor="new-truck" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             รถหัวลาก (ดึงจาก Profile รถ) *
                                         </label>
                                         <select
+                                            id="new-truck"
                                             value={newOrder.truckId}
                                             onChange={(e) => setNewOrder({ ...newOrder, truckId: e.target.value })}
                                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                             required
                                         >
                                             <option value="">เลือกรถ</option>
-                                            {mockTrucks.map((truck: any) => (
+                                            {mockTrucks.map((truck) => (
                                                 <option key={truck.id} value={truck.id}>
                                                     {truck.plateNumber} - {truck.brand} {truck.model}
                                                 </option>
@@ -1024,17 +1054,18 @@ export default function TruckOrders() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <label htmlFor="new-trailer" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             หางลาก (ดึงจาก Profile รถ) *
                                         </label>
                                         <select
+                                            id="new-trailer"
                                             value={newOrder.trailerId}
                                             onChange={(e) => setNewOrder({ ...newOrder, trailerId: e.target.value })}
                                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                             required
                                         >
                                             <option value="">เลือกหาง</option>
-                                            {mockTrailers.map((trailer: any) => (
+                                            {mockTrailers.map((trailer) => (
                                                 <option key={trailer.id} value={trailer.id}>
                                                     {trailer.plateNumber} - ความจุ {numberFormatter.format(trailer.capacity)} ลิตร
                                                 </option>
@@ -1044,10 +1075,11 @@ export default function TruckOrders() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="new-driver" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         คนขับรถ *
                                     </label>
                                     <select
+                                        id="new-driver"
                                         value={newOrder.driverId}
                                         onChange={(e) => setNewOrder({ ...newOrder, driverId: e.target.value })}
                                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -1063,18 +1095,19 @@ export default function TruckOrders() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <div>
+                                        <label htmlFor="new-odometer" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             เลขไมล์ปัจจุบัน (กม.) - แก้ไขได้ *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={newOrder.currentOdometer}
-                                        onChange={(e) => setNewOrder({ ...newOrder, currentOdometer: Number(e.target.value) })}
+                                        </label>
+                                        <input
+                                            id="new-odometer"
+                                            type="number"
+                                            value={newOrder.currentOdometer}
+                                            onChange={(e) => setNewOrder({ ...newOrder, currentOdometer: Number(e.target.value) })}
                                             placeholder="เลขไมล์จะดึงมาจาก Profile รถอัตโนมัติ (แก้ไขได้)"
-                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                             required
-                                    />
+                                        />
                                         {selectedPurchaseOrder?.currentOdometer && (
                                             <p className="mt-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
                                                 ✅ ดึงมาจากใบสั่งซื้อ: {numberFormatter.format(selectedPurchaseOrder.currentOdometer)} กม. (แก้ไขได้)
@@ -1087,13 +1120,14 @@ export default function TruckOrders() {
                                         )}
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <label htmlFor="new-start-fuel" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             <div className="flex items-center gap-2">
                                                 <Droplet className="w-4 h-4 text-blue-500" />
                                                 น้ำมันตอนเริ่มต้น (ลิตร) *
                                             </div>
                                         </label>
                                         <input
+                                            id="new-start-fuel"
                                             type="number"
                                             value={newOrder.startFuel}
                                             onChange={(e) => setNewOrder({ ...newOrder, startFuel: Number(e.target.value) })}
@@ -1112,9 +1146,9 @@ export default function TruckOrders() {
                                 {/* รายการน้ำมันแต่ละปั๊ม - Drag & Drop */}
                                 {selectedPurchaseOrder && orderedBranches.length > 0 && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             รายการน้ำมันแต่ละปั๊ม - จัดเรียงลำดับการส่ง (ลากวางเพื่อจัดเรียง)
-                                        </label>
+                                        </span>
                                         <DndContext
                                             sensors={sensors}
                                             collisionDetection={closestCenter}
@@ -1142,10 +1176,11 @@ export default function TruckOrders() {
                                 )}
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label htmlFor="new-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         หมายเหตุ
                                     </label>
                                     <textarea
+                                        id="new-notes"
                                         value={newOrder.notes}
                                         onChange={(e) => setNewOrder({ ...newOrder, notes: e.target.value })}
                                         placeholder="ระบุหมายเหตุ (ถ้ามี)"
@@ -1185,7 +1220,7 @@ export default function TruckOrders() {
                         onClick={() => setShowOrderDetailModal(false)}
                     >
                         <motion.div
-                             initial={{ scale: 0.95, opacity: 0 }}
+                            initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
                             className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
@@ -1284,7 +1319,7 @@ export default function TruckOrders() {
                                         <p className="font-semibold text-gray-900 dark:text-white">
                                             {selectedOrder.startFuel ? `${numberFormatter.format(selectedOrder.startFuel)} ลิตร` : "-"}
                                         </p>
-                                </div>
+                                    </div>
                                     {selectedOrder.pttQuotationDate && (
                                         <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
                                             <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
@@ -1340,11 +1375,11 @@ export default function TruckOrders() {
                                         <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                         <p className="text-lg font-bold text-gray-900 dark:text-white">รายการส่งน้ำมันแต่ละปั๊ม</p>
                                     </div>
-                                        {selectedOrder.branches && selectedOrder.branches.length > 0 ? (
+                                    {selectedOrder.branches && selectedOrder.branches.length > 0 ? (
                                         <div className="space-y-3">
-                                            {selectedOrder.branches.map((branch: any, idx: number) => (
-                                                <div 
-                                                    key={idx} 
+                                            {selectedOrder.branches.map((branch, idx) => (
+                                                <div
+                                                    key={idx}
                                                     className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700/50 dark:to-gray-800/50 p-5 rounded-xl border border-blue-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow"
                                                 >
                                                     <div className="flex items-start justify-between mb-3">
@@ -1374,9 +1409,9 @@ export default function TruckOrders() {
                                                     <div className="ml-11 space-y-2">
                                                         <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">รายการน้ำมัน:</p>
                                                         <div className="grid grid-cols-1 gap-2">
-                                                        {branch.items.map((item: any, i: number) => (
-                                                                <div 
-                                                                    key={i} 
+                                                            {branch.items.map((item, i) => (
+                                                                <div
+                                                                    key={i}
                                                                     className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600"
                                                                 >
                                                                     <div className="flex items-center gap-2">
@@ -1387,13 +1422,13 @@ export default function TruckOrders() {
                                                                         {numberFormatter.format(item.quantity)} ลิตร
                                                                     </span>
                                                                 </div>
-                                                        ))}
+                                                            ))}
                                                         </div>
                                                         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                                                             <p className="text-xs text-gray-500 dark:text-gray-400">
                                                                 รวมทั้งหมด: <span className="font-semibold text-gray-900 dark:text-white">
                                                                     {numberFormatter.format(
-                                                                        branch.items.reduce((sum: number, item: any) => sum + item.quantity, 0)
+                                                                        branch.items.reduce((sum, item) => sum + item.quantity, 0)
                                                                     )} ลิตร
                                                                 </span>
                                                             </p>
@@ -1421,8 +1456,8 @@ export default function TruckOrders() {
                     isOpen={showStartTripModal}
                     onClose={() => setShowStartTripModal(false)}
                     order={selectedOrder}
-                    lastOdometerReading={mockTrucks.find((t: any) => t.id === newOrder.truckId)?.lastOdometerReading || 0}
-                    lastOdometerDate={mockTrucks.find((t: any) => t.id === newOrder.truckId)?.lastOdometerDate || new Date().toISOString()}
+                    lastOdometerReading={mockTrucks.find((t) => t.id === newOrder.truckId)?.lastOdometerReading || 0}
+                    lastOdometerDate={mockTrucks.find((t) => t.id === newOrder.truckId)?.lastOdometerDate || new Date().toISOString()}
                     onStartTrip={onStartTrip}
                 />
             )}

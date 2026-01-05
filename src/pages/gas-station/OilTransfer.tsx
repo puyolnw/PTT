@@ -276,9 +276,11 @@ export default function OilTransfer() {
                 <div className="flex items-center gap-3">
                     <Calendar className="w-5 h-5 text-gray-500" />
                     <select
+                        id="filter-type"
                         value={selectedType}
                         onChange={(e) => setSelectedType(e.target.value as TransferType | "all")}
                         className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        aria-label="ทุกประเภท"
                     >
                         <option value="all">ทุกประเภท</option>
                         <option value="sale">ขาย</option>
@@ -451,10 +453,11 @@ export default function OilTransfer() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {/* วันที่ */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        <label htmlFor="add-transfer-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             วันที่
                                         </label>
                                         <input
+                                            id="add-transfer-date"
                                             type="date"
                                             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
@@ -462,10 +465,10 @@ export default function OilTransfer() {
 
                                     {/* หลุมต้นทาง */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        <label htmlFor="add-transfer-source" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             หลุมต้นทาง
                                         </label>
-                                        <select className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <select id="add-transfer-source" className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                             <option>34 HSD</option>
                                             <option>83 E 20</option>
                                             <option>18 63H95</option>
@@ -475,10 +478,10 @@ export default function OilTransfer() {
 
                                     {/* ประเภทน้ำมัน */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        <label htmlFor="add-transfer-oil-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             ประเภทน้ำมัน
                                         </label>
-                                        <select className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <select id="add-transfer-oil-type" className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                             <option>ดีเซล</option>
                                             <option>แก๊สโซฮอล์ E20</option>
                                             <option>แก๊สโซฮอล์ 95</option>
@@ -488,10 +491,11 @@ export default function OilTransfer() {
 
                                     {/* จำนวน */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        <label htmlFor="add-transfer-quantity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             จำนวน (ลิตร)
                                         </label>
                                         <input
+                                            id="add-transfer-quantity"
                                             type="number"
                                             placeholder="0"
                                             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -500,10 +504,10 @@ export default function OilTransfer() {
 
                                     {/* ประเภทการย้าย */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        <label htmlFor="add-transfer-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             ประเภทการย้าย
                                         </label>
-                                        <select className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <select id="add-transfer-type" className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                             <option value="sale">ขาย</option>
                                             <option value="branch">โอนสาขา</option>
                                             <option value="internal">ย้ายภายใน</option>
@@ -512,10 +516,11 @@ export default function OilTransfer() {
 
                                     {/* ปลายทาง */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        <label htmlFor="add-transfer-destination" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             ปลายทาง
                                         </label>
                                         <input
+                                            id="add-transfer-destination"
                                             type="text"
                                             placeholder="ชื่อสาขา/ลูกค้า/หลุม"
                                             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -524,10 +529,11 @@ export default function OilTransfer() {
 
                                     {/* ทะเบียนรถ */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        <label htmlFor="add-transfer-vehicle" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             ทะเบียนรถ (ถ้ามี)
                                         </label>
                                         <input
+                                            id="add-transfer-vehicle"
                                             type="text"
                                             placeholder="กข-1234"
                                             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -536,10 +542,11 @@ export default function OilTransfer() {
 
                                     {/* ชื่อคนขับ */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        <label htmlFor="add-transfer-driver" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             ชื่อคนขับ (ถ้ามี)
                                         </label>
                                         <input
+                                            id="add-transfer-driver"
                                             type="text"
                                             placeholder="ชื่อ-นามสกุล"
                                             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -548,10 +555,11 @@ export default function OilTransfer() {
 
                                     {/* ราคาต่อลิตร */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        <label htmlFor="add-transfer-price" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             ราคาต่อลิตร (กรณีขาย)
                                         </label>
                                         <input
+                                            id="add-transfer-price"
                                             type="number"
                                             step="0.01"
                                             placeholder="0.00"
@@ -561,10 +569,11 @@ export default function OilTransfer() {
 
                                     {/* หมายเหตุ */}
                                     <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        <label htmlFor="add-transfer-remarks" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             หมายเหตุ
                                         </label>
                                         <textarea
+                                            id="add-transfer-remarks"
                                             rows={3}
                                             placeholder="รายละเอียดเพิ่มเติม..."
                                             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"

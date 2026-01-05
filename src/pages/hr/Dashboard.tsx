@@ -355,9 +355,9 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <div className="h-2 bg-soft rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan"
-                    style={{ width: `${dept.percentage}%` }}
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-ptt-blue to-ptt-cyan w-[var(--dept-width)]"
+                    style={{ "--dept-width": `${dept.percentage}%` } as React.CSSProperties}
                   />
                 </div>
               </div>

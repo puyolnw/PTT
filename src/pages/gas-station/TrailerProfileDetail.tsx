@@ -13,7 +13,7 @@ import {
     FileText,
     Activity,
 } from "lucide-react";
-import { mockTrailers, mockTrucks } from "./TruckProfiles";
+import { mockTrailers, mockTrucks } from "@/data/truckData";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
     maximumFractionDigits: 0,
@@ -322,6 +322,13 @@ export default function TrailerProfileDetail() {
                                         : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                                         }`}
                                     onClick={() => navigate(`/app/gas-station/truck-profiles/${truck.id}`)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            navigate(`/app/gas-station/truck-profiles/${truck.id}`);
+                                        }
+                                    }}
+                                    role="button"
+                                    tabIndex={0}
                                 >
                                     <div className="flex items-center gap-2 mb-2">
                                         <Truck className="w-4 h-4 text-gray-500" />

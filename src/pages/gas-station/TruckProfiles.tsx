@@ -25,447 +25,8 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
 //   day: "numeric",
 // });
 
-// Interface สำหรับหาง (Trailer)
-export interface Trailer {
-  id: string;
-  plateNumber: string; // ทะเบียนรถส่วนหาง (Tail License Plate)
-  capacity: number; // ความจุ (ลิตร)
-  status: "available" | "in-use" | "maintenance";
-  // Physical Specifications
-  brand?: string; // ยี่ห้อ
-  model?: string; // รุ่น
-  year?: number; // ปีที่ผลิต
-  chassisNumber?: string; // เลขตัวถัง
-  // Dimensions & Weight
-  length?: number; // ความยาว (เมตร)
-  width?: number; // ความกว้าง (เมตร)
-  height?: number; // ความสูง (เมตร)
-  emptyWeight?: number; // น้ำหนักเปล่า (กก.)
-  maxLoadWeight?: number; // น้ำหนักบรรทุกสูงสุด (กก.)
-  // Usage Statistics
-  totalTrips?: number; // จำนวนเที่ยวทั้งหมด
-  totalOilDelivered?: number; // ปริมาณน้ำมันที่ส่งทั้งหมด (ลิตร)
-  lastTripDate?: string; // วันที่เดินทางล่าสุด
-  // Maintenance
-  lastMaintenanceDate?: string;
-  nextMaintenanceDate?: string;
-  totalMaintenanceCost?: number; // ค่าซ่อมบำรุงสะสม (บาท)
-  lastMajorRepair?: string; // การซ่อมใหญ่ครั้งล่าสุด
-  lastMajorRepairDate?: string; // วันที่ซ่อมใหญ่ครั้งล่าสุด
-  // Additional Info
-  color?: string; // สีหาง
-  purchaseDate?: string; // วันที่ซื้อ
-  purchasePrice?: number; // ราคาซื้อ (บาท)
-  currentTruckId?: string; // รถที่ใช้อยู่ตอนนี้
-  notes?: string; // หมายเหตุเพิ่มเติม
-  // เอกสารประจำหาง
-  compulsoryInsuranceExpiry?: string; // พ.ร.บ.
-  vehicleTaxExpiry?: string; // ทะเบียนรถ/ป้ายวงกลม
-  insuranceExpiry?: string; // ประกันภัย
-  hazmatLicenseExpiry?: string; // ใบอนุญาตขนส่งวัตถุอันตราย
-}
-
-// Interface สำหรับรถ (Truck Head)
-export interface TruckProfile {
-  id: string;
-  plateNumber: string; // ทะเบียนรถส่วนหัว (Head License Plate)
-  brand: string;
-  model: string;
-  year: number;
-  engineNumber: string;
-  chassisNumber: string;
-  status: "active" | "inactive" | "maintenance";
-  totalTrips: number;
-  totalDistance: number; // กิโลเมตร
-  totalOilDelivered: number; // ลิตร
-  lastTripDate?: string;
-  lastMaintenanceDate?: string;
-  nextMaintenanceDate?: string;
-  compatibleTrailers: string[]; // ID ของหางที่ใช้ได้
-  currentTrailerId?: string; // หางที่ใช้อยู่ตอนนี้
-  // Driver Assignment
-  assignedDriverId?: string; // ID ของคนขับประจำ
-  assignedDriverName?: string; // ชื่อคนขับประจำ
-  // Location & Depot
-  currentLocation?: string; // ที่จอดรถปัจจุบัน/คลัง
-  homeDepot?: string; // คลังหลัก/ฐานที่ตั้ง
-  // Fuel Efficiency
-  fuelEfficiency?: number; // อัตราการใช้น้ำมันเฉลี่ย (กม./ลิตร)
-  lastFuelEfficiencyUpdate?: string; // วันที่อัปเดตข้อมูลล่าสุด
-  // Maintenance History (summary)
-  totalMaintenanceCost?: number; // ค่าซ่อมบำรุงสะสม (บาท)
-  lastMajorRepair?: string; // การซ่อมใหญ่ครั้งล่าสุด
-  lastMajorRepairDate?: string; // วันที่ซ่อมใหญ่ครั้งล่าสุด
-  // Additional Info
-  color?: string; // สีรถ
-  purchaseDate?: string; // วันที่ซื้อ
-  purchasePrice?: number; // ราคาซื้อ (บาท)
-  notes?: string; // หมายเหตุเพิ่มเติม
-  // Odometer tracking
-  lastOdometerReading?: number; // เลขไมล์ล่าสุด (กม.)
-  lastOdometerDate?: string; // วันที่บันทึกไมล์ล่าสุด
-  // เอกสารประจำรถหัวลาก
-  compulsoryInsuranceExpiry?: string; // พ.ร.บ.
-  vehicleTaxExpiry?: string; // ทะเบียนรถ/ป้ายวงกลม
-  insuranceExpiry?: string; // ประกันภัย
-  hazmatLicenseExpiry?: string; // ใบอนุญาตขนส่งวัตถุอันตราย
-}
-
-// Interface สำหรับบันทึกประวัติการซ่อมบำรุง
-export interface MaintenanceRecord {
-  id: string;
-  vehicleId: string; // ID ของรถหรือหาง
-  vehicleType: "truck" | "trailer"; // ประเภทยานพาหนะ
-  date: string; // วันที่ซ่อม
-  type: "routine" | "repair" | "major"; // ประเภทการซ่อม
-  description: string; // รายละเอียดงานซ่อม
-  cost: number; // ค่าใช้จ่าย (บาท)
-  mileage?: number; // เลขไมล์ขณะซ่อม (สำหรับรถ)
-  performedBy: string; // ช่างผู้ทำ/ศูนย์บริการ
-  nextServiceDue?: string; // วันที่ต้องเข้าซ่อมครั้งถัดไป
-  notes?: string; // หมายเหตุ
-}
-
-
-// Interface สำหรับออเดอร์รถน้ำมัน
-export interface TruckOrder {
-  id: string;
-  orderNo: string; // เลขที่รอบรับน้ำมัน
-  orderDate: string;
-  purchaseOrderNo?: string; // เลขที่ใบสั่งซื้อที่เชื่อมกับ PO
-  transportNo: string; // เลขที่ขนส่ง (TR-YYYYMMDD-XXX)
-  truckId: string;
-  truckPlateNumber: string;
-  trailerId: string;
-  trailerPlateNumber: string;
-  driver: string;
-  fromBranch: string;
-  toBranch: string;
-  oilType: string;
-  quantity: number; // ลิตร
-  status: "draft" | "quotation-recorded" | "ready-to-pickup" | "picking-up" | "completed" | "cancelled";
-
-  // PTT Quotation fields (ใบเสนอราคาจาก ปตท.)
-  pttQuotationNo?: string; // เลขที่ใบเสนอราคาจาก ปตท.
-  pttQuotationDate?: string; // วันที่ใบเสนอราคา
-  pttQuotationAmount?: number; // มูลค่ารวมในใบเสนอราคา
-  pttQuotationAttachment?: string; // ไฟล์แนบใบเสนอราคา
-
-  // Scheduled pickup (วันนัดรับ)
-  scheduledPickupDate?: string; // วันที่นัดไปรับน้ำมัน
-  scheduledPickupTime?: string; // เวลาที่นัดไปรับ
-
-  // Odometer tracking fields
-  currentOdometer?: number; // เลขไมล์ปัจจุบันก่อนออกวิ่ง
-  startOdometer?: number; // เลขไมล์เริ่มต้น (กม.)
-  endOdometer?: number; // เลขไมล์สิ้นสุด (กม.)
-  totalDistance?: number; // ระยะทางรวม (กม.)
-  startTime?: string; // เวลาเริ่มเดินทาง
-  endTime?: string; // เวลาถึงปลายทาง
-  tripDuration?: number; // ระยะเวลา (นาที)
-  odometerStartPhoto?: string; // รูปไมล์ตอนออก (optional)
-  odometerEndPhoto?: string; // รูปไมล์ตอนกลับ (optional)
-  
-  // Fuel tracking fields
-  startFuel?: number; // น้ำมันตอนเริ่มต้น (ลิตร)
-  endFuel?: number; // น้ำมันตอนสิ้นสุด (ลิตร)
-  fuelConsumed?: number; // น้ำมันที่ใช้ไป (ลิตร)
-
-  // Integration with Oil Receipt
-  deliveryNoteNo?: string; // เลขที่ใบส่งของจาก PTT
-  oilReceiptId?: string; // ID ของใบรับน้ำมัน (เชื่อมกับ OilReceipt)
-  selectedBranches?: number[]; // สาขาที่จะส่ง
-  usedInOrderId?: string; // ID ของออเดอร์น้ำมันที่เรียกใช้ออเดอร์รถนี้
-  notes?: string;
-  createdAt: string;
-  createdBy: string;
-}
-
-// Mock data - หาง 3 หาง
-export const mockTrailers: Trailer[] = [
-  {
-    id: "TRAILER-001",
-    plateNumber: "กข 1234",
-    capacity: 10000,
-    status: "in-use",
-    // Physical Specifications
-    brand: "Thai Tank",
-    model: "TT-10000",
-    year: 2019,
-    chassisNumber: "TT2019001",
-    // Dimensions & Weight
-    length: 8.5,
-    width: 2.5,
-    height: 3.2,
-    emptyWeight: 3500,
-    maxLoadWeight: 12000,
-    // Usage Statistics
-    totalTrips: 450,
-    totalOilDelivered: 4500000,
-    lastTripDate: "2024-12-15",
-    // Maintenance
-    lastMaintenanceDate: "2024-11-15",
-    nextMaintenanceDate: "2025-02-15",
-    totalMaintenanceCost: 85000,
-    lastMajorRepair: "เปลี่ยนวาล์วล้วม",
-    lastMajorRepairDate: "2024-05-10",
-    // Additional Info
-    color: "เงิน",
-    purchaseDate: "2019-03-20",
-    purchasePrice: 1200000,
-    currentTruckId: "TRUCK-001",
-    notes: "หางประจำรถ กก 1111",
-    // เอกสาร
-    compulsoryInsuranceExpiry: "2025-06-30",
-    vehicleTaxExpiry: "2025-03-15",
-    insuranceExpiry: "2025-08-20",
-    hazmatLicenseExpiry: "2025-12-31",
-  },
-  {
-    id: "TRAILER-002",
-    plateNumber: "กข 5678",
-    capacity: 12000,
-    status: "available",
-    // Physical Specifications
-    brand: "Siam Tank",
-    model: "ST-12000",
-    year: 2020,
-    chassisNumber: "ST2020002",
-    // Dimensions & Weight
-    length: 9.0,
-    width: 2.5,
-    height: 3.3,
-    emptyWeight: 3800,
-    maxLoadWeight: 14000,
-    // Usage Statistics
-    totalTrips: 320,
-    totalOilDelivered: 3840000,
-    lastTripDate: "2024-12-10",
-    // Maintenance
-    lastMaintenanceDate: "2024-10-20",
-    nextMaintenanceDate: "2025-01-20",
-    totalMaintenanceCost: 62000,
-    lastMajorRepair: "ซ่อมระบบเบรก",
-    lastMajorRepairDate: "2024-03-15",
-    // Additional Info
-    color: "ขาว",
-    purchaseDate: "2020-06-15",
-    purchasePrice: 1350000,
-    notes: "หางสำรอง",
-    // เอกสาร
-    compulsoryInsuranceExpiry: "2025-01-15",
-    vehicleTaxExpiry: "2025-05-10",
-    insuranceExpiry: "2025-07-25",
-    hazmatLicenseExpiry: "2025-11-30",
-  },
-  {
-    id: "TRAILER-003",
-    plateNumber: "กข 9012",
-    capacity: 15000,
-    status: "in-use",
-    // Physical Specifications
-    brand: "Premium Tank",
-    model: "PT-15000",
-    year: 2021,
-    chassisNumber: "PT2021003",
-    // Dimensions & Weight
-    length: 10.0,
-    width: 2.5,
-    height: 3.5,
-    emptyWeight: 4200,
-    maxLoadWeight: 18000,
-    // Usage Statistics
-    totalTrips: 280,
-    totalOilDelivered: 4200000,
-    lastTripDate: "2024-12-14",
-    // Maintenance
-    lastMaintenanceDate: "2024-12-01",
-    nextMaintenanceDate: "2025-03-01",
-    totalMaintenanceCost: 45000,
-    lastMajorRepair: "ตรวจเช็คประจำปี",
-    lastMajorRepairDate: "2024-11-25",
-    // Additional Info
-    color: "น้ำเงิน",
-    purchaseDate: "2021-01-10",
-    purchasePrice: 1650000,
-    currentTruckId: "TRUCK-002",
-    notes: "หางใหม่ ความจุสูงสุด",
-    // เอกสาร
-    compulsoryInsuranceExpiry: "2025-09-15",
-    vehicleTaxExpiry: "2025-04-20",
-    insuranceExpiry: "2025-10-10",
-    hazmatLicenseExpiry: "2025-12-25",
-  },
-];
-
-// Mock data - รถ 2 คัน
-export const mockTrucks: TruckProfile[] = [
-  {
-    id: "TRUCK-001",
-    plateNumber: "กก 1111",
-    brand: "Isuzu",
-    model: "FVR 34-260",
-    year: 2020,
-    engineNumber: "ENG-2020-001",
-    chassisNumber: "CHS-2020-001",
-    status: "active",
-    totalTrips: 245,
-    totalDistance: 125000,
-    totalOilDelivered: 2500000,
-    lastTripDate: "2024-12-15",
-    lastMaintenanceDate: "2024-11-20",
-    nextMaintenanceDate: "2025-02-20",
-    compatibleTrailers: ["TRAILER-001", "TRAILER-002", "TRAILER-003"],
-    currentTrailerId: "TRAILER-001",
-    // Driver Assignment
-    assignedDriverName: "สมชาย ใจดี",
-    // Location & Depot
-    currentLocation: "คลังปั๊มไฮโซ",
-    homeDepot: "คลังกรุงเทพ",
-    // Fuel Efficiency
-    fuelEfficiency: 3.5, // กม./ลิตร
-    lastFuelEfficiencyUpdate: "2024-12-01",
-    // Maintenance History
-    totalMaintenanceCost: 125000,
-    lastMajorRepair: "เปลี่ยนเครื่องยนต์",
-    lastMajorRepairDate: "2024-06-15",
-    // Additional Info
-    color: "ขาว",
-    purchaseDate: "2020-01-15",
-    purchasePrice: 2500000,
-    notes: "รถหลัก สภาพดี",
-    // Odometer
-    lastOdometerReading: 125500,
-    lastOdometerDate: "2024-12-15",
-    // เอกสาร
-    compulsoryInsuranceExpiry: "2025-07-15",
-    vehicleTaxExpiry: "2025-06-30",
-    insuranceExpiry: "2025-09-20",
-    hazmatLicenseExpiry: "2025-11-15",
-  },
-  {
-    id: "TRUCK-002",
-    plateNumber: "กก 2222",
-    brand: "Hino",
-    model: "300 Series",
-    year: 2021,
-    engineNumber: "ENG-2021-002",
-    chassisNumber: "CHS-2021-002",
-    status: "active",
-    totalTrips: 198,
-    totalDistance: 98000,
-    totalOilDelivered: 1980000,
-    lastTripDate: "2024-12-14",
-    lastMaintenanceDate: "2024-12-05",
-    nextMaintenanceDate: "2025-03-01",
-    compatibleTrailers: ["TRAILER-001", "TRAILER-002", "TRAILER-003"],
-    currentTrailerId: "TRAILER-003",
-    // Driver Assignment
-    assignedDriverName: "วิชัย รักงาน",
-    // Location & Depot
-    currentLocation: "คลังปั๊มไฮโซ",
-    homeDepot: "คลังกรุงเทพ",
-    // Fuel Efficiency
-    fuelEfficiency: 3.8, // กม./ลิตร
-    lastFuelEfficiencyUpdate: "2024-11-15",
-    // Maintenance History
-    totalMaintenanceCost: 95000,
-    lastMajorRepair: "ซ่อมระบบเกียร์",
-    lastMajorRepairDate: "2024-08-20",
-    // Additional Info
-    color: "เงิน",
-    purchaseDate: "2021-03-10",
-    purchasePrice: 2800000,
-    notes: "รถสำรอง ประหยัดน้ำมัน",
-    // Odometer
-    lastOdometerReading: 98350,
-    lastOdometerDate: "2024-12-14",
-    // เอกสาร
-    compulsoryInsuranceExpiry: "2025-01-10",
-    vehicleTaxExpiry: "2025-05-25",
-    insuranceExpiry: "2025-08-15",
-    hazmatLicenseExpiry: "2025-10-30",
-  },
-];
-
-// Mock data - ออเดอร์รถน้ำมัน
-export const mockTruckOrders: TruckOrder[] = [
-  {
-    id: "TO-001",
-    orderNo: "TO-20241215-001",
-    orderDate: "2024-12-15",
-    purchaseOrderNo: "SO-20241215-001",
-    transportNo: "TR-20241215-001",
-    truckId: "TRUCK-001",
-    truckPlateNumber: "กก 1111",
-    trailerId: "TRAILER-001",
-    trailerPlateNumber: "กข 1234",
-    driver: "สมชาย ใจดี",
-    fromBranch: "ปั๊มไฮโซ",
-    toBranch: "ดินดำ",
-    oilType: "Premium Diesel",
-    quantity: 10000,
-    status: "picking-up",
-    startOdometer: 125000,
-    startTime: "2024-12-15T08:00:00",
-    selectedBranches: [2, 3],
-    usedInOrderId: "SO-20241215-001",
-    notes: "รับน้ำมันจากปั๊มไฮโซ",
-    createdAt: "2024-12-15 08:00:00",
-    createdBy: "ผู้จัดการ",
-  },
-  {
-    id: "TO-002",
-    orderNo: "TO-20241215-002",
-    orderDate: "2024-12-15",
-    purchaseOrderNo: "SO-20241215-002",
-    transportNo: "TR-20241215-002",
-    truckId: "TRUCK-002",
-    truckPlateNumber: "กก 2222",
-    trailerId: "TRAILER-003",
-    trailerPlateNumber: "กข 9012",
-    driver: "วิชัย รักงาน",
-    fromBranch: "ปั๊มไฮโซ",
-    toBranch: "หนองจิก",
-    oilType: "Gasohol 95",
-    quantity: 12000,
-    status: "draft",
-    selectedBranches: [3, 4],
-    notes: "",
-    createdAt: "2024-12-15 09:00:00",
-    createdBy: "ผู้จัดการ",
-  },
-  {
-    id: "TO-003",
-    orderNo: "TO-20241214-001",
-    orderDate: "2024-12-14",
-    purchaseOrderNo: "SO-20241214-001",
-    transportNo: "TR-20241214-001",
-    truckId: "TRUCK-001",
-    truckPlateNumber: "กก 1111",
-    trailerId: "TRAILER-002",
-    trailerPlateNumber: "กข 5678",
-    driver: "สมชาย ใจดี",
-    fromBranch: "ปั๊มไฮโซ",
-    toBranch: "ตักสิลา",
-    oilType: "Diesel",
-    quantity: 8000,
-    status: "completed",
-    startOdometer: 98000,
-    endOdometer: 98350,
-    totalDistance: 350,
-    startTime: "2024-12-14T10:00:00",
-    endTime: "2024-12-14T15:30:00",
-    tripDuration: 330, // 5 hours 30 minutes
-    deliveryNoteNo: "PTT-DN-20241214-001",
-    oilReceiptId: "REC-20241214-001",
-    selectedBranches: [4],
-    usedInOrderId: "SO-20241214-001",
-    notes: "",
-    createdAt: "2024-12-14 10:00:00",
-    createdBy: "ผู้จัดการ",
-  },
-];
+import type { Trailer } from "@/types/truck";
+import { mockTrailers, mockTrucks } from "@/data/truckData";
 
 
 
@@ -710,7 +271,9 @@ export default function TruckProfiles() {
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <label htmlFor="truck-profiles-search" className="sr-only">ค้นหา</label>
             <input
+              id="truck-profiles-search"
               type="text"
               placeholder="ค้นหาจากเลขทะเบียน, ยี่ห้อ, รุ่น..."
               value={searchTerm}
@@ -719,7 +282,9 @@ export default function TruckProfiles() {
             />
           </div>
           <div className="flex gap-2">
+            <label htmlFor="truck-profiles-filter-status" className="sr-only">สถานะ</label>
             <select
+              id="truck-profiles-filter-status"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -887,10 +452,11 @@ export default function TruckProfiles() {
 
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="truck-profiles-plate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     ทะเบียนรถ <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="truck-profiles-plate"
                     type="text"
                     value={newTruck.plateNumber}
                     onChange={(e) => setNewTruck({ ...newTruck, plateNumber: e.target.value })}
@@ -901,10 +467,11 @@ export default function TruckProfiles() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="truck-profiles-brand" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       ยี่ห้อ <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="truck-profiles-brand"
                       type="text"
                       value={newTruck.brand}
                       onChange={(e) => setNewTruck({ ...newTruck, brand: e.target.value })}
@@ -914,10 +481,11 @@ export default function TruckProfiles() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="truck-profiles-model" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       รุ่น <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="truck-profiles-model"
                       type="text"
                       value={newTruck.model}
                       onChange={(e) => setNewTruck({ ...newTruck, model: e.target.value })}
@@ -928,10 +496,11 @@ export default function TruckProfiles() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="truck-profiles-year" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     ปีรถ <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="truck-profiles-year"
                     type="number"
                     value={newTruck.year}
                     onChange={(e) => setNewTruck({ ...newTruck, year: parseInt(e.target.value) })}
@@ -943,10 +512,11 @@ export default function TruckProfiles() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="truck-profiles-engine" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       เลขเครื่องยนต์ <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="truck-profiles-engine"
                       type="text"
                       value={newTruck.engineNumber}
                       onChange={(e) => setNewTruck({ ...newTruck, engineNumber: e.target.value })}
@@ -956,10 +526,11 @@ export default function TruckProfiles() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="truck-profiles-chassis" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       เลขตัวถัง <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="truck-profiles-chassis"
                       type="text"
                       value={newTruck.chassisNumber}
                       onChange={(e) => setNewTruck({ ...newTruck, chassisNumber: e.target.value })}
@@ -970,10 +541,11 @@ export default function TruckProfiles() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="truck-profiles-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     สถานะ
                   </label>
                   <select
+                    id="truck-profiles-status"
                     value={newTruck.status}
                     onChange={(e) => setNewTruck({ ...newTruck, status: e.target.value as "active" | "inactive" | "maintenance" })}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -985,13 +557,14 @@ export default function TruckProfiles() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     หางที่ใช้ได้
-                  </label>
+                  </span>
                   <div className="space-y-2 max-h-40 overflow-y-auto p-3 border border-gray-300 dark:border-gray-600 rounded-lg">
                     {mockTrailers.map((trailer) => (
-                      <label key={trailer.id} className="flex items-center gap-2 cursor-pointer">
+                      <label key={trailer.id} htmlFor={`truck-profiles-trailer-${trailer.id}`} className="flex items-center gap-2 cursor-pointer">
                         <input
+                          id={`truck-profiles-trailer-${trailer.id}`}
                           type="checkbox"
                           checked={newTruck.compatibleTrailers.includes(trailer.id)}
                           onChange={(e) => {

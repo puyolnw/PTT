@@ -19,14 +19,15 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
 
 // Helper function to create nozzles object for 1A-10F
 const createNozzles = (data: { [key: string]: { meter: number | null; liters: number | null } }) => {
-  const nozzles: { [key: string]: { meter: number | null; liters: number | null } } = {};
   const nozzlesList = ["1A", "1B", "1C", "1D", "1E", "1F", "2A", "2B", "2C", "2D", "2E", "2F", "3A", "3B", "3C", "3D", "3E", "3F", "4A", "4B", "4C", "4D", "4E", "4F", "5A", "5B", "5C", "5D", "5E", "5F", "6A", "6B", "6C", "6D", "6E", "6F", "7A", "7B", "7C", "7D", "7E", "7F", "8A", "8B", "8C", "8D", "8E", "8F", "9A", "9B", "9C", "9D", "9E", "9F", "10A", "10B", "10C", "10D", "10E", "10F"];
-  
-  nozzlesList.forEach((nozzle) => {
-    nozzles[nozzle] = data[nozzle] || { meter: null, liters: null };
-  });
-  
-  return nozzles;
+
+  const dataMap = new Map(Object.entries(data));
+  const entries = nozzlesList.map((nozzle) => [
+    nozzle,
+    dataMap.get(nozzle) || { meter: null, liters: null }
+  ]);
+
+  return Object.fromEntries(entries);
 };
 
 // Helper function to get current date in Thai format (D/M/YY)
@@ -124,17 +125,18 @@ const generateMockData = () => {
   [...currentMonthData, ...prevMonthData, ...prevMonth2Data].forEach((item) => {
     const { month, year } = parseDate(item.date);
     // แปลง nozzles ให้เป็นรูปแบบที่ถูกต้อง
-    const formattedNozzles: { [key: string]: { meter: number | null; liters: number | null } } = {};
-    const nozzlesObj = item.nozzles as { [key: string]: { meter?: number; liters?: number } | undefined };
-    Object.keys(nozzlesObj).forEach((key) => {
-      const nozzle = nozzlesObj[key];
-      if (nozzle) {
-        formattedNozzles[key] = {
-          meter: nozzle.meter ?? null,
-          liters: nozzle.liters ?? null,
-        };
-      }
-    });
+    const nozzlesObj = item.nozzles as Record<string, { meter?: number; liters?: number } | undefined>;
+    const formattedNozzles: Record<string, { meter: number | null; liters: number | null }> = Object.fromEntries(
+      Object.entries(nozzlesObj)
+        .filter(([, nozzle]) => !!nozzle)
+        .map(([key, nozzle]) => [
+          key,
+          {
+            meter: nozzle?.meter ?? null,
+            liters: nozzle?.liters ?? null,
+          }
+        ])
+    );
     allData.push({
       ...item,
       month,
@@ -237,7 +239,7 @@ export default function UndergroundBook() {
   const currentYear = now.getFullYear() + 543; // Buddhist year
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth); // เดือนปัจจุบัน
   const [selectedYear, setSelectedYear] = useState<number>(currentYear); // ปีปัจจุบัน
-  
+
   // ตรวจสอบ role ของผู้ใช้
   const userBranch = getCurrentUserRole();
   const isBranchUser = userBranch !== "admin" && userBranch !== null;
@@ -258,19 +260,16 @@ export default function UndergroundBook() {
   // รวมข้อมูลที่วันที่เดียวกันและเรียงตามวันที่
   const groupedAndSortedData = React.useMemo(() => {
     // จัดกลุ่มตามวันที่
-    const groupedByDate: { [key: string]: typeof filteredDetailData } = {};
-    
+    const groupedByDate = new Map<string, typeof filteredDetailData>();
+
     filteredDetailData.forEach((item) => {
-      if (!groupedByDate[item.date]) {
-        groupedByDate[item.date] = [];
-      }
-      groupedByDate[item.date].push(item);
+      const existing = groupedByDate.get(item.date) || [];
+      groupedByDate.set(item.date, [...existing, item]);
     });
 
     // รวมข้อมูลในแต่ละวันที่
-    const mergedData = Object.keys(groupedByDate)
-      .map((date) => {
-        const items = groupedByDate[date];
+    const mergedData = Array.from(groupedByDate.entries())
+      .map(([date, items]) => {
         // เรียงตาม id เพื่อให้ได้ลำดับที่ถูกต้อง
         items.sort((a, b) => a.id - b.id);
 
@@ -282,31 +281,32 @@ export default function UndergroundBook() {
         const finalMeasured = items[items.length - 1].measured;
         // ใช้ difference จากรายการสุดท้าย (ผลต่างสุดท้ายของวัน)
         const finalDifference = items[items.length - 1].difference;
-        const mergedNozzles: { [key: string]: { meter: number; liters: number } } = {};
+        const mergedNozzles = new Map<string, { meter: number; liters: number }>();
 
         items.forEach((item) => {
           if (item.receive !== null) totalReceive += item.receive;
           if (item.pay !== null) totalPay += item.pay;
 
           // รวม nozzles (บวกค่าทั้งหมด)
-          Object.keys(item.nozzles).forEach((nozzleKey) => {
-            if (!mergedNozzles[nozzleKey]) {
-              mergedNozzles[nozzleKey] = { meter: 0, liters: 0 };
-            }
-            const nozzle = item.nozzles[nozzleKey];
-            if (nozzle.meter !== null) mergedNozzles[nozzleKey].meter += nozzle.meter;
-            if (nozzle.liters !== null) mergedNozzles[nozzleKey].liters += nozzle.liters;
+          Object.entries(item.nozzles).forEach(([nozzleKey, nozzle]) => {
+            const existing = mergedNozzles.get(nozzleKey) || { meter: 0, liters: 0 };
+            mergedNozzles.set(nozzleKey, {
+              meter: existing.meter + (nozzle.meter || 0),
+              liters: existing.liters + (nozzle.liters || 0),
+            });
           });
         });
 
         // แปลง mergedNozzles ให้เป็นรูปแบบที่ต้องการ
-        const formattedNozzles: { [key: string]: { meter: number | null; liters: number | null } } = {};
-        Object.keys(mergedNozzles).forEach((key) => {
-          formattedNozzles[key] = {
-            meter: mergedNozzles[key].meter > 0 ? mergedNozzles[key].meter : null,
-            liters: mergedNozzles[key].liters > 0 ? mergedNozzles[key].liters : null,
-          };
-        });
+        const formattedNozzles: Record<string, { meter: number | null; liters: number | null }> = Object.fromEntries(
+          Array.from(mergedNozzles.entries()).map(([key, data]) => [
+            key,
+            {
+              meter: data.meter > 0 ? data.meter : null,
+              liters: data.liters > 0 ? data.liters : null,
+            }
+          ])
+        );
 
         return {
           id: items[0].id,
@@ -334,11 +334,7 @@ export default function UndergroundBook() {
   }, [filteredDetailData]);
 
 
-  const getDifferenceColor = (diff: number) => {
-    if (diff === 0) return "text-gray-600 dark:text-gray-400";
-    if (diff < 0) return "text-red-600 dark:text-red-400";
-    return "text-emerald-600 dark:text-emerald-400";
-  };
+
 
   const handleImportData = () => {
     // In real app, this would import data from Excel or API
@@ -364,7 +360,7 @@ export default function UndergroundBook() {
           <div>
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">สมุดใต้ดิน</h1>
             <p className="text-gray-600 dark:text-gray-400">
-              {isBranchUser 
+              {isBranchUser
                 ? `บันทึกยอดน้ำมันใต้ดิน - ${userBranchName} (16:00-17:30 น.)`
                 : "บันทึกยอดน้ำมันใต้ดินทั้ง 5 สาขา (16:00-17:30 น.)"
               }
@@ -396,10 +392,12 @@ export default function UndergroundBook() {
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">เลือกเดือน/ปี:</span>
+            <span id="underground-book-date-label" className="text-sm font-semibold text-gray-700 dark:text-gray-300">เลือกเดือน/ปี:</span>
           </div>
           <div className="flex items-center gap-3">
+            <label htmlFor="underground-book-month-select" className="sr-only">เลือกเดือน</label>
             <select
+              id="underground-book-month-select"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
               className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200 text-sm font-medium"
@@ -417,7 +415,9 @@ export default function UndergroundBook() {
               <option value={11}>พฤศจิกายน</option>
               <option value={12}>ธันวาคม</option>
             </select>
+            <label htmlFor="underground-book-year-select" className="sr-only">เลือกปี</label>
             <select
+              id="underground-book-year-select"
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200 text-sm font-medium"
@@ -509,7 +509,7 @@ export default function UndergroundBook() {
             รายการสมุดใต้ดิน
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            {isBranchUser 
+            {isBranchUser
               ? `บันทึกยอดน้ำมันใต้ดิน - ${userBranchName}`
               : "บันทึกยอดน้ำมันใต้ดินปั้มไฮโซ"
             }
@@ -524,15 +524,14 @@ export default function UndergroundBook() {
                 <th rowSpan={2} className="sticky left-[190px] z-10 text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50 dark:bg-gray-900/50 min-w-[100px]">จ่าย</th>
                 <th rowSpan={2} className="sticky left-[290px] z-10 text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50 dark:bg-gray-900/50 min-w-[120px]">คงเหลือ</th>
                 <th rowSpan={2} className="sticky left-[410px] z-10 text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50 dark:bg-gray-900/50 min-w-[120px]">วัดจริง</th>
-                <th rowSpan={2} className="sticky left-[530px] z-10 text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50 dark:bg-gray-900/50 min-w-[120px]">ขาด/เกิน<br/>(+/-)</th>
+                <th rowSpan={2} className="sticky left-[530px] z-10 text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50 dark:bg-gray-900/50 min-w-[120px]">ขาด/เกิน<br />(+/-)</th>
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((num) =>
                   ["A", "B", "C", "D", "E", "F"].map((letter) => (
                     <th
                       key={`${num}${letter}`}
                       colSpan={2}
-                      className={`text-center py-2 px-1 text-xs font-semibold text-gray-600 dark:text-gray-400 ${
-                        num === 10 && letter === "F" ? "" : "border-r border-gray-200 dark:border-gray-700"
-                      }`}
+                      className={`text-center py-2 px-1 text-xs font-semibold text-gray-600 dark:text-gray-400 ${num === 10 && letter === "F" ? "" : "border-r border-gray-200 dark:border-gray-700"
+                        }`}
                     >
                       {num}{letter}
                     </th>
@@ -546,14 +545,13 @@ export default function UndergroundBook() {
                       <th
                         className={`text-center py-2 px-1 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700`}
                       >
-                        เลข<br/>มิเตอร์
+                        เลข<br />มิเตอร์
                       </th>
                       <th
-                        className={`text-center py-2 px-1 text-xs font-semibold text-gray-600 dark:text-gray-400 ${
-                          num === 10 && letter === "F" ? "" : "border-r border-gray-200 dark:border-gray-700"
-                        }`}
+                        className={`text-center py-2 px-1 text-xs font-semibold text-gray-600 dark:text-gray-400 ${num === 10 && letter === "F" ? "" : "border-r border-gray-200 dark:border-gray-700"
+                          }`}
                       >
-                        จำนวน<br/>ลิตร
+                        จำนวน<br />ลิตร
                       </th>
                     </React.Fragment>
                   ))
@@ -564,47 +562,48 @@ export default function UndergroundBook() {
               {groupedAndSortedData.map((row, index) => (
                 <tr
                   key={row.id}
-                  className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                    index % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50/50 dark:bg-gray-900/30"
-                  }`}
+                  className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${index % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50/50 dark:bg-gray-900/30"
+                    }`}
                 >
-                  <td className={`sticky left-0 z-10 text-center py-2 px-3 text-gray-800 dark:text-white border-r border-gray-200 dark:border-gray-700 font-medium min-w-[90px] ${
-                    index % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50/50 dark:bg-gray-900/30"
-                  }`}>{row.date}</td>
-                  <td className={`sticky left-[90px] z-10 text-right py-2 px-3 text-emerald-600 dark:text-emerald-400 border-r border-gray-200 dark:border-gray-700 font-medium min-w-[100px] ${
-                    index % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50/50 dark:bg-gray-900/30"
-                  }`}>{row.receive !== null ? numberFormatter.format(row.receive) : "-"}</td>
-                  <td className={`sticky left-[190px] z-10 text-right py-2 px-3 text-red-600 dark:text-red-400 border-r border-gray-200 dark:border-gray-700 font-medium min-w-[100px] ${
-                    index % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50/50 dark:bg-gray-900/30"
-                  }`}>{row.pay !== null ? numberFormatter.format(row.pay) : "-"}</td>
-                  <td className={`sticky left-[290px] z-10 text-right py-2 px-3 text-gray-800 dark:text-white font-semibold border-r border-gray-200 dark:border-gray-700 min-w-[120px] ${
-                    index % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50/50 dark:bg-gray-900/30"
-                  }`}>{numberFormatter.format(row.balance)}</td>
-                  <td className={`sticky left-[410px] z-10 text-right py-2 px-3 text-gray-800 dark:text-white border-r border-gray-200 dark:border-gray-700 min-w-[120px] ${
-                    index % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50/50 dark:bg-gray-900/30"
-                  }`}>{numberFormatter.format(row.measured)}</td>
-                  <td className={`sticky left-[530px] z-10 text-right py-2 px-3 font-semibold border-r border-gray-200 dark:border-gray-700 min-w-[120px] ${getDifferenceColor(row.difference || 0)} ${
-                    index % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50/50 dark:bg-gray-900/30"
-                  }`}>
-                    {row.difference !== null ? (row.difference > 0 ? '+' : '') + numberFormatter.format(row.difference) : '-'}
+                  <td className="py-3 px-4 text-gray-800 dark:text-gray-200 font-medium border-r border-gray-200 dark:border-gray-700">
+                    {row.date}
+                  </td>
+                  <td className="text-right py-3 px-4 text-emerald-600 dark:text-emerald-400 font-semibold border-r border-gray-200 dark:border-gray-700">
+                    {row.receive ? numberFormatter.format(row.receive) : "-"}
+                  </td>
+                  <td className="text-right py-3 px-4 text-rose-600 dark:text-rose-400 font-semibold border-r border-gray-200 dark:border-gray-700">
+                    {row.pay ? numberFormatter.format(row.pay) : "-"}
+                  </td>
+                  <td className="text-right py-3 px-4 text-gray-800 dark:text-gray-200 font-bold border-r border-gray-200 dark:border-gray-700">
+                    {numberFormatter.format(row.balance)}
+                  </td>
+                  <td className="text-right py-3 px-4 text-blue-600 dark:text-blue-400 font-bold border-r border-gray-200 dark:border-gray-700">
+                    {numberFormatter.format(row.measured)}
+                  </td>
+                  <td className={`text-right py-3 px-4 font-bold border-r border-gray-200 dark:border-gray-700 ${row.difference !== null && row.difference < 0 ? "text-rose-500" : "text-emerald-500"}`}>
+                    {row.difference !== null ? (row.difference > 0 ? `+${numberFormatter.format(row.difference)}` : numberFormatter.format(row.difference)) : "-"}
                   </td>
                   {/* หัวจ่าย 1A-10F */}
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map((num) =>
-                    ["A", "B", "C", "D", "E", "F"].map((letter) => {
-                      const nozzleKey = `${num}${letter}`;
-                      const isLast = num === 10 && letter === "F";
-                      return (
-                        <React.Fragment key={nozzleKey}>
-                          <td className={`text-right py-2 px-1 text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700`}>
-                            {row.nozzles[nozzleKey]?.meter !== null ? numberFormatter.format(row.nozzles[nozzleKey].meter) : "-"}
-                          </td>
-                          <td className={`text-right py-2 px-1 text-gray-600 dark:text-gray-400 ${isLast ? "" : "border-r border-gray-200 dark:border-gray-700"}`}>
-                            {row.nozzles[nozzleKey]?.liters !== null ? numberFormatter.format(row.nozzles[nozzleKey].liters) : "-"}
-                          </td>
-                        </React.Fragment>
-                      );
-                    })
-                  )}
+                  {(() => {
+                    const nozzleMap = new Map(Object.entries(row.nozzles as Record<string, { meter: number | null; liters: number | null }>));
+                    return Array.from({ length: 10 }, (_, i) => i + 1).map((num) =>
+                      ["A", "B", "C", "D", "E", "F"].map((letter) => {
+                        const nozzleKey = `${num}${letter}`;
+                        const nozzle = nozzleMap.get(nozzleKey);
+                        const isLast = num === 10 && letter === "F";
+                        return (
+                          <React.Fragment key={nozzleKey}>
+                            <td className="text-right py-2 px-1 text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700">
+                              {nozzle?.meter !== null && nozzle?.meter !== undefined ? numberFormatter.format(nozzle.meter) : "-"}
+                            </td>
+                            <td className={`text-right py-2 px-1 text-gray-600 dark:text-gray-400 ${isLast ? "" : "border-r border-gray-200 dark:border-gray-700"}`}>
+                              {nozzle?.liters !== null && nozzle?.liters !== undefined ? numberFormatter.format(nozzle.liters) : "-"}
+                            </td>
+                          </React.Fragment>
+                        );
+                      })
+                    );
+                  })()}
                 </tr>
               ))}
             </tbody>
@@ -688,10 +687,14 @@ export default function UndergroundBook() {
                     </div>
 
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
-                      <label className="text-sm font-semibold text-gray-800 dark:text-white mb-2 block">
+                      <label htmlFor="underground-book-import-file" className="text-sm font-semibold text-gray-800 dark:text-white mb-2 block">
                         เลือกไฟล์
                       </label>
-                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-blue-500 dark:hover:border-blue-500 transition-colors cursor-pointer">
+                      <input type="file" id="underground-book-import-file" className="hidden" />
+                      <label
+                        htmlFor="underground-book-import-file"
+                        className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-blue-500 dark:hover:border-blue-500 transition-colors cursor-pointer block"
+                      >
                         <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                           คลิกเพื่อเลือกไฟล์หรือลากไฟล์มาวางที่นี่
@@ -699,7 +702,7 @@ export default function UndergroundBook() {
                         <p className="text-xs text-gray-500 dark:text-gray-500">
                           รองรับไฟล์ .xlsx, .xls, .csv
                         </p>
-                      </div>
+                      </label>
                     </div>
                   </div>
                 </div>

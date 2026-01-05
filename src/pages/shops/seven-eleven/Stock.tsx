@@ -88,7 +88,7 @@ const initialStockData = [
 export default function Stock() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "เซเว่น (7-Eleven)";
-  
+
   const [stockData, setStockData] = useState(initialStockData);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -150,13 +150,13 @@ export default function Stock() {
       stockData.map((item) =>
         item.id === selectedItem.id
           ? {
-              ...selectedItem,
-              ...formData,
-              quantity: Number(formData.quantity),
-              cost: Number(formData.cost),
-              price: Number(formData.price),
-              lowStockThreshold: Number(formData.lowStockThreshold),
-            }
+            ...selectedItem,
+            ...formData,
+            quantity: Number(formData.quantity),
+            cost: Number(formData.cost),
+            price: Number(formData.price),
+            lowStockThreshold: Number(formData.lowStockThreshold),
+          }
           : item
       )
     );
@@ -364,15 +364,14 @@ export default function Stock() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <div className="w-16 h-2 bg-soft rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${
-                              percentage <= 20
-                                ? "bg-red-500"
-                                : percentage <= 50
+                          <motion.div
+                            className={`h-full w-[var(--stock-percentage)] ${percentage <= 20
+                              ? "bg-red-500"
+                              : percentage <= 50
                                 ? "bg-orange-500"
                                 : "bg-emerald-500"
-                            }`}
-                            style={{ width: `${Math.min(percentage, 100)}%` }}
+                              }`}
+                            style={{ "--stock-percentage": `${Math.min(percentage, 100)}%` } as React.CSSProperties}
                           />
                         </div>
                         <span className="text-xs text-muted">{percentage.toFixed(0)}%</span>
@@ -391,13 +390,12 @@ export default function Stock() {
                     </td>
                     <td className="py-3 px-4">
                       <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          status.color === "red"
-                            ? "bg-red-500/10 text-red-400 border border-red-500/30"
-                            : status.color === "orange"
+                        className={`px-2 py-1 text-xs rounded-full ${status.color === "red"
+                          ? "bg-red-500/10 text-red-400 border border-red-500/30"
+                          : status.color === "orange"
                             ? "bg-orange-500/10 text-orange-400 border border-orange-500/30"
                             : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                        }`}
+                          }`}
                       >
                         {status.label}
                       </span>
@@ -445,8 +443,9 @@ export default function Stock() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
+            <label htmlFor="add-product-name" className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
             <input
+              id="add-product-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -456,8 +455,9 @@ export default function Stock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวน</label>
+              <label htmlFor="add-product-quantity" className="block text-sm font-medium text-app mb-2">จำนวน</label>
               <input
+                id="add-product-quantity"
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -466,8 +466,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หน่วย</label>
+              <label htmlFor="add-product-unit" className="block text-sm font-medium text-app mb-2">หน่วย</label>
               <select
+                id="add-product-unit"
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -482,8 +483,9 @@ export default function Stock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท)</label>
+              <label htmlFor="add-product-cost" className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท)</label>
               <input
+                id="add-product-cost"
                 type="number"
                 value={formData.cost}
                 onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
@@ -492,8 +494,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ราคาขาย (บาท)</label>
+              <label htmlFor="add-product-price" className="block text-sm font-medium text-app mb-2">ราคาขาย (บาท)</label>
               <input
+                id="add-product-price"
                 type="number"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
@@ -503,8 +506,9 @@ export default function Stock() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
+            <label htmlFor="add-product-expiry" className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
             <input
+              id="add-product-expiry"
               type="date"
               value={formData.expiry}
               onChange={(e) => setFormData({ ...formData, expiry: e.target.value })}
@@ -513,8 +517,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
+            <label htmlFor="add-product-supplier" className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
             <input
+              id="add-product-supplier"
               type="text"
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
@@ -524,8 +529,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
+            <label htmlFor="add-product-threshold" className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
             <input
+              id="add-product-threshold"
               type="number"
               value={formData.lowStockThreshold}
               onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
@@ -538,8 +544,9 @@ export default function Stock() {
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
+            <label htmlFor="add-product-category" className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
             <select
+              id="add-product-category"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -565,8 +572,9 @@ export default function Stock() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
+            <label htmlFor="edit-product-name" className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
             <input
+              id="edit-product-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -576,8 +584,9 @@ export default function Stock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวน</label>
+              <label htmlFor="edit-product-quantity" className="block text-sm font-medium text-app mb-2">จำนวน</label>
               <input
+                id="edit-product-quantity"
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -586,8 +595,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หน่วย</label>
+              <label htmlFor="edit-product-unit" className="block text-sm font-medium text-app mb-2">หน่วย</label>
               <select
+                id="edit-product-unit"
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -602,8 +612,9 @@ export default function Stock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท)</label>
+              <label htmlFor="edit-product-cost" className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท)</label>
               <input
+                id="edit-product-cost"
                 type="number"
                 value={formData.cost}
                 onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
@@ -612,8 +623,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ราคาขาย (บาท)</label>
+              <label htmlFor="edit-product-price" className="block text-sm font-medium text-app mb-2">ราคาขาย (บาท)</label>
               <input
+                id="edit-product-price"
                 type="number"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
@@ -623,8 +635,9 @@ export default function Stock() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
+            <label htmlFor="edit-product-expiry" className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
             <input
+              id="edit-product-expiry"
               type="date"
               value={formData.expiry}
               onChange={(e) => setFormData({ ...formData, expiry: e.target.value })}
@@ -633,8 +646,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
+            <label htmlFor="edit-product-supplier" className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
             <input
+              id="edit-product-supplier"
               type="text"
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
@@ -643,8 +657,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
+            <label htmlFor="edit-product-threshold" className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
             <input
+              id="edit-product-threshold"
               type="number"
               value={formData.lowStockThreshold}
               onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
@@ -653,8 +668,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
+            <label htmlFor="edit-product-category" className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
             <select
+              id="edit-product-category"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"

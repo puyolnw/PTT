@@ -658,6 +658,7 @@ export interface PTTQuotation {
   pttQuotationAttachment?: string;
   scheduledPickupDate?: string;
   scheduledPickupTime?: string;
+  transportNo?: string;
   truckId: string;
   truckPlateNumber: string;
   trailerId: string;

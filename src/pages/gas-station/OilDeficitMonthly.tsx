@@ -76,42 +76,41 @@ const getBuddhistYear = (date: Date): number => {
 
 // ชื่อภาษาไทยของแต่ละชนิดน้ำมัน
 const getOilTypeLabel = (oilType: OilType): string => {
-  const labels: Record<OilType, string> = {
-    "HSP": "HSP (ดีเซล)",
-    "95": "95",
-    "E20": "E20",
-    "B7": "B7",
-    "91": "91",
-  };
-  return labels[oilType];
+  const labels = new Map<OilType, string>([
+    ["HSP", "HSP (ดีเซล)"],
+    ["95", "95"],
+    ["E20", "E20"],
+    ["B7", "B7"],
+    ["91", "91"],
+  ]);
+  return labels.get(oilType) || "";
 };
 
 const getBranchLabel = (branch: BranchType): string => {
-  const labels: Record<BranchType, string> = {
-    HISO: "ไฮโซ",
-    Dindam: "ดินดำ",
-    NongChik: "หนองจิก",
-    Taksila: "ตักสิลา",
-    Bypass: "บายพาส",
-  };
-  return labels[branch];
+  const labels = new Map<BranchType, string>([
+    ["HISO", "ไฮโซ"],
+    ["Dindam", "ดินดำ"],
+    ["NongChik", "หนองจิก"],
+    ["Taksila", "ตักสิลา"],
+    ["Bypass", "บายพาส"],
+  ]);
+  return labels.get(branch) || "";
 };
 
 const getBranchColorClasses = (branch: BranchType): { border: string; bg: string; icon: string } => {
-  const colors: Record<BranchType, { border: string; bg: string; icon: string }> = {
-    HISO: { border: "border-blue-500", bg: "bg-gradient-to-r from-blue-500 to-blue-600", icon: "text-blue-500" },
-    Dindam: { border: "border-purple-500", bg: "bg-gradient-to-r from-purple-500 to-purple-600", icon: "text-purple-500" },
-    NongChik: { border: "border-orange-500", bg: "bg-gradient-to-r from-orange-500 to-orange-600", icon: "text-orange-500" },
-    Taksila: { border: "border-emerald-500", bg: "bg-gradient-to-r from-emerald-500 to-emerald-600", icon: "text-emerald-500" },
-    Bypass: { border: "border-red-500", bg: "bg-gradient-to-r from-red-500 to-red-600", icon: "text-red-500" },
-  };
-  return colors[branch];
+  const colors = new Map<BranchType, { border: string; bg: string; icon: string }>([
+    ["HISO", { border: "border-blue-500", bg: "bg-gradient-to-r from-blue-500 to-blue-600", icon: "text-blue-500" }],
+    ["Dindam", { border: "border-purple-500", bg: "bg-gradient-to-r from-purple-500 to-purple-600", icon: "text-purple-500" }],
+    ["NongChik", { border: "border-orange-500", bg: "bg-gradient-to-r from-orange-500 to-orange-600", icon: "text-orange-500" }],
+    ["Taksila", { border: "border-emerald-500", bg: "bg-gradient-to-r from-emerald-500 to-emerald-600", icon: "text-emerald-500" }],
+    ["Bypass", { border: "border-red-500", bg: "bg-gradient-to-r from-red-500 to-red-600", icon: "text-red-500" }],
+  ]);
+  return colors.get(branch) || { border: "", bg: "", icon: "" };
 };
 
-// Mock data - เก็บข้อมูลเป็น key-value โดยใช้ "year-month-branch" เป็น key
-// สร้างข้อมูล mock up ที่แน่นอนและครบถ้วน
-const generateMockData = (): Record<string, MonthlySummary> => {
-  const data: Record<string, MonthlySummary> = {};
+// Mock data - เก็บข้อมูลเป็น Map โดยใช้ "year-month-branch" เป็น key
+const generateMockData = (): Map<string, MonthlySummary> => {
+  const data = new Map<string, MonthlySummary>();
   const branches: BranchType[] = ["HISO", "Dindam", "NongChik", "Taksila", "Bypass"];
   const oilTypes: OilType[] = ["HSP", "95", "E20", "B7", "91"];
 
@@ -137,18 +136,18 @@ const generateMockData = (): Record<string, MonthlySummary> => {
           const down = Math.floor(receive * (0.95 + random() * 0.05)); // ลงถังเก็บประมาณ 95-100% ของที่รับ
           const pay = Math.floor(random() * 40000) + 20000;
           const balance = previousBalance + receive - pay; // คงเหลือ = ยอดยกมา + รับ - จ่าย
-          
+
           // วัดได้จากเครื่อง (ATG) - อาจมีความคลาดเคลื่อนเล็กน้อย
           const measuredByMachine = balance + (random() * 200 - 100);
           const differenceMachine = measuredByMachine - balance;
-          
+
           // วัดได้จากมือ (Dipstick) - อาจมีความคลาดเคลื่อนมากกว่าเครื่อง
           const measuredByHand = balance + (random() * 300 - 150);
           const differenceHand = measuredByHand - balance;
-          
+
           // คำนวณ %หาย (Variance)
           const variancePercent = balance > 0 ? ((differenceMachine / balance) * 100) : 0;
-          const notes = variancePercent !== 0 
+          const notes = variancePercent !== 0
             ? `${variancePercent > 0 ? '+' : ''}${variancePercent.toFixed(2)}%`
             : "0%";
 
@@ -180,8 +179,8 @@ const generateMockData = (): Record<string, MonthlySummary> => {
         const totalMeasuredByHand = rows.reduce((sum, r) => sum + r.measuredByHand, 0);
         const totalDifferenceHand = rows.reduce((sum, r) => sum + r.differenceHand, 0);
 
-        data[key] = {
-          month: thaiMonths[month],
+        data.set(key, {
+          month: thaiMonths.find((_, i) => i === month) || "",
           year,
           branch,
           rows,
@@ -193,7 +192,7 @@ const generateMockData = (): Record<string, MonthlySummary> => {
           totalDifferenceMachine,
           totalMeasuredByHand,
           totalDifferenceHand,
-        };
+        });
       }
     });
   }
@@ -228,8 +227,8 @@ export default function OilDeficitMonthly() {
 
   // ดึงข้อมูลตามเดือน ปี และสาขาที่เลือก
   const dataKey = `${selectedYear}-${selectedMonth}-${selectedBranch}`;
-  const currentData = mockMonthlyDataMap[dataKey] || {
-    month: thaiMonths[selectedMonth],
+  const currentData = mockMonthlyDataMap.get(dataKey) || {
+    month: thaiMonths.find((_, i) => i === selectedMonth) || "",
     year: selectedYear,
     branch: selectedBranch,
     rows: [],
@@ -281,7 +280,7 @@ export default function OilDeficitMonthly() {
             <Calendar className="w-5 h-5 text-gray-400" />
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">เลือกเดือน ปี และสาขา:</span>
           </div>
-          
+
           <div className="flex items-center gap-3">
             {/* Year Dropdown */}
             <div className="relative">
@@ -300,7 +299,10 @@ export default function OilDeficitMonthly() {
                 <>
                   <div
                     className="fixed inset-0 z-10"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setShowYearDropdown(false)}
+                    onKeyDown={(e) => { if (e.key === 'Escape') setShowYearDropdown(false) }}
                   />
                   <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto min-w-[120px]">
                     {availableYears.map((year) => (
@@ -310,11 +312,10 @@ export default function OilDeficitMonthly() {
                           setSelectedYear(year);
                           setShowYearDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          selectedYear === year
-                            ? "bg-blue-500 text-white hover:bg-blue-600"
-                            : "text-gray-700 dark:text-gray-300"
-                        }`}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${selectedYear === year
+                          ? "bg-blue-500 text-white hover:bg-blue-600"
+                          : "text-gray-700 dark:text-gray-300"
+                          }`}
                       >
                         {year}
                       </button>
@@ -334,14 +335,17 @@ export default function OilDeficitMonthly() {
                 }}
                 className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 min-w-[150px] justify-between"
               >
-                <span>{thaiMonths[selectedMonth]}</span>
+                <span>{thaiMonths.find((_, i) => i === selectedMonth) || ""}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showMonthDropdown ? "rotate-180" : ""}`} />
               </button>
               {showMonthDropdown && (
                 <>
                   <div
                     className="fixed inset-0 z-10"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setShowMonthDropdown(false)}
+                    onKeyDown={(e) => { if (e.key === 'Escape') setShowMonthDropdown(false) }}
                   />
                   <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto min-w-[150px]">
                     {thaiMonths.map((month, index) => (
@@ -351,11 +355,10 @@ export default function OilDeficitMonthly() {
                           setSelectedMonth(index);
                           setShowMonthDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          selectedMonth === index
-                            ? "bg-blue-500 text-white hover:bg-blue-600"
-                            : "text-gray-700 dark:text-gray-300"
-                        }`}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${selectedMonth === index
+                          ? "bg-blue-500 text-white hover:bg-blue-600"
+                          : "text-gray-700 dark:text-gray-300"
+                          }`}
                       >
                         {month}
                       </button>
@@ -382,7 +385,10 @@ export default function OilDeficitMonthly() {
                 <>
                   <div
                     className="fixed inset-0 z-10"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setShowBranchDropdown(false)}
+                    onKeyDown={(e) => { if (e.key === 'Escape') setShowBranchDropdown(false) }}
                   />
                   <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto min-w-[150px]">
                     {(["HISO", "Dindam", "NongChik", "Taksila", "Bypass"] as BranchType[]).map((branch) => (
@@ -392,11 +398,10 @@ export default function OilDeficitMonthly() {
                           setSelectedBranch(branch);
                           setShowBranchDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          selectedBranch === branch
-                            ? "bg-blue-500 text-white hover:bg-blue-600"
-                            : "text-gray-700 dark:text-gray-300"
-                        }`}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${selectedBranch === branch
+                          ? "bg-blue-500 text-white hover:bg-blue-600"
+                          : "text-gray-700 dark:text-gray-300"
+                          }`}
                       >
                         {getBranchLabel(branch)}
                       </button>
@@ -532,11 +537,10 @@ export default function OilDeficitMonthly() {
                       {numberFormatter.format(row.differenceHand)}
                     </td>
                     <td className="text-right py-3 px-4 text-gray-800 dark:text-white">
-                      <span className={`font-semibold ${
-                        row.notes.includes('-') ? 'text-red-600 dark:text-red-400' : 
-                        row.notes.includes('+') ? 'text-emerald-600 dark:text-emerald-400' : 
-                        'text-gray-600 dark:text-gray-400'
-                      }`}>
+                      <span className={`font-semibold ${row.notes.includes('-') ? 'text-red-600 dark:text-red-400' :
+                        row.notes.includes('+') ? 'text-emerald-600 dark:text-emerald-400' :
+                          'text-gray-600 dark:text-gray-400'
+                        }`}>
                         {row.notes}
                       </span>
                     </td>
@@ -654,9 +658,8 @@ export default function OilDeficitMonthly() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.45 }}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 ${
-            currentData.totalDifferenceMachine < 0 ? "border-l-4 border-red-500" : "border-l-4 border-emerald-500"
-          }`}
+          className={`bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 ${currentData.totalDifferenceMachine < 0 ? "border-l-4 border-red-500" : "border-l-4 border-emerald-500"
+            }`}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">

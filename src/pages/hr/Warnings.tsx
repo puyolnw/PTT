@@ -86,11 +86,11 @@ export default function Warnings() {
   // Check if warning is cleared (1 year passed)
   const isWarningCleared = (warning: WarningRecord): boolean => {
     if (warning.isCleared || warning.clearedDate) return true;
-    
+
     const warningDate = new Date(warning.date);
     const oneYearLater = new Date(warningDate);
     oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-    
+
     return new Date() > oneYearLater;
   };
 
@@ -98,9 +98,9 @@ export default function Warnings() {
   const getActiveWarnings = (empCode: string, warningType: WarningRecord["warningType"]): WarningRecord[] => {
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    
-    return warnings.filter(w => 
-      w.empCode === empCode && 
+
+    return warnings.filter(w =>
+      w.empCode === empCode &&
       w.warningType === warningType &&
       !w.isCleared &&
       !isWarningCleared(w) &&
@@ -111,7 +111,7 @@ export default function Warnings() {
   // Calculate warning level based on employee's warning history (only count active warnings within 1 year)
   const calculateWarningLevel = (empCode: string, warningType: WarningRecord["warningType"]): number => {
     const activeWarnings = getActiveWarnings(empCode, warningType);
-    
+
     if (warningType === "พูดคุย") {
       // สำหรับ "พูดคุย" นับเฉพาะประเภทเดียวกัน (สูงสุด 3 ครั้ง)
       return Math.min(activeWarnings.length + 1, 3);
@@ -125,7 +125,7 @@ export default function Warnings() {
       // สำหรับ "ไล่ออก" เริ่มที่ระดับ 4
       return 4;
     }
-    
+
     return 1;
   };
 
@@ -136,12 +136,12 @@ export default function Warnings() {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const updatedWarnings = warnings.map(w => 
+    const updatedWarnings = warnings.map(w =>
       w.empCode === empCode && !w.isCleared && !isWarningCleared(w)
         ? { ...w, isCleared: true, clearedDate: today }
         : w
     );
-    
+
     setWarnings(updatedWarnings);
     setFilteredWarnings(updatedWarnings);
     alert("ล้างทัณฑ์บนสำเร็จ! เริ่มนับใหม่จาก 1 ปี");
@@ -207,7 +207,7 @@ export default function Warnings() {
 
     // Employees with warnings
     const employeesWithWarnings = new Set(warnings.map(w => w.empCode)).size;
-    
+
     // Employees with multiple warnings (3 or more - high risk)
     const highRiskEmployees = warnings.reduce((acc, warning) => {
       acc[warning.empCode] = (acc[warning.empCode] || 0) + 1;
@@ -244,11 +244,11 @@ export default function Warnings() {
     const updatedWarnings = warnings.map((warning) =>
       warning.id === selectedWarning.id
         ? {
-            ...warning,
-            reason: editForm.reason,
-            description: editForm.description,
-            status: editForm.status as WarningRecord["status"] || warning.status
-          }
+          ...warning,
+          reason: editForm.reason,
+          description: editForm.description,
+          status: editForm.status as WarningRecord["status"] || warning.status
+        }
         : warning
     );
 
@@ -309,7 +309,7 @@ export default function Warnings() {
     setWarnings(updatedWarnings);
     setFilteredWarnings(updatedWarnings);
     setIsAddModalOpen(false);
-    
+
     // Reset form
     setAddForm({
       empCode: "",
@@ -398,9 +398,8 @@ export default function Warnings() {
                 { level: 3, type: "พักงาน", desc: "กรณีร้ายแรง", limit: "ไม่มีขีดจำกัด", color: "red" },
                 { level: 4, type: "ไล่ออก", desc: "กรณีร้ายแรงที่สุด", limit: "ไม่มีขีดจำกัด", color: "red" }
               ].map((item) => (
-                <div key={item.level} className={`bg-soft/50 border border-app rounded-lg p-3 ${
-                  item.color === "red" ? "border-red-500/30" : ""
-                }`}>
+                <div key={item.level} className={`bg-soft/50 border border-app rounded-lg p-3 ${item.color === "red" ? "border-red-500/30" : ""
+                  }`}>
                   <div className="text-xs text-muted mb-1">ระดับ {item.level}</div>
                   <div className="font-semibold text-app text-sm mb-1">{item.type}</div>
                   <div className="text-xs text-muted mb-1">{item.desc}</div>
@@ -410,7 +409,7 @@ export default function Warnings() {
             </div>
             <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
               <p className="text-xs text-app">
-                <strong>ระบบล้างทัณฑ์บน:</strong> ทัณฑ์บนจะถูกล้างอัตโนมัติเมื่อครบ 1 ปีนับจากวันที่ออกการเตือน 
+                <strong>ระบบล้างทัณฑ์บน:</strong> ทัณฑ์บนจะถูกล้างอัตโนมัติเมื่อครบ 1 ปีนับจากวันที่ออกการเตือน
                 และเริ่มนับใหม่ (เฉพาะ &quot;พูดคุย&quot; และ &quot;เอกสาร&quot; จะนับใหม่ได้)
               </p>
             </div>
@@ -527,12 +526,13 @@ export default function Warnings() {
               </p>
             </div>
           </div>
-          
+
           {/* Filter Bar - Inline with table */}
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search Input */}
             <div className="relative flex-1">
               <input
+                id="warning-search"
                 type="text"
                 placeholder="ค้นหาชื่อพนักงาน, รหัส, หรือเหตุผล..."
                 value={searchQuery}
@@ -544,6 +544,7 @@ export default function Warnings() {
                          text-app placeholder:text-muted
                          focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
                          transition-all font-light"
+                aria-label="ค้นหาการเตือนพนักงาน"
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
             </div>
@@ -551,6 +552,7 @@ export default function Warnings() {
             {/* Filter Dropdowns */}
             <div className="flex flex-wrap gap-3">
               <select
+                id="filter-dept"
                 value={deptFilter}
                 onChange={(e) => {
                   setDeptFilter(e.target.value);
@@ -560,6 +562,7 @@ export default function Warnings() {
                          text-app text-sm min-w-[150px]
                          focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
                          transition-all cursor-pointer hover:border-app/50"
+                aria-label="กรองตามแผนก"
               >
                 <option value="">ทุกแผนก</option>
                 {Array.from(new Set(employees.map(e => e.dept))).map((d) => (
@@ -570,6 +573,7 @@ export default function Warnings() {
               </select>
 
               <select
+                id="filter-shift"
                 value={shiftFilter === "" ? "" : String(shiftFilter)}
                 onChange={(e) => {
                   setShiftFilter(e.target.value === "" ? "" : Number(e.target.value));
@@ -579,6 +583,7 @@ export default function Warnings() {
                          text-app text-sm min-w-[150px]
                          focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
                          transition-all cursor-pointer hover:border-app/50"
+                aria-label="กรองตามกะ"
               >
                 <option value="">ทุกกะ</option>
                 {shifts.map((shift) => (
@@ -589,6 +594,7 @@ export default function Warnings() {
               </select>
 
               <select
+                id="filter-type"
                 value={warningTypeFilter}
                 onChange={(e) => {
                   setWarningTypeFilter(e.target.value);
@@ -598,6 +604,7 @@ export default function Warnings() {
                          text-app text-sm min-w-[150px]
                          focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
                          transition-all cursor-pointer hover:border-app/50"
+                aria-label="กรองตามประเภทการเตือน"
               >
                 <option value="">ทุกประเภท</option>
                 <option value="พูดคุย">พูดคุย</option>
@@ -607,6 +614,7 @@ export default function Warnings() {
               </select>
 
               <select
+                id="filter-status"
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value);
@@ -616,6 +624,7 @@ export default function Warnings() {
                          text-app text-sm min-w-[150px]
                          focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
                          transition-all cursor-pointer hover:border-app/50"
+                aria-label="กรองตามสถานะ"
               >
                 <option value="">ทุกสถานะ</option>
                 <option value="ระหว่างดำเนินการ">ระหว่างดำเนินการ</option>
@@ -898,13 +907,12 @@ export default function Warnings() {
                     .map((warning) => {
                       const isCleared = isWarningCleared(warning) || warning.isCleared;
                       return (
-                        <div 
-                          key={warning.id} 
-                          className={`flex items-center justify-between border rounded-lg p-3 ${
-                            isCleared 
-                              ? "bg-gray-500/10 border-gray-500/30 opacity-60" 
+                        <div
+                          key={warning.id}
+                          className={`flex items-center justify-between border rounded-lg p-3 ${isCleared
+                              ? "bg-gray-500/10 border-gray-500/30 opacity-60"
                               : "bg-soft/50 border-app"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center gap-3">
                             <span className={`text-xs font-bold px-2 py-1 rounded ${warningTypeInfo[warning.warningType].bgColor} ${warningTypeInfo[warning.warningType].color}`}>
@@ -945,7 +953,7 @@ export default function Warnings() {
                 </div>
                 <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                   <p className="text-xs text-app">
-                    <strong>หมายเหตุ:</strong> ทัณฑ์บนจะถูกล้างอัตโนมัติเมื่อครบ 1 ปีนับจากวันที่ออกการเตือน 
+                    <strong>หมายเหตุ:</strong> ทัณฑ์บนจะถูกล้างอัตโนมัติเมื่อครบ 1 ปีนับจากวันที่ออกการเตือน
                     หรือสามารถล้างด้วยตนเองได้โดยคลิกปุ่ม &quot;ล้างทัณฑ์บน&quot;
                   </p>
                 </div>
@@ -994,15 +1002,16 @@ export default function Warnings() {
             <div className="p-6 space-y-4">
               {/* Employee Selection */}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">
+                <label htmlFor="add-warning-employee" className="block text-sm font-semibold text-app mb-2">
                   พนักงาน <span className="text-red-500">*</span>
                 </label>
                 <select
+                  id="add-warning-employee"
                   value={addForm.empCode}
                   onChange={(e) => {
                     const empCode = e.target.value;
-                    setAddForm({ 
-                      ...addForm, 
+                    setAddForm({
+                      ...addForm,
                       empCode,
                       warningType: "" as WarningRecord["warningType"] | "",
                     });
@@ -1023,10 +1032,11 @@ export default function Warnings() {
 
               {/* Warning Type */}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">
+                <label htmlFor="add-warning-type" className="block text-sm font-semibold text-app mb-2">
                   ประเภทการเตือน <span className="text-red-500">*</span>
                 </label>
                 <select
+                  id="add-warning-type"
                   value={addForm.warningType}
                   onChange={(e) => setAddForm({ ...addForm, warningType: e.target.value as WarningRecord["warningType"] })}
                   className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app 
@@ -1066,10 +1076,11 @@ export default function Warnings() {
 
               {/* Event Type */}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">
+                <label htmlFor="add-warning-event-type" className="block text-sm font-semibold text-app mb-2">
                   ประเภทเหตุการณ์ <span className="text-red-500">*</span>
                 </label>
                 <select
+                  id="add-warning-event-type"
                   value={addForm.eventType}
                   onChange={(e) => setAddForm({ ...addForm, eventType: e.target.value })}
                   className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app 
@@ -1089,10 +1100,11 @@ export default function Warnings() {
 
               {/* Reason */}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">
+                <label htmlFor="add-warning-reason" className="block text-sm font-semibold text-app mb-2">
                   เหตุการณ์/เหตุผลการเตือน <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="add-warning-reason"
                   type="text"
                   value={addForm.reason}
                   onChange={(e) => setAddForm({ ...addForm, reason: e.target.value })}
@@ -1104,10 +1116,11 @@ export default function Warnings() {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">
+                <label htmlFor="add-warning-description" className="block text-sm font-semibold text-app mb-2">
                   รายละเอียดการเตือน <span className="text-red-500">*</span>
                 </label>
                 <textarea
+                  id="add-warning-description"
                   value={addForm.description}
                   onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
                   rows={4}
@@ -1119,10 +1132,11 @@ export default function Warnings() {
 
               {/* Date */}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">
+                <label htmlFor="add-warning-date" className="block text-sm font-semibold text-app mb-2">
                   วันที่ออกการเตือน
                 </label>
                 <input
+                  id="add-warning-date"
                   type="date"
                   value={addForm.date}
                   onChange={(e) => setAddForm({ ...addForm, date: e.target.value })}
@@ -1133,10 +1147,11 @@ export default function Warnings() {
 
               {/* Issued By */}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">
+                <label htmlFor="add-warning-issued-by" className="block text-sm font-semibold text-app mb-2">
                   ออกโดย
                 </label>
                 <input
+                  id="add-warning-issued-by"
                   type="text"
                   value={addForm.issuedBy}
                   onChange={(e) => setAddForm({ ...addForm, issuedBy: e.target.value })}
@@ -1148,10 +1163,11 @@ export default function Warnings() {
 
               {/* Status */}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">
+                <label htmlFor="add-warning-status" className="block text-sm font-semibold text-app mb-2">
                   สถานะ
                 </label>
                 <select
+                  id="add-warning-status"
                   value={addForm.status}
                   onChange={(e) => setAddForm({ ...addForm, status: e.target.value as WarningRecord["status"] })}
                   className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app 
@@ -1165,10 +1181,11 @@ export default function Warnings() {
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">
+                <label htmlFor="add-warning-notes" className="block text-sm font-semibold text-app mb-2">
                   หมายเหตุ
                 </label>
                 <textarea
+                  id="add-warning-notes"
                   value={addForm.notes}
                   onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })}
                   rows={2}
@@ -1237,8 +1254,9 @@ export default function Warnings() {
             {/* Content */}
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">เหตุผล</label>
+                <label htmlFor="edit-warning-reason" className="block text-sm font-semibold text-app mb-2">เหตุผล</label>
                 <input
+                  id="edit-warning-reason"
                   type="text"
                   value={editForm.reason}
                   onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
@@ -1247,8 +1265,9 @@ export default function Warnings() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">รายละเอียด</label>
+                <label htmlFor="edit-warning-description" className="block text-sm font-semibold text-app mb-2">รายละเอียด</label>
                 <textarea
+                  id="edit-warning-description"
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                   rows={4}
@@ -1257,8 +1276,9 @@ export default function Warnings() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-app mb-2">สถานะ</label>
+                <label htmlFor="edit-warning-status" className="block text-sm font-semibold text-app mb-2">สถานะ</label>
                 <select
+                  id="edit-warning-status"
                   value={editForm.status}
                   onChange={(e) => setEditForm({ ...editForm, status: e.target.value as WarningRecord["status"] })}
                   className="w-full px-4 py-2 bg-app border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"

@@ -1,6 +1,6 @@
 // Utility function: แปลงตัวเลขเป็นคำอ่านภาษาไทย
 // ใช้สำหรับใบเสร็จรับเงิน/ใบกำกับภาษี
-/* eslint-disable security/detect-object-injection */
+
 
 export function convertNumberToThaiWords(amount: number): string {
   const baht = Math.floor(amount);
@@ -25,37 +25,48 @@ export function convertNumberToThaiWords(amount: number): string {
 function convertIntegerToThai(num: number): string {
   if (num === 0) return "";
 
-  const units = ["", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
-  const tens = ["", "สิบ", "ยี่สิบ", "สามสิบ", "สี่สิบ", "ห้าสิบ", "หกสิบ", "เจ็ดสิบ", "แปดสิบ", "เก้าสิบ"];
-  const hundreds = ["", "หนึ่งร้อย", "สองร้อย", "สามร้อย", "สี่ร้อย", "ห้าร้อย", "หกร้อย", "เจ็ดร้อย", "แปดร้อย", "เก้าร้อย"];
+  const unitsMap = new Map([
+    [1, "หนึ่ง"], [2, "สอง"], [3, "สาม"], [4, "สี่"], [5, "ห้า"],
+    [6, "หก"], [7, "เจ็ด"], [8, "แปด"], [9, "เก้า"]
+  ]);
+
+  const tensMap = new Map([
+    [1, "สิบ"], [2, "ยี่สิบ"], [3, "สามสิบ"], [4, "สี่สิบ"], [5, "ห้าสิบ"],
+    [6, "หกสิบ"], [7, "เจ็ดสิบ"], [8, "แปดสิบ"], [9, "เก้าสิบ"]
+  ]);
+
+  const hundredsMap = new Map([
+    [1, "หนึ่งร้อย"], [2, "สองร้อย"], [3, "สามร้อย"], [4, "สี่ร้อย"], [5, "ห้าร้อย"],
+    [6, "หกร้อย"], [7, "เจ็ดร้อย"], [8, "แปดร้อย"], [9, "เก้าร้อย"]
+  ]);
 
   if (num < 10) {
-    return units[num];
+    return unitsMap.get(num) || "";
   } else if (num < 100) {
     const ten = Math.floor(num / 10);
     const unit = num % 10;
-    let result = tens[ten];
-    if (unit === 1 && ten === 1) {
+    let result = tensMap.get(ten) || "";
+    if (unit === 1 && ten >= 1) { // Adjusted logic for 11, 21, etc.
       result += "เอ็ด";
     } else if (unit > 0) {
-      result += units[unit];
+      result += unitsMap.get(unit) || "";
     }
     return result;
   } else if (num < 1000) {
     const hundred = Math.floor(num / 100);
     const remainder = num % 100;
-    let result = hundreds[hundred];
+    let result = hundredsMap.get(hundred) || "";
     if (remainder > 0) {
       if (remainder < 10) {
-        result += units[remainder];
+        result += unitsMap.get(remainder) || "";
       } else {
         const ten = Math.floor(remainder / 10);
         const unit = remainder % 10;
-        result += tens[ten];
-        if (unit === 1 && ten === 1) {
+        result += tensMap.get(ten) || "";
+        if (unit === 1 && ten >= 1) {
           result += "เอ็ด";
         } else if (unit > 0) {
-          result += units[unit];
+          result += unitsMap.get(unit) || "";
         }
       }
     }

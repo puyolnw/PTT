@@ -85,7 +85,7 @@ export default function LubricantsDashboard() {
                 <div className="flex items-center gap-3">
                     <select
                         value={selectedPeriod}
-                        onChange={(e) => setSelectedPeriod(e.target.value as any)}
+                        onChange={(e) => setSelectedPeriod(e.target.value as "today" | "week" | "month")}
                         className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white"
                     >
                         <option value="today">วันนี้</option>
@@ -196,9 +196,9 @@ export default function LubricantsDashboard() {
                                     </span>
                                 </div>
                                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                                    <div
-                                        className={`bg-gradient-to-r from-${channel.color}-500 to-${channel.color}-600 h-3 rounded-full transition-all duration-500`}
-                                        style={{ width: `${channel.percentage}%` }}
+                                    <motion.div
+                                        className={`bg-gradient-to-r from-${channel.color}-500 to-${channel.color}-600 h-3 rounded-full transition-all duration-500 w-[var(--channel-width)]`}
+                                        style={{ "--channel-width": `${channel.percentage}%` } as React.CSSProperties}
                                     />
                                 </div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">

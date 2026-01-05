@@ -20,13 +20,13 @@ export default function Attendance() {
     [empCodes]
   );
 
-  const [_filteredLogs, setFilteredLogs] = useState<AttendanceLog[]>(attendanceLogs);
+  const [, setFilteredLogs] = useState<AttendanceLog[]>(attendanceLogs);
   const [searchQuery] = useState("");
   const [statusFilter] = useState("");
   const [shiftFilter] = useState<number | "">("");
   const [categoryFilter] = useState("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [_isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  const [, setIsRecordModalOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<AttendanceLog | null>(null);
   const [selectedCellData, setSelectedCellData] = useState<{
     employee: typeof employees[0];
@@ -53,15 +53,7 @@ export default function Attendance() {
     reason: "",
     status: "ตรงเวลา" as AttendanceLog["status"]
   });
-  const [_recordForm, _setRecordForm] = useState({
-    empCode: "",
-    empName: "",
-    date: "",
-    checkIn: "",
-    checkOut: "",
-    otHours: "",
-    reason: ""
-  });
+
 
   // Shift plan modal states
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
@@ -111,7 +103,7 @@ export default function Attendance() {
   // Track edited cells (empCode-date string)
   const [editedCells, setEditedCells] = useState<Set<string>>(new Set());
 
-  const handleFilter = () => {
+  useEffect(() => {
     let filtered = attendanceLogs;
 
     if (searchQuery) {
@@ -141,13 +133,7 @@ export default function Attendance() {
     }
 
     setFilteredLogs(filtered);
-  };
-
-
-  useEffect(() => {
-    handleFilter();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attendanceLogs, searchQuery, statusFilter, shiftFilter, categoryFilter]);
+  }, [attendanceLogs, searchQuery, statusFilter, shiftFilter, categoryFilter, employees]);
 
   // Get all unique categories
   const categories = Array.from(new Set(employees.map(e => e.category).filter(Boolean)));
@@ -457,7 +443,7 @@ export default function Attendance() {
       };
     });
     return { days, planData };
-  }, [shiftPlanMonth, selectedCategory, selectedShift]);
+  }, [shiftPlanMonth, selectedCategory, selectedShift, employees]);
 
   const { days: planDays, planData: shiftPlanRows } = shiftPlanDataset;
 
@@ -992,7 +978,8 @@ export default function Attendance() {
                     </td>
                     {data.attendance.map((att, dayIndex) => {
                       // ตรวจสอบวันหยุด (วันเสาร์-อาทิตย์ และวันหยุดพิเศษ)
-                      const day = days[dayIndex];
+                      const day = days.slice(dayIndex, dayIndex + 1)[0];
+                      if (!day) return null;
                       const isHolidayDay = isHoliday(day);
                       const isEmpHoliday = isEmployeeHoliday(day, data.employee.code);
                       const holidayName = getHolidayName(day);
@@ -1074,8 +1061,8 @@ export default function Attendance() {
                           return (
                             <div className="flex flex-col gap-0.5">
                               <div className={`text-[9px] font-medium ${att.status?.includes("สาย")
-                                  ? "text-orange-700 dark:text-orange-400"
-                                  : "text-green-700 dark:text-green-400"
+                                ? "text-orange-700 dark:text-orange-400"
+                                : "text-green-700 dark:text-green-400"
                                 }`}>
                                 {att.checkIn.replace(':', '.')}
                               </div>
@@ -1096,8 +1083,8 @@ export default function Attendance() {
                           return (
                             <div className="flex flex-col gap-0.5">
                               <div className={`text-[9px] font-medium ${att.status?.includes("สาย")
-                                  ? "text-orange-700 dark:text-orange-400"
-                                  : "text-green-700 dark:text-green-400"
+                                ? "text-orange-700 dark:text-orange-400"
+                                : "text-green-700 dark:text-green-400"
                                 }`}>
                                 {att.checkIn.replace(':', '.')}
                               </div>
@@ -1349,6 +1336,13 @@ export default function Attendance() {
                               <div
                                 key={`${shift.id}-${idx}`}
                                 onClick={() => handleShiftClick(day, shift)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    handleShiftClick(day, shift);
+                                  }
+                                }}
+                                role="button"
+                                tabIndex={0}
                                 className={`p-2 rounded text-[11px] font-medium ${shiftColor} cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 border border-app/30`}
                                 title={`${shift.name} (${shift.startTime}-${shift.endTime}) - คลิกเพื่อดูรายละเอียด`}
                               >
@@ -1636,8 +1630,9 @@ export default function Attendance() {
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs text-muted mb-2">วันที่</label>
+                    <label htmlFor="new-holiday-date" className="block text-xs text-muted mb-2">วันที่</label>
                     <input
+                      id="new-holiday-date"
                       type="date"
                       value={newHoliday.date}
                       onChange={(e) => setNewHoliday({ ...newHoliday, date: e.target.value })}
@@ -1645,8 +1640,9 @@ export default function Attendance() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-muted mb-2">ชื่อวันหยุด</label>
+                    <label htmlFor="new-holiday-name" className="block text-xs text-muted mb-2">ชื่อวันหยุด</label>
                     <input
+                      id="new-holiday-name"
                       type="text"
                       value={newHoliday.name}
                       onChange={(e) => setNewHoliday({ ...newHoliday, name: e.target.value })}
@@ -1655,8 +1651,9 @@ export default function Attendance() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-muted mb-2">ประเภท</label>
+                    <label htmlFor="new-holiday-type" className="block text-xs text-muted mb-2">ประเภท</label>
                     <select
+                      id="new-holiday-type"
                       value={newHoliday.type}
                       onChange={(e) => setNewHoliday({ ...newHoliday, type: e.target.value as "holiday" | "special" })}
                       className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm"
@@ -1685,8 +1682,9 @@ export default function Attendance() {
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
-                    <label className="block text-xs text-muted mb-2">วันที่</label>
+                    <label htmlFor="holiday-emp-date" className="block text-xs text-muted mb-2">วันที่</label>
                     <input
+                      id="holiday-emp-date"
                       type="date"
                       value={selectedHolidayDate}
                       onChange={(e) => {
@@ -1698,8 +1696,9 @@ export default function Attendance() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-muted mb-2">แผนก</label>
+                    <label htmlFor="holiday-emp-category" className="block text-xs text-muted mb-2">แผนก</label>
                     <select
+                      id="holiday-emp-category"
                       value={selectedHolidayCategory}
                       onChange={(e) => {
                         setSelectedHolidayCategory(e.target.value);
@@ -1717,8 +1716,9 @@ export default function Attendance() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-muted mb-2">พนักงาน</label>
+                    <label htmlFor="holiday-emp-select" className="block text-xs text-muted mb-2">พนักงาน</label>
                     <select
+                      id="holiday-emp-select"
                       multiple
                       value={selectedHolidayEmployees}
                       onChange={(e) => {
@@ -1857,8 +1857,8 @@ export default function Attendance() {
                                     })}
                                   </p>
                                   <span className={`text-xs px-2 py-0.5 rounded mt-1 inline-block ${holiday.type === "holiday"
-                                      ? "bg-blue-500/20 text-blue-600"
-                                      : "bg-purple-500/20 text-purple-600"
+                                    ? "bg-blue-500/20 text-blue-600"
+                                    : "bg-purple-500/20 text-purple-600"
                                     }`}>
                                     {holiday.type === "holiday" ? "วันหยุดประจำ" : "วันหยุดพิเศษ"}
                                   </span>
@@ -1969,8 +1969,9 @@ export default function Attendance() {
               {/* Edit Form */}
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs text-muted mb-2">เวลาเข้า</label>
+                  <label htmlFor="edit-check-in" className="block text-xs text-muted mb-2">เวลาเข้า</label>
                   <input
+                    id="edit-check-in"
                     type="time"
                     value={editForm.checkIn}
                     onChange={(e) => setEditForm({ ...editForm, checkIn: e.target.value })}
@@ -1980,8 +1981,9 @@ export default function Attendance() {
                 </div>
 
                 <div>
-                  <label className="block text-xs text-muted mb-2">เวลาออก</label>
+                  <label htmlFor="edit-check-out" className="block text-xs text-muted mb-2">เวลาออก</label>
                   <input
+                    id="edit-check-out"
                     type="time"
                     value={editForm.checkOut}
                     onChange={(e) => setEditForm({ ...editForm, checkOut: e.target.value })}
@@ -1991,8 +1993,9 @@ export default function Attendance() {
                 </div>
 
                 <div>
-                  <label className="block text-xs text-muted mb-2">สถานะ</label>
+                  <label htmlFor="edit-status" className="block text-xs text-muted mb-2">สถานะ</label>
                   <select
+                    id="edit-status"
                     value={editForm.status}
                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value as AttendanceLog["status"] })}
                     className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm"
@@ -2008,8 +2011,9 @@ export default function Attendance() {
 
                 {(editForm.status === "ลา" || editForm.status === "ขาดงาน") && (
                   <div>
-                    <label className="block text-xs text-muted mb-2">หมายเหตุ</label>
+                    <label htmlFor="edit-reason" className="block text-xs text-muted mb-2">หมายเหตุ</label>
                     <textarea
+                      id="edit-reason"
                       value={editForm.reason}
                       onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
                       className="w-full px-3 py-2 bg-soft border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue text-sm"

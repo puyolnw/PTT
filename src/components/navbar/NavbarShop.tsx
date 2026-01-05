@@ -51,10 +51,7 @@ export default function NavbarShop({ onMenuClick }: NavbarShopProps) {
                 <div className="relative flex-shrink-0">
                     <button
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white font-medium shadow-md hover:shadow-lg hover:brightness-110 active:scale-95 transition-all"
-                        style={{
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                        }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white font-medium shadow-md hover:shadow-lg hover:brightness-110 active:scale-95 transition-all duration-300 ease-in-out"
                     >
                         <Store className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
                         <span className="hidden sm:inline whitespace-nowrap">{displayShop.name}</span>
@@ -72,8 +69,8 @@ export default function NavbarShop({ onMenuClick }: NavbarShopProps) {
                                         key={shop.id}
                                         onClick={() => handleShopSelect(shop)}
                                         className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-soft transition-colors ${currentShop?.id === shop.id
-                                                ? "bg-[var(--primary)]/10 text-[var(--accent)] font-medium"
-                                                : "text-app"
+                                            ? "bg-[var(--primary)]/10 text-[var(--accent)] font-medium"
+                                            : "text-app"
                                             }`}
                                     >
                                         <Store className="w-4 h-4" strokeWidth={2} />

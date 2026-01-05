@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { UserPlus, Eye } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
 import { candidates, type Candidate } from "@/data/mockData";
 
 export default function Recruitment() {
@@ -144,29 +145,33 @@ export default function Recruitment() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">ชื่อ-นามสกุล</label>
+            <label htmlFor="cand-name" className="block text-sm font-medium text-slate-300 mb-2">ชื่อ-นามสกุล</label>
             <input
+              id="cand-name"
               type="text"
               className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl text-app"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">ตำแหน่ง</label>
+            <label htmlFor="cand-pos" className="block text-sm font-medium text-slate-300 mb-2">ตำแหน่ง</label>
             <input
+              id="cand-pos"
               type="text"
               className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl text-app"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">อีเมล</label>
+            <label htmlFor="cand-email" className="block text-sm font-medium text-slate-300 mb-2">อีเมล</label>
             <input
+              id="cand-email"
               type="email"
               className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl text-app"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">เบอร์โทร</label>
+            <label htmlFor="cand-tel" className="block text-sm font-medium text-slate-300 mb-2">เบอร์โทร</label>
             <input
+              id="cand-tel"
               type="tel"
               className="w-full px-4 py-2.5 bg-ink-800 border border-app rounded-xl text-app"
             />
@@ -176,4 +181,3 @@ export default function Recruitment() {
     </div>
   );
 }
-

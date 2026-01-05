@@ -65,17 +65,19 @@ export default function Export() {
         <h3 className="text-lg font-semibold text-app mb-4 font-display">เลือกช่วงวันที่</h3>
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm text-muted mb-2">วันที่เริ่มต้น</label>
-            <input 
-              type="date" 
+            <label htmlFor="export-start-date" className="block text-sm text-muted mb-2">วันที่เริ่มต้น</label>
+            <input
+              id="export-start-date"
+              type="date"
               className="w-full px-4 py-2 bg-ink-800 border border-app rounded-lg text-app"
               defaultValue="2025-01-01"
             />
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm text-muted mb-2">วันที่สิ้นสุด</label>
-            <input 
-              type="date" 
+            <label htmlFor="export-end-date" className="block text-sm text-muted mb-2">วันที่สิ้นสุด</label>
+            <input
+              id="export-end-date"
+              type="date"
               className="w-full px-4 py-2 bg-ink-800 border border-app rounded-lg text-app"
               defaultValue="2025-12-31"
             />
@@ -86,7 +88,7 @@ export default function Export() {
       {/* Report Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {reportTypes.map((report) => (
-          <div 
+          <div
             key={report.id}
             className="panel/40 border border-app rounded-2xl p-6 hover:border-ptt-blue/30 transition-colors"
           >
@@ -110,9 +112,9 @@ export default function Export() {
                   className="w-full flex items-center justify-between px-4 py-2 bg-ink-800/60 hover:bg-ptt-blue/20 border border-app hover:border-ptt-blue/30 rounded-lg transition-colors group"
                 >
                   <span className="text-sm text-app group-hover:text-app">
-                    {format === "Excel" ? "📊 Excel (.xlsx)" : 
-                     format === "PDF" ? "📄 PDF (.pdf)" : 
-                     "📝 CSV (.csv)"}
+                    {format === "Excel" ? "📊 Excel (.xlsx)" :
+                      format === "PDF" ? "📄 PDF (.pdf)" :
+                        "📝 CSV (.csv)"}
                   </span>
                   <Download className="w-4 h-4 text-muted group-hover:text-ptt-cyan" strokeWidth={1.5} />
                 </button>

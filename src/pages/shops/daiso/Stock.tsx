@@ -366,14 +366,14 @@ export default function Stock() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <div className="w-16 h-2 bg-soft rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${percentage <= 20
+                          <motion.div
+                            className={`h-full w-[var(--stock-percentage)] ${percentage <= 20
                               ? "bg-red-500"
                               : percentage <= 50
                                 ? "bg-orange-500"
                                 : "bg-emerald-500"
                               }`}
-                            style={{ width: `${Math.min(percentage, 100)}%` }}
+                            style={{ "--stock-percentage": `${Math.min(percentage, 100)}%` } as React.CSSProperties}
                           />
                         </div>
                         <span className="text-xs text-muted">{percentage.toFixed(0)}%</span>

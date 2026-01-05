@@ -128,7 +128,7 @@ export default function GasStationDashboard() {
             "bg-gradient-to-br from-red-500 to-red-600",
           ];
           const iconColor = iconColors[index % iconColors.length];
-          
+
           return (
             <motion.div
               key={stat.title}
@@ -209,7 +209,7 @@ export default function GasStationDashboard() {
               },
             };
             const colors = colorClasses[action.color as keyof typeof colorClasses];
-            
+
             return (
               <motion.div
                 key={action.label}
@@ -331,7 +331,7 @@ export default function GasStationDashboard() {
               const color = colors[index % colors.length];
               const maxStock = Math.max(...mockGasStationData.branches.map(b => b.stock));
               const percentage = (branch.stock / maxStock) * 100;
-              
+
               return (
                 <div key={branch.id}>
                   <div className="flex items-center justify-between mb-2">
@@ -342,10 +342,10 @@ export default function GasStationDashboard() {
                     <span className={`text-sm font-bold ${color.text}`}>{numberFormatter.format(branch.stock)} ลิตร</span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className={`${color.bg} h-2 rounded-full transition-all duration-500`}
-                      style={{ width: `${percentage}%` }}
-                    ></div>
+                    <motion.div
+                      className={`${color.bg} h-2 rounded-full transition-all duration-500 w-[var(--percentage)]`}
+                      style={{ "--percentage": `${percentage}%` } as React.CSSProperties}
+                    ></motion.div>
                   </div>
                 </div>
               );

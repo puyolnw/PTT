@@ -66,8 +66,9 @@ export default function AccountingSettings() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">ชื่อบริษัท</label>
+            <label htmlFor="acc-settings-company-name" className="block text-sm font-medium text-muted mb-2">ชื่อบริษัท</label>
             <input
+              id="acc-settings-company-name"
               type="text"
               value={settings.company.name}
               onChange={(e) => setSettings({ ...settings, company: { ...settings.company, name: e.target.value } })}
@@ -75,8 +76,9 @@ export default function AccountingSettings() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">รหัสนิติบุคคล</label>
+            <label htmlFor="acc-settings-company-code" className="block text-sm font-medium text-muted mb-2">รหัสนิติบุคคล</label>
             <input
+              id="acc-settings-company-code"
               type="text"
               value={settings.company.code}
               onChange={(e) => setSettings({ ...settings, company: { ...settings.company, code: e.target.value } })}
@@ -84,8 +86,9 @@ export default function AccountingSettings() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">เลขประจำตัวผู้เสียภาษี</label>
+            <label htmlFor="acc-settings-tax-id" className="block text-sm font-medium text-muted mb-2">เลขประจำตัวผู้เสียภาษี</label>
             <input
+              id="acc-settings-tax-id"
               type="text"
               value={settings.company.taxId}
               onChange={(e) => setSettings({ ...settings, company: { ...settings.company, taxId: e.target.value } })}
@@ -93,8 +96,9 @@ export default function AccountingSettings() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">เบอร์โทรศัพท์</label>
+            <label htmlFor="acc-settings-phone" className="block text-sm font-medium text-muted mb-2">เบอร์โทรศัพท์</label>
             <input
+              id="acc-settings-phone"
               type="text"
               value={settings.company.phone}
               onChange={(e) => setSettings({ ...settings, company: { ...settings.company, phone: e.target.value } })}
@@ -102,8 +106,9 @@ export default function AccountingSettings() {
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-muted mb-2">ที่อยู่</label>
+            <label htmlFor="acc-settings-address" className="block text-sm font-medium text-muted mb-2">ที่อยู่</label>
             <textarea
+              id="acc-settings-address"
               value={settings.company.address}
               onChange={(e) => setSettings({ ...settings, company: { ...settings.company, address: e.target.value } })}
               rows={3}
@@ -111,8 +116,9 @@ export default function AccountingSettings() {
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-muted mb-2">อีเมล</label>
+            <label htmlFor="acc-settings-company-email" className="block text-sm font-medium text-muted mb-2">อีเมล</label>
             <input
+              id="acc-settings-company-email"
               type="email"
               value={settings.company.email}
               onChange={(e) => setSettings({ ...settings, company: { ...settings.company, email: e.target.value } })}
@@ -135,8 +141,9 @@ export default function AccountingSettings() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">สกุลเงิน</label>
+            <label htmlFor="acc-settings-currency" className="block text-sm font-medium text-muted mb-2">สกุลเงิน</label>
             <select
+              id="acc-settings-currency"
               value={settings.accounting.currency}
               onChange={(e) => setSettings({ ...settings, accounting: { ...settings.accounting, currency: e.target.value } })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-xl text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
@@ -145,8 +152,9 @@ export default function AccountingSettings() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">อัตรา VAT (%)</label>
+            <label htmlFor="acc-settings-vat" className="block text-sm font-medium text-muted mb-2">อัตรา VAT (%)</label>
             <input
+              id="acc-settings-vat"
               type="number"
               value={settings.accounting.vatRate}
               onChange={(e) => setSettings({ ...settings, accounting: { ...settings.accounting, vatRate: Number(e.target.value) } })}
@@ -154,8 +162,9 @@ export default function AccountingSettings() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">ปีบัญชีเริ่มต้น</label>
+            <label htmlFor="acc-settings-fiscal-start" className="block text-sm font-medium text-muted mb-2">ปีบัญชีเริ่มต้น</label>
             <input
+              id="acc-settings-fiscal-start"
               type="date"
               value={`2024-${settings.accounting.fiscalYearStart}`}
               onChange={(e) => {
@@ -166,8 +175,9 @@ export default function AccountingSettings() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">ปีบัญชีสิ้นสุด</label>
+            <label htmlFor="acc-settings-fiscal-end" className="block text-sm font-medium text-muted mb-2">ปีบัญชีสิ้นสุด</label>
             <input
+              id="acc-settings-fiscal-end"
               type="date"
               value={`2024-${settings.accounting.fiscalYearEnd}`}
               onChange={(e) => {
@@ -183,12 +193,14 @@ export default function AccountingSettings() {
                 <p className="font-medium text-app">ลงบัญชีอัตโนมัติ</p>
                 <p className="text-sm text-muted">ลง Journal Entry อัตโนมัติเมื่อได้รับข้อมูลจากโมดูลอื่น</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label htmlFor="acc-settings-auto-post" className="relative inline-flex items-center cursor-pointer">
                 <input
+                  id="acc-settings-auto-post"
                   type="checkbox"
                   checked={settings.accounting.autoPostJournal}
                   onChange={(e) => setSettings({ ...settings, accounting: { ...settings.accounting, autoPostJournal: e.target.checked } })}
                   className="sr-only peer"
+                  aria-label="ลงบัญชีอัตโนมัติ"
                 />
                 <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-app after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
               </label>
@@ -200,12 +212,14 @@ export default function AccountingSettings() {
                 <p className="font-medium text-app">คำนวณภาษีอัตโนมัติ</p>
                 <p className="text-sm text-muted">คำนวณ VAT และภาษีหัก ณ ที่จ่ายอัตโนมัติ</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label htmlFor="acc-settings-auto-tax" className="relative inline-flex items-center cursor-pointer">
                 <input
+                  id="acc-settings-auto-tax"
                   type="checkbox"
                   checked={settings.accounting.autoCalculateTax}
                   onChange={(e) => setSettings({ ...settings, accounting: { ...settings.accounting, autoCalculateTax: e.target.checked } })}
                   className="sr-only peer"
+                  aria-label="คำนวณภาษีอัตโนมัติ"
                 />
                 <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-app after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
               </label>
@@ -237,12 +251,14 @@ export default function AccountingSettings() {
                 <p className="font-medium text-app">{module.label}</p>
                 <p className="text-sm text-muted">{module.description}</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label htmlFor={`acc-settings-module-${module.key}`} className="relative inline-flex items-center cursor-pointer">
                 <input
+                  id={`acc-settings-module-${module.key}`}
                   type="checkbox"
                   checked={settings.integration[module.key as keyof typeof settings.integration] as boolean}
                   onChange={(e) => setSettings({ ...settings, integration: { ...settings.integration, [module.key]: e.target.checked } })}
                   className="sr-only peer"
+                  aria-label={module.label}
                 />
                 <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-app after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
               </label>
@@ -253,12 +269,14 @@ export default function AccountingSettings() {
               <p className="font-medium text-app">ซิงค์ข้อมูลอัตโนมัติ</p>
               <p className="text-sm text-muted">ซิงค์ข้อมูลจากโมดูลอื่นอัตโนมัติ</p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label htmlFor="acc-settings-auto-sync" className="relative inline-flex items-center cursor-pointer">
               <input
+                id="acc-settings-auto-sync"
                 type="checkbox"
                 checked={settings.integration.autoSync}
                 onChange={(e) => setSettings({ ...settings, integration: { ...settings.integration, autoSync: e.target.checked } })}
                 className="sr-only peer"
+                aria-label="ซิงค์ข้อมูลอัตโนมัติ"
               />
               <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ptt-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-app after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ptt-blue"></div>
             </label>

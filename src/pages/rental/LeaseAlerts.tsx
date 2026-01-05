@@ -8,8 +8,36 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
+// Interfaces
+interface ContractAlert {
+  id: string;
+  shop: string;
+  branch: string;
+  contractType: string;
+  endDate: string;
+  daysRemaining: number;
+  status: "warning" | "info" | "urgent";
+  rentAmount: number;
+}
+
+interface PaymentAlert {
+  id: string;
+  shop: string;
+  branch: string;
+  contractType: string;
+  dueDate: string;
+  daysRemaining: number;
+  amount: number;
+  status: "warning" | "info" | "urgent";
+}
+
+interface LeaseAlertsData {
+  expiringContracts: ContractAlert[];
+  paymentDue: PaymentAlert[];
+}
+
 // Mock data - Lease Alerts
-const mockLeaseAlerts = {
+const mockLeaseAlerts: LeaseAlertsData = {
   expiringContracts: [
     {
       id: "C-001",
@@ -165,11 +193,10 @@ export default function LeaseAlerts() {
       <div className="flex gap-4">
         <button
           onClick={() => setSelectedType("contracts")}
-          className={`flex-1 px-6 py-4 rounded-xl border-2 transition-all ${
-            selectedType === "contracts"
-              ? "bg-ptt-blue/10 border-ptt-blue/30 text-ptt-cyan"
-              : "bg-soft border-app text-muted hover:text-app"
-          }`}
+          className={`flex-1 px-6 py-4 rounded-xl border-2 transition-all ${selectedType === "contracts"
+            ? "bg-ptt-blue/10 border-ptt-blue/30 text-ptt-cyan"
+            : "bg-soft border-app text-muted hover:text-app"
+            }`}
         >
           <div className="flex items-center justify-center gap-3">
             <FileText className="w-5 h-5" />
@@ -178,11 +205,10 @@ export default function LeaseAlerts() {
         </button>
         <button
           onClick={() => setSelectedType("payments")}
-          className={`flex-1 px-6 py-4 rounded-xl border-2 transition-all ${
-            selectedType === "payments"
-              ? "bg-ptt-blue/10 border-ptt-blue/30 text-ptt-cyan"
-              : "bg-soft border-app text-muted hover:text-app"
-          }`}
+          className={`flex-1 px-6 py-4 rounded-xl border-2 transition-all ${selectedType === "payments"
+            ? "bg-ptt-blue/10 border-ptt-blue/30 text-ptt-cyan"
+            : "bg-soft border-app text-muted hover:text-app"
+            }`}
         >
           <div className="flex items-center justify-center gap-3">
             <Clock className="w-5 h-5" />
@@ -204,39 +230,37 @@ export default function LeaseAlerts() {
               {selectedType === "contracts" ? "สัญญาเช่าใกล้หมด" : "ครบกำหนดชำระ"}
             </h3>
             <p className="text-sm text-muted">
-              {selectedType === "contracts" 
-                ? mockLeaseAlerts.expiringContracts.length 
+              {selectedType === "contracts"
+                ? mockLeaseAlerts.expiringContracts.length
                 : mockLeaseAlerts.paymentDue.length} รายการ
             </p>
           </div>
           <Bell className="w-6 h-6 text-muted" />
         </div>
         <div className="space-y-3">
-          {(selectedType === "contracts" 
-            ? mockLeaseAlerts.expiringContracts 
+          {(selectedType === "contracts"
+            ? mockLeaseAlerts.expiringContracts
             : mockLeaseAlerts.paymentDue
           ).map((alert) => (
             <div
               key={alert.id}
-              className={`p-4 rounded-xl border-2 ${
-                alert.status === "urgent"
-                  ? "bg-red-500/10 border-red-500/30"
-                  : alert.status === "warning"
+              className={`p-4 rounded-xl border-2 ${alert.status === "urgent"
+                ? "bg-red-500/10 border-red-500/30"
+                : alert.status === "warning"
                   ? "bg-orange-500/10 border-orange-500/30"
                   : "bg-blue-500/10 border-blue-500/30"
-              }`}
+                }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h4 className="font-semibold text-app">{alert.shop}</h4>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      alert.status === "urgent"
-                        ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                        : alert.status === "warning"
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${alert.status === "urgent"
+                      ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                      : alert.status === "warning"
                         ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
                         : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                    }`}>
+                      }`}>
                       {alert.status === "urgent" ? "ด่วน" : alert.status === "warning" ? "เตือน" : "แจ้งเตือน"}
                     </span>
                     <span className="px-2 py-1 rounded-full bg-ptt-blue/10 text-ptt-cyan text-xs">
@@ -253,16 +277,15 @@ export default function LeaseAlerts() {
                         {selectedType === "contracts" ? "วันหมดอายุ: " : "ครบกำหนด: "}
                       </span>
                       <span className="text-app">
-                        {new Date(selectedType === "contracts" ? (alert as any).endDate : (alert as any).dueDate).toLocaleDateString("th-TH")}
+                        {new Date("endDate" in alert ? alert.endDate : alert.dueDate).toLocaleDateString("th-TH")}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted">เหลือ: </span>
-                      <span className={`font-bold ${
-                        alert.daysRemaining <= 7 ? "text-red-400" :
+                      <span className={`font-bold ${alert.daysRemaining <= 7 ? "text-red-400" :
                         alert.daysRemaining <= 30 ? "text-orange-400" :
-                        "text-blue-400"
-                      }`}>
+                          "text-blue-400"
+                        }`}>
                         {alert.daysRemaining} วัน
                       </span>
                     </div>
@@ -271,7 +294,7 @@ export default function LeaseAlerts() {
                     <div className="mt-2">
                       <span className="text-muted">ยอดที่ต้องชำระ: </span>
                       <span className="font-bold text-app">
-                        {currencyFormatter.format((alert as any).amount)}
+                        {"amount" in alert && currencyFormatter.format(alert.amount)}
                       </span>
                     </div>
                   )}
@@ -301,21 +324,24 @@ export default function LeaseAlerts() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-4 bg-soft rounded-xl border border-app">
-            <label className="block text-sm font-medium text-muted mb-2">
+            <span className="block text-sm font-medium text-muted mb-2">
               แจ้งเตือนสัญญาใกล้หมด (วัน)
-            </label>
+            </span>
             <div className="flex gap-2">
               <input
+                aria-label="Contract alert threshold 1 (days)"
                 type="number"
                 defaultValue={60}
                 className="w-full px-3 py-2 bg-app border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
               />
               <input
+                aria-label="Contract alert threshold 2 (days)"
                 type="number"
                 defaultValue={30}
                 className="w-full px-3 py-2 bg-app border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
               />
               <input
+                aria-label="Contract alert threshold 3 (days)"
                 type="number"
                 defaultValue={7}
                 className="w-full px-3 py-2 bg-app border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
@@ -324,21 +350,24 @@ export default function LeaseAlerts() {
             <p className="text-xs text-muted mt-2">60 / 30 / 7 วัน</p>
           </div>
           <div className="p-4 bg-soft rounded-xl border border-app">
-            <label className="block text-sm font-medium text-muted mb-2">
+            <span className="block text-sm font-medium text-muted mb-2">
               แจ้งเตือนครบกำหนดชำระ (วัน)
-            </label>
+            </span>
             <div className="flex gap-2">
               <input
+                aria-label="Payment alert threshold 1 (days)"
                 type="number"
                 defaultValue={30}
                 className="w-full px-3 py-2 bg-app border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
               />
               <input
+                aria-label="Payment alert threshold 2 (days)"
                 type="number"
                 defaultValue={15}
                 className="w-full px-3 py-2 bg-app border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
               />
               <input
+                aria-label="Payment alert threshold 3 (days)"
                 type="number"
                 defaultValue={7}
                 className="w-full px-3 py-2 bg-app border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
@@ -347,20 +376,20 @@ export default function LeaseAlerts() {
             <p className="text-xs text-muted mt-2">30 / 15 / 7 วัน</p>
           </div>
           <div className="p-4 bg-soft rounded-xl border border-app">
-            <label className="block text-sm font-medium text-muted mb-2">
+            <span className="block text-sm font-medium text-muted mb-2">
               ช่องทางแจ้งเตือน
-            </label>
+            </span>
             <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-app text-ptt-blue focus:ring-ptt-blue/30" />
+              <label htmlFor="alert-email" className="flex items-center gap-2 cursor-pointer">
+                <input id="alert-email" type="checkbox" defaultChecked className="w-4 h-4 rounded border-app text-ptt-blue focus:ring-ptt-blue/30" />
                 <span className="text-sm text-app">อีเมล</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-app text-ptt-blue focus:ring-ptt-blue/30" />
+              <label htmlFor="alert-line" className="flex items-center gap-2 cursor-pointer">
+                <input id="alert-line" type="checkbox" defaultChecked className="w-4 h-4 rounded border-app text-ptt-blue focus:ring-ptt-blue/30" />
                 <span className="text-sm text-app">Line</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-app text-ptt-blue focus:ring-ptt-blue/30" />
+              <label htmlFor="alert-sms" className="flex items-center gap-2 cursor-pointer">
+                <input id="alert-sms" type="checkbox" className="w-4 h-4 rounded border-app text-ptt-blue focus:ring-ptt-blue/30" />
                 <span className="text-sm text-app">SMS</span>
               </label>
             </div>

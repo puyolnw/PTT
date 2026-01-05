@@ -127,18 +127,18 @@ export default function Payroll() {
       prev.map((item) =>
         item.id === paymentModalRecord.id
           ? {
-              ...item,
-              status: "paid",
-              paidDate: effectiveDate,
-              history: [
-                {
-                  date: effectiveDate,
-                  action: "จ่ายเงินเดือน",
-                  note: paymentNote || undefined,
-                },
-                ...item.history,
-              ],
-            }
+            ...item,
+            status: "paid",
+            paidDate: effectiveDate,
+            history: [
+              {
+                date: effectiveDate,
+                action: "จ่ายเงินเดือน",
+                note: paymentNote || undefined,
+              },
+              ...item.history,
+            ],
+          }
           : item
       )
     );
@@ -404,12 +404,14 @@ export default function Payroll() {
               </p>
             </div>
           </div>
-          
+
           {/* Filter Bar - Inline with table */}
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search Input */}
             <div className="relative flex-1">
+              <label htmlFor="payroll-search" className="sr-only">ค้นหาพนักงาน</label>
               <input
+                id="payroll-search"
                 type="text"
                 placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
                 value={searchQuery}
@@ -434,78 +436,94 @@ export default function Payroll() {
 
             {/* Filter Dropdowns */}
             <div className="flex flex-wrap gap-3">
-              <select
-                value={deptFilter}
-                onChange={(e) => {
-                  setDeptFilter(e.target.value);
-                  handleFilter();
-                }}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกแผนก</option>
-                {departments.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col">
+                <label htmlFor="payroll-dept-filter" className="sr-only">กรองตามแผนก</label>
+                <select
+                  id="payroll-dept-filter"
+                  value={deptFilter}
+                  onChange={(e) => {
+                    setDeptFilter(e.target.value);
+                    handleFilter();
+                  }}
+                  className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                           text-app text-sm min-w-[150px]
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                           transition-all cursor-pointer hover:border-app/50"
+                >
+                  <option value="">ทุกแผนก</option>
+                  {departments.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              <select
-                value={categoryFilter}
-                onChange={(e) => {
-                  setCategoryFilter(e.target.value);
-                  handleFilter();
-                }}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกหมวดหมู่</option>
-                {categories.map((c) => (
-                  <option key={c} value={c || ""}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col">
+                <label htmlFor="payroll-category-filter" className="sr-only">กรองตามหมวดหมู่</label>
+                <select
+                  id="payroll-category-filter"
+                  value={categoryFilter}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value);
+                    handleFilter();
+                  }}
+                  className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                           text-app text-sm min-w-[150px]
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                           transition-all cursor-pointer hover:border-app/50"
+                >
+                  <option value="">ทุกหมวดหมู่</option>
+                  {categories.map((c) => (
+                    <option key={c} value={c || ""}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              <select
-                value={shiftFilter === "" ? "" : String(shiftFilter)}
-                onChange={(e) => {
-                  setShiftFilter(e.target.value === "" ? "" : Number(e.target.value));
-                  handleFilter();
-                }}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกกะ</option>
-                {shifts.map((shift) => (
-                  <option key={shift.id} value={String(shift.id)}>
-                    {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col">
+                <label htmlFor="payroll-shift-filter" className="sr-only">กรองตามกะ</label>
+                <select
+                  id="payroll-shift-filter"
+                  value={shiftFilter === "" ? "" : String(shiftFilter)}
+                  onChange={(e) => {
+                    setShiftFilter(e.target.value === "" ? "" : Number(e.target.value));
+                    handleFilter();
+                  }}
+                  className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                           text-app text-sm min-w-[150px]
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                           transition-all cursor-pointer hover:border-app/50"
+                >
+                  <option value="">ทุกกะ</option>
+                  {shifts.map((shift) => (
+                    <option key={shift.id} value={String(shift.id)}>
+                      {shift.shiftType ? `กะ${shift.shiftType}` : ""} {shift.name} {shift.description ? `(${shift.description})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  handleFilter();
-                }}
-                className="px-4 py-2.5 bg-soft border border-app rounded-xl
-                         text-app text-sm min-w-[150px]
-                         focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
-                         transition-all cursor-pointer hover:border-app/50"
-              >
-                <option value="">ทุกสถานะ</option>
-                <option value="pending">รอจ่าย</option>
-                <option value="paid">จ่ายแล้ว</option>
-              </select>
+              <div className="flex flex-col">
+                <label htmlFor="payroll-status-filter" className="sr-only">กรองตามสถานะ</label>
+                <select
+                  id="payroll-status-filter"
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    handleFilter();
+                  }}
+                  className="px-4 py-2.5 bg-soft border border-app rounded-xl
+                           text-app text-sm min-w-[150px]
+                           focus:outline-none focus:ring-2 focus:ring-ptt-blue focus:border-transparent
+                           transition-all cursor-pointer hover:border-app/50"
+                >
+                  <option value="">ทุกสถานะ</option>
+                  <option value="pending">รอจ่าย</option>
+                  <option value="paid">จ่ายแล้ว</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -553,100 +571,98 @@ export default function Payroll() {
               {filteredPayroll.map((item, index) => {
                 const employee = getEmployeeInfo(item.empCode);
                 return (
-                <motion.tr
-                  key={item.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="hover:bg-soft transition-colors"
-                >
-                  <td className="px-6 py-4 text-sm text-ptt-cyan font-medium">
-                    {item.empCode}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-app font-medium">
-                    {item.empName}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-app font-light">
-                    {employee?.dept || "-"}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    {employee?.category ? (
-                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium
+                  <motion.tr
+                    key={item.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="hover:bg-soft transition-colors"
+                  >
+                    <td className="px-6 py-4 text-sm text-ptt-cyan font-medium">
+                      {item.empCode}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-app font-medium">
+                      {item.empName}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-app font-light">
+                      {employee?.dept || "-"}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {employee?.category ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium
                                      bg-ptt-cyan/20 text-ptt-cyan border border-ptt-cyan/30">
-                        {employee.category}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted">-</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm text-app font-mono">
-                    {formatCurrency(item.salary)}
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm text-green-400 font-mono">
-                    +{formatCurrency(item.ot)}
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm text-green-400 font-mono">
-                    +{formatCurrency(item.bonus)}
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm text-red-400 font-mono">
-                    -{formatCurrency(item.deduction)}
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm text-ptt-cyan font-bold font-mono">
-                    {formatCurrency(item.net)}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex flex-col items-center gap-1">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                          item.status === "paid"
-                            ? "bg-green-500/20 text-green-600 border border-green-500/40"
-                            : "bg-orange-500/20 text-orange-600 border border-orange-500/40"
-                        }`}
-                      >
-                        {item.status === "paid" ? "จ่ายแล้ว" : "รอจ่าย"}
-                      </span>
-                      {item.paidDate && (
-                        <span className="text-[11px] text-muted">จ่ายเมื่อ {new Date(item.paidDate).toLocaleDateString("th-TH")}</span>
+                          {employee.category}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted">-</span>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <button
-                        onClick={() => setSelectedPayslip(item)}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm 
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm text-app font-mono">
+                      {formatCurrency(item.salary)}
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm text-green-400 font-mono">
+                      +{formatCurrency(item.ot)}
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm text-green-400 font-mono">
+                      +{formatCurrency(item.bonus)}
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm text-red-400 font-mono">
+                      -{formatCurrency(item.deduction)}
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm text-ptt-cyan font-bold font-mono">
+                      {formatCurrency(item.net)}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${item.status === "paid"
+                              ? "bg-green-500/20 text-green-600 border border-green-500/40"
+                              : "bg-orange-500/20 text-orange-600 border border-orange-500/40"
+                            }`}
+                        >
+                          {item.status === "paid" ? "จ่ายแล้ว" : "รอจ่าย"}
+                        </span>
+                        {item.paidDate && (
+                          <span className="text-[11px] text-muted">จ่ายเมื่อ {new Date(item.paidDate).toLocaleDateString("th-TH")}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          onClick={() => setSelectedPayslip(item)}
+                          className="inline-flex items-center gap-2 px-4 py-2 text-sm 
                                  bg-ptt-blue/20 hover:bg-ptt-blue/30 text-ptt-cyan rounded-lg
                                  transition-colors font-medium"
-                      >
-                        <FileText className="w-4 h-4" />
-                        สลิป
-                      </button>
-                      <button
-                        onClick={() => handleGenerateCertificate(item)}
-                        className="inline-flex items-center gap-1 px-3 py-2 text-xs 
+                        >
+                          <FileText className="w-4 h-4" />
+                          สลิป
+                        </button>
+                        <button
+                          onClick={() => handleGenerateCertificate(item)}
+                          className="inline-flex items-center gap-1 px-3 py-2 text-xs 
                                  bg-soft border border-app hover:bg-soft/70 text-app rounded-lg
                                  transition-colors font-medium"
-                        title="ขอใบรับรองเงินเดือน"
-                      >
-                        <ShieldCheck className="w-3 h-3" />
-                        ใบรับรอง
-                      </button>
-                      <button
-                        onClick={() => handleOpenPaymentModal(item)}
-                        disabled={item.status === "paid"}
-                        className={`inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
-                          item.status === "paid"
-                            ? "bg-soft text-muted cursor-not-allowed"
-                            : "bg-ptt-cyan/20 text-ptt-cyan hover:bg-ptt-cyan/30"
-                        }`}
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        บันทึกจ่าย
-                      </button>
-                    </div>
-                  </td>
-                </motion.tr>
-              );
+                          title="ขอใบรับรองเงินเดือน"
+                        >
+                          <ShieldCheck className="w-3 h-3" />
+                          ใบรับรอง
+                        </button>
+                        <button
+                          onClick={() => handleOpenPaymentModal(item)}
+                          disabled={item.status === "paid"}
+                          className={`inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg font-medium transition-colors ${item.status === "paid"
+                              ? "bg-soft text-muted cursor-not-allowed"
+                              : "bg-ptt-cyan/20 text-ptt-cyan hover:bg-ptt-cyan/30"
+                            }`}
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          บันทึกจ่าย
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                );
               })}
             </tbody>
           </table>
@@ -733,8 +749,9 @@ export default function Payroll() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-app mb-2">พนักงาน</label>
+            <label htmlFor="create-payroll-emp" className="block text-sm font-semibold text-app mb-2">พนักงาน</label>
             <select
+              id="create-payroll-emp"
               value={createForm.empCode}
               onChange={(e) => setCreateForm({ ...createForm, empCode: e.target.value })}
               className="w-full px-4 py-2.5 bg-app border border-app rounded-lg text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue"
@@ -751,8 +768,9 @@ export default function Payroll() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-app mb-2">เดือน</label>
+            <label htmlFor="create-payroll-month" className="block text-sm font-semibold text-app mb-2">เดือน</label>
             <input
+              id="create-payroll-month"
               type="text"
               value={createForm.month}
               onChange={(e) => setCreateForm({ ...createForm, month: e.target.value })}
@@ -763,8 +781,9 @@ export default function Payroll() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-app mb-2">เงินเดือน</label>
+              <label htmlFor="create-payroll-salary" className="block text-sm font-semibold text-app mb-2">เงินเดือน</label>
               <input
+                id="create-payroll-salary"
                 type="number"
                 value={createForm.salary}
                 onChange={(e) => setCreateForm({ ...createForm, salary: Number(e.target.value) })}
@@ -772,8 +791,9 @@ export default function Payroll() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-app mb-2">OT</label>
+              <label htmlFor="create-payroll-ot" className="block text-sm font-semibold text-app mb-2">OT</label>
               <input
+                id="create-payroll-ot"
                 type="number"
                 value={createForm.ot}
                 onChange={(e) => setCreateForm({ ...createForm, ot: Number(e.target.value) })}
@@ -781,8 +801,9 @@ export default function Payroll() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-app mb-2">โบนัส</label>
+              <label htmlFor="create-payroll-bonus" className="block text-sm font-semibold text-app mb-2">โบนัส</label>
               <input
+                id="create-payroll-bonus"
                 type="number"
                 value={createForm.bonus}
                 onChange={(e) => setCreateForm({ ...createForm, bonus: Number(e.target.value) })}
@@ -790,8 +811,9 @@ export default function Payroll() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-app mb-2">หัก</label>
+              <label htmlFor="create-payroll-deduction" className="block text-sm font-semibold text-app mb-2">หัก</label>
               <input
+                id="create-payroll-deduction"
                 type="number"
                 value={createForm.deduction}
                 onChange={(e) => setCreateForm({ ...createForm, deduction: Number(e.target.value) })}
@@ -886,11 +908,10 @@ export default function Payroll() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                        record.status === "paid"
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${record.status === "paid"
                           ? "bg-green-500/20 text-green-600 border border-green-500/40"
                           : "bg-orange-500/20 text-orange-600 border border-orange-500/40"
-                      }`}
+                        }`}
                     >
                       {record.status === "paid" ? "จ่ายแล้ว" : "รอจ่าย"}
                     </span>
@@ -988,8 +1009,9 @@ export default function Payroll() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-app">วันที่จ่าย</label>
+              <label htmlFor="payment-date" className="text-sm font-medium text-app">วันที่จ่าย</label>
               <input
+                id="payment-date"
                 type="date"
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
@@ -998,8 +1020,9 @@ export default function Payroll() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-app">หมายเหตุ (ถ้ามี)</label>
+              <label htmlFor="payment-note" className="text-sm font-medium text-app">หมายเหตุ (ถ้ามี)</label>
               <textarea
+                id="payment-note"
                 value={paymentNote}
                 onChange={(e) => setPaymentNote(e.target.value)}
                 rows={3}

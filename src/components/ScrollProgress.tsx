@@ -3,7 +3,7 @@ import { useEffect } from "react";
 /**
  * Hook สำหรับอัปเดต scroll progress bar + รองรับการคลิก/ลาก
  */
-export function useScrollProgress() {
+function useScrollProgress() {
   useEffect(() => {
     const vContainer = document.querySelector<HTMLDivElement>("#scroll-progress-vertical");
     const hContainer = document.querySelector<HTMLDivElement>("#scroll-progress-top");
@@ -14,7 +14,7 @@ export function useScrollProgress() {
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
       const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
       const p = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-      
+
       if (vBar) vBar.style.height = p + "%";
       if (hBar) hBar.style.width = p + "%";
     };
@@ -87,7 +87,7 @@ export function useScrollProgress() {
     }
 
     window.addEventListener("mouseup", handleMouseUp);
-    
+
     return () => {
       window.removeEventListener("scroll", setProgress);
       window.removeEventListener("resize", setProgress);
@@ -104,7 +104,7 @@ export function useScrollProgress() {
  */
 export default function ScrollProgress() {
   useScrollProgress();
-  
+
   return (
     <>
       <div id="scroll-progress-vertical" aria-hidden="true">

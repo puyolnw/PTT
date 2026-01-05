@@ -108,27 +108,27 @@ export default function Contracts() {
   const handleAddContract = () => {
     const newContract = formData.rentType === "คงที่"
       ? {
-          id: String(contracts.length + 1),
-          shop: formData.shop,
-          branch: formData.branch,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          rentType: formData.rentType,
-          rentAmount: Number(formData.rentAmount),
-          percentage: null,
-          status: "ใช้งาน" as const,
-        }
+        id: String(contracts.length + 1),
+        shop: formData.shop,
+        branch: formData.branch,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        rentType: formData.rentType,
+        rentAmount: Number(formData.rentAmount),
+        percentage: null,
+        status: "ใช้งาน" as const,
+      }
       : {
-          id: String(contracts.length + 1),
-          shop: formData.shop,
-          branch: formData.branch,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          rentType: formData.rentType,
-          rentAmount: null,
-          percentage: Number(formData.percentage),
-          status: "ใช้งาน" as const,
-        };
+        id: String(contracts.length + 1),
+        shop: formData.shop,
+        branch: formData.branch,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        rentType: formData.rentType,
+        rentAmount: null,
+        percentage: Number(formData.percentage),
+        status: "ใช้งาน" as const,
+      };
     setContracts([newContract, ...contracts]);
     setIsAddModalOpen(false);
     resetForm();
@@ -141,27 +141,27 @@ export default function Contracts() {
         if (contract.id === selectedContract.id) {
           return formData.rentType === "คงที่"
             ? {
-                id: contract.id,
-                shop: formData.shop,
-                branch: formData.branch,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
-                rentType: formData.rentType,
-                rentAmount: Number(formData.rentAmount),
-                percentage: null,
-                status: contract.status,
-              }
+              id: contract.id,
+              shop: formData.shop,
+              branch: formData.branch,
+              startDate: formData.startDate,
+              endDate: formData.endDate,
+              rentType: formData.rentType,
+              rentAmount: Number(formData.rentAmount),
+              percentage: null,
+              status: contract.status,
+            }
             : {
-                id: contract.id,
-                shop: formData.shop,
-                branch: formData.branch,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
-                rentType: formData.rentType,
-                rentAmount: null,
-                percentage: Number(formData.percentage),
-                status: contract.status,
-              };
+              id: contract.id,
+              shop: formData.shop,
+              branch: formData.branch,
+              startDate: formData.startDate,
+              endDate: formData.endDate,
+              rentType: formData.rentType,
+              rentAmount: null,
+              percentage: Number(formData.percentage),
+              status: contract.status,
+            };
         }
         return contract;
       })
@@ -365,11 +365,10 @@ export default function Contracts() {
                     </div>
                   </td>
                   <td className="py-3 px-4">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      contract.rentType === "คงที่"
+                    <span className={`px-2 py-1 text-xs rounded-full ${contract.rentType === "คงที่"
                         ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
                         : "bg-purple-500/10 text-purple-400 border border-purple-500/30"
-                    }`}>
+                      }`}>
                       {contract.rentType}
                     </span>
                   </td>
@@ -430,8 +429,9 @@ export default function Contracts() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
+            <label htmlFor="add-shop-name" className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
             <input
+              id="add-shop-name"
               type="text"
               value={formData.shop}
               onChange={(e) => setFormData({ ...formData, shop: e.target.value })}
@@ -441,8 +441,9 @@ export default function Contracts() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">สาขา</label>
+            <label htmlFor="add-branch" className="block text-sm font-medium text-app mb-2">สาขา</label>
             <select
+              id="add-branch"
               value={formData.branch}
               onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -456,8 +457,9 @@ export default function Contracts() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่เริ่มสัญญา</label>
+              <label htmlFor="add-start-date" className="block text-sm font-medium text-app mb-2">วันที่เริ่มสัญญา</label>
               <input
+                id="add-start-date"
                 type="date"
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
@@ -466,8 +468,9 @@ export default function Contracts() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่สิ้นสุดสัญญา</label>
+              <label htmlFor="add-end-date" className="block text-sm font-medium text-app mb-2">วันที่สิ้นสุดสัญญา</label>
               <input
+                id="add-end-date"
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
@@ -477,8 +480,9 @@ export default function Contracts() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ประเภทค่าเช่า</label>
+            <label htmlFor="add-rent-type" className="block text-sm font-medium text-app mb-2">ประเภทค่าเช่า</label>
             <select
+              id="add-rent-type"
               value={formData.rentType}
               onChange={(e) => setFormData({ ...formData, rentType: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -489,8 +493,9 @@ export default function Contracts() {
           </div>
           {formData.rentType === "คงที่" ? (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">อัตราค่าเช่า (บาท/เดือน)</label>
+              <label htmlFor="add-rent-amount" className="block text-sm font-medium text-app mb-2">อัตราค่าเช่า (บาท/เดือน)</label>
               <input
+                id="add-rent-amount"
                 type="number"
                 value={formData.rentAmount}
                 onChange={(e) => setFormData({ ...formData, rentAmount: e.target.value })}
@@ -501,8 +506,9 @@ export default function Contracts() {
             </div>
           ) : (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">เปอร์เซ็นต์จากยอดขาย (%)</label>
+              <label htmlFor="add-percentage" className="block text-sm font-medium text-app mb-2">เปอร์เซ็นต์จากยอดขาย (%)</label>
               <input
+                id="add-percentage"
                 type="number"
                 value={formData.percentage}
                 onChange={(e) => setFormData({ ...formData, percentage: e.target.value })}
@@ -529,8 +535,9 @@ export default function Contracts() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
+            <label htmlFor="edit-shop-name" className="block text-sm font-medium text-app mb-2">ชื่อร้าน</label>
             <input
+              id="edit-shop-name"
               type="text"
               value={formData.shop}
               onChange={(e) => setFormData({ ...formData, shop: e.target.value })}
@@ -539,8 +546,9 @@ export default function Contracts() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">สาขา</label>
+            <label htmlFor="edit-branch" className="block text-sm font-medium text-app mb-2">สาขา</label>
             <select
+              id="edit-branch"
               value={formData.branch}
               onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -554,8 +562,9 @@ export default function Contracts() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่เริ่มสัญญา</label>
+              <label htmlFor="edit-start-date" className="block text-sm font-medium text-app mb-2">วันที่เริ่มสัญญา</label>
               <input
+                id="edit-start-date"
                 type="date"
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
@@ -564,8 +573,9 @@ export default function Contracts() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่สิ้นสุดสัญญา</label>
+              <label htmlFor="edit-end-date" className="block text-sm font-medium text-app mb-2">วันที่สิ้นสุดสัญญา</label>
               <input
+                id="edit-end-date"
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
@@ -575,8 +585,9 @@ export default function Contracts() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ประเภทค่าเช่า</label>
+            <label htmlFor="edit-rent-type" className="block text-sm font-medium text-app mb-2">ประเภทค่าเช่า</label>
             <select
+              id="edit-rent-type"
               value={formData.rentType}
               onChange={(e) => setFormData({ ...formData, rentType: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -587,8 +598,9 @@ export default function Contracts() {
           </div>
           {formData.rentType === "คงที่" ? (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">อัตราค่าเช่า (บาท/เดือน)</label>
+              <label htmlFor="edit-rent-amount" className="block text-sm font-medium text-app mb-2">อัตราค่าเช่า (บาท/เดือน)</label>
               <input
+                id="edit-rent-amount"
                 type="number"
                 value={formData.rentAmount}
                 onChange={(e) => setFormData({ ...formData, rentAmount: e.target.value })}
@@ -598,8 +610,9 @@ export default function Contracts() {
             </div>
           ) : (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">เปอร์เซ็นต์จากยอดขาย (%)</label>
+              <label htmlFor="edit-percentage" className="block text-sm font-medium text-app mb-2">เปอร์เซ็นต์จากยอดขาย (%)</label>
               <input
+                id="edit-percentage"
                 type="number"
                 value={formData.percentage}
                 onChange={(e) => setFormData({ ...formData, percentage: e.target.value })}

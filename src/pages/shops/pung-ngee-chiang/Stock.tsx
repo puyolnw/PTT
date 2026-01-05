@@ -338,20 +338,20 @@ export default function Stock() {
       stockData.map((item) =>
         item.id === selectedItem.id
           ? {
-              ...selectedItem,
-              name: formData.name,
-              quantity: Number(formData.quantity) || 0,
-              unit: formData.unit,
-              cost: Number(formData.cost) || 0,
-              price: Number(formData.price) || 0,
-              expiry: formData.expiry,
-              supplier: formData.supplier,
-              lowStockThreshold: Number(formData.lowStockThreshold) || 0,
-              category: formData.category || selectedItem.category,
-              transferCode: formData.transferCode || selectedItem.transferCode,
-              categorySecondary: formData.categorySecondary || selectedItem.categorySecondary,
-              barcode: formData.barcode || selectedItem.barcode,
-            }
+            ...selectedItem,
+            name: formData.name,
+            quantity: Number(formData.quantity) || 0,
+            unit: formData.unit,
+            cost: Number(formData.cost) || 0,
+            price: Number(formData.price) || 0,
+            expiry: formData.expiry,
+            supplier: formData.supplier,
+            lowStockThreshold: Number(formData.lowStockThreshold) || 0,
+            category: formData.category || selectedItem.category,
+            transferCode: formData.transferCode || selectedItem.transferCode,
+            categorySecondary: formData.categorySecondary || selectedItem.categorySecondary,
+            barcode: formData.barcode || selectedItem.barcode,
+          }
           : item
       )
     );
@@ -544,10 +544,10 @@ export default function Stock() {
                   status.type === "critical"
                     ? "text-red-500"
                     : status.type === "warning"
-                    ? "text-orange-500"
-                    : status.type === "expiring"
-                    ? "text-amber-500"
-                    : "text-emerald-500";
+                      ? "text-orange-500"
+                      : status.type === "expiring"
+                        ? "text-amber-500"
+                        : "text-emerald-500";
                 return (
                   <tr
                     key={item.id}
@@ -620,8 +620,9 @@ export default function Stock() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">รหัสโอน</label>
+              <label htmlFor="add-stock-transfer-code" className="block text-sm font-medium text-app mb-2">รหัสโอน</label>
               <input
+                id="add-stock-transfer-code"
                 type="text"
                 value={formData.transferCode}
                 onChange={(e) => setFormData({ ...formData, transferCode: e.target.value })}
@@ -629,8 +630,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หมวดหลัก</label>
+              <label htmlFor="add-stock-category" className="block text-sm font-medium text-app mb-2">หมวดหลัก</label>
               <input
+                id="add-stock-category"
                 type="text"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -638,8 +640,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หมวดรอง (รหัส)</label>
+              <label htmlFor="add-stock-category-secondary" className="block text-sm font-medium text-app mb-2">หมวดรอง (รหัส)</label>
               <input
+                id="add-stock-category-secondary"
                 type="text"
                 value={formData.categorySecondary}
                 onChange={(e) => setFormData({ ...formData, categorySecondary: e.target.value })}
@@ -648,8 +651,9 @@ export default function Stock() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
+            <label htmlFor="add-stock-name" className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
             <input
+              id="add-stock-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -659,8 +663,9 @@ export default function Stock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวน</label>
+              <label htmlFor="add-stock-quantity" className="block text-sm font-medium text-app mb-2">จำนวน</label>
               <input
+                id="add-stock-quantity"
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -669,8 +674,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หน่วย</label>
+              <label htmlFor="add-stock-unit" className="block text-sm font-medium text-app mb-2">หน่วย</label>
               <select
+                id="add-stock-unit"
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -687,8 +693,9 @@ export default function Stock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท)</label>
+              <label htmlFor="add-stock-cost" className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท)</label>
               <input
+                id="add-stock-cost"
                 type="number"
                 value={formData.cost}
                 onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
@@ -697,8 +704,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ราคาขาย (บาท)</label>
+              <label htmlFor="add-stock-price" className="block text-sm font-medium text-app mb-2">ราคาขาย (บาท)</label>
               <input
+                id="add-stock-price"
                 type="number"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
@@ -708,8 +716,9 @@ export default function Stock() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">รหัสบาร์โค้ด</label>
+            <label htmlFor="add-stock-barcode" className="block text-sm font-medium text-app mb-2">รหัสบาร์โค้ด</label>
             <input
+              id="add-stock-barcode"
               type="text"
               value={formData.barcode}
               onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
@@ -718,8 +727,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
+            <label htmlFor="add-stock-expiry" className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
             <input
+              id="add-stock-expiry"
               type="date"
               value={formData.expiry}
               onChange={(e) => setFormData({ ...formData, expiry: e.target.value })}
@@ -728,8 +738,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
+            <label htmlFor="add-stock-supplier" className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
             <input
+              id="add-stock-supplier"
               type="text"
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
@@ -738,8 +749,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
+            <label htmlFor="add-stock-low-stock" className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
             <input
+              id="add-stock-low-stock"
               type="number"
               value={formData.lowStockThreshold}
               onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
@@ -775,8 +787,9 @@ export default function Stock() {
           )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">รหัสโอน</label>
+              <label htmlFor="edit-stock-transfer-code" className="block text-sm font-medium text-app mb-2">รหัสโอน</label>
               <input
+                id="edit-stock-transfer-code"
                 type="text"
                 value={formData.transferCode}
                 onChange={(e) => setFormData({ ...formData, transferCode: e.target.value })}
@@ -784,8 +797,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หมวดหลัก</label>
+              <label htmlFor="edit-stock-category" className="block text-sm font-medium text-app mb-2">หมวดหลัก</label>
               <input
+                id="edit-stock-category"
                 type="text"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -793,8 +807,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หมวดรอง (รหัส)</label>
+              <label htmlFor="edit-stock-category-secondary" className="block text-sm font-medium text-app mb-2">หมวดรอง (รหัส)</label>
               <input
+                id="edit-stock-category-secondary"
                 type="text"
                 value={formData.categorySecondary}
                 onChange={(e) => setFormData({ ...formData, categorySecondary: e.target.value })}
@@ -803,8 +818,9 @@ export default function Stock() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
+            <label htmlFor="edit-stock-name" className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
             <input
+              id="edit-stock-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -814,8 +830,9 @@ export default function Stock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวน</label>
+              <label htmlFor="edit-stock-quantity" className="block text-sm font-medium text-app mb-2">จำนวน</label>
               <input
+                id="edit-stock-quantity"
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -824,8 +841,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หน่วย</label>
+              <label htmlFor="edit-stock-unit" className="block text-sm font-medium text-app mb-2">หน่วย</label>
               <select
+                id="edit-stock-unit"
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -842,8 +860,9 @@ export default function Stock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท)</label>
+              <label htmlFor="edit-stock-cost" className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท)</label>
               <input
+                id="edit-stock-cost"
                 type="number"
                 value={formData.cost}
                 onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
@@ -852,8 +871,9 @@ export default function Stock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ราคาขาย (บาท)</label>
+              <label htmlFor="edit-stock-price" className="block text-sm font-medium text-app mb-2">ราคาขาย (บาท)</label>
               <input
+                id="edit-stock-price"
                 type="number"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
@@ -863,8 +883,9 @@ export default function Stock() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">รหัสบาร์โค้ด</label>
+            <label htmlFor="edit-stock-barcode" className="block text-sm font-medium text-app mb-2">รหัสบาร์โค้ด</label>
             <input
+              id="edit-stock-barcode"
               type="text"
               value={formData.barcode}
               onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
@@ -872,8 +893,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
+            <label htmlFor="edit-stock-expiry" className="block text-sm font-medium text-app mb-2">วันหมดอายุ</label>
             <input
+              id="edit-stock-expiry"
               type="date"
               value={formData.expiry}
               onChange={(e) => setFormData({ ...formData, expiry: e.target.value })}
@@ -882,8 +904,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
+            <label htmlFor="edit-stock-supplier" className="block text-sm font-medium text-app mb-2">ซัพพลายเออร์</label>
             <input
+              id="edit-stock-supplier"
               type="text"
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
@@ -892,8 +915,9 @@ export default function Stock() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
+            <label htmlFor="edit-stock-low-stock" className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
             <input
+              id="edit-stock-low-stock"
               type="number"
               value={formData.lowStockThreshold}
               onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}

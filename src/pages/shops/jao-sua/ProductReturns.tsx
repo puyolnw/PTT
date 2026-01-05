@@ -70,7 +70,7 @@ const initialReturns = [
 export default function ProductReturns() {
   const { currentShop } = useShop();
   const shopName = currentShop?.name || "ร้านเจ้าสัว (Chaosua's)";
-  
+
   const [returns, setReturns] = useState(initialReturns);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -125,11 +125,11 @@ export default function ProductReturns() {
         returns.map((r) =>
           r.id === id
             ? {
-                ...r,
-                status: "approved" as const,
-                approvedBy: "ผู้จัดการ",
-                stockAdjusted: true,
-              }
+              ...r,
+              status: "approved" as const,
+              approvedBy: "ผู้จัดการ",
+              stockAdjusted: true,
+            }
             : r
         )
       );
@@ -143,9 +143,9 @@ export default function ProductReturns() {
         returns.map((r) =>
           r.id === id
             ? {
-                ...r,
-                status: "rejected" as const,
-              }
+              ...r,
+              status: "rejected" as const,
+            }
             : r
         )
       );
@@ -310,26 +310,24 @@ export default function ProductReturns() {
           {filteredReturns.map((ret) => (
             <div
               key={ret.id}
-              className={`p-4 rounded-xl border-2 ${
-                ret.status === "approved"
-                  ? "bg-emerald-500/10 border-emerald-500/30"
-                  : ret.status === "pending"
+              className={`p-4 rounded-xl border-2 ${ret.status === "approved"
+                ? "bg-emerald-500/10 border-emerald-500/30"
+                : ret.status === "pending"
                   ? "bg-orange-500/10 border-orange-500/30"
                   : "bg-red-500/10 border-red-500/30"
-              }`}
+                }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <RotateCcw className="w-5 h-5 text-ptt-cyan" />
                     <h4 className="font-semibold text-app">{ret.product}</h4>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      ret.status === "approved"
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                        : ret.status === "pending"
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${ret.status === "approved"
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : ret.status === "pending"
                         ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
                         : "bg-red-500/20 text-red-400 border border-red-500/30"
-                    }`}>
+                      }`}>
                       {getStatusLabel(ret.status)}
                     </span>
                     {ret.stockAdjusted && (
@@ -429,8 +427,9 @@ export default function ProductReturns() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่คืน</label>
+              <label htmlFor="add-return-date" className="block text-sm font-medium text-app mb-2">วันที่คืน</label>
               <input
+                id="add-return-date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -439,8 +438,9 @@ export default function ProductReturns() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่ขายเดิม</label>
+              <label htmlFor="add-return-original-date" className="block text-sm font-medium text-app mb-2">วันที่ขายเดิม</label>
               <input
+                id="add-return-original-date"
                 type="date"
                 value={formData.originalSaleDate}
                 onChange={(e) => setFormData({ ...formData, originalSaleDate: e.target.value })}
@@ -450,8 +450,9 @@ export default function ProductReturns() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">สินค้า</label>
+            <label htmlFor="add-return-product" className="block text-sm font-medium text-app mb-2">สินค้า</label>
             <input
+              id="add-return-product"
               type="text"
               value={formData.product}
               onChange={(e) => setFormData({ ...formData, product: e.target.value })}
@@ -462,8 +463,9 @@ export default function ProductReturns() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวน</label>
+              <label htmlFor="add-return-quantity" className="block text-sm font-medium text-app mb-2">จำนวน</label>
               <input
+                id="add-return-quantity"
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -472,8 +474,9 @@ export default function ProductReturns() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หน่วย</label>
+              <label htmlFor="add-return-unit" className="block text-sm font-medium text-app mb-2">หน่วย</label>
               <select
+                id="add-return-unit"
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -486,8 +489,9 @@ export default function ProductReturns() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">เหตุผล</label>
+            <label htmlFor="add-return-reason" className="block text-sm font-medium text-app mb-2">เหตุผล</label>
             <textarea
+              id="add-return-reason"
               value={formData.reason}
               onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -498,8 +502,9 @@ export default function ProductReturns() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ยอดขายเดิม (บาท)</label>
+              <label htmlFor="add-return-original-amount" className="block text-sm font-medium text-app mb-2">ยอดขายเดิม (บาท)</label>
               <input
+                id="add-return-original-amount"
                 type="number"
                 value={formData.originalSaleAmount}
                 onChange={(e) => {
@@ -514,8 +519,9 @@ export default function ProductReturns() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">คืนเงิน (บาท)</label>
+              <label htmlFor="add-return-refund-amount" className="block text-sm font-medium text-app mb-2">คืนเงิน (บาท)</label>
               <input
+                id="add-return-refund-amount"
                 type="number"
                 value={formData.refundAmount}
                 onChange={(e) => setFormData({ ...formData, refundAmount: e.target.value })}
@@ -542,12 +548,12 @@ export default function ProductReturns() {
             returns.map((r) =>
               r.id === selectedReturn.id
                 ? {
-                    ...r,
-                    ...formData,
-                    quantity: Number(formData.quantity),
-                    originalSaleAmount: Number(formData.originalSaleAmount),
-                    refundAmount: Number(formData.refundAmount),
-                  }
+                  ...r,
+                  ...formData,
+                  quantity: Number(formData.quantity),
+                  originalSaleAmount: Number(formData.originalSaleAmount),
+                  refundAmount: Number(formData.refundAmount),
+                }
                 : r
             )
           );
@@ -559,8 +565,9 @@ export default function ProductReturns() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่คืน</label>
+              <label htmlFor="edit-return-date" className="block text-sm font-medium text-app mb-2">วันที่คืน</label>
               <input
+                id="edit-return-date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -569,8 +576,9 @@ export default function ProductReturns() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันที่ขายเดิม</label>
+              <label htmlFor="edit-return-original-date" className="block text-sm font-medium text-app mb-2">วันที่ขายเดิม</label>
               <input
+                id="edit-return-original-date"
                 type="date"
                 value={formData.originalSaleDate}
                 onChange={(e) => setFormData({ ...formData, originalSaleDate: e.target.value })}
@@ -580,8 +588,9 @@ export default function ProductReturns() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">สินค้า</label>
+            <label htmlFor="edit-return-product" className="block text-sm font-medium text-app mb-2">สินค้า</label>
             <input
+              id="edit-return-product"
               type="text"
               value={formData.product}
               onChange={(e) => setFormData({ ...formData, product: e.target.value })}
@@ -591,8 +600,9 @@ export default function ProductReturns() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวน</label>
+              <label htmlFor="edit-return-quantity" className="block text-sm font-medium text-app mb-2">จำนวน</label>
               <input
+                id="edit-return-quantity"
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -601,8 +611,9 @@ export default function ProductReturns() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หน่วย</label>
+              <label htmlFor="edit-return-unit" className="block text-sm font-medium text-app mb-2">หน่วย</label>
               <select
+                id="edit-return-unit"
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -615,8 +626,9 @@ export default function ProductReturns() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-app mb-2">เหตุผล</label>
+            <label htmlFor="edit-return-reason" className="block text-sm font-medium text-app mb-2">เหตุผล</label>
             <textarea
+              id="edit-return-reason"
               value={formData.reason}
               onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
               className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -626,8 +638,9 @@ export default function ProductReturns() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ยอดขายเดิม (บาท)</label>
+              <label htmlFor="edit-return-original-amount" className="block text-sm font-medium text-app mb-2">ยอดขายเดิม (บาท)</label>
               <input
+                id="edit-return-original-amount"
                 type="number"
                 value={formData.originalSaleAmount}
                 onChange={(e) => setFormData({ ...formData, originalSaleAmount: e.target.value })}
@@ -636,8 +649,9 @@ export default function ProductReturns() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">คืนเงิน (บาท)</label>
+              <label htmlFor="edit-return-refund-amount" className="block text-sm font-medium text-app mb-2">คืนเงิน (บาท)</label>
               <input
+                id="edit-return-refund-amount"
                 type="number"
                 value={formData.refundAmount}
                 onChange={(e) => setFormData({ ...formData, refundAmount: e.target.value })}

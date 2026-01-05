@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { 
+import {
   Bell,
   Mail,
   MessageSquare,
@@ -14,20 +14,20 @@ interface NotificationSettings {
   expiryAlertDays: number[]; // [30, 15, 7]
   expiryAlertChannels: ("email" | "line" | "system")[];
   expiryAlertCategories: number[]; // Category IDs
-  
+
   // Approval notifications
   approvalAlertEnabled: boolean;
   approvalAlertChannels: ("email" | "line" | "system")[];
-  
+
   // Email settings
   emailEnabled: boolean;
   emailAddress: string;
   emailSubject: string;
-  
+
   // Line settings
   lineEnabled: boolean;
   lineToken: string;
-  
+
   // Calendar integration
   calendarEnabled: boolean;
   calendarSyncDays: number; // Days to sync ahead
@@ -104,7 +104,7 @@ export default function DocumentSettings() {
         {/* Expiry Alert Settings */}
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-app mb-3">
+            <label htmlFor="settings-expiry-days" className="block text-sm font-medium text-app mb-3">
               แจ้งเตือนเอกสารใกล้หมดอายุ (วันล่วงหน้า)
             </label>
             <div className="flex flex-wrap gap-2 mb-3">
@@ -130,6 +130,7 @@ export default function DocumentSettings() {
             </div>
             <div className="flex gap-2">
               <input
+                id="settings-expiry-days"
                 type="text"
                 value={customDays}
                 onChange={(e) => setCustomDays(e.target.value)}
@@ -157,13 +158,14 @@ export default function DocumentSettings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-3">
+            <div className="block text-sm font-medium text-app mb-3">
               ช่องทางการแจ้งเตือน
-            </label>
+            </div>
             <div className="space-y-2">
               {(["email", "line", "system"] as const).map((channel) => (
-                <label key={channel} className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
+                <label key={channel} htmlFor={`settings-channel-${channel}`} className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
                   <input
+                    id={`settings-channel-${channel}`}
                     type="checkbox"
                     checked={settings.expiryAlertChannels.includes(channel)}
                     onChange={(e) => {
@@ -192,7 +194,7 @@ export default function DocumentSettings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-3">
+            <label htmlFor="settings-cat-filter" className="block text-sm font-medium text-app mb-3">
               แจ้งเตือนเฉพาะหมวดหมู่ (เว้นว่าง = ทุกหมวดหมู่)
             </label>
             <div className="flex flex-wrap gap-2 mb-3">
@@ -215,6 +217,7 @@ export default function DocumentSettings() {
               })}
             </div>
             <select
+              id="settings-cat-filter"
               onChange={(e) => {
                 if (e.target.value) {
                   handleAddCategory(Number(e.target.value));
@@ -250,8 +253,9 @@ export default function DocumentSettings() {
         </div>
 
         <div className="space-y-4">
-          <label className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
+          <label htmlFor="settings-email-enabled" className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
             <input
+              id="settings-email-enabled"
               type="checkbox"
               checked={settings.emailEnabled}
               onChange={(e) => setSettings({ ...settings, emailEnabled: e.target.checked })}
@@ -263,10 +267,11 @@ export default function DocumentSettings() {
           {settings.emailEnabled && (
             <>
               <div>
-                <label className="block text-sm font-medium text-app mb-2">
+                <label htmlFor="settings-email-addr" className="block text-sm font-medium text-app mb-2">
                   Email Address
                 </label>
                 <input
+                  id="settings-email-addr"
                   type="email"
                   value={settings.emailAddress}
                   onChange={(e) => setSettings({ ...settings, emailAddress: e.target.value })}
@@ -276,10 +281,11 @@ export default function DocumentSettings() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-app mb-2">
+                <label htmlFor="settings-email-subj" className="block text-sm font-medium text-app mb-2">
                   Subject
                 </label>
                 <input
+                  id="settings-email-subj"
                   type="text"
                   value={settings.emailSubject}
                   onChange={(e) => setSettings({ ...settings, emailSubject: e.target.value })}
@@ -306,8 +312,9 @@ export default function DocumentSettings() {
         </div>
 
         <div className="space-y-4">
-          <label className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
+          <label htmlFor="settings-line-enabled" className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
             <input
+              id="settings-line-enabled"
               type="checkbox"
               checked={settings.lineEnabled}
               onChange={(e) => setSettings({ ...settings, lineEnabled: e.target.checked })}
@@ -318,10 +325,11 @@ export default function DocumentSettings() {
 
           {settings.lineEnabled && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="settings-line-token" className="block text-sm font-medium text-app mb-2">
                 Line Token
               </label>
               <input
+                id="settings-line-token"
                 type="text"
                 value={settings.lineToken}
                 onChange={(e) => setSettings({ ...settings, lineToken: e.target.value })}
@@ -348,8 +356,9 @@ export default function DocumentSettings() {
         </div>
 
         <div className="space-y-4">
-          <label className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
+          <label htmlFor="settings-cal-enabled" className="flex items-center gap-3 p-3 bg-soft rounded-lg cursor-pointer hover:bg-app/10 transition-colors">
             <input
+              id="settings-cal-enabled"
               type="checkbox"
               checked={settings.calendarEnabled}
               onChange={(e) => setSettings({ ...settings, calendarEnabled: e.target.checked })}
@@ -360,10 +369,11 @@ export default function DocumentSettings() {
 
           {settings.calendarEnabled && (
             <div>
-              <label className="block text-sm font-medium text-app mb-2">
+              <label htmlFor="settings-cal-sync" className="block text-sm font-medium text-app mb-2">
                 จำนวนวันที่จะซิงค์ล่วงหน้า
               </label>
               <input
+                id="settings-cal-sync"
                 type="number"
                 value={settings.calendarSyncDays}
                 onChange={(e) => setSettings({ ...settings, calendarSyncDays: Number(e.target.value) })}

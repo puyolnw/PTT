@@ -7,7 +7,7 @@ export default function ToggleButton({ isExpanded, onToggle }: ToggleButtonProps
     return (
         <button
             onClick={onToggle}
-            className="
+            className={`
         hidden md:flex
         fixed top-4
         items-center justify-center
@@ -15,18 +15,15 @@ export default function ToggleButton({ isExpanded, onToggle }: ToggleButtonProps
         bg-[var(--bg)] 
         border-2 border-app
         rounded-full 
-        shadow-md 
+        shadow-[0_2px_8px_rgba(0,0,0,0.1)]
         hover:shadow-lg
         hover:scale-110 
         active:scale-95
         transition-all duration-300 ease-out
         z-50
         group
-      "
-            style={{
-                left: isExpanded ? 'calc(16rem - 0.75rem)' : 'calc(4rem - 0.75rem)',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-            }}
+        ${isExpanded ? 'left-[calc(16rem-0.75rem)]' : 'left-[calc(4rem-0.75rem)]'}
+      `}
             aria-label={isExpanded ? "ย่อเมนู" : "ขยายเมนู"}
             title={isExpanded ? "ย่อเมนู" : "ขยายเมนู"}
         >

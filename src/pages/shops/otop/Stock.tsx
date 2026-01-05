@@ -170,7 +170,7 @@ export default function OtopStock() {
   const handleAddItem = () => {
     const today = new Date();
     const formattedDate = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${String(today.getFullYear()).slice(-2)}`;
-    
+
     const newItem: StockItem = {
       id: `P-${(stockData.length + 1).toString().padStart(3, "0")}`,
       name: formData.name,
@@ -291,24 +291,22 @@ export default function OtopStock() {
       <div className="flex border-b border-gray-200 bg-white rounded-t-lg px-4 pt-2">
         <button
           onClick={() => setActiveTab("inventory")}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "inventory"
+          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === "inventory"
               ? "border-purple-600 text-purple-600 bg-purple-50/50"
               : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
+            }`}
         >
           <Package className="h-4 w-4" />
           สต็อกคงเหลือ (Inventory)
         </button>
         <button
           onClick={() => setActiveTab("transactions")}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "transactions"
+          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === "transactions"
               ? "border-purple-600 text-purple-600 bg-purple-50/50"
               : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
+            }`}
         >
-          
+
 
           <ClipboardList className="h-4 w-4" />
           วางแผนสั่งซื้อ (Planning)
@@ -330,10 +328,11 @@ export default function OtopStock() {
             />
           </div>
           <div className="flex gap-2">
-            <label className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer">
+            <label htmlFor="otop-stock-upload" className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer">
               <Upload className="h-4 w-4" />
               นำเข้า Excel
               <input
+                id="otop-stock-upload"
                 type="file"
                 accept=".xlsx,.xls,.csv"
                 onChange={(e) => {
@@ -344,6 +343,7 @@ export default function OtopStock() {
                   e.target.value = "";
                 }}
                 className="hidden"
+                aria-label="นำเข้าข้อมูลสต็อกจากไฟล์ Excel"
               />
             </label>
             <button
@@ -386,8 +386,8 @@ export default function OtopStock() {
                     status.color === "red"
                       ? "bg-red-100 text-red-700"
                       : status.color === "orange"
-                      ? "bg-orange-100 text-orange-700"
-                      : "bg-green-100 text-green-700";
+                        ? "bg-orange-100 text-orange-700"
+                        : "bg-green-100 text-green-700";
 
                   return (
                     <tr key={item.id} className="hover:bg-purple-50/20">
@@ -443,8 +443,9 @@ export default function OtopStock() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
+            <label htmlFor="add-otop-name" className="block text-sm font-medium text-app mb-2">ชื่อสินค้า</label>
             <input
+              id="add-otop-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -454,8 +455,9 @@ export default function OtopStock() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
+              <label htmlFor="add-otop-category" className="block text-sm font-medium text-app mb-2">หมวดหมู่</label>
               <select
+                id="add-otop-category"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -468,8 +470,9 @@ export default function OtopStock() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หมู่บ้าน/จังหวัด</label>
+              <label htmlFor="add-otop-source" className="block text-sm font-medium text-app mb-2">หมู่บ้าน/จังหวัด</label>
               <input
+                id="add-otop-source"
                 type="text"
                 value={formData.sourceVillage}
                 onChange={(e) => setFormData({ ...formData, sourceVillage: e.target.value })}
@@ -480,8 +483,9 @@ export default function OtopStock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">จำนวน</label>
+              <label htmlFor="add-otop-quantity" className="block text-sm font-medium text-app mb-2">จำนวน</label>
               <input
+                id="add-otop-quantity"
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -490,8 +494,9 @@ export default function OtopStock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">หน่วย</label>
+              <label htmlFor="add-otop-unit" className="block text-sm font-medium text-app mb-2">หน่วย</label>
               <select
+                id="add-otop-unit"
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                 className="w-full px-4 py-2 bg-soft border border-app rounded-lg text-app"
@@ -506,8 +511,9 @@ export default function OtopStock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท)</label>
+              <label htmlFor="add-otop-cost" className="block text-sm font-medium text-app mb-2">ต้นทุน (บาท)</label>
               <input
+                id="add-otop-cost"
                 type="number"
                 value={formData.cost}
                 onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
@@ -516,8 +522,9 @@ export default function OtopStock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ราคาขาย (บาท)</label>
+              <label htmlFor="add-otop-price" className="block text-sm font-medium text-app mb-2">ราคาขาย (บาท)</label>
               <input
+                id="add-otop-price"
                 type="number"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
@@ -528,8 +535,9 @@ export default function OtopStock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">วันหมดอายุ / รอบจัดงาน</label>
+              <label htmlFor="add-otop-expiry" className="block text-sm font-medium text-app mb-2">วันหมดอายุ / รอบจัดงาน</label>
               <input
+                id="add-otop-expiry"
                 type="date"
                 value={formData.expiry}
                 onChange={(e) => setFormData({ ...formData, expiry: e.target.value })}
@@ -538,8 +546,9 @@ export default function OtopStock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
+              <label htmlFor="add-otop-threshold" className="block text-sm font-medium text-app mb-2">เกณฑ์แจ้งเตือน (จำนวน)</label>
               <input
+                id="add-otop-threshold"
                 type="number"
                 value={formData.lowStockThreshold}
                 onChange={(e) => setFormData({ ...formData, lowStockThreshold: e.target.value })}
@@ -551,8 +560,9 @@ export default function OtopStock() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-app mb-2">ผู้ผลิต / กลุ่มชุมชน</label>
+              <label htmlFor="add-otop-supplier" className="block text-sm font-medium text-app mb-2">ผู้ผลิต / กลุ่มชุมชน</label>
               <input
+                id="add-otop-supplier"
                 type="text"
                 value={formData.supplier}
                 onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
@@ -561,8 +571,9 @@ export default function OtopStock() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-app mb-2">Artisan Code</label>
+              <label htmlFor="add-otop-artisan" className="block text-sm font-medium text-app mb-2">Artisan Code</label>
               <input
+                id="add-otop-artisan"
                 type="text"
                 value={formData.artisanCode}
                 onChange={(e) => setFormData({ ...formData, artisanCode: e.target.value })}

@@ -500,17 +500,18 @@ export default function Quotation() {
                         </p>
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="quotation-from-branch" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           จากสาขา
                         </label>
                         <select
+                          id="quotation-from-branch"
                           value={formData.fromBranchId}
                           onChange={(e) => setFormData({ ...formData, fromBranchId: parseInt(e.target.value) })}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
                         >
                           {branches
                             .sort((a, b) => {
-                              const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                              const branchOrder = ["ปั้มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
                               return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
                             })
                             .map((branch) => (
@@ -521,17 +522,18 @@ export default function Quotation() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="quotation-to-branch" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           ไปสาขา
                         </label>
                         <select
+                          id="quotation-to-branch"
                           value={formData.toBranchId}
                           onChange={(e) => setFormData({ ...formData, toBranchId: parseInt(e.target.value) })}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
                         >
                           {branches
                             .sort((a, b) => {
-                              const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+                              const branchOrder = ["ปั้มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
                               return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
                             })
                             .map((branch) => (
@@ -542,9 +544,9 @@ export default function Quotation() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <span className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           รายการสินค้า
-                        </label>
+                        </span>
                         <div className="space-y-2">
                           {formData.items.map((item, idx) => (
                             <div

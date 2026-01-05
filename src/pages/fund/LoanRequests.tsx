@@ -1,19 +1,20 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  FileText, 
-  Plus, 
-  CheckCircle, 
-  XCircle, 
+import {
+  FileText,
+  Plus,
+  CheckCircle,
+  XCircle,
   Clock,
   DollarSign,
   FileCheck
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import ModalForm from "@/components/ModalForm";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
-import { 
-  loanRequests, 
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
+import {
+  loanRequests,
   fundMembers,
   employees,
   type LoanRequest,
@@ -65,7 +66,7 @@ const checkWorkDuration = (empCode: string): boolean => {
 const getRequiredGuarantors = (amount: number, borrowerSavings: number): number => {
   // หากเงินฝากของผู้กู้ในกองทุนมีมากกว่าเงินที่ต้องการกู้ไม่จำเป็นต้องมีผู้ค้ำประกัน
   if (borrowerSavings >= amount) return 0;
-  
+
   // ผู้ค้ำประกัน จำนวน 2 คน
   return 2;
 };
@@ -77,7 +78,7 @@ const canGuarantorGuarantee = (guarantorSavings: number, loanAmount: number): bo
 
 // Check if person can guarantee others (บุคคล 1 คน สามารถค้ำประกันให้ได้ 2 คนเท่านั้น)
 const canPersonGuaranteeMore = (guarantorCode: string, allLoanRequests: LoanRequest[]): boolean => {
-  const currentGuaranteeCount = allLoanRequests.filter(r => 
+  const currentGuaranteeCount = allLoanRequests.filter(r =>
     r.status === "Pending" || r.status === "Approved" || r.status === "Completed"
   ).reduce((count, r) => {
     return count + (r.guarantors.includes(guarantorCode) ? 1 : 0);
@@ -181,27 +182,27 @@ export default function LoanRequests() {
     }
 
     const loanAmount = Number(formData.requestedAmount);
-    
+
     // ตรวจสอบผู้ค้ำประกัน
     const guarantorSavings = formData.guarantors.map(code => {
       const guarantor = fundMembers.find(m => m.empCode === code);
       return guarantor ? guarantor.totalSavings : 0;
     });
-    
+
     const requiredGuarantors = getRequiredGuarantors(loanAmount, member.totalSavings);
-    
+
     // หากเงินฝากของผู้กู้ในกองทุนมีมากกว่าเงินที่ต้องการกู้ไม่จำเป็นต้องมีผู้ค้ำประกัน
     if (requiredGuarantors > 0) {
       if (formData.guarantors.length < requiredGuarantors) {
         alert(`ต้องมีผู้ค้ำประกัน ${requiredGuarantors} คน`);
         return;
       }
-      
+
       // ตรวจสอบว่าเงินฝากในกองทุนของผู้ค้ำต้องไม่น้อยกว่าเงินกู้ยืม
-      for (let i = 0; i < formData.guarantors.length; i++) {
-        const guarantor = fundMembers.find(m => m.empCode === formData.guarantors[i]);
+      for (const guarantorCode of formData.guarantors) {
+        const guarantor = fundMembers.find(m => m.empCode === guarantorCode);
         if (!guarantor) {
-          alert(`ไม่พบสมาชิกกองทุนผู้ค้ำประกัน: ${formData.guarantors[i]}`);
+          alert(`ไม่พบสมาชิกกองทุนผู้ค้ำประกัน: ${guarantorCode}`);
           return;
         }
         if (!canGuarantorGuarantee(guarantor.totalSavings, loanAmount)) {
@@ -209,12 +210,12 @@ export default function LoanRequests() {
           return;
         }
         // ตรวจสอบว่าบุคคล 1 คน สามารถค้ำประกันให้ได้ 2 คนเท่านั้น
-        if (!canPersonGuaranteeMore(formData.guarantors[i], loanRequests)) {
+        if (!canPersonGuaranteeMore(guarantorCode, loanRequests)) {
           alert(`ผู้ค้ำประกัน ${guarantor.empName} กำลังค้ำประกันผู้อื่นครบ 2 คนแล้ว`);
           return;
         }
       }
-      
+
       // ตรวจสอบว่าเงินฝากผู้กู้บวกกับผู้ค้ำประกันต้องไม่น้อยกว่าเงินกู้ยืม
       const totalSavings = member.totalSavings + guarantorSavings.reduce((sum, s) => sum + s, 0);
       if (totalSavings < loanAmount) {
@@ -460,100 +461,99 @@ export default function LoanRequests() {
             </thead>
             <tbody className="divide-y divide-app">
               {filteredRequests.map((request, index) => (
-                  <motion.tr
-                    key={request.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="hover:bg-soft transition-colors"
-                  >
-                    <td className="px-6 py-4 text-sm text-ptt-cyan font-medium">
-                      {request.empCode}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-app font-medium">
-                      {request.empName}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium ${
-                        request.loanType === "สามัญ" 
-                          ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                          : request.loanType === "ฉุกเฉิน"
-                          ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                          : "bg-green-500/20 text-green-400 border border-green-500/30"
+                <motion.tr
+                  key={request.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="hover:bg-soft transition-colors"
+                >
+                  <td className="px-6 py-4 text-sm text-ptt-cyan font-medium">
+                    {request.empCode}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-app font-medium">
+                    {request.empName}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium ${request.loanType === "สามัญ"
+                      ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                      : request.loanType === "ฉุกเฉิน"
+                        ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                        : "bg-green-500/20 text-green-400 border border-green-500/30"
                       }`}>
-                        {request.loanType === "สามัญ" && "กู้สามัญ"}
-                        {request.loanType === "ฉุกเฉิน" && "กู้ฉุกเฉิน"}
-                        {request.loanType === "ที่อยู่อาศัย" && "กู้ที่อยู่อาศัย"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="text-sm">
-                        <div className="text-app font-mono font-semibold">
-                          {formatCurrency(request.requestedAmount)}
-                        </div>
-                        {request.approvedAmount && (
-                          <div className="text-xs text-green-400 font-mono">
-                            อนุมัติ: {formatCurrency(request.approvedAmount)}
-                          </div>
-                        )}
+                      {request.loanType === "สามัญ" && "กู้สามัญ"}
+                      {request.loanType === "ฉุกเฉิน" && "กู้ฉุกเฉิน"}
+                      {request.loanType === "ที่อยู่อาศัย" && "กู้ที่อยู่อาศัย"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="text-sm">
+                      <div className="text-app font-mono font-semibold">
+                        {formatCurrency(request.requestedAmount)}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-app">
-                      {request.purpose}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted">
-                      {formatDate(request.requestDate)}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <StatusTag variant={getStatusVariant(
-                        request.status === "Approved" ? "อนุมัติแล้ว" :
+                      {request.approvedAmount && (
+                        <div className="text-xs text-green-400 font-mono">
+                          อนุมัติ: {formatCurrency(request.approvedAmount)}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-app">
+                    {request.purpose}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-muted">
+                    {formatDate(request.requestDate)}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <StatusTag variant={getStatusVariant(
+                      request.status === "Approved" ? "อนุมัติแล้ว" :
                         request.status === "Rejected" ? "ไม่อนุมัติ" :
-                        request.status === "Completed" ? "เสร็จสิ้น" : "รออนุมัติ"
-                      )}>
-                        {request.status === "Pending" && "รออนุมัติ"}
-                        {request.status === "Approved" && "อนุมัติแล้ว"}
-                        {request.status === "Rejected" && "ไม่อนุมัติ"}
-                        {request.status === "Completed" && "เสร็จสิ้น"}
-                      </StatusTag>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => setSelectedRequest(request)}
-                          className="inline-flex items-center gap-1 px-3 py-2 text-xs 
+                          request.status === "Completed" ? "เสร็จสิ้น" : "รออนุมัติ"
+                    )}>
+                      {request.status === "Pending" && "รออนุมัติ"}
+                      {request.status === "Approved" && "อนุมัติแล้ว"}
+                      {request.status === "Rejected" && "ไม่อนุมัติ"}
+                      {request.status === "Completed" && "เสร็จสิ้น"}
+                    </StatusTag>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => setSelectedRequest(request)}
+                        className="inline-flex items-center gap-1 px-3 py-2 text-xs 
                                    bg-ptt-blue/20 hover:bg-ptt-blue/30 text-ptt-cyan rounded-lg
                                    transition-colors font-medium"
-                        >
-                          <FileText className="w-3 h-3" />
-                          ดู
-                        </button>
-                        {request.status === "Pending" && (
-                          <>
-                            <button
-                              onClick={() => handleApprove(request)}
-                              className="inline-flex items-center gap-1 px-3 py-2 text-xs 
+                      >
+                        <FileText className="w-3 h-3" />
+                        ดู
+                      </button>
+                      {request.status === "Pending" && (
+                        <>
+                          <button
+                            onClick={() => handleApprove(request)}
+                            className="inline-flex items-center gap-1 px-3 py-2 text-xs 
                                        bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg
                                        transition-colors font-medium"
-                            >
-                              <CheckCircle className="w-3 h-3" />
-                              อนุมัติ
-                            </button>
-                            <button
-                              onClick={() => handleReject(request)}
-                              className="inline-flex items-center gap-1 px-3 py-2 text-xs 
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                            อนุมัติ
+                          </button>
+                          <button
+                            onClick={() => handleReject(request)}
+                            className="inline-flex items-center gap-1 px-3 py-2 text-xs 
                                        bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg
                                        transition-colors font-medium"
-                            >
-                              <XCircle className="w-3 h-3" />
-                              ไม่อนุมัติ
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              
+                          >
+                            <XCircle className="w-3 h-3" />
+                            ไม่อนุมัติ
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </motion.tr>
+              ))}
+
             </tbody>
           </table>
 
@@ -586,10 +586,11 @@ export default function LoanRequests() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="loan-member" className="block text-sm font-medium text-app mb-2">
               สมาชิกกองทุน <span className="text-red-400">*</span>
             </label>
             <select
+              id="loan-member"
               value={formData.empCode}
               onChange={(e) => {
                 const member = fundMembers.find(m => m.empCode === e.target.value);
@@ -614,10 +615,11 @@ export default function LoanRequests() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="loan-type" className="block text-sm font-medium text-app mb-2">
               ประเภทกู้ <span className="text-red-400">*</span>
             </label>
             <select
+              id="loan-type"
               value={formData.loanType}
               onChange={(e) => {
                 const loanType = e.target.value as LoanType;
@@ -678,10 +680,11 @@ export default function LoanRequests() {
           })()}
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="loan-amount" className="block text-sm font-medium text-app mb-2">
               จำนวนเงินที่ขอ (บาท) <span className="text-red-400">*</span>
             </label>
             <input
+              id="loan-amount"
               type="number"
               value={formData.requestedAmount}
               onChange={(e) => setFormData({ ...formData, requestedAmount: e.target.value })}
@@ -695,10 +698,11 @@ export default function LoanRequests() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="loan-purpose" className="block text-sm font-medium text-app mb-2">
               วัตถุประสงค์ <span className="text-red-400">*</span>
             </label>
             <textarea
+              id="loan-purpose"
               value={formData.purpose}
               onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
               rows={3}
@@ -710,10 +714,11 @@ export default function LoanRequests() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="loan-guarantors" className="block text-sm font-medium text-app mb-2">
               ผู้ค้ำประกัน <span className="text-red-400">*</span>
             </label>
             <select
+              id="loan-guarantors"
               multiple
               value={formData.guarantors}
               onChange={(e) => {
@@ -784,13 +789,12 @@ export default function LoanRequests() {
                   </div>
                   <div>
                     <p className="text-muted mb-1">ประเภทกู้:</p>
-                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                      selectedRequest.loanType === "สามัญ" 
-                        ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
-                        : selectedRequest.loanType === "ฉุกเฉิน"
+                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${selectedRequest.loanType === "สามัญ"
+                      ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
+                      : selectedRequest.loanType === "ฉุกเฉิน"
                         ? "bg-red-500/10 text-red-400 border border-red-500/30"
                         : "bg-green-500/10 text-green-400 border border-green-500/30"
-                    }`}>
+                      }`}>
                       {selectedRequest.loanType}
                     </span>
                   </div>
@@ -884,8 +888,8 @@ export default function LoanRequests() {
                   <span className="text-muted">สถานะ:</span>
                   <StatusTag variant={getStatusVariant(
                     selectedRequest.status === "Approved" ? "อนุมัติแล้ว" :
-                    selectedRequest.status === "Rejected" ? "ไม่อนุมัติ" :
-                    selectedRequest.status === "Completed" ? "เสร็จสิ้น" : "รออนุมัติ"
+                      selectedRequest.status === "Rejected" ? "ไม่อนุมัติ" :
+                        selectedRequest.status === "Completed" ? "เสร็จสิ้น" : "รออนุมัติ"
                   )}>
                     {selectedRequest.status === "Pending" && "รออนุมัติ"}
                     {selectedRequest.status === "Approved" && "อนุมัติแล้ว"}

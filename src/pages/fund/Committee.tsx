@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { 
-  Users, 
-  UserPlus, 
+import {
+  Users,
+  UserPlus,
   Shield,
   FileText,
   DollarSign,
   CheckCircle
 } from "lucide-react";
 import ModalForm from "@/components/ModalForm";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
-import { 
+import StatusTag from "@/components/StatusTag";
+import { getStatusVariant } from "@/utils/statusHelpers";
+import {
   fundCommittee,
   employees,
   type FundCommittee as CommitteeType
@@ -283,9 +284,8 @@ export default function Committee() {
                   className="hover:bg-soft transition-colors"
                 >
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border ${
-                      positionColors[member.position] || "bg-muted/10 text-muted border-muted/20"
-                    }`}>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border ${positionColors[member.position] || "bg-muted/10 text-muted border-muted/20"
+                      }`}>
                       {member.position}
                     </span>
                   </td>
@@ -340,10 +340,11 @@ export default function Committee() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="committee-emp-code" className="block text-sm font-medium text-app mb-2">
               พนักงาน <span className="text-red-400">*</span>
             </label>
             <select
+              id="committee-emp-code"
               value={formData.empCode}
               onChange={(e) => setFormData({ ...formData, empCode: e.target.value })}
               className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
@@ -361,10 +362,11 @@ export default function Committee() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="committee-position" className="block text-sm font-medium text-app mb-2">
               ตำแหน่ง <span className="text-red-400">*</span>
             </label>
             <select
+              id="committee-position"
               value={formData.position}
               onChange={(e) => setFormData({ ...formData, position: e.target.value as CommitteeType["position"] })}
               className="w-full px-4 py-2.5 bg-soft border border-app rounded-xl
@@ -379,10 +381,11 @@ export default function Committee() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-app mb-2">
+            <label htmlFor="committee-start-date" className="block text-sm font-medium text-app mb-2">
               วันที่เริ่มดำรงตำแหน่ง <span className="text-red-400">*</span>
             </label>
             <input
+              id="committee-start-date"
               type="date"
               value={formData.startDate}
               onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
@@ -410,9 +413,8 @@ export default function Committee() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted mb-1">ตำแหน่ง:</p>
-                <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border ${
-                  positionColors[selectedMember.position] || "bg-muted/10 text-muted border-muted/20"
-                }`}>
+                <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border ${positionColors[selectedMember.position] || "bg-muted/10 text-muted border-muted/20"
+                  }`}>
                   {selectedMember.position}
                 </span>
               </div>

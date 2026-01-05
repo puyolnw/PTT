@@ -98,7 +98,7 @@ export default function QualityTest() {
           if (deliveryNote) {
             branchName = deliveryNote.toBranchName;
             branchId = deliveryNote.toBranchId;
-            transportNo = (deliveryNote as any).transportNo;
+            transportNo = deliveryNote.transportNo;
           }
         } else if (receipt.purchaseOrderNo) {
           const purchaseOrder = purchaseOrders.find((po) => po.orderNo === receipt.purchaseOrderNo);
@@ -379,20 +379,20 @@ export default function QualityTest() {
               filterBranch !== "all" ||
               filterTestResult !== "all" ||
               filterOilType !== "all") && (
-              <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setFilterBranch("all");
-                  setFilterDateFrom("");
-                  setFilterDateTo("");
-                  setFilterTestResult("all");
-                  setFilterOilType("all");
-                }}
-                className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
-              >
-                ล้างตัวกรอง
-              </button>
-            )}
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterBranch("all");
+                    setFilterDateFrom("");
+                    setFilterDateTo("");
+                    setFilterTestResult("all");
+                    setFilterOilType("all");
+                  }}
+                  className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
+                >
+                  ล้างตัวกรอง
+                </button>
+              )}
           </div>
         </div>
       </motion.div>
@@ -480,9 +480,8 @@ export default function QualityTest() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gradient-to-r hover:from-cyan-50/50 hover:to-blue-50/50 dark:hover:from-cyan-900/10 dark:hover:to-blue-900/10 transition-all duration-200 ${
-                        !isPassed ? "bg-red-50/30 dark:bg-red-900/10 border-l-4 border-l-red-500" : ""
-                      }`}
+                      className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gradient-to-r hover:from-cyan-50/50 hover:to-blue-50/50 dark:hover:from-cyan-900/10 dark:hover:to-blue-900/10 transition-all duration-200 ${!isPassed ? "bg-red-50/30 dark:bg-red-900/10 border-l-4 border-l-red-500" : ""
+                        }`}
                     >
                       <td className="py-4 px-6 text-sm">
                         <div className="flex items-center gap-2">
@@ -523,11 +522,10 @@ export default function QualityTest() {
                       </td>
                       <td className="py-4 px-6 text-center">
                         <span
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center justify-center gap-1 ${
-                            isPassed
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800"
-                          }`}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center justify-center gap-1 ${isPassed
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800"
+                            }`}
                         >
                           {isPassed ? (
                             <CheckCircle className="w-3 h-3" />
@@ -646,11 +644,10 @@ export default function QualityTest() {
 
                   {/* ผลการทดสอบ */}
                   <div
-                    className={`p-4 rounded-xl border ${
-                      selectedRecord.qualityTest.testResult === "ผ่าน"
-                        ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
-                        : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-                    }`}
+                    className={`p-4 rounded-xl border ${selectedRecord.qualityTest.testResult === "ผ่าน"
+                      ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+                      : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                      }`}
                   >
                     <div className="flex items-center gap-2 mb-4">
                       {selectedRecord.qualityTest.testResult === "ผ่าน" ? (
@@ -660,11 +657,10 @@ export default function QualityTest() {
                       )}
                       <h4 className="text-lg font-bold text-gray-800 dark:text-white">ผลการทดสอบ</h4>
                       <span
-                        className={`ml-auto px-3 py-1 rounded-full text-sm font-semibold ${
-                          selectedRecord.qualityTest.testResult === "ผ่าน"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                        }`}
+                        className={`ml-auto px-3 py-1 rounded-full text-sm font-semibold ${selectedRecord.qualityTest.testResult === "ผ่าน"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          }`}
                       >
                         {selectedRecord.qualityTest.testResult}
                       </span>
@@ -672,29 +668,29 @@ export default function QualityTest() {
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">API Gravity</label>
+                        <span className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">API Gravity</span>
                         <p className="text-sm font-semibold text-gray-800 dark:text-white">
                           {selectedRecord.qualityTest.apiGravity}
                         </p>
                       </div>
                       <div>
-                        <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">
+                        <span className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">
                           Water Content (%)
-                        </label>
+                        </span>
                         <p className="text-sm font-semibold text-gray-800 dark:text-white">
                           {selectedRecord.qualityTest.waterContent}%
                         </p>
                       </div>
                       <div>
-                        <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">
+                        <span className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">
                           Temperature (°C)
-                        </label>
+                        </span>
                         <p className="text-sm font-semibold text-gray-800 dark:text-white">
                           {selectedRecord.qualityTest.temperature}°C
                         </p>
                       </div>
                       <div>
-                        <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">สี</label>
+                        <span className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">สี</span>
                         <p className="text-sm font-semibold text-gray-800 dark:text-white">
                           {selectedRecord.qualityTest.color || "-"}
                         </p>
@@ -703,7 +699,7 @@ export default function QualityTest() {
 
                     {selectedRecord.qualityTest.testedBy && (
                       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">ผู้ตรวจสอบ</label>
+                        <span className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">ผู้ตรวจสอบ</span>
                         <p className="text-sm font-semibold text-gray-800 dark:text-white">
                           {selectedRecord.qualityTest.testedBy}
                         </p>
@@ -712,7 +708,7 @@ export default function QualityTest() {
 
                     {selectedRecord.qualityTest.notes && (
                       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">หมายเหตุ</label>
+                        <span className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">หมายเหตุ</span>
                         <p className="text-sm text-gray-800 dark:text-white">{selectedRecord.qualityTest.notes}</p>
                       </div>
                     )}
@@ -724,52 +720,52 @@ export default function QualityTest() {
                     selectedRecord.transportNo ||
                     selectedRecord.truckLicensePlate ||
                     selectedRecord.driverName) && (
-                    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                      <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">ข้อมูลเพิ่มเติม</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                        {selectedRecord.deliveryNoteNo && (
-                          <div>
-                            <span className="text-gray-600 dark:text-gray-400">เลขที่ใบส่งของ:</span>
-                            <span className="font-semibold text-gray-800 dark:text-white ml-2">
-                              {selectedRecord.deliveryNoteNo}
-                            </span>
-                          </div>
-                        )}
-                        {selectedRecord.purchaseOrderNo && (
-                          <div>
-                            <span className="text-gray-600 dark:text-gray-400">เลขที่ใบสั่งซื้อ:</span>
-                            <span className="font-semibold text-gray-800 dark:text-white ml-2">
-                              {selectedRecord.purchaseOrderNo}
-                            </span>
-                          </div>
-                        )}
-                        {selectedRecord.transportNo && (
-                          <div>
-                            <span className="text-gray-600 dark:text-gray-400">เลขขนส่ง:</span>
-                            <span className="font-semibold text-gray-800 dark:text-white ml-2">
-                              {selectedRecord.transportNo}
-                            </span>
-                          </div>
-                        )}
-                        {selectedRecord.truckLicensePlate && (
-                          <div>
-                            <span className="text-gray-600 dark:text-gray-400">ทะเบียนรถ:</span>
-                            <span className="font-semibold text-gray-800 dark:text-white ml-2">
-                              {selectedRecord.truckLicensePlate}
-                            </span>
-                          </div>
-                        )}
-                        {selectedRecord.driverName && (
-                          <div>
-                            <span className="text-gray-600 dark:text-gray-400">คนขับ:</span>
-                            <span className="font-semibold text-gray-800 dark:text-white ml-2">
-                              {selectedRecord.driverName}
-                            </span>
-                          </div>
-                        )}
+                      <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                        <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">ข้อมูลเพิ่มเติม</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          {selectedRecord.deliveryNoteNo && (
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">เลขที่ใบส่งของ:</span>
+                              <span className="font-semibold text-gray-800 dark:text-white ml-2">
+                                {selectedRecord.deliveryNoteNo}
+                              </span>
+                            </div>
+                          )}
+                          {selectedRecord.purchaseOrderNo && (
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">เลขที่ใบสั่งซื้อ:</span>
+                              <span className="font-semibold text-gray-800 dark:text-white ml-2">
+                                {selectedRecord.purchaseOrderNo}
+                              </span>
+                            </div>
+                          )}
+                          {selectedRecord.transportNo && (
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">เลขขนส่ง:</span>
+                              <span className="font-semibold text-gray-800 dark:text-white ml-2">
+                                {selectedRecord.transportNo}
+                              </span>
+                            </div>
+                          )}
+                          {selectedRecord.truckLicensePlate && (
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">ทะเบียนรถ:</span>
+                              <span className="font-semibold text-gray-800 dark:text-white ml-2">
+                                {selectedRecord.truckLicensePlate}
+                              </span>
+                            </div>
+                          )}
+                          {selectedRecord.driverName && (
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">คนขับ:</span>
+                              <span className="font-semibold text-gray-800 dark:text-white ml-2">
+                                {selectedRecord.driverName}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               </motion.div>
             </div>
