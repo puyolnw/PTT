@@ -1,23 +1,11 @@
-<<<<<<< HEAD
-import AppLayout from "./components/AppLayout";
-=======
 import { Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
->>>>>>> 7c2f1344041a72af1450dc852d55b0386970ac6c
 import SidebarDelivery from "@/components/SidebarDelivery";
 import { GasStationProvider } from "@/contexts/GasStationContext";
 
 export default function LayoutDelivery() {
-<<<<<<< HEAD
-  return (
-    <AppLayout
-      SidebarComponent={SidebarDelivery}
-      ContentWrapper={GasStationProvider}
-      requiredRoles={["admin", "manager", "gas-station"]}
-    />
-=======
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
@@ -106,7 +94,6 @@ export default function LayoutDelivery() {
         </main>
       </div>
     </>
->>>>>>> 7c2f1344041a72af1450dc852d55b0386970ac6c
   );
 }
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Users, PiggyBank, BarChart3, FileText, Bell, LogOut, Menu, Store, Building, Calculator, Fuel, Truck, Filter, ChevronDown, Sun, Moon, Monitor, Settings } from "lucide-react";
+import { Users, PiggyBank, BarChart3, FileText, LogOut, Menu, Store, Building, Calculator, Fuel, Truck, Filter, ChevronDown, Sun, Moon, Monitor, Settings } from "lucide-react";
 import { logout } from "@/lib/auth";
 
 const modules = [
