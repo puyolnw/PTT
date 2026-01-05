@@ -273,7 +273,6 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       }
     });
   }, []);
-
   const [oilReceiptsState, setOilReceiptsState] = useState<OilReceipt[]>(
     mockOilReceipts.map((receipt, index) => ({
       id: receipt.id,

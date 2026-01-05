@@ -150,7 +150,6 @@ export default function RemainingOnTruck() {
         if (typeFilter !== "all" && r.orderType !== typeFilter) return false;
         if (statusFilter === "active" && r.jobStatus === "ส่งเสร็จ") return false;
         if (statusFilter === "completed" && r.jobStatus !== "ส่งเสร็จ") return false;
-
         const matchBranch = selectedBranchIds.length === 0 || selectedBranchIds.includes(r.branchId);
         if (!matchBranch) return false;
         if (!q) return true;

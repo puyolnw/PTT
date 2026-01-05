@@ -23,7 +23,6 @@ export default function FuelEfficiency() {
   const trips = useMemo(() => {
     return allTrips.filter(t => selectedBranchIds.length === 0 || selectedBranchIds.includes(t.branchId));
   }, [allTrips, selectedBranchIds]);
-
   const selected = useMemo(() => trips.find((t) => t.id === tripId), [trips, tripId]);
 
   const calc = useMemo(() => {

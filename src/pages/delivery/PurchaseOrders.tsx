@@ -18,7 +18,6 @@ export default function PurchaseOrders() {
   const { selectedBranches } = useBranch();
   const { branches } = useGasStation();
   const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
-
   const [list, setList] = useState<DeliveryPurchaseOrder[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -267,7 +266,6 @@ export default function PurchaseOrders() {
                       ))}
                     </select>
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">

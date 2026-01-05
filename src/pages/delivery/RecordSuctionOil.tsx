@@ -210,7 +210,6 @@ export default function RecordSuctionOil() {
             <span className="text-app font-semibold">ดูดเพื่อล้างถัง</span> (บันทึกประวัติ)
           </div>
         </div>
-
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
             <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
