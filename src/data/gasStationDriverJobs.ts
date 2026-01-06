@@ -31,6 +31,21 @@ export const mockDriverJobs: DriverJob[] = [
     trailerPlateNumber: "กข 1234",
     driverName: "สมศักดิ์ ขับรถ",
     status: "รอเริ่ม",
+    fuelingRecords: [
+      {
+        id: "FR-MOCK-002",
+        transportNo: "TP-20241216-004",
+        fuelingDate: "2024-12-16",
+        fuelingTime: "10:20",
+        stationName: "ปั๊ม ปตท. สาขาวงศ์สว่าง",
+        oilType: "Gasohol 95",
+        quantity: 300,
+        amount: 9000,
+        odometerReading: 123450,
+        recordedBy: "Driver",
+        recordedAt: "2024-12-16T10:20:00+07:00"
+      }
+    ],
     createdAt: "2024-12-16T10:00:00+07:00",
     createdBy: "ระบบ",
   },
@@ -119,6 +134,21 @@ export const mockDriverJobs: DriverJob[] = [
       odometerReading: 123100,
       notes: "รับบิลจากคลังเรียบร้อย",
     },
+    fuelingRecords: [
+      {
+        id: "FR-MOCK-001",
+        transportNo: "TP-20241215-001",
+        fuelingDate: "2024-12-15",
+        fuelingTime: "09:15",
+        stationName: "บายพาส",
+        oilType: "Diesel",
+        quantity: 500,
+        amount: 15000,
+        odometerReading: 123150,
+        recordedBy: "Driver",
+        recordedAt: "2024-12-15T09:15:00+07:00"
+      }
+    ],
     createdAt: "2024-12-15T08:00:00+07:00",
     createdBy: "ระบบ",
   },

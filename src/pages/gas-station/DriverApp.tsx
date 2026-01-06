@@ -1,10 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGasStation } from "@/contexts/GasStationContext";
-import type { DriverJob as DriverJobType } from "@/types/gasStation";
+import type { DriverJob as DriverJobType, OilType } from "@/types/gasStation";
 import {
     Truck,
-    Package,
     MapPin,
     Camera,
     CheckCircle,
@@ -12,18 +11,16 @@ import {
     Droplet,
     Building2,
     ChevronRight,
+    ArrowLeft,
     X,
-    AlertCircle,
     Play,
-    Route,
-    ArrowRight,
     GripVertical,
-    MoreHorizontal,
     FileText,
     ShoppingCart,
-    Search,
-    Eye,
+    Lightbulb,
+    Check,
 } from "lucide-react";
+import DriverBottomNav from "@/components/DriverBottomNav";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
     maximumFractionDigits: 0,
@@ -48,7 +45,7 @@ interface DriverJob {
         branchId: number;
         branchName: string;
         address: string;
-        oilType: string;
+        oilType: OilType;
         quantity: number;
         status: "รอส่ง" | "กำลังส่ง" | "ส่งแล้ว";
         deliveryConfirmation?: {
@@ -62,7 +59,7 @@ interface DriverJob {
         id: string;
         compartmentNumber: number;
         capacity: number;
-        oilType?: string;
+        oilType?: OilType;
         quantity?: number;
         destinationBranchId?: number;
         destinationBranchName?: string;
@@ -218,31 +215,34 @@ const mockDriverJobs: DriverJob[] = [
 type Step = "start-trip" | "warehouse-confirm" | "pickup-oil" | "route-planning" | "delivery" | "arrive-depot" | "completed";
 
 export default function DriverApp() {
-    const { driverJobs, updateDriverJob, createDriverJob, branches, purchaseOrders } = useGasStation();
+    const { allDriverJobs, updateDriverJob, createDriverJob } = useGasStation();
+    // Use DriverBottomNav hook-like behavior or just render it
     const [selectedJob, setSelectedJob] = useState<DriverJobType | null>(null);
     const [currentStep, setCurrentStep] = useState<Step>("start-trip");
     const [currentDeliveryIndex, setCurrentDeliveryIndex] = useState(0);
     const [routeOrder, setRouteOrder] = useState<number[]>([]); // ลำดับการส่ง
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null); // สำหรับ drag and drop
     const [viewingJobDetail, setViewingJobDetail] = useState<DriverJobType | null>(null); // สำหรับดูรายละเอียดรอบส่ง
-    const [searchTerm, setSearchTerm] = useState("");
-    const [filterDateFrom, setFilterDateFrom] = useState<string>("");
-    const [filterDateTo, setFilterDateTo] = useState<string>("");
-    const [filterBranch, setFilterBranch] = useState<number | "all">("all");
-    const [filterOrderType, setFilterOrderType] = useState<"all" | "internal" | "external">("all");
-    const [filterStatus, setFilterStatus] = useState<"all" | "active" | "completed">("all");
+
+    // Form states for Step 1: Start Trip
+    // ... rest of the component
 
     // Form states for Step 1: Start Trip
     const [startOdometer, setStartOdometer] = useState("");
     const [startOdometerPhoto, setStartOdometerPhoto] = useState("");
 
     // Form states for Step 2: Warehouse Confirm (confirm PO / warehouse no)
-    const [warehouseNo, setWarehouseNo] = useState("");
+    const [warehouseNo, setWarehouseNo] = useState("519895412");
     const [warehousePhotos, setWarehousePhotos] = useState<string[]>([]);
     const [warehouseNotes, setWarehouseNotes] = useState("");
 
     // Form states for Step 3: Pickup Oil
     const [pickupPhotos, setPickupPhotos] = useState<string[]>([]);
+    // Specific photos for Step 3
+    const [taxInvoicePhotos, setTaxInvoicePhotos] = useState<string[]>([]);
+    const [deliveryNotePhotos, setDeliveryNotePhotos] = useState<string[]>([]);
+    const [transportManifestPhotos, setTransportManifestPhotos] = useState<string[]>([]);
+    const [warehouseTransferPhotos, setWarehouseTransferPhotos] = useState<string[]>([]);
     const [pickupOdometer, setPickupOdometer] = useState("");
     const [pickupNotes, setPickupNotes] = useState("");
 
@@ -256,9 +256,16 @@ export default function DriverApp() {
     const [depotOdometerPhoto, setDepotOdometerPhoto] = useState("");
     const [depotNotes, setDepotNotes] = useState("");
 
+    // New Sub-step State: Arrive Branch
+    const [isArrivedAtBranch, setIsArrivedAtBranch] = useState(false);
+
+    // Fuel states
+    const [startFuel, setStartFuel] = useState("");
+    const [depotFuel, setDepotFuel] = useState("");
+
     // Initialize mock data to context if empty
     useEffect(() => {
-        if (driverJobs.length === 0 && mockDriverJobs.length > 0) {
+        if (allDriverJobs.length === 0 && mockDriverJobs.length > 0) {
             mockDriverJobs.forEach((job) => {
                 createDriverJob({
                     ...job,
@@ -280,85 +287,27 @@ export default function DriverApp() {
                 });
             });
         }
-    }, [driverJobs.length, createDriverJob]);
+    }, [allDriverJobs.length, createDriverJob]);
 
-    // Helper function to check if date is in range
-    const isDateInRange = (dateStr: string, from: string, to: string) => {
-        if (!from && !to) return true;
-        const date = new Date(dateStr);
-        const fromDate = from ? new Date(from) : null;
-        const toDate = to ? new Date(to) : null;
 
-        if (fromDate && toDate) {
-            fromDate.setHours(0, 0, 0, 0);
-            toDate.setHours(23, 59, 59, 999);
-            return date >= fromDate && date <= toDate;
-        } else if (fromDate) {
-            fromDate.setHours(0, 0, 0, 0);
-            return date >= fromDate;
-        } else if (toDate) {
-            toDate.setHours(23, 59, 59, 999);
-            return date <= toDate;
-        }
-        return true;
-    };
-
-    // Separate completed and active jobs - ใช้ข้อมูลจาก context หรือ mock data
-    const allJobs = driverJobs.length > 0 ? driverJobs : mockDriverJobs;
+    // Separate completed and active jobs - ใช้ข้อมูลจาก context โดยตรง (allDriverJobs คือข้อมูลดิบไม่ผ่านฟิลเตอร์สาขาจาก navbar)
+    const allJobs = allDriverJobs;
 
     // Lookup PO (PurchaseOrder) for an external job, then expose approveNo/contractNo/orderNo for display
-    const getPurchaseOrderMeta = (job: DriverJobType) => {
-        const poNo = job.purchaseOrderNo;
-        if (!poNo) return { approveNo: undefined as string | undefined, contractNo: undefined as string | undefined, orderNo: undefined as string | undefined };
+    // const getPurchaseOrderMeta = (job: DriverJobType) => { ... };
 
-        const match = purchaseOrders.find((po) =>
-            po.orderNo === poNo ||
-            po.supplierOrderNo === poNo ||
-            po.billNo === poNo
-        );
-
-        return {
-            approveNo: match?.approveNo,
-
-            orderNo: match?.orderNo || poNo,
-        };
-    };
-
-    // Filter jobs
+    // Filter jobs - แสดงเพียงรายการเดียว (ล่าสุด) ตามคำขอของผู้ใช้
     const filteredJobs = useMemo(() => {
-        return allJobs.filter((job) => {
-            const matchesSearch =
-                job.transportNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                job.truckPlateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                job.driverName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                job.sourceBranchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                job.destinationBranches.some(b => b.branchName.toLowerCase().includes(searchTerm.toLowerCase()));
-
-            const matchesDate = isDateInRange(job.transportDate, filterDateFrom, filterDateTo);
-
-            const matchesBranch = filterBranch === "all" ||
-                job.sourceBranchId === filterBranch ||
-                job.destinationBranches.some(b => b.branchId === filterBranch);
-
-            const matchesOrderType = filterOrderType === "all" ||
-                (filterOrderType === "internal" && (job as any).orderType === "internal") ||
-                (filterOrderType === "external" && (job as any).orderType === "external");
-
-            const matchesStatus = filterStatus === "all" ||
-                (filterStatus === "active" && job.status !== "ส่งเสร็จ") ||
-                (filterStatus === "completed" && job.status === "ส่งเสร็จ");
-
-            return matchesSearch && matchesDate && matchesBranch && matchesOrderType && matchesStatus;
+        // กรองเอาเฉพาะงานที่ยังไม่เสร็จหรือกำลังดำเนินการ เพื่อแสดงเป็น "รอบส่งปัจจุบัน"
+        const sorted = [...allJobs].sort((a, b) => {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return timeB - timeA;
         });
-    }, [allJobs, searchTerm, filterDateFrom, filterDateTo, filterBranch, filterOrderType, filterStatus]);
-
-    const completedJobs = useMemo(() => {
-        return filteredJobs.filter((job) => job.status === "ส่งเสร็จ");
-    }, [filteredJobs]);
-
-    const activeJobs = useMemo(() => {
-        return filteredJobs.filter((job) => job.status !== "ส่งเสร็จ");
-    }, [filteredJobs]);
+        
+        // กรองเอางานที่ 'รอเริ่ม', 'ออกเดินทางแล้ว', 'รับน้ำมันแล้ว', 'จัดเรียงเส้นทางแล้ว', 'กำลังส่ง'
+        return sorted.filter(job => job.status !== "ส่งเสร็จ").slice(0, 1);
+    }, [allJobs]);
 
     const handleSelectJob = (job: DriverJobType) => {
         setSelectedJob(job);
@@ -369,6 +318,22 @@ export default function DriverApp() {
         } else {
             setRouteOrder(job.routeOrder);
         }
+        // Initialize startTrip info if exists, otherwise set defaults for "automatic" display
+        if (job.startTrip) {
+            setStartOdometer(job.startTrip.startOdometer.toString());
+            setStartFuel(job.startTrip.startFuel?.toString() || "");
+        } else {
+            // "Automatic" default values based on screenshot
+            setStartOdometer("125500"); 
+            setStartFuel("450");
+        }
+
+        // Initialize depot info if exists
+        if (job.depotArrival) {
+            setDepotOdometer(job.depotArrival.endOdometer.toString());
+            setDepotFuel(job.depotArrival.endFuel?.toString() || "");
+        }
+
         // Determine current step based on job status
         if (job.status === "รอเริ่ม") {
             setCurrentStep("start-trip");
@@ -404,10 +369,15 @@ export default function DriverApp() {
     const resetFormStates = () => {
         setStartOdometer("");
         setStartOdometerPhoto("");
-        setWarehouseNo("");
+        setWarehouseNo("519895412");
         setWarehousePhotos([]);
         setWarehouseNotes("");
+        setWarehouseNotes("");
         setPickupPhotos([]);
+        setTaxInvoicePhotos([]);
+        setDeliveryNotePhotos([]);
+        setTransportManifestPhotos([]);
+        setWarehouseTransferPhotos([]);
         setPickupOdometer("");
         setPickupNotes("");
         setDeliveryPhotos([]);
@@ -416,6 +386,11 @@ export default function DriverApp() {
         setDepotOdometer("");
         setDepotOdometerPhoto("");
         setDepotNotes("");
+        // Reset fuel states
+        setStartFuel("");
+        setDepotFuel("");
+        // Reset sub-step arrive branch
+        setIsArrivedAtBranch(false);
     };
 
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, setPhotos: React.Dispatch<React.SetStateAction<string[]>>) => {
@@ -489,13 +464,13 @@ export default function DriverApp() {
                 // Go back to arrive-depot
                 setCurrentStep("arrive-depot");
                 // Load existing data if available
-                if ((selectedJob as any).depotArrival) {
-                    setDepotOdometer((selectedJob as any).depotArrival.endOdometer?.toString() || "");
-                    if ((selectedJob as any).depotArrival.endOdometerPhoto) {
-                        setDepotOdometerPhoto((selectedJob as any).depotArrival.endOdometerPhoto);
+                if (selectedJob.depotArrival) {
+                    setDepotOdometer(selectedJob.depotArrival.endOdometer?.toString() || "");
+                    if (selectedJob.depotArrival.endOdometerPhoto) {
+                        setDepotOdometerPhoto(selectedJob.depotArrival.endOdometerPhoto);
                     }
-                    if ((selectedJob as any).depotArrival.notes) {
-                        setDepotNotes((selectedJob as any).depotArrival.notes);
+                    if (selectedJob.depotArrival.notes) {
+                        setDepotNotes(selectedJob.depotArrival.notes);
                     }
                 }
                 break;
@@ -520,6 +495,7 @@ export default function DriverApp() {
                 startedAt: new Date().toISOString(),
                 startOdometer: parseFloat(startOdometer),
                 startOdometerPhoto: startOdometerPhoto || undefined,
+                startFuel: startFuel ? parseFloat(startFuel) : undefined,
             },
         };
 
@@ -583,9 +559,30 @@ export default function DriverApp() {
     // Step 2: Pickup Oil
     const handleConfirmPickup = () => {
         if (!selectedJob) return;
-        if (pickupPhotos.length === 0) {
-            alert("กรุณาถ่ายรูปบิลจากคลัง ปตท อย่างน้อย 1 รูป");
+        
+        // Aggregate all photos
+        const allPhotos = [
+            ...taxInvoicePhotos,
+            ...deliveryNotePhotos,
+            ...transportManifestPhotos,
+            ...warehouseTransferPhotos
+        ];
+
+        // Ensure at least one photo is uploaded across all categories
+        if (allPhotos.length === 0) {
+            alert("กรุณาถ่ายรูปเอกสารอย่างน้อย 1 รายการ");
             return;
+        }
+
+        // Update main pickupPhotos state (though it might not be used directly in UI anymore, useful for data submission logic if it relies on it)
+        setPickupPhotos(allPhotos);
+
+        // Or we can just use allPhotos for the update logic below
+        const photosToSave = allPhotos.length > 0 ? allPhotos : pickupPhotos; 
+
+        if (photosToSave.length === 0) {
+             alert("กรุณาถ่ายรูปเอกสารอย่างน้อย 1 รายการ");
+             return;
         }
         if (!pickupOdometer) {
             alert("กรุณากรอกเลขไมล์");
@@ -641,12 +638,6 @@ export default function DriverApp() {
         setDraggedIndex(null);
     };
 
-    const handleRemoveBranch = (branchId: number) => {
-        if (window.confirm("คุณต้องการลบปั๊มนี้ออกจากเส้นทางการส่งหรือไม่?")) {
-            const newOrder = routeOrder.filter((id) => id !== branchId);
-            setRouteOrder(newOrder);
-        }
-    };
 
     const handleConfirmRoutePlanning = () => {
         if (!selectedJob) return;
@@ -669,7 +660,34 @@ export default function DriverApp() {
         });
         setSelectedJob(updatedJob);
         setCurrentStep("delivery");
+        setSelectedJob(updatedJob);
+        setCurrentStep("delivery");
         setCurrentDeliveryIndex(0);
+        setIsArrivedAtBranch(false); // Reset arrival for first branch
+    };
+
+    // Sub-step: Arrive at Branch
+    const handleConfirmArrivalAtBranch = () => {
+        if (!selectedJob) return;
+        
+        const orderedBranches = getOrderedBranches(selectedJob);
+        const currentBranch = orderedBranches[currentDeliveryIndex];
+
+        // Save arrival time to context
+        const updatedBranches = selectedJob.destinationBranches.map(b => 
+            b.branchId === currentBranch.branchId 
+            ? { ...b, arrivalConfirmation: { confirmedAt: new Date().toISOString() } }
+            : b
+        );
+
+        const updatedJob = {
+            ...selectedJob,
+            destinationBranches: updatedBranches,
+        };
+
+        updateDriverJob(selectedJob.id, updatedJob);
+        setSelectedJob(updatedJob);
+        setIsArrivedAtBranch(true);
     };
 
     // Step 4: Delivery
@@ -753,7 +771,9 @@ export default function DriverApp() {
             const nextIndex = orderedBranches.findIndex((b) => b.status !== "ส่งแล้ว");
             if (nextIndex >= 0) {
                 setCurrentDeliveryIndex(nextIndex);
+                setCurrentDeliveryIndex(nextIndex);
                 resetFormStates();
+                setIsArrivedAtBranch(false); // Reset for next branch
             }
         }
     };
@@ -773,6 +793,7 @@ export default function DriverApp() {
                 arrivedAt: new Date().toISOString(),
                 endOdometer: parseFloat(depotOdometer),
                 endOdometerPhoto: depotOdometerPhoto || undefined,
+                endFuel: depotFuel ? parseFloat(depotFuel) : undefined,
                 notes: depotNotes || undefined,
             },
         };
@@ -797,35 +818,811 @@ export default function DriverApp() {
     const getSteps = () => {
         if (!selectedJob) return [];
         const steps = [
-            { id: "start-trip", label: "ออกเดินทาง", completed: selectedJob.status !== "รอเริ่ม" },
-            { id: "warehouse-confirm", label: "ยืนยันออเดอร์", completed: !!selectedJob.warehouseConfirmation },
+            { id: "start-trip", label: "เริ่มงาน (ไมล์)", completed: selectedJob.status !== "รอเริ่ม" },
+            { id: "warehouse-confirm", label: "ยืนยันรับน้ำมัน", completed: !!selectedJob.warehouseConfirmation },
             { id: "pickup-oil", label: "รับน้ำมัน", completed: selectedJob.status !== "รอเริ่ม" && selectedJob.status !== "ออกเดินทางแล้ว" && !!selectedJob.warehouseConfirmation },
             { id: "route-planning", label: "จัดเรียงเส้นทาง", completed: selectedJob.status !== "รอเริ่ม" && selectedJob.status !== "ออกเดินทางแล้ว" && selectedJob.status !== "รับน้ำมันแล้ว" },
             { id: "delivery", label: "ส่งน้ำมัน", completed: false },
-            { id: "arrive-depot", label: "รถถึงโรงจอด", completed: (selectedJob as any).depotArrival ? true : false },
+            { id: "arrive-depot", label: "จบงาน (ไมล์)", completed: (selectedJob as any).depotArrival ? true : false },
             { id: "completed", label: "เสร็จสิ้น", completed: selectedJob.status === "ส่งเสร็จ" && (selectedJob as any).depotArrival ? true : false },
         ];
         return steps;
     };
 
-    const getCurrentStepIndex = () => {
-        const steps = getSteps();
-        return steps.findIndex((s) => s.id === currentStep);
+
+    const renderStartTrip = () => (
+        <motion.div
+            key="start-trip"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+        >
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6">
+                    ขั้นตอนที่ 1: ออกเดินทาง
+                </h2>
+
+                <div className={`mb-6 p-4 border rounded-lg ${selectedJob?.orderType === "internal"
+                    ? "bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800"
+                    : "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                    }`}>
+                    <div className="flex items-center gap-2 mb-3">
+                        {(selectedJob as any).orderType === "internal" && (
+                            <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-semibold">
+                                ภายในปั๊ม
+                            </span>
+                        )}
+                        {(selectedJob as any).orderType === "external" && (
+                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold">
+                                รับจาก PTT
+                            </span>
+                        )}
+                        {(selectedJob as any).internalOrderNo && (
+                            <span className="px-2 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-full text-xs">
+                                ออเดอร์: {(selectedJob as any).internalOrderNo}
+                            </span>
+                        )}
+                        {(selectedJob as any).purchaseOrderNo && (
+                            <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-xs">
+                                PO: {(selectedJob as any).purchaseOrderNo}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-3 mb-3">
+                        <MapPin className={`h-5 w-5 ${(selectedJob as any).orderType === "internal"
+                            ? "text-purple-600 dark:text-purple-400"
+                            : "text-blue-600 dark:text-blue-400"
+                            }`} />
+                        <div>
+                            <p className={`font-semibold ${(selectedJob as any).orderType === "internal"
+                                ? "text-purple-800 dark:text-purple-300"
+                                : "text-blue-800 dark:text-blue-300"
+                                }`}>
+                                ต้นทาง: {selectedJob?.sourceBranchName}
+                            </p>
+                            <p className={`text-sm ${(selectedJob as any).orderType === "internal"
+                                ? "text-purple-700 dark:text-purple-400"
+                                : "text-blue-700 dark:text-blue-400"
+                                }`}>
+                                {selectedJob?.sourceAddress}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Building2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <div>
+                            <p className="font-semibold text-green-800 dark:text-green-300">
+                                ปลายทาง: {selectedJob?.destinationBranches.length} สาขา
+                            </p>
+                            <p className="text-sm text-green-700 dark:text-green-400">
+                                {selectedJob?.destinationBranches.map((b) => b.branchName).join(", ")}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                            เลขไมล์ปัจจุบัน (กม.) - แก้ไขได้ *
+                        </label>
+                        <input
+                            type="number"
+                            value={startOdometer}
+                            onChange={(e) => setStartOdometer(e.target.value)}
+                            placeholder="125500"
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm"
+                        />
+                        <div className="mt-2 flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400 font-semibold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg w-fit">
+                            <Check className="w-3 h-3" />
+                            ดึงมาจากใบสั่งซื้อ: {numberFormatter.format(Number(startOdometer || 125500))} กม. (แก้ไขได้)
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
+                            <Droplet className="w-3.5 h-3.5 text-blue-500 fill-blue-500/20" />
+                            น้ำมันตอนเริ่มต้น (ลิตร) *
+                        </label>
+                        <input
+                            type="number"
+                            value={startFuel}
+                            onChange={(e) => setStartFuel(e.target.value)}
+                            placeholder="450"
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm"
+                        />
+                        <div className="mt-2 flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg w-fit">
+                            <Lightbulb className="w-3 h-3" />
+                            บันทึกจำนวนน้ำมันในถังรถขนส่งตอนเริ่มต้นเที่ยว
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        📷 ถ่ายรูปไมล์เริ่มต้น (ถ้ามี)
+                    </label>
+                    <div className="flex items-center gap-4">
+                        {startOdometerPhoto ? (
+                            <div className="relative group">
+                                <img
+                                    src={startOdometerPhoto}
+                                    alt="ไมล์เริ่มต้น"
+                                    className="w-32 h-32 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700"
+                                />
+                                <button
+                                    onClick={() => setStartOdometerPhoto("")}
+                                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+                        ) : (
+                            <label className="cursor-pointer">
+                                <div className="w-32 h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                                    <Camera className="h-8 w-8 text-gray-400" />
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">เพิ่มรูป</span>
+                                </div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setStartOdometerPhoto(reader.result as string);
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                    className="hidden"
+                                />
+                            </label>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex gap-3">
+                    <button
+                        onClick={handleStartTrip}
+                        className="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                        <Play className="h-6 w-6" />
+                        ออกเดินทาง
+                    </button>
+                </div>
+            </div>
+        </motion.div>
+    );
+
+    const renderWarehouseConfirm = () => (
+        <motion.div
+            key="warehouse-confirm"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+        >
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <button
+                        onClick={handleGoBack}
+                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
+                    >
+                        <ChevronRight className="h-5 w-5 rotate-180" />
+                        กลับ
+                    </button>
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                        ขั้นตอนที่ 2: ยืนยันการรับน้ำมัน
+                    </h2>
+                    <div className="w-24"></div>
+                </div>
+
+                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-start gap-3">
+                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                                ยืนยันออเดอร์ก่อนเข้ารับน้ำมัน
+                            </p>
+                            <p className="text-xs text-blue-700 dark:text-blue-400">
+                                กรุณากรอก “เลขใบอนุมัติขาย” และถ่ายรูปหลักฐาน เพื่อยืนยันออเดอร์ที่จะไปรับ
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        🏷️ เลขใบอนุมัติขาย *
+                    </label>
+                    <input
+                        type="text"
+                        value={warehouseNo}
+                        readOnly
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed focus:outline-none"
+                    />
+                </div>
+
+                <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        📷 ถ่ายรูปหลักฐาน * (อย่างน้อย 1 รูป)
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                        {warehousePhotos.map((photo, index) => (
+                            <div key={index} className="relative group">
+                                <img
+                                    src={photo}
+                                    alt={`หลักฐานคลัง ${index + 1}`}
+                                    className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700"
+                                />
+                                <button
+                                    onClick={() => handleRemovePhoto(index, warehousePhotos, setWarehousePhotos)}
+                                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+                        ))}
+                        {warehousePhotos.length < 6 && (
+                            <label className="cursor-pointer">
+                                <div className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                                    <Camera className="h-8 w-8 text-gray-400" />
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">เพิ่มรูป</span>
+                                </div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={(e) => handlePhotoUpload(e, setWarehousePhotos)}
+                                    className="hidden"
+                                />
+                            </label>
+                        )}
+                    </div>
+                </div>
+
+                <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        📝 หมายเหตุ (ถ้ามี)
+                    </label>
+                    <textarea
+                        value={warehouseNotes}
+                        onChange={(e) => setWarehouseNotes(e.target.value)}
+                        placeholder="กรอกหมายเหตุเพิ่มเติม..."
+                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+
+                <button
+                    onClick={handleConfirmWarehouse}
+                    className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+                >
+                    <CheckCircle className="h-6 w-6" />
+                    ยืนยันออเดอร์
+                </button>
+            </div>
+        </motion.div>
+    );
+
+    const renderPickupOil = () => (
+        <motion.div
+            key="pickup-oil"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+        >
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <button
+                        onClick={handleGoBack}
+                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
+                    >
+                        <ChevronRight className="h-5 w-5 rotate-180" />
+                        กลับ
+                    </button>
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                        ขั้นตอนที่ 3: รับน้ำมัน
+                    </h2>
+                    <div className="w-24"></div>
+                </div>
+                {/* ... existing pickup logic ... */}
+                <div className="mb-6">
+                <div className="space-y-6 mb-6">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        📷 ถ่ายรูปเอกสาร (เลือกถ่ายหัวข้อที่เกี่ยวข้อง) *
+                    </h3>
+                    
+                    {/* 1. Tax Invoice / Invoice */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">ใบกำกับภาษี / ใบแจ้งหนี้</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {taxInvoicePhotos.map((photo, index) => (
+                                <div key={index} className="relative group aspect-square">
+                                    <img src={photo} alt="Tax Invoice" className="w-full h-full object-cover rounded-lg border dark:border-gray-600" />
+                                    <button onClick={() => handleRemovePhoto(index, taxInvoicePhotos, setTaxInvoicePhotos)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            ))}
+                            {/* Simple Add Button */}
+                             <label className="cursor-pointer aspect-square border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
+                                <Camera className="h-6 w-6 text-gray-400" />
+                                <span className="text-[10px] text-gray-500 mt-1">เพิ่มรูป</span>
+                                <input type="file" accept="image/*" multiple onChange={(e) => handlePhotoUpload(e, setTaxInvoicePhotos)} className="hidden" />
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* 2. Delivery Note */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                             <span className="text-sm font-medium text-gray-900 dark:text-white">ใบส่งของ</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                             {deliveryNotePhotos.map((photo, index) => (
+                                <div key={index} className="relative group aspect-square">
+                                    <img src={photo} alt="Delivery Note" className="w-full h-full object-cover rounded-lg border dark:border-gray-600" />
+                                    <button onClick={() => handleRemovePhoto(index, deliveryNotePhotos, setDeliveryNotePhotos)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            ))}
+                             <label className="cursor-pointer aspect-square border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
+                                <Camera className="h-6 w-6 text-gray-400" />
+                                <span className="text-[10px] text-gray-500 mt-1">เพิ่มรูป</span>
+                                <input type="file" accept="image/*" multiple onChange={(e) => handlePhotoUpload(e, setDeliveryNotePhotos)} className="hidden" />
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* 3. Transport Manifest */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                         <div className="flex items-center gap-2 mb-3">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                             <span className="text-sm font-medium text-gray-900 dark:text-white">ใบกำกับการขนส่ง</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                             {transportManifestPhotos.map((photo, index) => (
+                                <div key={index} className="relative group aspect-square">
+                                    <img src={photo} alt="Manifest" className="w-full h-full object-cover rounded-lg border dark:border-gray-600" />
+                                    <button onClick={() => handleRemovePhoto(index, transportManifestPhotos, setTransportManifestPhotos)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            ))}
+                             <label className="cursor-pointer aspect-square border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
+                                <Camera className="h-6 w-6 text-gray-400" />
+                                <span className="text-[10px] text-gray-500 mt-1">เพิ่มรูป</span>
+                                <input type="file" accept="image/*" multiple onChange={(e) => handlePhotoUpload(e, setTransportManifestPhotos)} className="hidden" />
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* 4. Warehouse Transfer */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                             <span className="text-sm font-medium text-gray-900 dark:text-white">เอกสารโอนคลัง</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                             {warehouseTransferPhotos.map((photo, index) => (
+                                <div key={index} className="relative group aspect-square">
+                                    <img src={photo} alt="Transfer" className="w-full h-full object-cover rounded-lg border dark:border-gray-600" />
+                                    <button onClick={() => handleRemovePhoto(index, warehouseTransferPhotos, setWarehouseTransferPhotos)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            ))}
+                             <label className="cursor-pointer aspect-square border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
+                                <Camera className="h-6 w-6 text-gray-400" />
+                                <span className="text-[10px] text-gray-500 mt-1">เพิ่มรูป</span>
+                                <input type="file" accept="image/*" multiple onChange={(e) => handlePhotoUpload(e, setWarehouseTransferPhotos)} className="hidden" />
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                </div>
+                <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        📏 เลขไมล์หลังรับน้ำมัน *
+                    </label>
+                    <input
+                        type="number"
+                        value={pickupOdometer}
+                        onChange={(e) => setPickupOdometer(e.target.value)}
+                        placeholder="กรอกเลขไมล์"
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+                <button
+                    onClick={handleConfirmPickup}
+                    className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+                >
+                    <CheckCircle className="h-6 w-6" />
+                    ยืนยันการรับน้ำมัน
+                </button>
+            </div>
+        </motion.div>
+    );
+
+    const renderRoutePlanning = () => (
+        <motion.div
+            key="route-planning"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+        >
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                 <div className="flex items-center justify-between mb-6">
+                    <button
+                        onClick={handleGoBack}
+                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
+                    >
+                        <ChevronRight className="h-5 w-5 rotate-180" />
+                        กลับ
+                    </button>
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                        ขั้นตอนที่ 4: จัดเรียงเส้นทาง
+                    </h2>
+                    <div className="w-24"></div>
+                </div>
+                <div className="space-y-3 mb-6">
+                    {routeOrder.map((branchId, index) => {
+                        const branch = selectedJob?.destinationBranches.find((b) => b.branchId === branchId);
+                        if (!branch) return null;
+                        return (
+                            <div
+                                key={branchId}
+                                draggable
+                                onDragStart={() => handleDragStart(index)}
+                                onDragOver={(e) => handleDragOver(e, index)}
+                                onDragEnd={handleDragEnd}
+                                className={`p-4 border-2 rounded-lg transition-all cursor-move ${draggedIndex === index
+                                    ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 opacity-50"
+                                    : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 hover:border-blue-500 dark:hover:border-blue-400"
+                                    }`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-shrink-0 cursor-grab active:cursor-grabbing">
+                                        <GripVertical className="h-6 w-6 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors" />
+                                    </div>
+                                    <div className="flex-shrink-0">
+                                        <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                            <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                                {index + 1}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-gray-800 dark:text-white">
+                                            {branch.branchName}
+                                        </p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                            {branch.address}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+                <button
+                    onClick={handleConfirmRoutePlanning}
+                    disabled={routeOrder.length === 0}
+                    className="w-full px-6 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+                >
+                    <CheckCircle className="h-6 w-6" />
+                    ยืนยันเส้นทาง
+                </button>
+            </div>
+        </motion.div>
+    );
+
+    const renderArriveAtBranch = (branch: any) => (
+        <motion.div
+            key="arrive-branch"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+        >
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 text-center">
+                    <div className="flex items-center justify-between mb-6">
+                    <button
+                        onClick={handleGoBack}
+                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
+                    >
+                        <ChevronRight className="h-5 w-5 rotate-180" />
+                        กลับ
+                    </button>
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                        ยืนยันการถึงปั๊ม
+                    </h2>
+                    <div className="w-24"></div>
+                </div>
+
+                <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                    <div className="absolute inset-0 border-4 border-blue-500 rounded-full animate-ping opacity-20"></div>
+                    <MapPin className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+                </div>
+                
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    คุณถึงปั๊ม "{branch.branchName}" แล้วใช่ไหม?
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-8">
+                    {branch.address}
+                </p>
+
+                <button
+                    onClick={handleConfirmArrivalAtBranch}
+                    className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+                >
+                    <CheckCircle className="h-6 w-6" />
+                    ยืนยันถึงปั๊มแล้ว
+                </button>
+            </div>
+        </motion.div>
+    );
+
+    const renderDelivery = () => {
+        const orderedBranches = selectedJob ? getOrderedBranches(selectedJob) : [];
+        const currentBranch = orderedBranches[currentDeliveryIndex];
+        if (!currentBranch) return null;
+
+        // Condition check: Arrive First?
+        const isArrived = isArrivedAtBranch || !!currentBranch.arrivalConfirmation;
+        if (!isArrived) {
+            return renderArriveAtBranch(currentBranch);
+        }
+
+        return (
+            <motion.div
+                key={`delivery-${currentDeliveryIndex}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+            >
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <button
+                            onClick={handleGoBack}
+                            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
+                        >
+                            <ChevronRight className="h-5 w-5 rotate-180" />
+                            กลับ
+                        </button>
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                            ขั้นตอนที่ 5: ส่งน้ำมัน
+                        </h2>
+                        <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-sm font-semibold">
+                            ปั๊มที่ {currentDeliveryIndex + 1} / {orderedBranches.length}
+                        </span>
+                    </div>
+
+                    <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
+                        <div className="flex items-center gap-3 mb-3">
+                            <Building2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            <div>
+                                <p className="font-semibold text-green-800 dark:text-green-300 text-lg">
+                                    {currentBranch.branchName}
+                                </p>
+                                <p className="text-sm text-green-700 dark:text-green-400">
+                                    {currentBranch.address}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mb-6">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                            📷 ถ่ายรูปหลักฐาน *
+                        </label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                            {deliveryPhotos.map((photo, index) => (
+                                <div key={index} className="relative group">
+                                    <img
+                                        src={photo}
+                                        alt={`หลักฐาน ${index + 1}`}
+                                        className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700"
+                                    />
+                                    <button
+                                        onClick={() => handleRemovePhoto(index, deliveryPhotos, setDeliveryPhotos)}
+                                        className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            ))}
+                            <label className="cursor-pointer">
+                                <div className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-green-500 dark:hover:border-green-400 transition-colors">
+                                    <Camera className="h-8 w-8 text-gray-400" />
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">เพิ่มรูป</span>
+                                </div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={(e) => handlePhotoUpload(e, setDeliveryPhotos)}
+                                    className="hidden"
+                                />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="mb-6">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            📏 เลขไมล์หลังส่ง *
+                        </label>
+                        <input
+                            type="number"
+                            value={deliveryOdometer}
+                            onChange={(e) => setDeliveryOdometer(e.target.value)}
+                            placeholder="กรอกเลขไมล์"
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                    </div>
+
+                    <button
+                        onClick={handleConfirmDelivery}
+                        className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                        <CheckCircle className="h-6 w-6" />
+                        ยืนยันการส่ง
+                    </button>
+                </div>
+            </motion.div>
+        );
     };
+
+    const renderArriveDepot = () => (
+        <motion.div
+            key="arrive-depot"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+        >
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <button
+                        onClick={handleGoBack}
+                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
+                    >
+                        <ChevronRight className="h-5 w-5 rotate-180" />
+                        กลับ
+                    </button>
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                        ขั้นตอนที่ 6: รถถึงโรงจอด
+                    </h2>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            เลขไมล์เมื่อถึงโรงจอด (กม.) *
+                        </label>
+                        <input
+                            type="number"
+                            value={depotOdometer}
+                            onChange={(e) => setDepotOdometer(e.target.value)}
+                            placeholder="กรอกเลขไมล์"
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                            <Droplet className="w-3.5 h-3.5 text-blue-500" />
+                            น้ำมันเมื่อถึงโรงจอด (ลิตร) *
+                        </label>
+                        <input
+                            type="number"
+                            value={depotFuel}
+                            onChange={(e) => setDepotFuel(e.target.value)}
+                            placeholder="กรอกจำนวนลิตร"
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        />
+                    </div>
+                </div>
+                 <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        📷 ถ่ายรูปเลขไมล์ (ถ้ามี)
+                    </label>
+                    {depotOdometerPhoto ? (
+                        <div className="relative group">
+                            <img
+                                src={depotOdometerPhoto}
+                                alt="เลขไมล์"
+                                className="w-full h-48 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700"
+                            />
+                            <button
+                                onClick={() => setDepotOdometerPhoto("")}
+                                className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                    ) : (
+                        <label className="cursor-pointer">
+                            <div className="w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500">
+                                <Camera className="h-12 w-12 text-gray-400" />
+                                <span className="text-sm text-gray-500">ถ่ายรูปเลขไมล์</span>
+                            </div>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => setDepotOdometerPhoto(reader.result as string);
+                                        reader.readAsDataURL(file);
+                                    }
+                                }}
+                                className="hidden"
+                            />
+                        </label>
+                    )}
+                </div>
+                <button
+                    onClick={handleConfirmArriveDepot}
+                    className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+                >
+                    <CheckCircle className="h-6 w-6" />
+                    ยืนยันเสร็จสิ้น
+                </button>
+            </div>
+        </motion.div>
+    );
+
+    const renderCompleted = () => (
+        <motion.div
+            key="completed"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3 }}
+        >
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 text-center">
+                 <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+                    🎉 เสร็จสิ้นภาระกิจ!
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    ส่งน้ำมันครบทุกปั๊มและกลับถึงโรงจอดเรียบร้อยแล้ว
+                </p>
+                <button
+                    onClick={() => {
+                        setSelectedJob(null);
+                        resetFormStates();
+                    }}
+                    className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors"
+                >
+                    กลับไปเลือกงานใหม่
+                </button>
+            </div>
+        </motion.div>
+    );
 
     // Job Detail View
     if (viewingJobDetail) {
         const job = viewingJobDetail;
-        const poMeta = job.orderType === "external" ? getPurchaseOrderMeta(job) : null;
-        const deliveredBranches = job.destinationBranches.filter((b) => b.status === "ส่งแล้ว");
-        const undeliveredBranches = job.destinationBranches.filter((b) => b.status !== "ส่งแล้ว");
-
         return (
-            <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900">
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans pb-24">
                 <div className="max-w-4xl mx-auto px-4 py-8">
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                         <div className="flex items-center justify-between mb-8">
-                            <div className="flex-1">
+                             <div className="flex-1">
                                 <div className="flex items-center gap-4 mb-3">
                                     <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
                                         <Truck className="h-8 w-8 text-blue-600 dark:text-blue-400" />
@@ -835,43 +1632,16 @@ export default function DriverApp() {
                                             รายละเอียดรอบส่ง
                                         </h1>
                                     </div>
-                                    {(job as any).orderType === "internal" && (
+                                    {job.orderType === "internal" && (
                                         <span className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-sm font-semibold flex items-center gap-1.5">
                                             <ShoppingCart className="w-4 h-4" />
                                             รอบส่งภายในปั๊ม
                                         </span>
                                     )}
-                                    {(job as any).orderType === "external" && (
+                                    {job.orderType === "external" && (
                                         <span className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-semibold flex items-center gap-1.5">
                                             <Truck className="w-4 h-4" />
                                             รอบส่งจาก PTT
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                                    {job.orderType === "internal" && job.internalOrderNo && (
-                                        <span>
-                                            <span className="font-medium">ออเดอร์ภายใน:</span> {job.internalOrderNo}
-                                        </span>
-                                    )}
-                                    {job.orderType === "external" && job.purchaseOrderNo && (
-                                        <span>
-                                            <span className="font-medium">ใบสั่งซื้อเลขที่:</span> {poMeta?.orderNo || job.purchaseOrderNo}
-                                        </span>
-                                    )}
-                                    {job.orderType === "external" && poMeta?.approveNo && (
-                                        <span>
-                                            <span className="font-medium">ใบอนุมัติขายเลขที่:</span> {poMeta.approveNo}
-                                        </span>
-                                    )}
-                                    {job.orderType === "external" && poMeta?.contractNo && (
-                                        <span>
-                                            <span className="font-medium">Contract No.:</span> {poMeta.contractNo}
-                                        </span>
-                                    )}
-                                    {job.orderType === "external" && job.pttQuotationNo && (
-                                        <span>
-                                            <span className="font-medium">ใบเสนอราคา PTT:</span> {job.pttQuotationNo}
                                         </span>
                                     )}
                                 </div>
@@ -885,22 +1655,12 @@ export default function DriverApp() {
                         </div>
 
                         {/* Job Info */}
-                        <div className={`mb-6 p-4 border rounded-lg ${(job as any).orderType === "internal"
+                        <div className={`mb-6 p-4 border rounded-lg ${job.orderType === "internal"
                             ? "bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800"
                             : "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
                             }`}>
                             <div className="flex items-center gap-2 mb-3">
                                 <h2 className="text-lg font-bold text-gray-800 dark:text-white">{job.transportNo}</h2>
-                                {(job as any).orderType === "internal" && (
-                                    <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-semibold">
-                                        ภายในปั๊ม
-                                    </span>
-                                )}
-                                {(job as any).orderType === "external" && (
-                                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold">
-                                        รับจาก PTT
-                                    </span>
-                                )}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <div>
@@ -920,1716 +1680,213 @@ export default function DriverApp() {
                                         {job.truckPlateNumber} / {job.trailerPlateNumber}
                                     </p>
                                 </div>
-                                <div>
-                                    <p className="text-gray-500 dark:text-gray-400 mb-1">ต้นทาง</p>
-                                    <p className="font-semibold text-gray-800 dark:text-white">{job.sourceBranchName}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-500 dark:text-gray-400 mb-1">ปลายทาง</p>
-                                    <p className="font-semibold text-gray-800 dark:text-white">
-                                        {job.destinationBranches.length} สาขา
-                                    </p>
-                                </div>
-                                {(job as any).driverName && (
-                                    <div>
-                                        <p className="text-gray-500 dark:text-gray-400 mb-1">คนขับ</p>
-                                        <p className="font-semibold text-gray-800 dark:text-white">{(job as any).driverName}</p>
-                                    </div>
-                                )}
-                                {(job as any).orderType === "internal" && (job as any).internalOrderNo && (
-                                    <div>
-                                        <p className="text-gray-500 dark:text-gray-400 mb-1">เลขที่ออเดอร์ภายใน</p>
-                                        <p className="font-semibold text-purple-600 dark:text-purple-400">{(job as any).internalOrderNo}</p>
-                                    </div>
-                                )}
-                                {job.orderType === "external" && job.purchaseOrderNo && (
-                                    <div>
-                                        <p className="text-gray-500 dark:text-gray-400 mb-1">เลขที่ใบสั่งซื้อ</p>
-                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{poMeta?.orderNo || job.purchaseOrderNo}</p>
-                                    </div>
-                                )}
-                                {job.orderType === "external" && poMeta?.approveNo && (
-                                    <div>
-                                        <p className="text-gray-500 dark:text-gray-400 mb-1">ใบอนุมัติขายเลขที่</p>
-                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{poMeta.approveNo}</p>
-                                    </div>
-                                )}
-                                {job.orderType === "external" && poMeta?.contractNo && (
-                                    <div>
-                                        <p className="text-gray-500 dark:text-gray-400 mb-1">Contract No.</p>
-                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{poMeta.contractNo}</p>
-                                    </div>
-                                )}
-                                {job.orderType === "external" && job.pttQuotationNo && (
-                                    <div>
-                                        <p className="text-gray-500 dark:text-gray-400 mb-1">เลขที่ใบเสนอราคา PTT</p>
-                                        <p className="font-semibold text-blue-600 dark:text-blue-400">{job.pttQuotationNo}</p>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
-                        {/* Delivered Branches */}
-                        {deliveredBranches.length > 0 && (
-                            <div className="mb-6">
-                                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-                                    <CheckCircle className="h-5 w-5 text-green-500" />
-                                    ปั๊มที่ส่งแล้ว ({deliveredBranches.length} ปั๊ม)
-                                </h3>
-                                <div className="space-y-3">
-                                    {deliveredBranches.map((branch) => (
-                                        <div
-                                            key={branch.branchId}
-                                            className="p-4 border-2 border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-900/10"
-                                        >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    <Building2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                                    <span className="font-semibold text-gray-800 dark:text-white">
-                                                        {branch.branchName}
-                                                    </span>
-                                                </div>
-                                                <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-semibold">
-                                                    ✓ ส่งแล้ว
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{branch.address}</p>
-                                            <div className="flex items-center gap-4 text-sm">
-                                                <div className="flex items-center gap-1">
-                                                    <Droplet className="h-4 w-4 text-blue-500" />
-                                                    <span className="text-gray-600 dark:text-gray-400">{branch.oilType}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <Package className="h-4 w-4 text-green-500" />
-                                                    <span className="text-gray-600 dark:text-gray-400">
-                                                        {numberFormatter.format(branch.quantity)} ลิตร
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            {branch.deliveryConfirmation && (
-                                                <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        ส่งเมื่อ:{" "}
-                                                        {new Date(branch.deliveryConfirmation.confirmedAt).toLocaleString("th-TH")}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        เลขไมล์: {numberFormatter.format(branch.deliveryConfirmation.odometerReading)}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Undelivered Branches */}
-                        {undeliveredBranches.length > 0 && (
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-                                    <AlertCircle className="h-5 w-5 text-yellow-500" />
-                                    ปั๊มที่ยังไม่ส่ง ({undeliveredBranches.length} ปั๊ม)
-                                </h3>
-                                <div className="space-y-3">
-                                    {undeliveredBranches.map((branch) => (
-                                        <div
-                                            key={branch.branchId}
-                                            className="p-4 border-2 border-yellow-200 dark:border-yellow-800 rounded-lg bg-yellow-50 dark:bg-yellow-900/10"
-                                        >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    <Building2 className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                                                    <span className="font-semibold text-gray-800 dark:text-white">
-                                                        {branch.branchName}
-                                                    </span>
-                                                </div>
-                                                <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full text-xs font-semibold">
-                                                    ยังไม่ส่ง
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{branch.address}</p>
-                                            <div className="flex items-center gap-4 text-sm mb-3">
-                                                <div className="flex items-center gap-1">
-                                                    <Droplet className="h-4 w-4 text-blue-500" />
-                                                    <span className="text-gray-600 dark:text-gray-400">{branch.oilType}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <Package className="h-4 w-4 text-green-500" />
-                                                    <span className="text-gray-600 dark:text-gray-400">
-                                                        {numberFormatter.format(branch.quantity)} ลิตร
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    setViewingJobDetail(null);
-                                                    handleSelectJob(job);
-                                                }}
-                                                className="w-full px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold transition-colors"
-                                            >
-                                                กลับไปส่งปั๊มนี้
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                       {/* Destinations */}
+                       <div className="space-y-4">
+                           <h3 className="font-bold text-gray-800 dark:text-white">รายการส่ง ({job.destinationBranches.length} สาขา)</h3>
+                           {job.destinationBranches.map((branch, index) => (
+                               <div key={index} className="p-4 border border-gray-100 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                                   <div className="flex justify-between mb-2">
+                                       <span className="font-bold">{branch.branchName}</span>
+                                       <span className={`text-xs px-2 py-0.5 rounded-full ${branch.status === "ส่งแล้ว" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                                           {branch.status}
+                                       </span>
+                                   </div>
+                               </div>
+                           ))}
+                       </div>
                     </div>
                 </div>
+                 <DriverBottomNav />
             </div>
         );
     }
 
     if (!selectedJob) {
         return (
-            <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900 flex flex-col">
-                <header className="sticky top-0 z-20 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-                    <div className="max-w-7xl mx-auto flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <Truck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24 font-sans">
+                <div className="p-5 space-y-6">
+                    {/* Page Title Section per screenshot */}
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400">
+                            <Truck className="w-6 h-6" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-none">
-                                เลือกงานขนส่ง
-                            </h1>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                จัดการงานขนส่งและสถานะ
-                            </p>
+                            <h1 className="text-xl font-bold text-gray-900 dark:text-white">แอปคนขับ</h1>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">ระบบจัดการงานขนส่ง</p>
                         </div>
                     </div>
-                </header>
-                <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 space-y-6">
-                    {/* Filters */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                        <div className="space-y-4">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <input
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="ค้นหาเลขขนส่ง, รถ, คนขับ, ปั๊ม..."
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value as "all" | "active" | "completed")}
-                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
-                                    <option value="all">ทุกสถานะ</option>
-                                    <option value="active">ยังไม่เสร็จ</option>
-                                    <option value="completed">เสร็จแล้ว</option>
-                                </select>
 
-                                <select
-                                    value={filterOrderType}
-                                    onChange={(e) => setFilterOrderType(e.target.value as "all" | "internal" | "external")}
-                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
-                                    <option value="all">ทุกประเภท</option>
-                                    <option value="internal">ส่งภายในปั๊ม</option>
-                                    <option value="external">รับจาก PTT</option>
-                                </select>
-
-                                <select
-                                    value={filterBranch === "all" ? "all" : filterBranch}
-                                    onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
-                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                >
-                                    <option value="all">ทุกปั๊ม</option>
-                                    {branches
-                                        .sort((a, b) => {
-                                            const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
-                                            return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
-                                        })
-                                        .map((branch) => (
-                                            <option key={branch.id} value={branch.id}>
-                                                {branch.name}
-                                            </option>
-                                        ))}
-                                </select>
-
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="date"
-                                        value={filterDateFrom}
-                                        onChange={(e) => setFilterDateFrom(e.target.value)}
-                                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        title="วันที่เริ่มต้น"
-                                    />
-                                    <span className="text-gray-500 dark:text-gray-400 font-medium">ถึง</span>
-                                    <input
-                                        type="date"
-                                        value={filterDateTo}
-                                        onChange={(e) => setFilterDateTo(e.target.value)}
-                                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        title="วันที่สิ้นสุด"
-                                    />
-                                </div>
-
-                                {(filterDateFrom || filterDateTo || searchTerm || filterStatus !== "all" || filterBranch !== "all" || filterOrderType !== "all") && (
-                                    <button
-                                        onClick={() => {
-                                            setSearchTerm("");
-                                            setFilterStatus("all");
-                                            setFilterBranch("all");
-                                            setFilterOrderType("all");
-                                            setFilterDateFrom("");
-                                            setFilterDateTo("");
-                                        }}
-                                        className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-300 dark:border-gray-600 whitespace-nowrap"
+                    <motion.div
+                        key="job-list"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="space-y-4"
+                    >
+                        {filteredJobs.length === 0 ? (
+                             <div className="text-center py-10 text-gray-500">ไม่พบงาน</div>
+                        ) : (
+                            filteredJobs.map((job) => {
+                                return (
+                                    <div
+                                        key={job.id}
+                                        className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.08)] border border-gray-100 dark:border-gray-700 relative overflow-hidden"
                                     >
-                                        ล้างตัวกรอง
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <p className="text-gray-500 text-sm mb-1">รอบส่งปัจจุบัน</p>
+                                                <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+                                                    {job.transportNo}
+                                                </h3>
+                                            </div>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${job.status === "กำลังส่ง" ? "bg-blue-50 text-blue-600" :
+                                                job.status === "ส่งเสร็จ" ? "bg-emerald-50 text-emerald-600" :
+                                                    "bg-gray-100 text-gray-600"
+                                                }`}>
+                                                {job.status === "กำลังส่ง" ? "กำลังดำเนินการ" : job.status}
+                                            </span>
+                                        </div>
 
-                    {/* Jobs Table */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50 dark:bg-gray-700/50">
-                                    <tr>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            เลขขนส่ง
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            วันที่/เวลา
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            ประเภท
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            รถ/คนขับ
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            จาก/ไป
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            จำนวนปั๊ม
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            สถานะ
-                                        </th>
-                                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                            จัดการ
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-                                    {filteredJobs.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={8} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                                                ไม่พบรายการเที่ยวการส่งน้ำมัน
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        filteredJobs.map((job) => {
-                                            const deliveredBranches = job.destinationBranches.filter((b) => b.status === "ส่งแล้ว");
-                                            const typedJob = job as DriverJobType;
-                                            const isInternal = typedJob.orderType === "internal";
-                                            const isExternal = typedJob.orderType === "external";
-                                            const poMeta = isExternal ? getPurchaseOrderMeta(typedJob) : null;
-                                            return (
-                                                <tr
-                                                    key={job.id}
-                                                    onClick={() => handleSelectJob(job as DriverJobType)}
-                                                    className="hover:bg-blue-50/50 dark:hover:bg-gray-700/70 transition-colors cursor-pointer"
-                                                >
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm font-semibold text-gray-900 dark:text-white">{job.transportNo}</div>
-                                                        {isExternal && typedJob.purchaseOrderNo && (
-                                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5">
-                                                                <div>ใบสั่งซื้อเลขที่: {poMeta?.orderNo || typedJob.purchaseOrderNo}</div>
-                                                                <div>ใบอนุมัติขายเลขที่: {poMeta?.approveNo || "-"}</div>
-                                                                <div>Contract No.: {poMeta?.contractNo || "-"}</div>
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm text-gray-900 dark:text-white">
-                                                            {new Date(job.transportDate).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })}
-                                                        </div>
-                                                        <div className="text-xs text-gray-500 dark:text-gray-400">{job.transportTime}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {isInternal ? (
-                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-                                                                ส่งภายในปั๊ม
-                                                            </span>
-                                                        ) : isExternal ? (
-                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                                                รับจาก PTT
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-xs text-gray-500 dark:text-gray-400">-</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm text-gray-900 dark:text-white">{job.truckPlateNumber}</div>
-                                                        <div className="text-xs text-gray-500 dark:text-gray-400">{job.driverName || "-"}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="text-sm text-gray-900 dark:text-white">{job.sourceBranchName}</div>
-                                                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                            → {job.destinationBranches.length} ปั๊ม
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm text-gray-900 dark:text-white">{job.destinationBranches.length} ปั๊ม</div>
-                                                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                            ส่งแล้ว: {deliveredBranches.length}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {job.status === "ส่งเสร็จ" ? (
-                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                                                เสร็จแล้ว
-                                                            </span>
-                                                        ) : (
-                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
-                                                                กำลังดำเนินการ
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setViewingJobDetail(job as DriverJobType);
-                                                            }}
-                                                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                                            title="ดูรายละเอียด"
-                                                        >
-                                                            <Eye className="w-4 h-4" />
-                                                        </button>
-                                                        <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-500 dark:text-gray-400">
-                                                            <MoreHorizontal className="w-5 h-5" />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </main>
-                <main className="flex-1 w-full max-w-lg mx-auto px-2 py-4 space-y-8 hidden">
-                    {/* Active Jobs */}
-                    {activeJobs.length > 0 && (
-                        <section>
-                            <h2 className="text-base font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
-                                <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
-                                งานที่ยังไม่เสร็จ <span className="text-xs">({activeJobs.length})</span>
-                            </h2>
-                            <div className="flex flex-col gap-4">
-                                {activeJobs.map((job) => {
-                                    const deliveredBranches = job.destinationBranches.filter((b) => b.status === "ส่งแล้ว");
-                                    const undeliveredBranches = job.destinationBranches.filter((b) => b.status !== "ส่งแล้ว");
-                                    const hasUndelivered = undeliveredBranches.length > 0;
-                                    return (
-                                        <motion.div
-                                            key={job.id}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            onClick={() => handleSelectJob(job as DriverJobType)}
-                                            className="rounded-2xl shadow-md bg-white dark:bg-gray-800 border border-blue-100 dark:border-gray-700 p-4 flex flex-col gap-2 cursor-pointer hover:shadow-xl transition-all"
-                                        >
-                                            <div className="flex items-center gap-3 mb-1">
-                                                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30">
-                                                    <Truck className="h-6 w-6 text-blue-500" />
+                                        <div className="grid grid-cols-2 gap-8 mb-6">
+                                            <div>
+                                                <p className="text-xs text-gray-400 mb-1">ทะเบียนรถ</p>
+                                                <p className="font-bold text-gray-800 dark:text-gray-200">{job.truckPlateNumber}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-400 mb-1">หางรอ</p>
+                                                <p className="font-bold text-gray-800 dark:text-gray-200">{job.trailerPlateNumber}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-6 relative pl-2">
+                                            {/* Connecting Line */}
+                                            <div className="absolute left-[11px] top-2 bottom-8 w-0.5 bg-gray-200 dark:bg-gray-700" />
+
+                                            <div className="relative flex items-start gap-4">
+                                                <div className="w-6 h-6 rounded-full bg-blue-500 border-4 border-white dark:border-gray-800 shadow-sm z-10 flex items-center justify-center shrink-0">
+                                                    <MapPin className="w-3 h-3 text-white" />
                                                 </div>
-                                                <div className="flex-1">
-                                                    <h3 className="text-lg font-bold text-gray-800 dark:text-white leading-tight">
-                                                        {job.transportNo}
-                                                    </h3>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {new Date(job.transportDate).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })} เวลา {job.transportTime}
+                                                <div>
+                                                    <p className="text-xs text-gray-400 mb-0.5">ต้นทาง</p>
+                                                    <p className="font-bold text-gray-900 dark:text-white">{job.sourceBranchName}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="relative flex items-start gap-4">
+                                                <div className="w-6 h-6 rounded-full bg-emerald-500 border-4 border-white dark:border-gray-800 shadow-sm z-10 flex items-center justify-center shrink-0">
+                                                    <Navigation className="w-3 h-3 text-white" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-gray-400 mb-0.5">ปลายทาง ({job.destinationBranches.length} สาขา)</p>
+                                                    <p className="font-bold text-gray-900 dark:text-white">
+                                                        {job.destinationBranches.map(b => b.branchName).join(", ")}
                                                     </p>
                                                 </div>
-                                                <ArrowRight className="h-5 w-5 text-blue-400" />
                                             </div>
-                                            <div className="flex flex-wrap gap-2 text-xs mt-1">
-                                                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                                    <MapPin className="h-3 w-3" /> {job.sourceBranchName}
-                                                </span>
-                                                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                                    <Building2 className="h-3 w-3" /> {job.destinationBranches.length} สาขา
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2 mt-2">
-                                                <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-semibold">
-                                                    <CheckCircle className="h-4 w-4" /> ส่งแล้ว: {deliveredBranches.length}
-                                                </span>
-                                                {hasUndelivered && (
-                                                    <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 text-xs font-semibold">
-                                                        <AlertCircle className="h-4 w-4" /> ยังไม่ส่ง: {undeliveredBranches.length}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {hasUndelivered && (
-                                                <div className="flex flex-wrap gap-1 mt-2">
-                                                    {undeliveredBranches.map((branch) => (
-                                                        <span
-                                                            key={branch.branchId}
-                                                            className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full text-xs font-medium"
-                                                        >
-                                                            {branch.branchName}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </motion.div>
-                                    );
-                                })}
-                            </div>
-                        </section>
-                    )}
-                    {/* Completed Jobs */}
-                    {completedJobs.length > 0 && (
-                        <section>
-                            <h2 className="text-base font-semibold text-green-700 dark:text-green-300 mb-3 flex items-center gap-2 mt-8">
-                                <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
-                                งานที่เสร็จแล้ว <span className="text-xs">({completedJobs.length})</span>
-                            </h2>
-                            <div className="flex flex-col gap-4">
-                                {completedJobs.map((job) => {
-                                    const deliveredBranches = job.destinationBranches.filter((b) => b.status === "ส่งแล้ว");
-                                    const undeliveredBranches = job.destinationBranches.filter((b) => b.status !== "ส่งแล้ว");
-                                    const hasUndelivered = undeliveredBranches.length > 0;
-                                    const isInternal = (job as any).orderType === "internal";
-                                    const isExternal = (job as any).orderType === "external";
-                                    return (
-                                        <motion.div
-                                            key={job.id}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            onClick={() => setViewingJobDetail(job as DriverJobType)}
-                                            className="rounded-2xl shadow bg-white dark:bg-gray-800 border border-green-100 dark:border-gray-700 p-4 flex flex-col gap-2 cursor-pointer hover:shadow-xl transition-all"
+                                        </div>
+
+                                        <button
+                                            onClick={() => handleSelectJob(job)}
+                                            className="mt-6 w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all rounded-xl text-white font-bold text-sm shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
                                         >
-                                            <div className="flex items-center gap-3 mb-1">
-                                                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-green-50 dark:bg-green-900/30">
-                                                    <CheckCircle className="h-6 w-6 text-green-600" />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <h3 className="text-lg font-bold text-gray-800 dark:text-white leading-tight">
-                                                            {job.transportNo}
-                                                        </h3>
-                                                        {isInternal && (
-                                                            <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-semibold">
-                                                                ภายในปั๊ม
-                                                            </span>
-                                                        )}
-                                                        {isExternal && (
-                                                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold">
-                                                                รับจาก PTT
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {new Date(job.transportDate).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })} เวลา {job.transportTime}
-                                                    </p>
-                                                    {(job as any).driverName && (
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                            คนขับ: {(job as any).driverName}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <ArrowRight className="h-5 w-5 text-green-400" />
-                                            </div>
-                                            <div className="flex flex-wrap gap-2 text-xs mt-1">
-                                                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                                    <MapPin className="h-3 w-3" /> {job.sourceBranchName}
-                                                </span>
-                                                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                                    <Building2 className="h-3 w-3" /> {job.destinationBranches.length} สาขา
-                                                </span>
-                                                {isInternal && (job as any).internalOrderNo && (
-                                                    <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400">
-                                                        <ShoppingCart className="h-3 w-3" /> {(job as any).internalOrderNo}
-                                                    </span>
-                                                )}
-                                                {isExternal && (job as any).purchaseOrderNo && (
-                                                    <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">
-                                                        <FileText className="h-3 w-3" /> {(job as any).purchaseOrderNo}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-2 mt-2">
-                                                <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-semibold">
-                                                    <CheckCircle className="h-4 w-4" /> ส่งแล้ว: {deliveredBranches.length}
-                                                </span>
-                                                {hasUndelivered && (
-                                                    <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 text-xs font-semibold">
-                                                        <AlertCircle className="h-4 w-4" /> ยังไม่ส่ง: {undeliveredBranches.length}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {hasUndelivered && (
-                                                <div className="flex flex-wrap gap-1 mt-2">
-                                                    {undeliveredBranches.map((branch) => (
-                                                        <span
-                                                            key={branch.branchId}
-                                                            className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full text-xs font-medium"
-                                                        >
-                                                            {branch.branchName}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </motion.div>
-                                    );
-                                })}
-                            </div>
-                        </section>
-                    )}
-                </main>
+                                            เริ่มดำเนินการ <ChevronRight className="w-4 h-4" />
+                                        </button>
+                                        <button 
+                                            onClick={() => setViewingJobDetail(job)}
+                                            className="mt-3 w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm rounded-xl"
+                                        >
+                                            ดูรายละเอียด
+                                        </button>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </motion.div>
+                </div>
+
+                <DriverBottomNav />
             </div>
         );
     }
 
-    const steps = getSteps();
-    const currentStepIndex = getCurrentStepIndex();
-    const orderedBranches = selectedJob ? getOrderedBranches(selectedJob) : [];
-
-    const completedDeliveredBranches = selectedJob ? selectedJob.destinationBranches.filter((b) => b.status === "ส่งแล้ว") : [];
-    const completedUndeliveredBranches = selectedJob ? selectedJob.destinationBranches.filter((b) => b.status !== "ส่งแล้ว") : [];
-    const completedHasUndelivered = completedUndeliveredBranches.length > 0;
-
-    const currentBranch = currentStep === "delivery" && orderedBranches.length > 0 ? orderedBranches[currentDeliveryIndex] : null;
-    const selectedPoMeta = selectedJob && selectedJob.orderType === "external" ? getPurchaseOrderMeta(selectedJob) : null;
-
+    // Main Steps View
     return (
-        <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900">
-            {/* Header */}
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 transition-all duration-200">
-                <div className="max-w-4xl mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-4 mb-2">
-                                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                    <Truck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                                </div>
-                                <div>
-                                    <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-none">
-                                        {selectedJob.transportNo}
-                                    </h1>
-                                </div>
-                                {(selectedJob as any).orderType === "internal" && (
-                                    <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-semibold flex items-center gap-1.5">
-                                        <ShoppingCart className="w-3.5 h-3.5" />
-                                        รอบส่งภายในปั๊ม
-                                    </span>
-                                )}
-                                {(selectedJob as any).orderType === "external" && (
-                                    <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold flex items-center gap-1.5">
-                                        <Truck className="w-3.5 h-3.5" />
-                                        รอบส่งจาก PTT
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-4 text-sm">
-                                <p className="text-gray-500 dark:text-gray-400">
-                                    <span className="font-medium">รถ:</span> {selectedJob.truckPlateNumber} / {selectedJob.trailerPlateNumber}
-                                </p>
-                                {(selectedJob as any).driverName && (
-                                    <p className="text-gray-500 dark:text-gray-400">
-                                        <span className="font-medium">คนขับ:</span> {(selectedJob as any).driverName}
-                                    </p>
-                                )}
-                                {(selectedJob as any).orderType === "internal" && (selectedJob as any).internalOrderNo && (
-                                    <p className="text-purple-600 dark:text-purple-400">
-                                        <span className="font-medium">ออเดอร์:</span> {(selectedJob as any).internalOrderNo}
-                                    </p>
-                                )}
-                                {selectedJob.orderType === "external" && selectedJob.purchaseOrderNo && (
-                                    <p className="text-blue-600 dark:text-blue-400">
-                                        <span className="font-medium">ใบสั่งซื้อเลขที่:</span> {selectedPoMeta?.orderNo || selectedJob.purchaseOrderNo}
-                                    </p>
-                                )}
-                                {selectedJob.orderType === "external" && selectedPoMeta?.approveNo && (
-                                    <p className="text-blue-600 dark:text-blue-400">
-                                        <span className="font-medium">ใบอนุมัติขายเลขที่:</span> {selectedPoMeta.approveNo}
-                                    </p>
-                                )}
-                                {selectedJob.orderType === "external" && selectedPoMeta?.contractNo && (
-                                    <p className="text-blue-600 dark:text-blue-400">
-                                        <span className="font-medium">Contract No.:</span> {selectedPoMeta.contractNo}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => {
-                                setSelectedJob(null);
-                                resetFormStates();
-                            }}
-                            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                        >
-                            เปลี่ยนงาน
-                        </button>
-                    </div>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24 font-sans">
+            {/* Header matches screenshot */}
+            <div className="bg-white dark:bg-gray-800 sticky top-0 z-30 px-4 py-3 shadow-sm border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <button
+                    onClick={() => setSelectedJob(null)} 
+                    className="p-2 -ml-2 text-gray-600 dark:text-gray-300 flex items-center gap-2"
+                >
+                    <ArrowLeft className="w-6 h-6" />
+                    <span className="text-sm font-medium">กลับ</span>
+                </button>
+                 <div className="flex items-center gap-3">
+                     <span className="font-bold text-gray-800 dark:text-white">{selectedJob.transportNo}</span>
+                 </div>
+                 <div className="w-10"></div> {/* Spacer */}
+            </div>
 
-                    {/* Progress Steps */}
-                    <div className="flex items-center justify-between">
-                        {steps.map((step, index) => (
-                            <div key={step.id} className="flex items-center flex-1">
-                                <div className="flex flex-col items-center flex-1">
-                                    <div
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${step.completed
-                                            ? "bg-green-500 text-white"
-                                            : index === currentStepIndex
-                                                ? "bg-blue-500 text-white ring-4 ring-blue-200 dark:ring-blue-800"
-                                                : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
-                                            }`}
-                                    >
-                                        {step.completed ? (
-                                            <CheckCircle className="h-6 w-6" />
-                                        ) : (
-                                            index + 1
-                                        )}
+            <div className="p-5 space-y-6">
+                {/* Stepper */}
+                <div className="w-full overflow-x-auto pb-4 mb-2 -mx-5 px-5 no-scrollbar">
+                    <div className="flex items-center justify-between min-w-[700px]">
+                        {getSteps().map((step, index) => {
+                            const steps = getSteps();
+                            const currentIdx = steps.findIndex(s => s.id === currentStep);
+                            const isCompleted = index < currentIdx;
+                            const isCurrent = index === currentIdx;
+                            
+                            return (
+                                <div key={step.id} className="flex-1 flex flex-col items-center relative">
+                                    {/* Line */}
+                                    {index < steps.length - 1 && (
+                                        <div className={`absolute top-4 left-1/2 w-full h-[2px] ${
+                                            index < currentIdx ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"
+                                        }`} />
+                                    )}
+                                    
+                                    {/* Circle */}
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center relative z-10 text-xs font-bold transition-all duration-300 border-2 ${
+                                        isCompleted 
+                                            ? "bg-green-500 border-green-500 text-white"
+                                            : isCurrent
+                                                ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/30 scale-110"
+                                                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400"
+                                    }`}>
+                                        {isCompleted ? <CheckCircle className="w-5 h-5" /> : index + 1}
                                     </div>
-                                    <p
-                                        className={`text-xs mt-2 text-center font-medium ${index === currentStepIndex
-                                            ? "text-blue-600 dark:text-blue-400"
-                                            : step.completed
-                                                ? "text-green-600 dark:text-green-400"
-                                                : "text-gray-500 dark:text-gray-400"
-                                            }`}
-                                    >
+
+                                    {/* Label */}
+                                    <span className={`text-[10px] mt-2 font-medium transition-colors duration-300 ${
+                                        isCompleted
+                                            ? "text-green-600 dark:text-green-400"
+                                            : isCurrent
+                                                ? "text-blue-600 dark:text-blue-400"
+                                                : "text-gray-400"
+                                    }`}>
                                         {step.label}
-                                    </p>
+                                    </span>
                                 </div>
-                                {index < steps.length - 1 && (
-                                    <div
-                                        className={`flex-1 h-1 mx-2 ${step.completed ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"
-                                            }`}
-                                    />
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
-            </div>
-
-            <div className="max-w-4xl mx-auto px-4 py-6">
                 <AnimatePresence mode="wait">
-                    {/* Step 1: Start Trip */}
-                    {currentStep === "start-trip" && (
-                        <motion.div
-                            key="start-trip"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6">
-                                    ขั้นตอนที่ 1: ออกเดินทาง
-                                </h2>
-
-                                <div className={`mb-6 p-4 border rounded-lg ${(selectedJob as any).orderType === "internal"
-                                    ? "bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800"
-                                    : "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                                    }`}>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        {(selectedJob as any).orderType === "internal" && (
-                                            <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-semibold">
-                                                ภายในปั๊ม
-                                            </span>
-                                        )}
-                                        {(selectedJob as any).orderType === "external" && (
-                                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold">
-                                                รับจาก PTT
-                                            </span>
-                                        )}
-                                        {(selectedJob as any).internalOrderNo && (
-                                            <span className="px-2 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-full text-xs">
-                                                ออเดอร์: {(selectedJob as any).internalOrderNo}
-                                            </span>
-                                        )}
-                                        {(selectedJob as any).purchaseOrderNo && (
-                                            <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-xs">
-                                                PO: {(selectedJob as any).purchaseOrderNo}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <MapPin className={`h-5 w-5 ${(selectedJob as any).orderType === "internal"
-                                            ? "text-purple-600 dark:text-purple-400"
-                                            : "text-blue-600 dark:text-blue-400"
-                                            }`} />
-                                        <div>
-                                            <p className={`font-semibold ${(selectedJob as any).orderType === "internal"
-                                                ? "text-purple-800 dark:text-purple-300"
-                                                : "text-blue-800 dark:text-blue-300"
-                                                }`}>
-                                                ต้นทาง: {selectedJob.sourceBranchName}
-                                            </p>
-                                            <p className={`text-sm ${(selectedJob as any).orderType === "internal"
-                                                ? "text-purple-700 dark:text-purple-400"
-                                                : "text-blue-700 dark:text-blue-400"
-                                                }`}>
-                                                {selectedJob.sourceAddress}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <Building2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                        <div>
-                                            <p className="font-semibold text-green-800 dark:text-green-300">
-                                                ปลายทาง: {selectedJob.destinationBranches.length} สาขา
-                                            </p>
-                                            <p className="text-sm text-green-700 dark:text-green-400">
-                                                {selectedJob.destinationBranches.map((b) => b.branchName).join(", ")}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        📏 เลขไมล์เริ่มต้น *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={startOdometer}
-                                        onChange={(e) => setStartOdometer(e.target.value)}
-                                        placeholder="กรอกเลขไมล์"
-                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        📷 ถ่ายรูปไมล์เริ่มต้น (ถ้ามี)
-                                    </label>
-                                    <div className="flex items-center gap-4">
-                                        {startOdometerPhoto ? (
-                                            <div className="relative group">
-                                                <img
-                                                    src={startOdometerPhoto}
-                                                    alt="ไมล์เริ่มต้น"
-                                                    className="w-32 h-32 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700"
-                                                />
-                                                <button
-                                                    onClick={() => setStartOdometerPhoto("")}
-                                                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <label className="cursor-pointer">
-                                                <div className="w-32 h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                                                    <Camera className="h-8 w-8 text-gray-400" />
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">เพิ่มรูป</span>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            const reader = new FileReader();
-                                                            reader.onloadend = () => {
-                                                                setStartOdometerPhoto(reader.result as string);
-                                                            };
-                                                            reader.readAsDataURL(file);
-                                                        }
-                                                    }}
-                                                    className="hidden"
-                                                />
-                                            </label>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={handleStartTrip}
-                                        className="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Play className="h-6 w-6" />
-                                        ออกเดินทาง
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* Step 2: Warehouse Confirm */}
-                    {currentStep === "warehouse-confirm" && (
-                        <motion.div
-                            key="warehouse-confirm"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <button
-                                        onClick={handleGoBack}
-                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
-                                    >
-                                        <ChevronRight className="h-5 w-5 rotate-180" />
-                                        กลับ
-                                    </button>
-                                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                                        ขั้นตอนที่ 2: กรอกเลขที่คลัง (ยืนยันออเดอร์)
-                                    </h2>
-                                    <div className="w-24"></div>
-                                </div>
-
-                                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                    <div className="flex items-start gap-3">
-                                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                                        <div>
-                                            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
-                                                ยืนยันออเดอร์ก่อนเข้ารับน้ำมัน
-                                            </p>
-                                            <p className="text-xs text-blue-700 dark:text-blue-400">
-                                                กรุณากรอก “เลขที่คลัง” และถ่ายรูปหลักฐาน เพื่อยืนยันออเดอร์ที่จะไปรับ
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        🏷️ เลขที่คลัง *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={warehouseNo}
-                                        onChange={(e) => setWarehouseNo(e.target.value)}
-                                        placeholder="เช่น WH-001 / Depot-12"
-                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                                        📷 ถ่ายรูปหลักฐาน * (อย่างน้อย 1 รูป)
-                                    </label>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                                        {warehousePhotos.map((photo, index) => (
-                                            <div key={index} className="relative group">
-                                                <img
-                                                    src={photo}
-                                                    alt={`หลักฐานคลัง ${index + 1}`}
-                                                    className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700"
-                                                />
-                                                <button
-                                                    onClick={() => handleRemovePhoto(index, warehousePhotos, setWarehousePhotos)}
-                                                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                        {warehousePhotos.length < 6 && (
-                                            <label className="cursor-pointer">
-                                                <div className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                                                    <Camera className="h-8 w-8 text-gray-400" />
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">เพิ่มรูป</span>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    multiple
-                                                    onChange={(e) => handlePhotoUpload(e, setWarehousePhotos)}
-                                                    className="hidden"
-                                                />
-                                            </label>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        📝 หมายเหตุ (ถ้ามี)
-                                    </label>
-                                    <textarea
-                                        value={warehouseNotes}
-                                        onChange={(e) => setWarehouseNotes(e.target.value)}
-                                        placeholder="กรอกหมายเหตุเพิ่มเติม..."
-                                        rows={3}
-                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-
-                                <button
-                                    onClick={handleConfirmWarehouse}
-                                    className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <CheckCircle className="h-6 w-6" />
-                                    ยืนยันออเดอร์และไปขั้นตอนรับน้ำมัน
-                                </button>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* Step 3: Pickup Oil */}
-                    {currentStep === "pickup-oil" && (
-                        <motion.div
-                            key="pickup-oil"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <button
-                                        onClick={handleGoBack}
-                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
-                                    >
-                                        <ChevronRight className="h-5 w-5 rotate-180" />
-                                        กลับ
-                                    </button>
-                                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                                        ขั้นตอนที่ 3: รับน้ำมัน
-                                    </h2>
-                                    <div className="w-24"></div>
-                                </div>
-
-                                <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                                    <div className="flex items-start gap-3">
-                                        <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-                                        <div>
-                                            <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-300 mb-1">
-                                                ⚠️ ระวัง! 1 หลุม ใส่ได้ 1 ชนิดน้ำมันเท่านั้น
-                                            </p>
-                                            <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                                                กรุณาตรวจสอบให้แน่ใจว่าลงน้ำมันถูกช่องตามแผน
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Loading Plan */}
-                                <div className="mb-6">
-                                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                                        แผนการลงน้ำมัน:
-                                    </h3>
-                                    <div className="space-y-2">
-                                        {selectedJob.compartments.map((compartment) => (
-                                            <div
-                                                key={compartment.id || compartment.compartmentNumber}
-                                                className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                                        <span className="font-bold text-blue-600 dark:text-blue-400">
-                                                            {compartment.compartmentNumber}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-semibold text-gray-800 dark:text-white">
-                                                            {compartment.oilType}
-                                                        </p>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                            {compartment.quantity ? numberFormatter.format(compartment.quantity) : "-"} ลิตร → {compartment.destinationBranchName || "-"}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        📷 {selectedJob?.orderType === "external" ? "ถ่ายรูปบิลจากคลัง ปตท" : "ถ่ายรูปบิล/เอกสารรับน้ำมัน"} * (ทุกหน้า)
-                                    </label>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                                        {selectedJob?.orderType === "external"
-                                            ? "ใช้เป็นหลักฐานยืนยันออเดอร์และบิลที่ได้รับจากคลัง ปตท"
-                                            : "ใช้เป็นหลักฐานการรับน้ำมัน"}
-                                    </p>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                                        {pickupPhotos.map((photo, index) => (
-                                            <div key={index} className="relative group">
-                                                <img
-                                                    src={photo}
-                                                    alt={`หลักฐาน ${index + 1}`}
-                                                    className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700"
-                                                />
-                                                <button
-                                                    onClick={() => handleRemovePhoto(index, pickupPhotos, setPickupPhotos)}
-                                                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                        {pickupPhotos.length < 6 && (
-                                            <label className="cursor-pointer">
-                                                <div className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                                                    <Camera className="h-8 w-8 text-gray-400" />
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">เพิ่มรูป</span>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    multiple
-                                                    onChange={(e) => handlePhotoUpload(e, setPickupPhotos)}
-                                                    className="hidden"
-                                                />
-                                            </label>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        📏 เลขไมล์หลังรับน้ำมัน *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={pickupOdometer}
-                                        onChange={(e) => setPickupOdometer(e.target.value)}
-                                        placeholder="กรอกเลขไมล์"
-                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        📝 หมายเหตุ (ถ้ามี)
-                                    </label>
-                                    <textarea
-                                        value={pickupNotes}
-                                        onChange={(e) => setPickupNotes(e.target.value)}
-                                        placeholder="กรอกหมายเหตุเพิ่มเติม..."
-                                        rows={3}
-                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-
-                                <button
-                                    onClick={handleConfirmPickup}
-                                    className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <CheckCircle className="h-6 w-6" />
-                                    ยืนยันการรับน้ำมัน
-                                </button>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* Step 4: Route Planning */}
-                    {currentStep === "route-planning" && (
-                        <motion.div
-                            key="route-planning"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <button
-                                        onClick={handleGoBack}
-                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
-                                    >
-                                        <ChevronRight className="h-5 w-5 rotate-180" />
-                                        กลับ
-                                    </button>
-                                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                                        ขั้นตอนที่ 4: จัดเรียงเส้นทางการส่งน้ำมัน
-                                    </h2>
-                                    <div className="w-24"></div>
-                                </div>
-
-                                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                    <div className="flex items-start gap-3">
-                                        <Route className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                                        <div>
-                                            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
-                                                จัดเรียงลำดับการส่งปั๊ม
-                                            </p>
-                                            <p className="text-xs text-blue-700 dark:text-blue-400">
-                                                ลากสลับลำดับได้โดยกดค้างที่ไอคอน <GripVertical className="inline h-3 w-3" /> และลากไปตำแหน่งที่ต้องการ หรือกดปุ่มลบเพื่อยกเลิกการส่งปั๊มนั้น
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {routeOrder.length === 0 ? (
-                                    <div className="mb-6 p-8 text-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                                        <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                                        <p className="text-gray-600 dark:text-gray-400 font-semibold">
-                                            ไม่มีปั๊มที่ต้องส่ง
-                                        </p>
-                                        <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-                                            กรุณาเพิ่มปั๊มที่ต้องการส่ง
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3 mb-6">
-                                        {routeOrder.map((branchId, index) => {
-                                            const branch = selectedJob.destinationBranches.find((b) => b.branchId === branchId);
-                                            if (!branch) return null;
-
-                                            return (
-                                                <div
-                                                    key={branchId}
-                                                    draggable
-                                                    onDragStart={() => handleDragStart(index)}
-                                                    onDragOver={(e) => handleDragOver(e, index)}
-                                                    onDragEnd={handleDragEnd}
-                                                    className={`p-4 border-2 rounded-lg transition-all cursor-move ${draggedIndex === index
-                                                        ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 opacity-50"
-                                                        : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 hover:border-blue-500 dark:hover:border-blue-400"
-                                                        }`}
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="flex-shrink-0 cursor-grab active:cursor-grabbing">
-                                                            <GripVertical className="h-6 w-6 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors" />
-                                                        </div>
-                                                        <div className="flex-shrink-0">
-                                                            <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                                                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                                                                    {index + 1}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <Building2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                                                                <p className="font-semibold text-gray-800 dark:text-white">
-                                                                    {branch.branchName}
-                                                                </p>
-                                                            </div>
-                                                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                                                {branch.address}
-                                                            </p>
-                                                            <div className="flex items-center gap-3 mt-2">
-                                                                <div className="flex items-center gap-1">
-                                                                    <Droplet className="h-3 w-3 text-blue-500" />
-                                                                    <span className="text-xs text-gray-600 dark:text-gray-400">
-                                                                        {branch.oilType}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex items-center gap-1">
-                                                                    <Package className="h-3 w-3 text-green-500" />
-                                                                    <span className="text-xs text-gray-600 dark:text-gray-400">
-                                                                        {numberFormatter.format(branch.quantity)} ลิตร
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => handleRemoveBranch(branchId)}
-                                                            className="flex-shrink-0 p-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
-                                                            title="ลบปั๊มนี้ออกจากเส้นทาง"
-                                                        >
-                                                            <X className="h-5 w-5" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-
-                                <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
-                                    <div className="flex items-center gap-2">
-                                        <Navigation className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                        <p className="text-sm font-semibold text-green-800 dark:text-green-300">
-                                            เส้นทางการส่ง: {routeOrder.map((branchId) => {
-                                                const branch = selectedJob.destinationBranches.find((b) => b.branchId === branchId);
-                                                return branch?.branchName;
-                                            }).join(" → ")}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={handleConfirmRoutePlanning}
-                                    disabled={routeOrder.length === 0}
-                                    className={`w-full px-6 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2 ${routeOrder.length === 0
-                                        ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                                        : "bg-purple-600 hover:bg-purple-700 text-white"
-                                        }`}
-                                >
-                                    <CheckCircle className="h-6 w-6" />
-                                    ยืนยันเส้นทางและเริ่มส่ง
-                                </button>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* Step 5: Delivery */}
-                    {currentStep === "delivery" && currentBranch && (
-                        <motion.div
-                            key={`delivery-${currentDeliveryIndex}`}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <button
-                                        onClick={handleGoBack}
-                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
-                                    >
-                                        <ChevronRight className="h-5 w-5 rotate-180" />
-                                        กลับ
-                                    </button>
-                                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                                        ขั้นตอนที่ 5: ส่งน้ำมัน
-                                    </h2>
-                                    <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-sm font-semibold">
-                                        ปั๊มที่ {currentDeliveryIndex + 1} / {orderedBranches.length}
-                                    </span>
-                                </div>
-
-                                {/* Progress */}
-                                <div className="mb-6">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">ความคืบหน้า</span>
-                                        <span className="text-sm font-semibold text-gray-800 dark:text-white">
-                                            {orderedBranches.filter((b) => b.status === "ส่งแล้ว").length} / {orderedBranches.length}
-                                        </span>
-                                    </div>
-                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div
-                                            className="bg-green-500 h-2 rounded-full transition-all"
-                                            style={{
-                                                width: `${(orderedBranches.filter((b) => b.status === "ส่งแล้ว").length / orderedBranches.length) * 100}%`,
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Branch Info */}
-                                <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <Building2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                        <div>
-                                            <p className="font-semibold text-green-800 dark:text-green-300 text-lg">
-                                                {currentBranch.branchName}
-                                            </p>
-                                            <p className="text-sm text-green-700 dark:text-green-400">
-                                                {currentBranch.address}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-3">
-                                        <Droplet className="h-4 w-4 text-blue-500" />
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                                            {currentBranch.oilType} - {numberFormatter.format(currentBranch.quantity)} ลิตร
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Delivery Form */}
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                                        📷 ถ่ายรูปหลักฐานการส่งน้ำมัน * (อย่างน้อย 1 รูป)
-                                    </label>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                                        {deliveryPhotos.map((photo, index) => (
-                                            <div key={index} className="relative group">
-                                                <img
-                                                    src={photo}
-                                                    alt={`หลักฐาน ${index + 1}`}
-                                                    className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700"
-                                                />
-                                                <button
-                                                    onClick={() => handleRemovePhoto(index, deliveryPhotos, setDeliveryPhotos)}
-                                                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                        {deliveryPhotos.length < 6 && (
-                                            <label className="cursor-pointer">
-                                                <div className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-green-500 dark:hover:border-green-400 transition-colors">
-                                                    <Camera className="h-8 w-8 text-gray-400" />
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">เพิ่มรูป</span>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    multiple
-                                                    onChange={(e) => handlePhotoUpload(e, setDeliveryPhotos)}
-                                                    className="hidden"
-                                                />
-                                            </label>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        📏 เลขไมล์หลังส่ง *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={deliveryOdometer}
-                                        onChange={(e) => setDeliveryOdometer(e.target.value)}
-                                        placeholder="กรอกเลขไมล์"
-                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                    />
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        📝 หมายเหตุ (ถ้ามี)
-                                    </label>
-                                    <textarea
-                                        value={deliveryNotes}
-                                        onChange={(e) => setDeliveryNotes(e.target.value)}
-                                        placeholder="กรอกหมายเหตุเพิ่มเติม..."
-                                        rows={3}
-                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                    />
-                                </div>
-
-                                <button
-                                    onClick={handleConfirmDelivery}
-                                    className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <CheckCircle className="h-6 w-6" />
-                                    {currentDeliveryIndex === orderedBranches.length - 1
-                                        ? "ส่งเสร็จแล้ว - ไปโรงจอด"
-                                        : "ยืนยันการส่งและไปปั๊มถัดไป"}
-                                </button>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* Step 6: Arrive Depot */}
-                    {currentStep === "arrive-depot" && (
-                        <motion.div
-                            key="arrive-depot"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <button
-                                        onClick={handleGoBack}
-                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
-                                    >
-                                        <ChevronRight className="h-5 w-5 rotate-180" />
-                                        กลับ
-                                    </button>
-                                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                                        ขั้นตอนที่ 6: รถถึงโรงจอด
-                                    </h2>
-                                    <div className="w-24"></div>
-                                </div>
-
-                                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <MapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                        <div>
-                                            <p className="font-semibold text-blue-800 dark:text-blue-300">
-                                                โรงจอด: {selectedJob.sourceBranchName}
-                                            </p>
-                                            <p className="text-sm text-blue-700 dark:text-blue-400">
-                                                {selectedJob.sourceAddress}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    {selectedJob.startTrip && (
-                                        <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
-                                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                                                เลขไมล์เริ่มต้น: {numberFormatter.format(selectedJob.startTrip.startOdometer)} กม.
-                                            </p>
-                                            {selectedJob.destinationBranches.length > 0 && selectedJob.destinationBranches[0].deliveryConfirmation && (
-                                                <p className="text-xs text-gray-600 dark:text-gray-400">
-                                                    เลขไมล์หลังส่งปั๊มสุดท้าย: {numberFormatter.format(selectedJob.destinationBranches[selectedJob.destinationBranches.length - 1].deliveryConfirmation!.odometerReading)} กม.
-                                                </p>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        📏 เลขไมล์เมื่อถึงโรงจอด *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={depotOdometer}
-                                        onChange={(e) => setDepotOdometer(e.target.value)}
-                                        placeholder="กรอกเลขไมล์เมื่อถึงโรงจอด"
-                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                    {selectedJob.startTrip && depotOdometer && (
-                                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                                            ระยะทางรวม: {numberFormatter.format(parseFloat(depotOdometer) - selectedJob.startTrip.startOdometer)} กม.
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        📷 ถ่ายรูปเลขไมล์ (ถ้ามี)
-                                    </label>
-                                    {depotOdometerPhoto ? (
-                                        <div className="relative group">
-                                            <img
-                                                src={depotOdometerPhoto}
-                                                alt="เลขไมล์เมื่อถึงโรงจอด"
-                                                className="w-full h-48 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700"
-                                            />
-                                            <button
-                                                onClick={() => setDepotOdometerPhoto("")}
-                                                className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <label className="cursor-pointer">
-                                            <div className="w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                                                <Camera className="h-12 w-12 text-gray-400" />
-                                                <span className="text-sm text-gray-500 dark:text-gray-400">ถ่ายรูปเลขไมล์</span>
-                                            </div>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        const reader = new FileReader();
-                                                        reader.onloadend = () => {
-                                                            setDepotOdometerPhoto(reader.result as string);
-                                                        };
-                                                        reader.readAsDataURL(file);
-                                                    }
-                                                }}
-                                                className="hidden"
-                                            />
-                                        </label>
-                                    )}
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        📝 หมายเหตุ (ถ้ามี)
-                                    </label>
-                                    <textarea
-                                        value={depotNotes}
-                                        onChange={(e) => setDepotNotes(e.target.value)}
-                                        placeholder="กรอกหมายเหตุเพิ่มเติม..."
-                                        rows={3}
-                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-
-                                <button
-                                    onClick={handleConfirmArriveDepot}
-                                    className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <CheckCircle className="h-6 w-6" />
-                                    ยืนยันการถึงโรงจอดและเสร็จสิ้น
-                                </button>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* Step 6: Completed */}
-                    {currentStep === "completed" && (
-                        <motion.div
-                            key="completed"
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <div className="flex items-center justify-start mb-6">
-                                    <button
-                                        onClick={handleGoBack}
-                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center gap-2"
-                                    >
-                                        <ChevronRight className="h-5 w-5 rotate-180" />
-                                        กลับ
-                                    </button>
-                                </div>
-                                {/* Get delivered and undelivered branches */}
-                                <div className="text-center mb-6">
-                                    <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
-                                    </div>
-                                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-                                        🎉 เสร็จสิ้นภาระกิจ!
-                                    </h2>
-                                    <p className="text-gray-600 dark:text-gray-400">
-                                        ส่งน้ำมันครบทุกปั๊มและกลับถึงโรงจอดเรียบร้อยแล้ว
-                                    </p>
-                                    {selectedJob.startTrip && (selectedJob as any).depotArrival && (
-                                        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                                <div>
-                                                    <p className="text-gray-600 dark:text-gray-400 mb-1">เลขไมล์เริ่มต้น</p>
-                                                    <p className="font-semibold text-gray-800 dark:text-white">
-                                                        {numberFormatter.format(selectedJob.startTrip.startOdometer)} กม.
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-gray-600 dark:text-gray-400 mb-1">เลขไมล์เมื่อถึงโรงจอด</p>
-                                                    <p className="font-semibold text-gray-800 dark:text-white">
-                                                        {numberFormatter.format((selectedJob as any).depotArrival.endOdometer)} กม.
-                                                    </p>
-                                                </div>
-                                                <div className="col-span-2">
-                                                    <p className="text-gray-600 dark:text-gray-400 mb-1">ระยะทางรวม</p>
-                                                    <p className="font-semibold text-blue-600 dark:text-blue-400 text-lg">
-                                                        {numberFormatter.format((selectedJob as any).depotArrival.endOdometer - selectedJob.startTrip.startOdometer)} กม.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Delivered Branches */}
-                                {completedDeliveredBranches.length > 0 && (
-                                    <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
-                                        <p className="text-sm font-semibold text-green-800 dark:text-green-300 mb-3">
-                                            ✓ ปั๊มที่ส่งแล้ว ({completedDeliveredBranches.length} ปั๊ม):
-                                        </p>
-                                        <div className="space-y-2">
-                                            {completedDeliveredBranches.map((branch, index) => (
-                                                <div
-                                                    key={branch.branchId}
-                                                    className="flex items-center justify-between text-sm"
-                                                >
-                                                    <span className="text-gray-700 dark:text-gray-300">
-                                                        {index + 1}. {branch.branchName}
-                                                    </span>
-                                                    <span className="text-green-600 dark:text-green-400 font-semibold">
-                                                        ✓ ส่งแล้ว
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Undelivered Branches */}
-                                {completedHasUndelivered && (
-                                    <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                                        <div className="flex items-start gap-3 mb-3">
-                                            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-                                            <div className="flex-1">
-                                                <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-300 mb-1">
-                                                    ⚠️ ปั๊มที่ยังไม่ส่ง ({completedUndeliveredBranches.length} ปั๊ม):
-                                                </p>
-                                                <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                                                    ปั๊มเหล่านี้ถูกลบออกจากเส้นทางหรือยังไม่ได้ส่ง
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {completedUndeliveredBranches.map((branch) => (
-                                                <div
-                                                    key={branch.branchId}
-                                                    className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-yellow-200 dark:border-yellow-800"
-                                                >
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <Building2 className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                                                            <span className="font-semibold text-gray-800 dark:text-white">
-                                                                {branch.branchName}
-                                                            </span>
-                                                        </div>
-                                                        <span className="text-yellow-600 dark:text-yellow-400 font-semibold text-xs">
-                                                            ยังไม่ส่ง
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                                                        {branch.address}
-                                                    </p>
-                                                    <div className="flex items-center gap-3 text-xs">
-                                                        <div className="flex items-center gap-1">
-                                                            <Droplet className="h-3 w-3 text-blue-500" />
-                                                            <span className="text-gray-600 dark:text-gray-400">
-                                                                {branch.oilType}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex items-center gap-1">
-                                                            <Package className="h-3 w-3 text-green-500" />
-                                                            <span className="text-gray-600 dark:text-gray-400">
-                                                                {numberFormatter.format(branch.quantity)} ลิตร
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Action Buttons */}
-                                <div className="flex gap-3">
-                                    {completedHasUndelivered && (
-                                        <button
-                                            onClick={() => {
-                                                // Add undelivered branches back to route order
-                                                const undeliveredIds = completedUndeliveredBranches.map((b) => b.branchId);
-                                                const newRouteOrder = [...routeOrder, ...undeliveredIds];
-                                                setRouteOrder(newRouteOrder);
-                                                const updatedJob = {
-                                                    ...selectedJob,
-                                                    routeOrder: newRouteOrder,
-                                                    status: "กำลังส่ง" as const,
-                                                };
-                                                setSelectedJob(updatedJob);
-                                                setCurrentStep("delivery");
-                                                setCurrentDeliveryIndex(routeOrder.length);
-                                                resetFormStates();
-                                            }}
-                                            className="flex-1 px-6 py-4 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            <Route className="h-6 w-6" />
-                                            กลับไปส่งปั๊มที่เหลือ
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => {
-                                            // Mark job as completed
-                                            const updatedJob = {
-                                                ...selectedJob,
-                                                status: "ส่งเสร็จ" as const,
-                                            };
-                                            setSelectedJob(updatedJob);
-                                            // Go back to job list
-                                            setSelectedJob(null);
-                                            resetFormStates();
-                                        }}
-                                        className={`px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors ${completedHasUndelivered ? "flex-1" : "w-full"
-                                            }`}
-                                    >
-                                        {completedHasUndelivered ? "เสร็จสิ้นเลย" : "กลับไปเลือกงานใหม่"}
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
+                    {currentStep === "start-trip" && renderStartTrip()}
+                    {currentStep === "warehouse-confirm" && renderWarehouseConfirm()}
+                    {currentStep === "pickup-oil" && renderPickupOil()}
+                    {currentStep === "route-planning" && renderRoutePlanning()}
+                    {currentStep === "delivery" && renderDelivery()}
+                    {currentStep === "arrive-depot" && renderArriveDepot()}
+                    {currentStep === "completed" && renderCompleted()}
                 </AnimatePresence>
             </div>
+            <DriverBottomNav />
         </div>
     );
 }
+

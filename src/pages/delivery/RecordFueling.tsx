@@ -5,19 +5,18 @@ import {
   MapPin,
   Camera,
   History,
-  Calendar,
   Fuel,
   X,
   Plus,
   ArrowLeft,
-  FileText,
-  Search
+  Search,
+  Navigation,
+  Clock
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
 import type { FuelingRecord, OilType, DriverJob } from "@/types/gasStation";
-import StatusTag, { getStatusVariant } from "@/components/StatusTag";
-import TableActionMenu from "@/components/TableActionMenu";
+import DriverBottomNav from "@/components/DriverBottomNav";
 
 const OIL_TYPES: OilType[] = [
   "Premium Diesel",
@@ -30,10 +29,11 @@ const OIL_TYPES: OilType[] = [
 ];
 
 export default function RecordFueling() {
-  const { driverJobs, addFuelingRecord, branches } = useGasStation();
+  const { driverJobs, addFuelingRecord } = useGasStation();
   const { selectedBranches } = useBranch();
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [prefillStation, setPrefillStation] = useState<string | undefined>(undefined);
 
   // Filter active jobs (not completed) + Global Branch Filter
   const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
@@ -44,7 +44,7 @@ export default function RecordFueling() {
       const branchMatch = selectedBranchIds.length === 0 || 
         j.destinationBranches.some(b => selectedBranchIds.includes(b.branchId));
       return active && branchMatch;
-    }),
+    }).slice(0, 1),
     [driverJobs, selectedBranchIds]
   );
 
@@ -59,30 +59,10 @@ export default function RecordFueling() {
   };
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4 px-1"
-      >
-        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20 text-white">
-          <Fuel className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">บันทึกเติมน้ำมัน</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">สำหรับคนขับรถขนส่งน้ำมัน</p>
-        </div>
-        <div className="ml-auto flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
-          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
-          </span>
-        </div>
-      </motion.div>
-
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans pb-24">
       <AnimatePresence mode="wait">
         {!selectedJobId ? (
-          <TripListTable key="list" jobs={activeJobs} onSelect={setSelectedJobId} />
+          <JobList key="list" jobs={activeJobs} onSelect={setSelectedJobId} />
         ) : (
           <FuelingDetailView
             key="detail"
@@ -92,20 +72,31 @@ export default function RecordFueling() {
               if (selectedJobId) {
                 addFuelingRecord(selectedJobId, record);
                 setShowAddModal(false);
+                setPrefillStation(undefined);
               }
             }}
             showAddModal={showAddModal}
-            setShowAddModal={setShowAddModal}
+            setShowAddModal={(val) => {
+                setShowAddModal(val);
+                if (!val) setPrefillStation(undefined);
+            }}
+            onQuickFuel={(station) => {
+                setPrefillStation(station);
+                setShowAddModal(true);
+            }}
+            prefillStation={prefillStation}
           />
         )}
       </AnimatePresence>
+      
+      {!selectedJobId && <DriverBottomNav />}
     </div>
   );
 }
 
 // --- Components ---
 
-function TripListTable({ jobs, onSelect }: { jobs: DriverJob[], onSelect: (id: string) => void }) {
+function JobList({ jobs, onSelect }: { jobs: DriverJob[], onSelect: (id: string) => void }) {
   const [search, setSearch] = useState("");
 
   const filteredJobs = jobs.filter(j =>
@@ -116,97 +107,117 @@ function TripListTable({ jobs, onSelect }: { jobs: DriverJob[], onSelect: (id: s
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="space-y-4"
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="p-5 space-y-6"
     >
-      {/* Search & Filter */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="ค้นหาเลขขนส่ง, ทะเบียนรถ, คนขับ..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          />
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400">
+           <Fuel className="w-6 h-6" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">บันทึกเติมน้ำมัน</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">สำหรับคนขับรถขนส่งน้ำมัน</p>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
-              <tr>
-                <th className="py-4 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">เลขที่ขนส่ง / วันที่</th>
-                <th className="py-4 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">รถ / คนขับ</th>
-                <th className="py-4 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">เส้นทาง</th>
-                <th className="py-4 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">สถานะ</th>
-                <th className="py-4 px-6 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {filteredJobs.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-gray-400">
-                    <Truck className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    ไม่พบรายการขนส่ง
-                  </td>
-                </tr>
-              ) : (
-                filteredJobs.map((job) => (
-                  <tr key={job.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="py-4 px-6">
-                      <div className="font-bold text-gray-900 dark:text-white">{job.transportNo}</div>
-                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(job.transportDate).toLocaleDateString('th-TH')}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">{job.truckPlateNumber}</div>
-                      <div className="text-xs text-gray-500">{job.driverName || "-"}</div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="flex flex-col gap-1">
-                        <div className="text-xs text-gray-500 flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-emerald-500" />
-                          {job.sourceBranchName}
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          placeholder="ค้นหาเลขขนส่ง, ทะเบียนรถ, คนขับ..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm"
+        />
+      </div>
+
+      {/* Cards List */}
+      <div className="space-y-4">
+          {filteredJobs.length === 0 ? (
+            <div className="text-center py-10 text-gray-500">
+                <Truck className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                ไม่พบรายการขนส่ง
+            </div>
+          ) : (
+            filteredJobs.map((job) => (
+                <div key={job.id} className="bg-white dark:bg-gray-800 rounded-3xl p-5 shadow-[0_2px_20px_-4px_rgba(0,0,0,0.08)] border border-gray-100 dark:border-gray-700 relative overflow-hidden">
+                    {/* Header Row */}
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight mb-1">
+                                {job.transportNo}
+                            </h3>
+                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                                <CalendarIcon /> {new Date(job.transportDate).toLocaleDateString('th-TH')}
+                            </p>
                         </div>
-                        <div className="text-xs text-gray-500 pl-4">
-                          to {job.destinationBranches.length} locations
+                        <div className="text-right">
+                             <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">{job.truckPlateNumber}</p>
+                             <p className="text-xs text-gray-500">{job.driverName || "ไม่ระบุคนขับ"}</p>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <StatusTag variant={getStatusVariant(job.status)}>{job.status}</StatusTag>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <div className="flex justify-center">
-                        <TableActionMenu
-                          actions={[
-                            {
-                              label: "บันทึกเติมน้ำมัน",
-                              icon: Fuel,
-                              onClick: () => onSelect(job.id),
-                              variant: "primary"
-                            }
-                          ]}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+
+                    {/* Line Separator */}
+                    <div className="h-px bg-gray-100 dark:bg-gray-700 w-full mb-4" />
+
+                    {/* Locations */}
+                    <div className="space-y-6 relative pl-2 mb-6">
+                        {/* Connecting Line */}
+                        <div className="absolute left-[11px] top-2 bottom-8 w-0.5 bg-gray-200 dark:bg-gray-700" />
+
+                        <div className="relative flex items-start gap-4">
+                            <div className="w-6 h-6 rounded-full bg-blue-500 border-4 border-white dark:border-gray-800 shadow-sm z-10 flex items-center justify-center shrink-0">
+                                <MapPin className="w-3 h-3 text-white" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-400 mb-0.5">ต้นทาง:</p>
+                                <p className="font-bold text-gray-900 dark:text-white">{job.sourceBranchName}</p>
+                            </div>
+                        </div>
+
+                        <div className="relative flex items-start gap-4">
+                            <div className="w-6 h-6 rounded-full bg-emerald-500 border-4 border-white dark:border-gray-800 shadow-sm z-10 flex items-center justify-center shrink-0">
+                                <Navigation className="w-3 h-3 text-white" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-400 mb-0.5">ปลายทาง:</p>
+                                <p className="font-bold text-gray-900 dark:text-white">
+                                    {job.destinationBranches.map(b => b.branchName).join(", ")}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3">
+                         <div className="inline-flex items-center gap-1 px-4 py-2.5 bg-yellow-100 text-yellow-700 rounded-xl text-sm font-bold">
+                             <Clock className="w-4 h-4" />
+                             กำลังดำเนินการ
+                         </div>
+                         <button 
+                            onClick={() => onSelect(job.id)}
+                            className="flex-1 inline-flex items-center justify-center gap-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
+                         >
+                             <Plus className="w-4 h-4" />
+                             บันทึกเติมน้ำมัน
+                         </button>
+                    </div>
+                </div>
+            ))
+          )}
       </div>
     </motion.div>
   );
+}
+
+function CalendarIcon() {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+    )
 }
 
 function FuelingDetailView({
@@ -214,150 +225,183 @@ function FuelingDetailView({
   onBack,
   onAddRecord,
   showAddModal,
-  setShowAddModal
+  setShowAddModal,
+  onQuickFuel,
+  prefillStation
 }: {
   job: DriverJob,
   onBack: () => void,
   onAddRecord: (r: FuelingRecord) => void,
   showAddModal: boolean,
-  setShowAddModal: (v: boolean) => void
+  setShowAddModal: (v: boolean) => void,
+  onQuickFuel: (station: string) => void,
+  prefillStation?: string
 }) {
   const records = job.fuelingRecords || [];
   const totalLiters = records.reduce((sum, r) => sum + r.quantity, 0);
   const totalAmount = records.reduce((sum, r) => sum + r.amount, 0);
+
+  // Sort branches by routeOrder if available to identify the first destination correctly
+  const sortedBranches = useMemo(() => {
+    const branches = [...job.destinationBranches];
+    if (job.routeOrder && job.routeOrder.length > 0) {
+        branches.sort((a, b) => {
+            const indexA = job.routeOrder!.indexOf(a.branchId);
+            const indexB = job.routeOrder!.indexOf(b.branchId);
+            return indexA - indexB;
+        });
+    }
+    return branches;
+  }, [job]);
+
+  const firstDest = sortedBranches[0];
+  const hasFuelAtFirstDest = records.some(r => r.stationName.includes(firstDest?.branchName) || (firstDest?.branchName && firstDest.branchName.includes(r.stationName)));
+  const hasFuelAtBase = records.some(r => r.stationName.includes(job.sourceBranchName) || job.sourceBranchName.includes(r.stationName));
+
 
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className="space-y-6"
+      className="p-5 pb-24 space-y-6"
     >
       {/* Top Bar */}
       <div className="flex items-center gap-4">
         <button
           onClick={onBack}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors"
+          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors -ml-2"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
         <div>
           <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
             {job.transportNo}
-            <StatusTag variant={getStatusVariant(job.status)} className="text-sm">{job.status}</StatusTag>
           </h2>
-          <div className="text-sm text-gray-500 flex items-center gap-3">
-            <span className="flex items-center gap-1"><Truck className="w-3 h-3" /> {job.truckPlateNumber}</span>
-            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.sourceBranchName}</span>
+           <p className="text-xs text-gray-500">{job.truckPlateNumber}</p>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="text-xs text-gray-500 mb-1">รวมปริมาณ (ลิตร)</div>
+          <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{totalLiters.toLocaleString()}</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="text-xs text-gray-500 mb-1">รวมเป็นเงิน (บาท)</div>
+          <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{totalAmount.toLocaleString()}</div>
+        </div>
+      </div>
+
+      {/* Standard Fueling Recommendations */}
+      <div className="space-y-3">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">จุดเติมน้ำมันแนะนำ</p>
+          <div className="grid grid-cols-1 gap-3">
+              {firstDest && !hasFuelAtFirstDest && (
+                  <button 
+                    onClick={() => onQuickFuel(firstDest.branchName)}
+                    className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl group active:scale-[0.98] transition-all"
+                  >
+                      <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+                              <Fuel className="w-5 h-5" />
+                          </div>
+                          <div className="text-left">
+                              <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase">จุดเติมที่ 1</p>
+                              <p className="font-bold text-gray-900 dark:text-white text-sm">เติมที่ {firstDest.branchName}</p>
+                          </div>
+                      </div>
+                      <Plus className="w-5 h-5 text-blue-600" />
+                  </button>
+              )}
+
+              {!hasFuelAtBase && (
+                  <button 
+                    onClick={() => onQuickFuel(job.sourceBranchName)}
+                    className="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-2xl group active:scale-[0.98] transition-all"
+                  >
+                      <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-600/20">
+                              <Fuel className="w-5 h-5" />
+                          </div>
+                          <div className="text-left">
+                              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase">ขากลับ (ปั๊มหลัก/ไฮโซ)</p>
+                              <p className="font-bold text-gray-900 dark:text-white text-sm">เติมที่ {job.sourceBranchName}</p>
+                          </div>
+                      </div>
+                      <Plus className="w-5 h-5 text-emerald-600" />
+                  </button>
+              )}
           </div>
-        </div>
-        <div className="ml-auto">
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all font-bold"
-          >
-            <Plus className="w-5 h-5" />
-            เพิ่มรายการเติมน้ำมัน
-          </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="md:hidden p-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full shadow-lg"
-          >
-            <Plus className="w-6 h-6" />
-          </button>
-        </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-          <div className="text-sm text-gray-500 mb-1">จำนวนครั้งที่เติม</div>
-          <div className="text-2xl font-bold text-gray-800 dark:text-white">{records.length} <span className="text-xs font-normal text-muted">ครั้ง</span></div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-          <div className="text-sm text-gray-500 mb-1">รวมปริมาณ</div>
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalLiters.toLocaleString()} <span className="text-xs font-normal text-muted">ลิตร</span></div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm col-span-2 md:col-span-2">
-          <div className="text-sm text-gray-500 mb-1">รวมเป็นเงิน</div>
-          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">฿{totalAmount.toLocaleString()}</div>
-        </div>
-      </div>
 
-      {/* Records Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+       <div className="flex justify-between items-center mt-2">
           <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
             <History className="w-5 h-5 text-gray-400" />
-            ประวัติการเติมน้ำมัน
+            ประวัติการเติม
           </h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50/50 dark:bg-gray-900/50 text-left">
-              <tr>
-                <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase">วันที่ / เวลา</th>
-                <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase">ปั๊มน้ำมัน</th>
-                <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase">ประเภท / เลขไมล์</th>
-                <th className="py-4 px-6 text-right text-xs font-semibold text-gray-500 uppercase">ปริมาณ / ราคา</th>
-                <th className="py-4 px-6 text-center text-xs font-semibold text-gray-500 uppercase">หลักฐาน</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {records.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-gray-400">
-                    ยังไม่มีข้อมูลการเติมน้ำมัน
-                  </td>
-                </tr>
-              ) : (
-                records.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
-                    <td className="py-4 px-6">
-                      <div className="font-medium text-gray-900 dark:text-white">{r.fuelingDate}</div>
-                      <div className="text-xs text-gray-500">{r.fuelingTime}</div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="text-sm text-gray-900 dark:text-white font-medium">{r.stationName}</div>
-                      {r.notes && <div className="text-xs text-gray-400 truncate max-w-[150px]">{r.notes}</div>}
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="text-sm text-gray-900 dark:text-white">{r.oilType}</div>
-                      <div className="text-xs text-gray-500">เลขไมล์: {r.odometerReading.toLocaleString()}</div>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="text-sm font-bold text-gray-900 dark:text-white">{r.amount.toLocaleString()} ฿</div>
-                      <div className="text-xs text-gray-500">{r.quantity.toLocaleString()} ลิตร</div>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      {r.photoUrl ? (
-                        <a href={r.photoUrl} target="_blank" rel="noreferrer" className="inline-block p-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                          <FileText className="w-4 h-4 text-blue-600" />
-                        </a>
-                      ) : (
-                        <span className="text-gray-300">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-md shadow-blue-600/20"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            เพิ่มรายการ
+          </button>
       </div>
+
+      {/* History List (Mobile Style) */}
+      <div className="space-y-3">
+          {records.length === 0 ? (
+             <div className="text-center py-10 text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+                ยังไม่มีข้อมูลการเติมน้ำมัน
+             </div>
+          ) : (
+            records.map((r) => (
+               <div key={r.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm flex justify-between items-start">
+                   <div>
+                       <div className="font-bold text-gray-900 dark:text-white text-sm">{r.stationName}</div>
+                       <div className="text-xs text-gray-500 mt-0.5">{r.fuelingDate} • {r.fuelingTime}</div>
+                       <div className="mt-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md inline-block">
+                           {r.oilType} • {r.odometerReading.toLocaleString()} km
+                       </div>
+                   </div>
+                   <div className="text-right">
+                       <div className="font-bold text-blue-600 dark:text-blue-400">{r.amount.toLocaleString()} ฿</div>
+                       <div className="text-xs text-gray-500">{r.quantity.toLocaleString()} ลิตร</div>
+                   </div>
+               </div>
+            ))
+          )}
+      </div>
+
 
       {/* Add Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <AddFuelingModal onClose={() => setShowAddModal(false)} onSave={onAddRecord} />
+          <AddFuelingModal 
+            onClose={() => setShowAddModal(false)} 
+            onSave={onAddRecord} 
+            defaultStationName={prefillStation}
+          />
         )}
       </AnimatePresence>
     </motion.div>
   );
 }
 
-function AddFuelingModal({ onClose, onSave }: { onClose: () => void, onSave: (r: FuelingRecord) => void }) {
-  const [stationName, setStationName] = useState("");
+function AddFuelingModal({ 
+  onClose, 
+  onSave,
+  defaultStationName 
+}: { 
+  onClose: () => void, 
+  onSave: (r: FuelingRecord) => void,
+  defaultStationName?: string
+}) {
+  const [stationName, setStationName] = useState(defaultStationName || "");
+
   const [oilType, setOilType] = useState<OilType>("Diesel");
   const [quantity, setQuantity] = useState<number | "">("");
   const [amount, setAmount] = useState<number | "">("");
@@ -406,7 +450,7 @@ function AddFuelingModal({ onClose, onSave }: { onClose: () => void, onSave: (r:
         initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 100 }}
-        className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
+        className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
       >
         <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
           <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
@@ -493,7 +537,6 @@ function AddFuelingModal({ onClose, onSave }: { onClose: () => void, onSave: (r:
                 <span>ถ่ายรูป / อัปโหลด</span>
               </button>
             )}
-            {/* Added Notes Field */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">หมายเหตุ</label>
               <textarea

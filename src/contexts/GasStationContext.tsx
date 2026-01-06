@@ -33,6 +33,7 @@ interface GasStationContextType {
   receipts: Receipt[];
   transportDeliveries: TransportDelivery[];
   driverJobs: DriverJob[];
+  allDriverJobs: DriverJob[];
   oilReceipts: OilReceipt[];
   tankEntries: TankEntryRecord[];
   trucks: TruckProfile[];
@@ -631,6 +632,7 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       selectedBranchIds.includes(j.sourceBranchId) ||
       j.destinationBranches.some(b => selectedBranchIds.includes(b.branchId))
     ),
+    allDriverJobs: driverJobsState,
     oilReceipts: oilReceiptsState.filter(r => 
       selectedBranchIds.length === 0 || selectedBranchIds.includes(r.branchId)
     ),

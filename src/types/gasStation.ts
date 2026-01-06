@@ -374,6 +374,9 @@ export interface DriverJob {
       odometerReading: number;
       notes?: string;
     };
+    arrivalConfirmation?: {
+      confirmedAt: string;
+    };
   }>;
   compartments: Compartment[];
   truckPlateNumber: string;
@@ -402,6 +405,13 @@ export interface DriverJob {
     warehouseNo: string; // เลขที่คลัง
     depotDocumentNo?: string; // เลขเอกสารจากคลัง (เช่น เลขบิล/ใบส่งของ)
     photos: string[];
+    notes?: string;
+  };
+  depotArrival?: {
+    arrivedAt: string;
+    endOdometer: number;
+    endOdometerPhoto?: string;
+    endFuel?: number; // น้ำมันตอนกลับโรงจอด
     notes?: string;
   };
   fuelingRecords?: FuelingRecord[];

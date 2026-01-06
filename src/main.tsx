@@ -226,6 +226,7 @@ import LubricantsDashboard from "@/pages/gas-station/LubricantsDashboard";
 import AccountingExport from "@/pages/gas-station/AccountingExport";
 import POGeneration from "@/pages/gas-station/POGeneration";
 import DriverApp from "@/pages/gas-station/DriverApp";
+import DriverDashboard from "@/pages/gas-station/DriverDashboard";
 import Quotation from "@/pages/gas-station/Quotation";
 import DeliveryNote from "@/pages/gas-station/DeliveryNote";
 import Receipt from "@/pages/gas-station/Receipt";
@@ -1036,6 +1037,10 @@ const router = createBrowserRouter([
           {
             path: "driver-app",
             element: <DriverApp />,
+          },
+          {
+            path: "driver-dashboard",
+            element: <DriverDashboard />,
           },
           {
             path: "quotation",
