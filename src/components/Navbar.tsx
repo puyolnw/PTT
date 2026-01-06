@@ -1,37 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Users, PiggyBank, BarChart3, FileText, LogOut, Menu, Store, Building, Calculator, Fuel, Truck, Filter, ChevronDown, Sun, Moon, Monitor, Settings } from "lucide-react";
+import { LogOut, Menu, Filter, ChevronDown, Sun, Moon, Monitor, Settings } from "lucide-react";
 import { logout } from "@/lib/auth";
 
-const modules = [
-  { name: "ระบบพนักงาน", path: "/app/hr", icon: Users },
-  { name: "ระบบกองทุน", path: "/app/fund", icon: PiggyBank },
-  { name: "ระบบงานเอกสาร", path: "/app/documents", icon: FileText },
-  { name: "รายงานและสถิติ", path: "/app/reports", icon: BarChart3 },
-  { name: "ร้านค้าพื้นที่ปั้ม", path: "/app/shops", icon: Store },
-  { name: "จัดการพื้นที่เช่า", path: "/app/rental", icon: Building },
-  { name: "ระบบบัญชี", path: "/app/accounting", icon: Calculator },
-  { name: "ระบบปั๊มน้ำมัน", path: "/app/gas-station", icon: Fuel },
-  { name: "ระบบ Delivery", path: "/app/delivery", icon: Truck },
-];
-
-const branches = [
-  { id: "1", name: "สาขา 1" },
-  { id: "2", name: "สาขา 2" },
-  { id: "3", name: "สาขา 3" },
-  { id: "4", name: "สาขา 4" },
-  { id: "5", name: "สาขา 5" },
-];
+import { useBranch } from "@/contexts/BranchContext";
+import { modules, branches } from "@/components/navbar/constants";
 
 interface NavbarProps {
   onMenuClick?: () => void;
+  onSidebarToggle?: () => void;
 }
 
 export default function Navbar({ onMenuClick }: NavbarProps) {
   const navigate = useNavigate();
+  const { selectedBranches, toggleBranch, selectAll, clearAll } = useBranch();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isBranchFilterOpen, setIsBranchFilterOpen] = useState(false);
-  const [selectedBranches, setSelectedBranches] = useState<string[]>(branches.map(b => b.id));
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "system");
   const profileRef = useRef<HTMLDivElement>(null);
   const branchRef = useRef<HTMLDivElement>(null);
@@ -55,18 +39,12 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     }
   };
 
-  const toggleBranch = (branchId: string) => {
-    setSelectedBranches(prev =>
-      prev.includes(branchId)
-        ? prev.filter(id => id !== branchId)
-        : [...prev, branchId]
-    );
-  };
-
   const toggleAll = () => {
-    setSelectedBranches(prev =>
-      prev.length === branches.length ? [] : branches.map(b => b.id)
-    );
+    if (selectedBranches.length === branches.length) {
+      clearAll();
+    } else {
+      selectAll();
+    }
   };
 
   useEffect(() => {

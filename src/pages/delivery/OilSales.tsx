@@ -7,7 +7,6 @@ import {
   Droplet,
   Search,
   X,
-  Eye,
   FileDown,
   ArrowRight,
   Printer,
@@ -19,6 +18,7 @@ import {
   ShieldCheck,
   Thermometer,
 } from "lucide-react";
+import TableActionMenu from "@/components/TableActionMenu";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
 import deliveryMockData from "@/data/delivery_mock_data.json";
@@ -606,21 +606,28 @@ export default function DeliveryOilSales() {
                     {currencyFormatter.format(tx.totalAmount)}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <DocButton
-                        label="DN"
-                        no={tx.deliveryNoteNo}
-                        onClick={() => handleViewDoc("DN", tx.deliveryNoteNo)}
-                      />
-                      <DocButton
-                        label="RCP"
-                        no={tx.receiptNo}
-                        onClick={() => handleViewDoc("RCP", tx.receiptNo)}
-                      />
-                      <DocButton
-                        label="OR"
-                        no={tx.deliveryNoteNo} // สำหรับหน้า Oil Receipt มักใช้เลข DN อ้างอิง
-                        onClick={() => handleViewDoc("OR", tx.deliveryNoteNo)}
+                    <div className="flex justify-center">
+                      <TableActionMenu
+                        actions={[
+                          ...(tx.deliveryNoteNo ? [{
+                            label: "ดูใบส่งของ (DN)",
+                            icon: FileText,
+                            onClick: () => handleViewDoc("DN", tx.deliveryNoteNo),
+                            variant: "primary" as const
+                          }] : []),
+                          ...(tx.receiptNo ? [{
+                            label: "ดูใบเสร็จรับเงิน (RCP)",
+                            icon: DollarSign,
+                            onClick: () => handleViewDoc("RCP", tx.receiptNo),
+                            variant: "success" as const
+                          }] : []),
+                          ...(tx.deliveryNoteNo ? [{
+                            label: "ดูใบรับน้ำมัน (OR)",
+                            icon: ShieldCheck,
+                            onClick: () => handleViewDoc("OR", tx.deliveryNoteNo),
+                            variant: "warning" as const
+                          }] : [])
+                        ]}
                       />
                     </div>
                   </td>
@@ -705,19 +712,19 @@ function DNView({ data }: { data: DeliveryNote }) {
     <div className="space-y-6 text-black dark:text-white">
       <div className="grid grid-cols-2 gap-8 border-b dark:border-gray-700 pb-6">
         <div>
-          <label className="text-xs font-bold text-gray-400 uppercase">จากสาขา</label>
+          <div className="text-xs font-bold text-gray-400 uppercase">จากสาขา</div>
           <p className="text-lg font-bold">{data.fromBranchName}</p>
         </div>
         <div>
-          <label className="text-xs font-bold text-gray-400 uppercase">ถึงสาขา</label>
+          <div className="text-xs font-bold text-gray-400 uppercase">ถึงสาขา</div>
           <p className="text-lg font-bold">{data.toBranchName}</p>
         </div>
         <div>
-          <label className="text-xs font-bold text-gray-400 uppercase">วันที่ส่ง</label>
+          <div className="text-xs font-bold text-gray-400 uppercase">วันที่ส่ง</div>
           <p className="font-bold">{new Date(data.deliveryDate).toLocaleDateString("th-TH")}</p>
         </div>
         <div>
-          <label className="text-xs font-bold text-gray-400 uppercase">สถานะ</label>
+          <div className="text-xs font-bold text-gray-400 uppercase">สถานะ</div>
           <div className="flex items-center gap-2 mt-1">
             <span className={`px-3 py-1 rounded-full text-xs font-bold border ${data.status === "delivered" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-blue-50 text-blue-600 border-blue-200"
               }`}>
@@ -731,21 +738,21 @@ function DNView({ data }: { data: DeliveryNote }) {
         <div className="flex items-center gap-3">
           <Truck className="w-5 h-5 text-gray-400" />
           <div>
-            <label className="text-[10px] block text-gray-400 uppercase">ทะเบียนรถ</label>
+            <span className="text-[10px] block text-gray-400 uppercase">ทะเบียนรถ</span>
             <p className="text-sm font-bold">{data.truckPlateNumber || "—"}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <User className="w-5 h-5 text-gray-400" />
           <div>
-            <label className="text-[10px] block text-gray-400 uppercase">คนขับ</label>
+            <span className="text-[10px] block text-gray-400 uppercase">คนขับ</span>
             <p className="text-sm font-bold">{data.driverName || "—"}</p>
           </div>
         </div>
       </div>
 
       <div>
-        <label className="text-xs font-bold text-gray-400 uppercase mb-3 block">รายการสินค้า</label>
+        <div className="text-xs font-bold text-gray-400 uppercase mb-3 block">รายการสินค้า</div>
         <div className="border dark:border-gray-700 rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800/50 border-b dark:border-gray-700">
@@ -816,7 +823,7 @@ function RCPView({ data }: { data: Receipt }) {
 
       <div className="grid grid-cols-2 gap-8 p-6 border dark:border-gray-700 rounded-2xl">
         <div>
-          <label className="text-[10px] font-bold text-gray-400 uppercase">ลูกค้า (Customer)</label>
+          <div className="text-[10px] font-bold text-gray-400 uppercase">ลูกค้า (Customer)</div>
           <p className="font-bold text-lg leading-tight">{data.customerName}</p>
           <p className="text-sm text-gray-500 mt-1">{data.customerAddress}</p>
           {data.customerTaxId && (
@@ -827,12 +834,12 @@ function RCPView({ data }: { data: Receipt }) {
         </div>
         <div className="text-right space-y-4">
           <div>
-            <label className="text-[10px] font-bold text-gray-400 uppercase">เลขอ้างอิงใบส่งของ</label>
+            <div className="text-[10px] font-bold text-gray-400 uppercase">เลขอ้างอิงใบส่งของ</div>
             <p className="font-bold">{data.deliveryNoteNo || "—"}</p>
           </div>
           {data.purchaseOrderNo && (
             <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase">เลขอ้างอิงใบสั่งซื้อ (PO)</label>
+              <div className="text-[10px] font-bold text-gray-400 uppercase">เลขอ้างอิงใบสั่งซื้อ (PO)</div>
               <p className="font-bold">{data.purchaseOrderNo}</p>
             </div>
           )}
@@ -894,7 +901,7 @@ function ORView({ data }: { data: OilReceipt }) {
       <div className="flex justify-between items-center">
         <h3 className="text-2xl font-bold text-orange-600 dark:text-orange-400">OIL RECEIVING RECORD</h3>
         <div className="text-right">
-          <label className="text-[10px] font-bold text-gray-400 uppercase">วันที่รับของ</label>
+          <div className="text-[10px] font-bold text-gray-400 uppercase">วันที่รับของ</div>
           <p className="font-bold">{new Date(data.receiveDate).toLocaleDateString("th-TH")} {data.receiveTime}</p>
         </div>
       </div>
@@ -905,7 +912,7 @@ function ORView({ data }: { data: OilReceipt }) {
             <Truck className="w-5 h-5 text-orange-600" />
           </div>
           <div>
-            <label className="text-[10px] text-gray-400 uppercase">ทะเบียนรถขนส่ง</label>
+            <span className="text-[10px] text-gray-400 uppercase">ทะเบียนรถขนส่ง</span>
             <p className="font-bold">{data.truckLicensePlate}</p>
           </div>
         </div>
@@ -914,7 +921,7 @@ function ORView({ data }: { data: OilReceipt }) {
             <User className="w-5 h-5 text-orange-600" />
           </div>
           <div>
-            <label className="text-[10px] text-gray-400 uppercase">พนักงานขับรถ</label>
+            <span className="text-[10px] text-gray-400 uppercase">พนักงานขับรถ</span>
             <p className="font-bold">{data.driverName}</p>
           </div>
         </div>
@@ -951,7 +958,7 @@ function ORView({ data }: { data: OilReceipt }) {
       </div>
 
       <div>
-        <label className="text-xs font-bold text-gray-400 uppercase mb-3 block">รายการที่รับเข้าถัง</label>
+        <div className="text-xs font-bold text-gray-400 uppercase mb-3 block">รายการที่รับเข้าถัง</div>
         <div className="border dark:border-gray-700 rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800/50 border-b dark:border-gray-700">
@@ -984,18 +991,6 @@ function ORView({ data }: { data: OilReceipt }) {
   );
 }
 
-function DocButton({ label, no, onClick }: { label: string, no: string, onClick: () => void }) {
-  if (!no) return null;
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-1.5 px-2 py-1 bg-white/5 border border-app rounded-lg hover:bg-ptt-blue/10 hover:border-ptt-blue/30 transition-all text-[10px] font-bold text-muted hover:text-app"
-      title={`ดู ${label}: ${no}`}
-    >
-      <Eye className="w-3 h-3" />
-      {label}
-    </button>
-  );
-}
+
 
 

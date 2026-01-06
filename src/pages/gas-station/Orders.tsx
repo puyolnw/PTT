@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import NewOrderForm from "./NewOrderForm";
 import { mockTruckOrders, type TruckOrder, mockTrucks, mockTrailers } from "./TruckProfiles";
+import TableActionMenu from "@/components/TableActionMenu";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -97,6 +98,7 @@ export default function Orders() {
   const navigate = useNavigate();
   const { orders, purchaseOrders, createPurchaseOrder, updateOrder, branches } = useGasStation();
   const { selectedBranches } = useBranch();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
   const [searchTerm, setSearchTerm] = useState("");
 
   const [showTruckModal, setShowTruckModal] = useState(false);
@@ -193,6 +195,11 @@ export default function Orders() {
   const filteredPurchaseOrders = purchaseOrders.filter(order => {
     // Date filter (orderDate)
     if (!isDateInRange(order.orderDate, filterDate, filterDateTo)) return false;
+
+    // Branch filter
+    const matchBranch = selectedBranchIds.length === 0 || 
+      order.branches.some(b => selectedBranchIds.includes(b.branchId));
+    if (!matchBranch) return false;
 
     // Search term (branch, oil type, orderNo)
     if (searchTerm.trim()) {
@@ -486,15 +493,15 @@ export default function Orders() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedApprovedOrder(order);
-                          }}
-                          className="p-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-500 transition-colors"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        <TableActionMenu
+                          actions={[
+                            {
+                              label: "ดูรายละเอียด",
+                              icon: Eye,
+                              onClick: () => setSelectedApprovedOrder(order),
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   );
@@ -1397,9 +1404,10 @@ export default function Orders() {
                         const deliveryDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // วันถัดไป
 
                         // สร้าง orderNo และ supplierOrderNo
-                        const autoOrderNo = `SO-${orderDate.replace(/-/g, '')}-${String(purchaseOrders.length + 1).padStart(3, '0')}`;
+                        // สร้าง orderNo และ supplierOrderNo
+                        const autoOrderNo = `20251220084159707`; // HARDCODED
                         const orderNo = purchaseOrderNoInput.trim() ? purchaseOrderNoInput.trim() : autoOrderNo;
-                        const supplierOrderNo = `PTT-${orderDate.replace(/-/g, '')}-${String(purchaseOrders.length + 1).padStart(3, '0')}`;
+                        const supplierOrderNo = `519895412`; // HARDCODED
                         const billNo = `BILL-${orderDate.replace(/-/g, '')}-${String(purchaseOrders.length + 1).padStart(3, '0')}`;
 
                         // คำนวณราคาต่อลิตร (mock - ในระบบจริงจะดึงจาก API)
@@ -1487,9 +1495,9 @@ export default function Orders() {
                           deliveryDate,
                           items,
                           totalAmount,
-                          branches: branchesData,
-                          status: "รอเริ่ม" as const, // เปลี่ยนเป็นรอเริ่มเพื่อให้สามารถสร้าง Transport ได้
-                          approvedBy: "คุณนิด",
+                          branches: branchesData.map(b => ({ ...b, deliveryStatus: "รอส่ง" as const })),
+                          status: "รอเริ่ม" as const,
+                          approvedBy: "System Admin",
                           approvedAt: new Date().toISOString(),
                           attachments: orderAttachments.map((att) => ({
                             id: att.id,
@@ -1800,20 +1808,6 @@ export default function Orders() {
                             placeholder="เช่น SO-20241215-001"
                             className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
                           />
-                          <p className="text-[11px] text-gray-500 dark:text-gray-500 mt-1">
-                            ถ้ากรอก ระบบจะใช้เลขนี้แทนเลขที่ใบสั่งซื้อที่สร้างอัตโนมัติ
-                          </p>
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">
-                            Contract No.
-                          </label>
-                          <input
-                            value={contractNoInput}
-                            onChange={(e) => setContractNoInput(e.target.value)}
-                            placeholder="เช่น CN-xxxx"
-                            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
-                          />
                         </div>
                       </div>
                     </div>
@@ -2067,15 +2061,6 @@ export default function Orders() {
                       </div>
 
                       {/* Contract No. */}
-                      {selectedApprovedOrder?.contractNo && (
-                        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
-                          <div className="flex items-center gap-2 mb-2">
-                            <FileText className="w-4 h-4 text-gray-400" />
-                            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Contract No.</span>
-                          </div>
-                          <p className="text-lg font-bold text-gray-800 dark:text-white">{selectedApprovedOrder?.contractNo}</p>
-                        </div>
-                      )}
 
                       {/* วันที่สั่ง */}
                       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">

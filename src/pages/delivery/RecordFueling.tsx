@@ -17,6 +17,7 @@ import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
 import type { FuelingRecord, OilType, DriverJob } from "@/types/gasStation";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import TableActionMenu from "@/components/TableActionMenu";
 
 const OIL_TYPES: OilType[] = [
   "Premium Diesel",
@@ -34,10 +35,17 @@ export default function RecordFueling() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // Filter active jobs (not completed)
+  // Filter active jobs (not completed) + Global Branch Filter
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
+  
   const activeJobs = useMemo(() =>
-    driverJobs.filter(j => j.status !== "ส่งเสร็จ"),
-    [driverJobs]
+    driverJobs.filter(j => {
+      const active = j.status !== "ส่งเสร็จ";
+      const branchMatch = selectedBranchIds.length === 0 || 
+        j.destinationBranches.some(b => selectedBranchIds.includes(b.branchId));
+      return active && branchMatch;
+    }),
+    [driverJobs, selectedBranchIds]
   );
 
   const selectedJob = useMemo(() =>
@@ -177,13 +185,18 @@ function TripListTable({ jobs, onSelect }: { jobs: DriverJob[], onSelect: (id: s
                       <StatusTag variant={getStatusVariant(job.status)}>{job.status}</StatusTag>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <button
-                        onClick={() => onSelect(job.id)}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 font-medium text-sm transition-colors"
-                      >
-                        <Fuel className="w-4 h-4" />
-                        บันทึกเติมน้ำมัน
-                      </button>
+                      <div className="flex justify-center">
+                        <TableActionMenu
+                          actions={[
+                            {
+                              label: "บันทึกเติมน้ำมัน",
+                              icon: Fuel,
+                              onClick: () => onSelect(job.id),
+                              variant: "primary"
+                            }
+                          ]}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))

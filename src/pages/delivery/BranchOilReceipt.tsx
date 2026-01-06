@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
+import TableActionMenu from "@/components/TableActionMenu";
 import type { DeliveryNote, DriverJob, PurchaseOrder, QualityTest, Receipt } from "@/types/gasStation";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -42,7 +43,6 @@ interface BranchOilReceipt {
   receiptNo: string; // เลขที่ใบรับน้ำมัน
   purchaseOrderNo: string; // เลขที่ใบสั่งซื้อ
   approveNo?: string; // ใบอนุมัติขายเลขที่ (จาก PO)
-  contractNo?: string; // Contract No. (จาก PO)
   transportNo: string; // เลขที่ขนส่ง
   branchId: number; // ID ปั๊มย่อย
   branchName: string; // ชื่อปั๊มย่อย
@@ -138,7 +138,6 @@ const generateBranchReceipts = (purchaseOrders: PurchaseOrder[], driverJobs: Dri
         receiptNo: `BR-${po.orderNo}-${branch.branchId}`,
         purchaseOrderNo: po.orderNo,
         approveNo: po.approveNo,
-        contractNo: po.contractNo,
         transportNo: transportNo,
         branchId: branch.branchId,
         branchName: branch.branchName,
@@ -332,15 +331,13 @@ export default function BranchOilReceipt() {
     return branchReceiptsState.filter((r) => {
       const po = poByNo.get(r.purchaseOrderNo);
       const approveNo = po?.approveNo || r.approveNo || "";
-      const contractNo = po?.contractNo || r.contractNo || "";
       const matchesSearch =
         r.receiptNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.purchaseOrderNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.transportNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.branchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.truckPlateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        approveNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contractNo.toLowerCase().includes(searchTerm.toLowerCase());
+        approveNo.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = filterStatus === "all" || r.status === filterStatus;
         const matchGlobalBranch = selectedBranchIds.length === 0 || selectedBranchIds.includes(r.branchId);
         const matchesLocalBranch = filterBranch === "all" || r.branchId === filterBranch;
@@ -987,39 +984,36 @@ export default function BranchOilReceipt() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      {receipt.status === "รอรับ" && (
-                        <>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleReceive(receipt); }}
-                            className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-xs font-bold shadow-sm"
-                          >
-                            รับน้ำมัน
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleReject(receipt); }}
-                            className="px-3 py-1.5 bg-white text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-50 transition-colors text-xs font-bold"
-                          >
-                            ปฏิเสธ
-                          </button>
-                        </>
-                      )}
-                      {receipt.status === "รับแล้ว" && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDownload("branch-oil-receipt", receipt); }}
-                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-200"
-                          title="ดาวน์โหลด PDF"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleViewDetail(receipt); }}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200"
-                        title="ดูรายละเอียด"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                    <div className="flex justify-end">
+                      <TableActionMenu
+                        actions={[
+                          ...(receipt.status === "รอรับ" ? [
+                            {
+                              label: "รับน้ำมัน",
+                              icon: CheckCircle,
+                              onClick: () => handleReceive(receipt),
+                            },
+                            {
+                              label: "ปฏิเสธ",
+                              icon: X,
+                              onClick: () => handleReject(receipt),
+                              variant: "danger" as const,
+                            }
+                          ] : []),
+                          ...(receipt.status === "รับแล้ว" ? [
+                            {
+                              label: "ดาวน์โหลด PDF",
+                              icon: Download,
+                              onClick: () => handleDownload("branch-oil-receipt", receipt),
+                            }
+                          ] : []),
+                          {
+                            label: "ดูรายละเอียด",
+                            icon: Eye,
+                            onClick: () => handleViewDetail(receipt),
+                          }
+                        ]}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -1100,17 +1094,14 @@ export default function BranchOilReceipt() {
                   {(() => {
                     const po = poByNo.get(selectedReceipt.purchaseOrderNo);
                     const approveNo = po?.approveNo || selectedReceipt.approveNo;
-                    const contractNo = po?.contractNo || selectedReceipt.contractNo;
                     return (
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
                           <FileText className="w-3 h-3" />
-                          ใบอนุมัติขายเลขที่ / Contract No.
+                          ใบอนุมัติขายเลขที่
                         </p>
                         <p className="font-semibold text-gray-900 dark:text-white">
-                          {approveNo || "-"}{" "}
-                          <span className="text-gray-500 dark:text-gray-400 font-medium">•</span>{" "}
-                          {contractNo || "-"}
+                          {approveNo || "-"}
                         </p>
                       </div>
                     );

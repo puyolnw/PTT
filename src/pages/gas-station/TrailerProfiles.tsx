@@ -11,6 +11,7 @@ import {
     AlertTriangle,
     Eye,
 } from "lucide-react";
+import TableActionMenu from "@/components/TableActionMenu";
 import { mockTrailers, mockTrucks } from "./TruckProfiles";
 import type { Trailer } from "./TruckProfiles";
 
@@ -371,16 +372,17 @@ export default function TrailerProfiles() {
                                 </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    navigate(`/app/gas-station/trailer-profiles/${trailer.id}`);
-                                                }}
-                                                className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
-                                                title="ดูรายละเอียด"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
+                                            <div className="flex justify-center">
+                                                <TableActionMenu
+                                                    actions={[
+                                                        {
+                                                            label: "ดูรายละเอียด",
+                                                            icon: Eye,
+                                                            onClick: () => navigate(`/app/gas-station/trailer-profiles/${trailer.id}`)
+                                                        }
+                                                    ]}
+                                                />
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

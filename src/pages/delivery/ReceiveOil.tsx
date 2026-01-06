@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
+import TableActionMenu from "@/components/TableActionMenu";
 import type { BranchOilReceipt, PurchaseOrder, DriverJob, DeliveryNote, Receipt } from "@/types/gasStation";
 
 // --- Storage Utilities ---
@@ -51,7 +52,7 @@ const generateBranchReceipts = (purchaseOrders: PurchaseOrder[], driverJobs: Dri
         receiptNo: "BR-" + po.orderNo + "-" + branch.branchId,
         purchaseOrderNo: po.orderNo,
         approveNo: po.approveNo,
-        contractNo: po.contractNo,
+
         transportNo: transportNo,
         branchId: branch.branchId,
         branchName: branch.branchName,
@@ -375,7 +376,6 @@ export default function ReceiveOil() {
             <div>
               <div class="info-row"><div class="label">สถานะ:</div><div>${po.status}</div></div>
               <div class="info-row"><div class="label">ผู้อนุมัติ:</div><div>${po.approvedBy}</div></div>
-              <div class="info-row"><div class="label">Contract:</div><div>${po.contractNo || "-"}</div></div>
             </div>
           </div>
           <table>
@@ -649,67 +649,52 @@ export default function ReceiveOil() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <div className="flex flex-col items-center gap-1">
-                          <button
-                            onClick={() => {
-                              setSelectedDoc(getRelatedPO(r) || null);
-                              setActiveReceipt(r);
-                              setDocType('po');
-                              setShowModal(true);
-                            }}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200"
-                            title="ดูใบสั่งซื้อ"
-                          >
-                            <ShoppingCart className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <div className="flex flex-col items-center gap-1">
-                          <button
-                            onClick={() => {
-                              setSelectedDoc(getRelatedDN(r) || null);
-                              setActiveReceipt(r);
-                              setDocType('dn');
-                              setShowModal(true);
-                            }}
-                            className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-200"
-                            title="ดูใบส่งของ"
-                          >
-                            <FileText className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <div className="flex flex-col items-center gap-1">
-                          <button
-                            onClick={() => {
-                              const rec = getRelatedTaxInvoice(r);
-                              setSelectedDoc(rec || null);
-                              setActiveReceipt(r);
-                              setDocType('tax-invoice');
-                              setShowModal(true);
-                            }}
-                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-200"
-                            title="ดูใบภาษี"
-                          >
-                            <FileText className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <div className="flex flex-col items-center gap-1">
-                          <button
-                            onClick={() => {
-                              setSelectedDoc(r);
-                              setActiveReceipt(r);
-                              setDocType('receipt');
-                              setShowModal(true);
-                            }}
-                            className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors border border-transparent hover:border-orange-200"
-                            title="ดูใบรับของ"
-                          >
-                            <PackageCheck className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <div className="flex justify-end">
+                        <TableActionMenu
+                          actions={[
+                            {
+                              label: "ดูใบสั่งซื้อ (PO)",
+                              icon: ShoppingCart,
+                              onClick: () => {
+                                setSelectedDoc(getRelatedPO(r) || null);
+                                setActiveReceipt(r);
+                                setDocType('po');
+                                setShowModal(true);
+                              }
+                            },
+                            {
+                              label: "ดูใบส่งของ (DN)",
+                              icon: FileText,
+                              onClick: () => {
+                                setSelectedDoc(getRelatedDN(r) || null);
+                                setActiveReceipt(r);
+                                setDocType('dn');
+                                setShowModal(true);
+                              }
+                            },
+                            {
+                              label: "ดูใบกำกับภาษี",
+                              icon: FileText,
+                              onClick: () => {
+                                const rec = getRelatedTaxInvoice(r);
+                                setSelectedDoc(rec || null);
+                                setActiveReceipt(r);
+                                setDocType('tax-invoice');
+                                setShowModal(true);
+                              }
+                            },
+                            {
+                              label: "ดูใบรับของ",
+                              icon: PackageCheck,
+                              onClick: () => {
+                                setSelectedDoc(r);
+                                setActiveReceipt(r);
+                                setDocType('receipt');
+                                setShowModal(true);
+                              }
+                            }
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>

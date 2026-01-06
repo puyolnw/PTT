@@ -11,6 +11,7 @@ import {
   Building2,
   Receipt
 } from "lucide-react";
+import TableActionMenu from "@/components/TableActionMenu";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useGasStation } from "@/contexts/GasStationContext";
@@ -347,15 +348,26 @@ export default function InternalAPAR() {
                             )}
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              {tx.paymentStatus === 'unpaid' && (
-                                <button className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all shadow-md active:scale-95" title="ทำรายการชำระ">
-                                  <DollarSign className="w-4 h-4" />
-                                </button>
-                              )}
-                              <button className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-all" title="พิมพ์หลักฐาน">
-                                <Receipt className="w-4 h-4" />
-                              </button>
+                            <div className="flex justify-center">
+                              <TableActionMenu
+                                actions={[
+                                  ...(tx.paymentStatus === 'unpaid' ? [{
+                                    label: "ทำรายการชำระ",
+                                    icon: DollarSign,
+                                    onClick: () => {
+                                      // Existing placeholder button logic
+                                    },
+                                    variant: "primary" as const
+                                  }] : []),
+                                  {
+                                    label: "พิมพ์หลักฐาน",
+                                    icon: Receipt,
+                                    onClick: () => {
+                                      // Existing placeholder button logic
+                                    }
+                                  }
+                                ]}
+                              />
                             </div>
                           </td>
                         </tr>

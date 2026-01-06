@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
-import { FileText, Plus, Upload, Truck, Search, X, MoreHorizontal } from "lucide-react";
+import { FileText, Plus, Upload, Truck, Search, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ChartCard from "@/components/ChartCard";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import TableActionMenu from "@/components/TableActionMenu";
 import { DeliveryPurchaseOrder, loadPurchaseOrders, savePurchaseOrders, uid } from "@/pages/delivery/_storage";
 import { useNavigate } from "react-router-dom";
 import { useBranch } from "@/contexts/BranchContext";
@@ -204,16 +205,15 @@ export default function PurchaseOrders() {
                       <StatusTag variant={getStatusVariant(po.status)}>{po.status}</StatusTag>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <button
-                        onClick={() => navigate(`/app/delivery/manage-trips`)}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors bg-transparent border border-blue-200 dark:border-blue-800"
-                      >
-                        <Truck className="w-3.5 h-3.5" />
-                        จัดการรอบส่ง
-                      </button>
-                      <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-500 dark:text-gray-400">
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
+                      <TableActionMenu
+                        actions={[
+                          {
+                            label: "จัดการรอบส่ง",
+                            icon: Truck,
+                            onClick: () => navigate(`/app/delivery/manage-trips`),
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))

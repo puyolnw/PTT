@@ -75,7 +75,6 @@ export interface Attachment {
 export interface PurchaseOrder {
   // เลขอ้างอิงจากเอกสารจริง (optional)
   approveNo?: string; // ใบอนุมัติขายเลขที่
-  contractNo?: string; // Contract No.
   orderNo: string;
   supplierOrderNo?: string;
   billNo?: string;
@@ -436,7 +435,6 @@ export interface BranchOilReceipt {
   receiptNo: string; // เลขที่ใบรับน้ำมัน
   purchaseOrderNo: string; // เลขที่ใบสั่งซื้อ
   approveNo?: string; // ใบอนุมัติขายเลขที่ (จาก PO)
-  contractNo?: string; // Contract No. (จาก PO)
   transportNo: string; // เลขที่ขนส่ง
   branchId: number; // ID ปั๊มย่อย
   branchName: string; // ชื่อปั๊มย่อย

@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
 import type { TankEntryRecord as TankEntryRecordType, OilType } from "@/types/gasStation";
+import TableActionMenu from "@/components/TableActionMenu";
 
 // Helper function to map local source to base source type
 const mapSourceToBaseType = (source: "PTT" | "Branch" | "Other"): "รับจากปตท" | "รับจากสาขาอื่น" | "ย้ายจากหลุมอื่น" | "อื่นๆ" => {
@@ -70,6 +71,7 @@ interface TankEntryRecordLocal {
     id: string;
     entryDate: string;
     entryTime: string;
+    branchId?: number; // สาขาเจ้าของข้อมูล
     receiptNo?: string; // เชื่อมกับใบรับน้ำมัน (ถ้ามี)
     purchaseOrderNo?: string; // เชื่อมกับ PO (ถ้ามี)
     transportNo?: string; // เชื่อมกับรอบส่ง (ถ้ามี)
@@ -576,9 +578,12 @@ export default function RecordTankEntry() {
                 (filterIncorrect === "ผิด" && record.isIncorrect) ||
                 (filterIncorrect === "ปกติ" && !record.isIncorrect);
 
-            return matchesSearch && matchesStatus && matchesSource && matchesTank && matchesIncorrect;
+            const matchesGlobalBranch = selectedBranchIds.length === 0 || 
+                (record.branchId ? selectedBranchIds.includes(record.branchId) : true);
+
+            return matchesSearch && matchesStatus && matchesSource && matchesTank && matchesIncorrect && matchesGlobalBranch;
         });
-    }, [searchTerm, filterStatus, filterSource, filterTank, filterIncorrect, allRecords]);
+    }, [searchTerm, filterStatus, filterSource, filterTank, filterIncorrect, allRecords, selectedBranchIds]);
 
     // Summary stats
     const stats = useMemo(() => {
@@ -1397,14 +1402,17 @@ export default function RecordTankEntry() {
 
                                             {/* การดำเนินการ */}
                                             <td className="py-3 px-4 text-center">
-                                                <button
-                                                    onClick={() => handleViewDetail(record)}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                                    title="ดูรายละเอียด"
-                                                >
-                                                    <Eye className="w-4 h-4" />
-                                                    ดูรายละเอียด
-                                                </button>
+                                                <div className="flex justify-center">
+                                                    <TableActionMenu
+                                                        actions={[
+                                                            {
+                                                                label: "ดูรายละเอียด",
+                                                                icon: Eye,
+                                                                onClick: () => handleViewDetail(record),
+                                                            }
+                                                        ]}
+                                                    />
+                                                </div>
                                             </td>
                                         </motion.tr>
                                     );

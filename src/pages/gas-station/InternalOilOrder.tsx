@@ -10,10 +10,12 @@ import {
   Save,
   Building2,
   FileText,
+  Eye,
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
 import type { InternalOilOrder, OilType } from "@/types/gasStation";
+import TableActionMenu from "@/components/TableActionMenu";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
@@ -219,6 +221,7 @@ export default function InternalOilOrder() {
               สั่งซื้อน้ำมันจากปั๊มอื่นในเครือข่าย
             </p>
           </div>
+        </div>
         <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
           <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
@@ -417,6 +420,7 @@ export default function InternalOilOrder() {
                   <th className="px-6 py-4 text-left">รายการน้ำมัน</th>
                   <th className="px-6 py-4 text-left">มูลค่ารวม</th>
                   <th className="px-6 py-4 text-center">สถานะ</th>
+                  <th className="px-6 py-4 text-right">จัดการ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -457,6 +461,22 @@ export default function InternalOilOrder() {
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
                         {getStatusText(order.status)}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end">
+                        <TableActionMenu
+                          actions={[
+                            {
+                              label: "ดูรายละเอียด",
+                              icon: Eye,
+                              onClick: () => {
+                                // Logic to view details (can be added later or reuse modal in read-only mode)
+                                alert(`ดูรายละเอียดออเดอร์: ${order.orderNo}`);
+                              }
+                            }
+                          ]}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}

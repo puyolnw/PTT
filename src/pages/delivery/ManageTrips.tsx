@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { FileText, Route, Save, Search, Image as ImageIcon, Pencil, X, Truck, Calendar, MapPin, ChevronRight, AlertCircle } from "lucide-react";
+import { FileText, Route, Save, Search, Image as ImageIcon, Pencil, X, Truck, Calendar, MapPin, AlertCircle, Eye } from "lucide-react";
+import TableActionMenu from "@/components/TableActionMenu";
 import { motion, AnimatePresence } from "framer-motion";
 import ChartCard from "@/components/ChartCard";
 import { useGasStation } from "@/contexts/GasStationContext";
@@ -101,6 +102,7 @@ function PhotoGrid({ photos }: { photos: string[] }) {
 export default function ManageTrips() {
   const { driverJobs, updateDriverJob, purchaseOrders, branches } = useGasStation();
   const { selectedBranches } = useBranch();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed">("all");
@@ -117,17 +119,22 @@ export default function ManageTrips() {
     return driverJobs
       .filter((j) => {
         if (!q) return true;
-        return (
+        const matchSearch = (
           j.transportNo.toLowerCase().includes(q) ||
           (j.driverName || "").toLowerCase().includes(q) ||
           (j.truckPlateNumber || "").toLowerCase().includes(q) ||
           (j.purchaseOrderNo || "").toLowerCase().includes(q) ||
           (j.internalOrderNo || "").toLowerCase().includes(q)
         );
+
+        const matchBranch = selectedBranchIds.length === 0 || 
+          j.destinationBranches.some(b => selectedBranchIds.includes(b.branchId));
+
+        return matchSearch && matchBranch;
       })
       .slice()
       .sort((a, b) => `${b.transportDate} ${b.transportTime}`.localeCompare(`${a.transportDate} ${a.transportTime}`));
-  }, [driverJobs, search]);
+  }, [driverJobs, search, selectedBranchIds]);
 
   const activeJobs = useMemo(() => jobs.filter((j) => j.status !== "ส่งเสร็จ"), [jobs]);
   const completedJobs = useMemo(() => jobs.filter((j) => j.status === "ส่งเสร็จ"), [jobs]);
@@ -337,30 +344,28 @@ export default function ManageTrips() {
                       </StatusTag>
                     </td>
                     <td className="py-4 px-4 text-right">
-                      <div className="inline-flex items-center gap-2">
-                        {j.status !== "ส่งเสร็จ" ? (
-                          <button
-                            onClick={() => {
-                              setSelectedId(j.id);
-                              setModalMode("edit");
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30 transition-colors font-medium"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                            จัดการ
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setSelectedId(j.id);
-                              setModalMode("view");
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors font-medium"
-                          >
-                            <ChevronRight className="w-3.5 h-3.5" />
-                            ดูรายละเอียด
-                          </button>
-                        )}
+                      <div className="flex justify-center">
+                        <TableActionMenu
+                          actions={[
+                            ...(j.status !== "ส่งเสร็จ" ? [{
+                              label: "จัดการ",
+                              icon: Pencil,
+                              onClick: () => {
+                                setSelectedId(j.id);
+                                setModalMode("edit");
+                              },
+                              variant: "primary" as const
+                            }] : []),
+                            {
+                              label: "ดูรายละเอียด",
+                              icon: Eye,
+                              onClick: () => {
+                                setSelectedId(j.id);
+                                setModalMode("view");
+                              }
+                            }
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -465,7 +470,7 @@ export default function ManageTrips() {
                           </h4>
                           <div className="space-y-3">
                             <div>
-                              <label className="text-xs text-gray-500 mb-1 block">เลขที่คลัง (Warehouse No.)</label>
+                              <div className="text-xs text-gray-500 mb-1 block">เลขที่คลัง (Warehouse No.)</div>
                               <input
                                 value={warehouseNo}
                                 onChange={(e) => setWarehouseNo(e.target.value)}
@@ -475,7 +480,7 @@ export default function ManageTrips() {
                               />
                             </div>
                             <div>
-                              <label className="text-xs text-gray-500 mb-1 block">เลขเอกสาร (Document No.)</label>
+                              <div className="text-xs text-gray-500 mb-1 block">เลขเอกสาร (Document No.)</div>
                               <input
                                 value={depotDocumentNo}
                                 onChange={(e) => setDepotDocumentNo(e.target.value)}
@@ -485,7 +490,7 @@ export default function ManageTrips() {
                               />
                             </div>
                             <div>
-                              <label className="text-xs text-gray-500 mb-1 block">หมายเหตุ</label>
+                              <div className="text-xs text-gray-500 mb-1 block">หมายเหตุ</div>
                               <textarea
                                 value={warehouseNotes}
                                 onChange={(e) => setWarehouseNotes(e.target.value)}

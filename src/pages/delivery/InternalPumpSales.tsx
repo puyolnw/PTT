@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { DollarSign, Plus, Search, X, MoreHorizontal } from "lucide-react";
+import { DollarSign, Plus, Search, X, Eye } from "lucide-react";
+import TableActionMenu from "@/components/TableActionMenu";
 
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
@@ -24,7 +25,7 @@ type TruckRemainingRow = {
   orderType: "internal" | "external";
   purchaseOrderNo?: string;
   internalOrderNo?: string;
-  poMeta?: Pick<PurchaseOrder, "orderNo" | "approveNo" | "contractNo" | "billNo">;
+  poMeta?: Pick<PurchaseOrder, "orderNo" | "approveNo" | "billNo">;
   truckPlateNumber: string;
   trailerPlateNumber: string;
   fromBranchId: number;
@@ -266,7 +267,7 @@ export default function InternalPumpSales() {
             purchaseOrderNo: job.purchaseOrderNo,
             internalOrderNo: job.internalOrderNo,
             poMeta: po
-              ? { orderNo: po.orderNo, approveNo: po.approveNo, contractNo: po.contractNo, billNo: po.billNo }
+              ? { orderNo: po.orderNo, approveNo: po.approveNo, billNo: po.billNo }
               : undefined,
             truckPlateNumber: job.truckPlateNumber,
             trailerPlateNumber: job.trailerPlateNumber,
@@ -296,7 +297,7 @@ export default function InternalPumpSales() {
     orderType?: "internal" | "external";
     purchaseOrderNo?: string;
     internalOrderNo?: string;
-    poMeta?: Pick<PurchaseOrder, "orderNo" | "approveNo" | "contractNo" | "billNo">;
+    poMeta?: Pick<PurchaseOrder, "orderNo" | "approveNo" | "billNo">;
     recoveredItemId?: string;
     tankNumber?: number;
     notes?: string;
@@ -714,9 +715,20 @@ export default function InternalPumpSales() {
                       {currencyFormatter.format(t.totalAmount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-500 dark:text-gray-400">
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
+                      <div className="flex justify-center">
+                        <TableActionMenu
+                          actions={[
+                            {
+                              label: "ดูรายละเอียด",
+                              icon: Eye,
+                              onClick: () => {
+                                // Just a placeholder for now
+                                alert(`ดูรายละเอียดการขาย: ${t.deliveryNoteNo}`);
+                              }
+                            }
+                          ]}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}

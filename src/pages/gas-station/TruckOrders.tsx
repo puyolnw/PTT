@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, CheckCircle, Clock, Activity, XCircle, X, PackageCheck, User, GripVertical, Truck, MapPin, Eye, Droplet, Search, MoreHorizontal } from "lucide-react";
+import { FileText, CheckCircle, Clock, Activity, XCircle, X, PackageCheck, User, GripVertical, Truck, MapPin, Eye, Droplet, Search } from "lucide-react";
 import { mockApprovedOrders, mockPTTQuotations } from "../../data/gasStationOrders";
 import { mockTrucks, mockTrailers } from "../gas-station/TruckProfiles";
 import { mockDrivers } from "../../data/mockData";
@@ -26,6 +26,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useBranch } from "@/contexts/BranchContext";
 import { CSS } from "@dnd-kit/utilities";
+import TableActionMenu from "@/components/TableActionMenu";
 
 // Helper functions (moved from missing utils or reconstructed)
 const generateTransportNo = () => {
@@ -781,55 +782,41 @@ export default function TruckOrders() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center gap-2 justify-center">
-                                            {order.status === "ready-to-pickup" && (
-                                                <button
-                                                    onClick={() => handleStartTrip(order)}
-                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
-                                                >
-                                                    เริ่มเดินทาง
-                                                </button>
-                                            )}
-                                            {order.status === "picking-up" && !order.oilReceiptId && (
-                                                <>
-                                                    <button
-                                                        onClick={() => window.location.href = `/app/gas-station/oil-receipt?orderId=${order.id}`}
-                                                        className="flex items-center gap-1.5 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
-                                                    >
-                                                        <PackageCheck className="w-4 h-4" />
-                                                        บันทึกการรับน้ำมัน
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleEndTrip(order)}
-                                                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
-                                                    >
-                                                        จบงาน
-                                                    </button>
-                                                </>
-                                            )}
-                                            {order.status === "picking-up" && order.oilReceiptId && (
-                                                <button
-                                                    onClick={() => handleEndTrip(order)}
-                                                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
-                                                >
-                                                    จบงาน
-                                                </button>
-                                            )}
+                                            {/* Completed Trip Info */}
                                             {order.status === "completed" && order.totalDistance && (
-                                                <div className="text-sm text-center bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg">
+                                                <div className="text-sm text-center bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg whitespace-nowrap">
                                                     <div className="font-semibold text-emerald-600 dark:text-emerald-400">{numberFormatter.format(order.totalDistance)} กม.</div>
                                                     <div className="text-xs text-gray-500 dark:text-gray-400">{order.tripDuration && formatDuration(order.tripDuration)}</div>
                                                 </div>
                                             )}
-                                            <button
-                                                onClick={() => handleViewOrderDetail(order)}
-                                                className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                                                title="ดูรายละเอียด"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
-                                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-500 dark:text-gray-400">
-                                                <MoreHorizontal className="w-5 h-5" />
-                                            </button>
+
+                                            <TableActionMenu
+                                                actions={[
+                                                    ...(order.status === "ready-to-pickup" ? [{
+                                                        label: "เริ่มเดินทาง",
+                                                        icon: Truck,
+                                                        onClick: () => handleStartTrip(order),
+                                                        variant: "primary" as const
+                                                    }] : []),
+                                                    ...(order.status === "picking-up" && !order.oilReceiptId ? [{
+                                                        label: "บันทึกการรับน้ำมัน",
+                                                        icon: PackageCheck,
+                                                        onClick: () => window.location.href = `/app/gas-station/oil-receipt?orderId=${order.id}`,
+                                                        variant: "warning" as const
+                                                    }] : []),
+                                                    ...(order.status === "picking-up" ? [{
+                                                        label: "จบงาน",
+                                                        icon: CheckCircle,
+                                                        onClick: () => handleEndTrip(order),
+                                                        variant: "success" as const
+                                                    }] : []),
+                                                    {
+                                                        label: "ดูรายละเอียด",
+                                                        icon: Eye,
+                                                        onClick: () => handleViewOrderDetail(order)
+                                                    }
+                                                ]}
+                                            />
                                         </div>
                                     </td>
                                 </tr>
@@ -912,7 +899,7 @@ export default function TruckOrders() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                วันที่สร้างออเดอร์รถ *
+                                                วันที่สร้างการขนส่ง *
                                             </label>
                                             <input
                                                 type="date"
@@ -956,7 +943,7 @@ export default function TruckOrders() {
                                         {selectedPurchaseOrder && (
                                             <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                                                 <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                                                    📋 สรุปใบสั่งซื้อ: {selectedPurchaseOrder.orderNo}
+                                                    📋ใบสั่งซื้อ: {selectedPurchaseOrder.orderNo}
                                                 </p>
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs mb-3">
                                                     <div className="bg-white/70 dark:bg-gray-800/40 border border-blue-100 dark:border-blue-900/40 rounded-lg p-2">
@@ -966,10 +953,6 @@ export default function TruckOrders() {
                                                     <div className="bg-white/70 dark:bg-gray-800/40 border border-blue-100 dark:border-blue-900/40 rounded-lg p-2">
                                                         <p className="text-gray-600 dark:text-gray-400">ใบสั่งซื้อเลขที่</p>
                                                         <p className="font-semibold text-gray-900 dark:text-white">{selectedPurchaseOrder.orderNo}</p>
-                                                    </div>
-                                                    <div className="bg-white/70 dark:bg-gray-800/40 border border-blue-100 dark:border-blue-900/40 rounded-lg p-2">
-                                                        <p className="text-gray-600 dark:text-gray-400">Contract No.</p>
-                                                        <p className="font-semibold text-gray-900 dark:text-white">{selectedPurchaseOrder.contractNo || "-"}</p>
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2 text-xs">
@@ -990,39 +973,39 @@ export default function TruckOrders() {
                                                         </span>
                                                     </div>
                                                 </div>
-                                                {(selectedPurchaseOrder.truckPlateNumber || selectedPurchaseOrder.driverName) && (
+                                                {(selectedTruck || selectedTrailer || selectedDriver || selectedPurchaseOrder.truckPlateNumber || selectedPurchaseOrder.driverName) && (
                                                     <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
-                                                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">ข้อมูลที่ fix มากับใบสั่งซื้อ:</p>
+                                                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">ข้อมูลรถ:</p>
                                                         <div className="grid grid-cols-2 gap-2 text-xs">
-                                                            {selectedPurchaseOrder.truckPlateNumber && (
+                                                            {(selectedTruck?.plateNumber || selectedPurchaseOrder.truckPlateNumber) && (
                                                                 <div>
                                                                     <span className="text-gray-600 dark:text-gray-400">รถ:</span>
                                                                     <span className="font-medium text-gray-900 dark:text-white ml-1">
-                                                                        {selectedPurchaseOrder.truckPlateNumber}
+                                                                        {selectedTruck?.plateNumber || selectedPurchaseOrder.truckPlateNumber}
                                                                     </span>
                                                                 </div>
                                                             )}
-                                                            {selectedPurchaseOrder.trailerPlateNumber && (
+                                                            {(selectedTrailer?.plateNumber || selectedPurchaseOrder.trailerPlateNumber) && (
                                                                 <div>
                                                                     <span className="text-gray-600 dark:text-gray-400">หาง:</span>
                                                                     <span className="font-medium text-gray-900 dark:text-white ml-1">
-                                                                        {selectedPurchaseOrder.trailerPlateNumber}
+                                                                        {selectedTrailer?.plateNumber || selectedPurchaseOrder.trailerPlateNumber}
                                                                     </span>
                                                                 </div>
                                                             )}
-                                                            {selectedPurchaseOrder.driverName && (
+                                                            {(selectedDriver?.name || selectedPurchaseOrder.driverName) && (
                                                                 <div>
                                                                     <span className="text-gray-600 dark:text-gray-400">คนขับ:</span>
                                                                     <span className="font-medium text-gray-900 dark:text-white ml-1">
-                                                                        {selectedPurchaseOrder.driverName}
+                                                                        {selectedDriver?.name || selectedPurchaseOrder.driverName}
                                                                     </span>
                                                                 </div>
                                                             )}
-                                                            {selectedPurchaseOrder.currentOdometer && (
+                                                            {(newOrder.currentOdometer || selectedPurchaseOrder.currentOdometer) && (
                                                                 <div>
                                                                     <span className="text-gray-600 dark:text-gray-400">เลขไมล์:</span>
                                                                     <span className="font-medium text-gray-900 dark:text-white ml-1">
-                                                                        {numberFormatter.format(selectedPurchaseOrder.currentOdometer)} กม.
+                                                                        {numberFormatter.format(newOrder.currentOdometer || selectedPurchaseOrder.currentOdometer || 0)} กม.
                                                                     </span>
                                                                 </div>
                                                             )}
@@ -1292,7 +1275,7 @@ export default function TruckOrders() {
                                             </p>
                                             {selectedOrder.departureDate && (
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                    วันที่ออกไปรับ: {dateFormatterShort.format(new Date(selectedOrder.departureDate))}
+                                                    วันที่ไปรับของ: {dateFormatterShort.format(new Date(selectedOrder.departureDate))}
                                                 </p>
                                             )}
                                         </div>

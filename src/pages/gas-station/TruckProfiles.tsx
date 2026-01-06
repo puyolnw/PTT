@@ -14,6 +14,7 @@ import {
   X,
   Eye,
 } from "lucide-react";
+import TableActionMenu from "@/components/TableActionMenu";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
@@ -846,16 +847,17 @@ export default function TruckProfiles() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/app/gas-station/truck-profiles/${truck.id}`);
-                        }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                        title="ดูรายละเอียด"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      <div className="flex justify-center">
+                        <TableActionMenu
+                          actions={[
+                            {
+                              label: "ดูรายละเอียด",
+                              icon: Eye,
+                              onClick: () => navigate(`/app/gas-station/truck-profiles/${truck.id}`)
+                            }
+                          ]}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))

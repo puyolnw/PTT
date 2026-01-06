@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Droplet, Search, Truck, MoreHorizontal } from "lucide-react";
+import { Droplet, Search, Truck, Eye } from "lucide-react";
+import TableActionMenu from "@/components/TableActionMenu";
 
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
@@ -63,7 +64,7 @@ type RemainingRow = {
   trailerPlateNumber: string;
   purchaseOrderNo?: string;
   internalOrderNo?: string;
-  poMeta?: Pick<PurchaseOrder, "orderNo" | "approveNo" | "contractNo" | "billNo">;
+  poMeta?: Pick<PurchaseOrder, "orderNo" | "approveNo" | "billNo">;
   branchId: number;
   branchName: string;
   oilType: DriverJob["destinationBranches"][0]["oilType"];
@@ -127,7 +128,7 @@ export default function RemainingOnTruck() {
           purchaseOrderNo: job.purchaseOrderNo,
           internalOrderNo: job.internalOrderNo,
           poMeta: po
-            ? { orderNo: po.orderNo, approveNo: po.approveNo, contractNo: po.contractNo, billNo: po.billNo }
+            ? { orderNo: po.orderNo, approveNo: po.approveNo, billNo: po.billNo }
             : undefined,
           branchId: b.branchId,
           branchName: b.branchName,
@@ -156,7 +157,6 @@ export default function RemainingOnTruck() {
 
         const poText = r.poMeta?.orderNo || r.purchaseOrderNo || "";
         const approveText = r.poMeta?.approveNo || "";
-        const contractText = r.poMeta?.contractNo || "";
         const billText = r.poMeta?.billNo || "";
         const internalText = r.internalOrderNo || "";
         return (
@@ -166,7 +166,6 @@ export default function RemainingOnTruck() {
           r.branchName.toLowerCase().includes(q) ||
           poText.toLowerCase().includes(q) ||
           approveText.toLowerCase().includes(q) ||
-          contractText.toLowerCase().includes(q) ||
           billText.toLowerCase().includes(q) ||
           internalText.toLowerCase().includes(q)
         );
@@ -329,8 +328,7 @@ export default function RemainingOnTruck() {
                             PO: {r.poMeta?.orderNo || r.purchaseOrderNo || "-"}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
-                            ใบอนุมัติ: {r.poMeta?.approveNo || "-"} • Contract:{" "}
-                            {r.poMeta?.contractNo || "-"}
+                            ใบอนุมัติ: {r.poMeta?.approveNo || "-"}
                           </div>
                           {r.poMeta?.billNo && <div className="text-xs text-gray-500 dark:text-gray-400">Bill: {r.poMeta.billNo}</div>}
                         </div>
@@ -364,9 +362,21 @@ export default function RemainingOnTruck() {
                       <BranchStatusBadge status={r.branchStatus} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-500 dark:text-gray-400">
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
+                      <div className="flex justify-center">
+                        <TableActionMenu
+                          actions={[
+                            {
+                              label: "ดูรายละเอียด",
+                              icon: Eye,
+                              onClick: () => {
+                                // For now, just show info or navigate if we had a dedicated page.
+                                // RemainingOnTruck is a report view.
+                                alert(`ดูรายละเอียด: ${r.transportNo}`);
+                              }
+                            }
+                          ]}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}

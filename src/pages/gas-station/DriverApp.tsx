@@ -319,7 +319,7 @@ export default function DriverApp() {
 
         return {
             approveNo: match?.approveNo,
-            contractNo: match?.contractNo,
+
             orderNo: match?.orderNo || poNo,
         };
     };

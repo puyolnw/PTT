@@ -352,7 +352,6 @@ export function groupOrdersByBranch(orderSummary: OrderSummaryItem[]) {
 export interface ApprovedOrder {
   // เลขอ้างอิงจากเอกสารจริง (optional)
   approveNo?: string; // ใบอนุมัติขายเลขที่
-  contractNo?: string; // Contract No.
   orderNo: string;
   supplierOrderNo: string;
   billNo?: string;
@@ -397,10 +396,9 @@ export interface ApprovedOrder {
 // แต่ละเลขที่ใบสั่งซื้อจะมีข้อมูลจากทั้ง 5 ปั๊ม
 export const mockApprovedOrders: ApprovedOrder[] = [
   {
-    approveNo: "APP-20241215-0001",
-    contractNo: "CN-PTT-2024-0001",
-    orderNo: "SO-20241215-001",
-    supplierOrderNo: "PTT-20241215-001",
+    approveNo: "519895412",
+    orderNo: "20251220084159707",
+    supplierOrderNo: "519895412",
     billNo: "BILL-20241215-001",
     orderDate: "2024-12-15",
     deliveryDate: "2024-12-16",
