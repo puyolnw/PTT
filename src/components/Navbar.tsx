@@ -4,7 +4,8 @@ import { LogOut, Menu, Filter, ChevronDown, Sun, Moon, Monitor, Settings } from 
 import { logout } from "@/lib/auth";
 
 import { useBranch } from "@/contexts/BranchContext";
-import { modules, branches } from "@/components/navbar/constants";
+import { useAuth } from "@/contexts/AuthContext";
+import { getModulesForRole, branches } from "@/components/navbar/constants";
 
 interface NavbarProps {
   onMenuClick?: () => void;
@@ -13,6 +14,10 @@ interface NavbarProps {
 
 export default function Navbar({ onMenuClick }: NavbarProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const userRole = user?.role || "employee";
+  const modules = getModulesForRole(userRole);
+
   const { selectedBranches, toggleBranch, selectAll, clearAll } = useBranch();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isBranchFilterOpen, setIsBranchFilterOpen] = useState(false);

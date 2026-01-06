@@ -1,6 +1,6 @@
 import {
     ShoppingCart, Fuel, FileText, Droplet,
-    FileCheck, FileSpreadsheet, Truck, Monitor, PackageCheck, User
+    FileCheck, FileSpreadsheet, Truck, Monitor, PackageCheck
 } from "lucide-react";
 import { SidebarConfig } from "../types";
 
@@ -31,7 +31,6 @@ export const gasStationSidebarConfig: SidebarConfig = {
             items: [
                 { to: "/app/gas-station/truck-dashboard", icon: Monitor, label: "Dashboard สถานะรถ" },
                 { to: "/app/gas-station/truck-orders", icon: FileText, label: "ระบบส่งน้ำมัน(รับ)" },
-                { to: "/app/gas-station/driver-app", icon: User, label: "แอปคนขับ" },
                 { to: "/app/gas-station/truck-sales", icon: Truck, label: "ขายน้ำมันที่เหลือบนรถ" },
                 { to: "/app/gas-station/truck-profiles", icon: Truck, label: "โปรไฟล์รถส่งน้ำมัน" },
                 { to: "/app/gas-station/trailer-profiles", icon: Droplet, label: "โปรไฟล์หางรถน้ำมัน" },

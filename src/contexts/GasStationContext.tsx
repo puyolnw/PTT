@@ -11,6 +11,7 @@ import type {
   DriverJob,
   OilReceipt,
   TankEntryRecord,
+  InternalOilOrder,
   FuelingRecord,
   RunningNumber,
   SaleTx,
@@ -35,6 +36,8 @@ interface GasStationContextType {
   driverJobs: DriverJob[];
   allDriverJobs: DriverJob[];
   oilReceipts: OilReceipt[];
+  internalOrders: InternalOilOrder[];
+  allInternalOrders: InternalOilOrder[];
   tankEntries: TankEntryRecord[];
   trucks: TruckProfile[];
   trailers: Trailer[];
@@ -88,6 +91,11 @@ interface GasStationContextType {
   createTankEntry: (entry: TankEntryRecord) => void;
   updateTankEntry: (entryId: string, updates: Partial<TankEntryRecord>) => void;
 
+  // Actions - Internal Oil Orders
+  createInternalOrder: (order: InternalOilOrder) => void;
+  updateInternalOrder: (orderId: string, updates: Partial<InternalOilOrder>) => void;
+  approveInternalOrder: (orderId: string, approvedBy: string, fromBranchId: number) => void;
+
   // Actions - Running Numbers
   getNextRunningNumber: (documentType: RunningNumber["documentType"]) => string;
   incrementRunningNumber: (documentType: RunningNumber["documentType"]) => void;
@@ -103,6 +111,7 @@ interface GasStationContextType {
   getBranchById: (branchId: number) => Branch | undefined;
   getTruckById: (truckId: string) => TruckProfile | undefined;
   getTrailerById: (trailerId: string) => Trailer | undefined;
+  updateSaleTx: (txId: string, updates: Partial<SaleTx>, fullTx?: SaleTx) => void;
 }
 
 const GasStationContext = createContext<GasStationContextType | undefined>(undefined);
@@ -312,8 +321,28 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       ["quotation", { id: "rn-quotation", documentType: "quotation", prefix: "QT", year: 2024, currentNumber: 1, lastUpdated: new Date().toISOString() }],
       ["delivery-note", { id: "rn-delivery-note", documentType: "delivery-note", prefix: "DN", year: 2024, currentNumber: 1, lastUpdated: new Date().toISOString() }],
       ["receipt", { id: "rn-receipt", documentType: "receipt", prefix: "RCP", year: 2024, currentNumber: 1, lastUpdated: new Date().toISOString() }],
+      ["internal-oil-order", { id: "rn-internal-oil-order", documentType: "internal-oil-order", prefix: "IO", year: 2024, currentNumber: 1, lastUpdated: new Date().toISOString() }],
     ])
   );
+
+  const [internalOrdersState, setInternalOrdersState] = useState<InternalOilOrder[]>([
+    {
+      id: "IO-1",
+      orderNo: "IO-20241215-001",
+      orderDate: "2024-12-15",
+      requestedDate: "2024-12-20",
+      fromBranchId: 2,
+      fromBranchName: "ดินดำ",
+      items: [
+        { oilType: "Premium Diesel", quantity: 5000, pricePerLiter: 32.5, totalAmount: 162500 },
+        { oilType: "Gasohol 95", quantity: 3000, pricePerLiter: 35.0, totalAmount: 105000 },
+      ],
+      totalAmount: 267500,
+      status: "รออนุมัติ",
+      requestedBy: "ผู้จัดการดินดำ",
+      requestedAt: "2024-12-15T10:30:00",
+    },
+  ]);
 
   // Running Number Helpers
   const getNextRunningNumber = useCallback((documentType: RunningNumber["documentType"]): string => {
@@ -538,6 +567,29 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     setOilReceiptsState((prev) => prev.filter((r) => r.id !== receiptId));
   }, []);
 
+  // Internal Oil Orders
+  const createInternalOrder = useCallback((order: InternalOilOrder) => {
+    setInternalOrdersState((prev) => [...prev, order]);
+    incrementRunningNumber("internal-oil-order");
+  }, [incrementRunningNumber]);
+
+  const updateInternalOrder = useCallback((orderId: string, updates: Partial<InternalOilOrder>) => {
+    setInternalOrdersState((prev) =>
+      prev.map((order) => (order.id === orderId ? { ...order, ...updates, updatedAt: new Date().toISOString() } : order))
+    );
+  }, []);
+
+  const approveInternalOrder = useCallback((orderId: string, approvedBy: string, fromBranchId: number) => {
+    const fromBranch = branches.find(b => b.id === fromBranchId);
+    updateInternalOrder(orderId, {
+      status: "อนุมัติแล้ว",
+      approvedBy,
+      approvedAt: new Date().toISOString(),
+      assignedFromBranchId: fromBranchId,
+      assignedFromBranchName: fromBranch?.name
+    });
+  }, [updateInternalOrder, branches]);
+
   // Tank Entries
   const createTankEntry = useCallback((entry: TankEntryRecord) => {
     setTankEntriesState((prev) => [...prev, entry]);
@@ -547,6 +599,19 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     setTankEntriesState((prev) =>
       prev.map((entry) => (entry.id === entryId ? { ...entry, ...updates } : entry))
     );
+  }, []);
+
+  const updateSaleTx = useCallback((txId: string, updates: Partial<SaleTx>, fullTx?: SaleTx) => {
+    setSaleTxsState((prev) => {
+      const exists = prev.some((tx) => tx.id === txId);
+      if (exists) {
+        return prev.map((tx) => (tx.id === txId ? { ...tx, ...updates } : tx));
+      } else if (fullTx) {
+        // If it doesn't exist, we can "promote" it to a real transaction
+        return [...prev, { ...fullTx, ...updates }];
+      }
+      return prev;
+    });
   }, []);
 
   // Getters
@@ -642,6 +707,10 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     tankEntries: tankEntriesState.filter(te => 
       selectedBranchIds.length === 0 || selectedBranchIds.includes(te.branchId)
     ),
+    internalOrders: internalOrdersState.filter(o => 
+      selectedBranchIds.length === 0 || selectedBranchIds.includes(o.fromBranchId) || (o.assignedFromBranchId && selectedBranchIds.includes(o.assignedFromBranchId))
+    ),
+    allInternalOrders: internalOrdersState,
     trucks: mockTrucks,
     trailers: mockTrailers,
 
@@ -675,8 +744,12 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     deleteOilReceipt,
     createTankEntry,
     updateTankEntry,
+    createInternalOrder,
+    updateInternalOrder,
+    approveInternalOrder,
     getNextRunningNumber,
     incrementRunningNumber,
+    updateSaleTx,
 
     // Getters
     getOrderByNo,

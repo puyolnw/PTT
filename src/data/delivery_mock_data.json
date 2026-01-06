@@ -394,7 +394,27 @@
       "transportNo": "TP-240503-01",
       "purchaseOrderNo": "PO-20240104-005",
       "internalOrderNo": "INT-240503-001",
-      "paymentStatus": "unpaid"
+      "paymentStatus": "partial",
+      "paidAmount": 40000,
+      "paymentHistory": [
+        {
+          "date": "2024-05-03T10:00:00.000Z",
+          "amount": 20000,
+          "method": "โอนเงินเข้าบัญชี"
+        },
+        {
+          "date": "2024-05-04T14:30:00.000Z",
+          "amount": 20000,
+          "method": "บัตรเครดิต"
+        }
+      ],
+      "taxInvoices": [
+        {
+          "invoiceNo": "INV-240503-001",
+          "date": "2024-05-03T10:05:00.000Z",
+          "amount": 20000
+        }
+      ]
     },
     {
       "id": "TX-20240504-001-new",
@@ -413,7 +433,15 @@
       "transportNo": "TP-240504-05",
       "purchaseOrderNo": "PO-240504-001",
       "internalOrderNo": "INT-240504-001",
-      "paymentStatus": "unpaid"
+      "paymentStatus": "partial",
+      "paidAmount": 30000,
+      "paymentHistory": [
+        {
+          "date": "2024-05-04T12:00:00.000Z",
+          "amount": 30000,
+          "method": "เงินสด"
+        }
+      ]
     },
     {
       "id": "TX-20240505-001-new",

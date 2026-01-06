@@ -502,7 +502,27 @@ export interface SaleTx {
   destinationBranchId?: number;
   destinationBranchName?: string;
   recoveredItemId?: string;
-  paymentStatus?: "unpaid" | "paid";
+  paymentStatus?: "unpaid" | "paid" | "partial";
+  paidAmount?: number;
+  taxInvoices?: Array<{
+    invoiceNo: string;
+    date: string;
+    amount: number;
+    receiptUrl?: string;
+  }>;
+  paymentHistory?: Array<{
+    date: string;
+    amount: number;
+    method?: string;
+    note?: string;
+  }>;
+  paymentRequest?: {
+    amount: number;
+    date: string;
+    method: string;
+    note?: string;
+    status: "pending" | "approved" | "rejected";
+  };
 }
 
 // ==================== Running Number ====================

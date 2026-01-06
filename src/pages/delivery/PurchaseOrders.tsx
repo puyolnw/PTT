@@ -28,6 +28,7 @@ export default function PurchaseOrders() {
   const [invoiceNo, setInvoiceNo] = useState("");
   const [status, setStatus] = useState<DeliveryPurchaseOrder["status"]>("จ่ายเงินแล้ว");
   const [items, setItems] = useState(defaultProducts);
+  const [netAmount, setNetAmount] = useState<number>(0);
   const [invoicePdfName, setInvoicePdfName] = useState<string | undefined>();
   const [receiptPdfName, setReceiptPdfName] = useState<string | undefined>();
 
@@ -72,6 +73,8 @@ export default function PurchaseOrders() {
       invoiceNo: cleanInvoice,
       status,
       items: cleanItems,
+      totalAmount: netAmount, // Assuming simple case
+      netAmount: netAmount,
       invoicePdfName,
       receiptPdfName,
     };
@@ -85,6 +88,7 @@ export default function PurchaseOrders() {
     setInvoiceNo("");
     setStatus("จ่ายเงินแล้ว");
     setItems(defaultProducts);
+    setNetAmount(0);
     setInvoicePdfName(undefined);
     setReceiptPdfName(undefined);
     setShowCreateModal(false);
@@ -291,20 +295,34 @@ export default function PurchaseOrders() {
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      สถานะเริ่มต้น
-                    </label>
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value as DeliveryPurchaseOrder["status"])}
-                      className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    >
-                      <option value="จ่ายเงินแล้ว">จ่ายเงินแล้ว</option>
-                      <option value="รอรับของ">รอรับของ</option>
-                      <option value="รับแล้ว">รับแล้ว</option>
-                      <option value="รอตรวจสอบ">รอตรวจสอบ</option>
-                    </select>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        ยอดเงินสุทธิ (บาท)
+                      </label>
+                      <input
+                        type="number"
+                        value={netAmount || ""}
+                        onChange={(e) => setNetAmount(Number(e.target.value))}
+                        className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                        placeholder="ระบุยอดเงิน"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        สถานะเริ่มต้น
+                      </label>
+                      <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value as DeliveryPurchaseOrder["status"])}
+                        className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      >
+                        <option value="จ่ายเงินแล้ว">จ่ายเงินแล้ว</option>
+                        <option value="รอรับของ">รอรับของ</option>
+                        <option value="รับแล้ว">รับแล้ว</option>
+                        <option value="รอตรวจสอบ">รอตรวจสอบ</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div className="space-y-3">

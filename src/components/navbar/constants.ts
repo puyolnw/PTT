@@ -54,7 +54,7 @@ export const modules: Module[] = [
         name: "ระบบ Delivery",
         path: "/app/delivery",
         icon: Truck,
-        roles: ["admin", "manager", "gas-station"]
+        roles: ["admin", "manager", "gas-station", "employee"]
     },
 ];
 

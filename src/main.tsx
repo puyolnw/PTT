@@ -225,8 +225,9 @@ import TransportDelivery from "@/pages/gas-station/TransportDelivery";
 import LubricantsDashboard from "@/pages/gas-station/LubricantsDashboard";
 import AccountingExport from "@/pages/gas-station/AccountingExport";
 import POGeneration from "@/pages/gas-station/POGeneration";
-import DriverApp from "@/pages/gas-station/DriverApp";
-import DriverDashboard from "@/pages/gas-station/DriverDashboard";
+import DriverApp from "@/pages/delivery/DriverApp";
+import DriverDashboard from "@/pages/delivery/DriverDashboard";
+import TransportTracking from "@/pages/delivery/TransportTracking";
 import Quotation from "@/pages/gas-station/Quotation";
 import DeliveryNote from "@/pages/gas-station/DeliveryNote";
 import Receipt from "@/pages/gas-station/Receipt";
@@ -1312,6 +1313,18 @@ const router = createBrowserRouter([
           {
             path: "alerts",
             element: <DeliveryAlerts />,
+          },
+          {
+            path: "driver-dashboard",
+            element: <DriverDashboard />,
+          },
+          {
+            path: "driver-app",
+            element: <DriverApp />,
+          },
+          {
+            path: "transport-tracking",
+            element: <TransportTracking />,
           },
           {
             path: "settings",

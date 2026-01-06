@@ -7,11 +7,15 @@ import StatusTag from "@/components/StatusTag";
 import { loadPurchaseOrders, loadTrips } from "@/pages/delivery/_storage";
 import { useBranch } from "@/contexts/BranchContext";
 import { useGasStation } from "@/contexts/GasStationContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
 
 export default function DeliveryDashboard() {
+  const { user } = useAuth();
   const { selectedBranches } = useBranch();
   const { branches } = useGasStation();
-  const selectedBranchIds = selectedBranches.map(id => Number(id));
+
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
 
   const { pos, trips } = useMemo(() => {
     const allPos = loadPurchaseOrders();
@@ -23,10 +27,14 @@ export default function DeliveryDashboard() {
     };
   }, [selectedBranchIds]);
 
+  if (user?.role === "employee") {
+    return <Navigate to="/app/delivery/driver-dashboard" replace />;
+  }
+
   const poWaiting = pos.filter((p) => p.status === "รอรับของ").length;
   const tripsInProgress = trips.filter((t) => t.status !== "ส่งมอบสำเร็จ").length;
 
-  const odometerAlerts = trips.filter((t) => {
+  const odometerAlerts = trips.filter((t: any) => {
     if (!t.startOdometer || !t.endOdometer) return false;
     return t.endOdometer <= t.startOdometer;
   }).length;
@@ -52,7 +60,7 @@ export default function DeliveryDashboard() {
     },
     {
       label: "ข้อมูลประสิทธิภาพ (พร้อมคำนวณ)",
-      value: trips.filter((t) => typeof t.fueledLiters === "number" && !!t.endOdometer).length,
+      value: trips.filter((t: any) => typeof t.fueledLiters === "number" && !!t.endOdometer).length,
       icon: Gauge,
       color: "from-emerald-500 to-teal-500",
     },
@@ -117,9 +125,9 @@ export default function DeliveryDashboard() {
               ) : (
                 trips
                   .slice()
-                  .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                  .sort((a: any, b: any) => b.createdAt.localeCompare(a.createdAt))
                   .slice(0, 6)
-                  .map((t) => (
+                  .map((t: any) => (
                     <div
                       key={t.id}
                       className="group flex items-center justify-between gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md transition-all duration-200"
@@ -220,5 +228,3 @@ export default function DeliveryDashboard() {
     </div>
   );
 }
-
-

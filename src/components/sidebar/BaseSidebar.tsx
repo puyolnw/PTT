@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { X, ChevronDown, ChevronRight } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
-import { SidebarConfig, SidebarProps } from "./types";
+import { SidebarConfig, SidebarProps, SidebarItem } from "./types";
 import { getSidebarItemsForRole, getSidebarGroupsForRole } from "./utils";
 
 interface BaseSidebarProps extends SidebarProps {
@@ -13,6 +13,7 @@ export default function BaseSidebar({
     isMobile = false,
     isExpanded = true,
     userRole = "employee",
+    selectedBranches = [],
     config
 }: BaseSidebarProps) {
     const { moduleName, moduleDescription, moduleIcon: ModuleIcon, items, groups } = config;
@@ -22,8 +23,13 @@ export default function BaseSidebar({
     const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
 
     // Initialize visible items/groups
-    const visibleItems = items ? getSidebarItemsForRole(items, userRole) : [];
-    const visibleGroups = groups ? getSidebarGroupsForRole(groups, userRole) : [];
+    const visibleItems = useMemo(() => 
+        items ? getSidebarItemsForRole(items, userRole, selectedBranches) : []
+    , [items, userRole, selectedBranches]);
+
+    const visibleGroups = useMemo(() => 
+        groups ? getSidebarGroupsForRole(groups, userRole, selectedBranches) : []
+    , [groups, userRole, selectedBranches]);
 
     const showText = isMobile || isExpanded;
     const sidebarWidth = isMobile ? 'w-64' : (isExpanded ? 'w-64' : 'w-16');
@@ -38,7 +44,7 @@ export default function BaseSidebar({
                 setExpandedGroups(prev => [...prev, activeGroup.id]);
             }
         }
-    }, [location.pathname, visibleGroups]);
+    }, [location.pathname, visibleGroups, expandedGroups]);
 
     const toggleGroup = (groupId: string) => {
         setExpandedGroups(prev =>
@@ -48,7 +54,7 @@ export default function BaseSidebar({
         );
     };
 
-    const renderItem = (item: any) => (
+    const renderItem = (item: SidebarItem) => (
         <NavLink
             key={item.to}
             to={item.to}

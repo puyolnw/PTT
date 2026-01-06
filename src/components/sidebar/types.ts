@@ -4,6 +4,7 @@ export interface SidebarItem {
     label: string;
     end?: boolean;
     roles?: string[]; // roles ที่สามารถเห็นเมนูนี้ได้
+    branchIds?: string[]; // สาขาที่สามารถเห็นเมนูนี้ได้
 }
 
 export interface SidebarGroup {
@@ -12,6 +13,7 @@ export interface SidebarGroup {
     icon?: any;
     items: SidebarItem[];
     roles?: string[]; // roles ที่สามารถเห็น group นี้ได้
+    branchIds?: string[]; // สาขาที่สามารถเห็น group นี้ได้
 }
 
 export interface SidebarConfig {
@@ -28,4 +30,5 @@ export interface SidebarProps {
     isMobile?: boolean;
     isExpanded?: boolean;
     userRole?: string;
+    selectedBranches?: string[];
 }

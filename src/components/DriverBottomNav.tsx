@@ -11,12 +11,12 @@ export default function DriverBottomNav() {
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 lg:hidden">
       <div className="flex justify-around items-center h-16 max-w-md mx-auto">
         <button
-          onClick={() => navigate("/app/gas-station/driver-app")}
+          onClick={() => navigate("/app/delivery/driver-app")}
           className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${
-            isActive("/app/gas-station/driver-app") ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
+            isActive("/app/delivery/driver-app") ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
           }`}
         >
-          <Truck className="w-6 h-6" strokeWidth={isActive("/app/gas-station/driver-app") ? 2.5 : 2} />
+          <Truck className="w-6 h-6" strokeWidth={isActive("/app/delivery/driver-app") ? 2.5 : 2} />
           <span className="text-[10px] font-medium">จัดการงานขนส่ง</span>
         </button>
 
@@ -33,12 +33,12 @@ export default function DriverBottomNav() {
         </button>
 
         <button
-          onClick={() => navigate("/app/gas-station/driver-dashboard")}
+          onClick={() => navigate("/app/delivery/driver-dashboard")}
           className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${
-            isActive("/app/gas-station/driver-dashboard") ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
+            isActive("/app/delivery/driver-dashboard") ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
           }`}
         >
-          <LayoutDashboard className="w-6 h-6" strokeWidth={isActive("/app/gas-station/driver-dashboard") ? 2.5 : 2}/>
+          <LayoutDashboard className="w-6 h-6" strokeWidth={isActive("/app/delivery/driver-dashboard") ? 2.5 : 2}/>
           <span className="text-[10px] font-medium">แดชบอร์ด</span>
         </button>
       </div>

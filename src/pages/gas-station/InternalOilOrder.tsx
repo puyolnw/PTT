@@ -39,32 +39,18 @@ const oilPrices: Record<OilType, number> = {
   "Gasohol E20": 35.00,
 };
 
-// Mock data - Internal Oil Orders
-const mockInternalOrders: InternalOilOrder[] = [
-  {
-    id: "1",
-    orderNo: "IO-20241215-001",
-    orderDate: "2024-12-15",
-    requestedDate: "2024-12-20",
-    fromBranchId: 2,
-    fromBranchName: "ดินดำ",
-    items: [
-      { oilType: "Premium Diesel", quantity: 5000, pricePerLiter: oilPrices["Premium Diesel"], totalAmount: 162500 },
-      { oilType: "Gasohol 95", quantity: 3000, pricePerLiter: oilPrices["Gasohol 95"], totalAmount: 129000 },
-    ],
-    totalAmount: 291500,
-    status: "รออนุมัติ",
-    requestedBy: "ผู้จัดการดินดำ",
-    requestedAt: "2024-12-15T10:30:00",
-  },
-];
+
 
 export default function InternalOilOrder() {
-  const { branches } = useGasStation();
+  const { 
+    branches, 
+    internalOrders, 
+    createInternalOrder, 
+    getNextRunningNumber 
+  } = useGasStation();
   const { selectedBranches } = useBranch();
   const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
 
-  const [internalOrders, setInternalOrders] = useState<InternalOilOrder[]>(mockInternalOrders);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | InternalOilOrder["status"]>("all");
   const [filterBranch, setFilterBranch] = useState<number | "all">("all");
@@ -151,14 +137,13 @@ export default function InternalOilOrder() {
     const totalAmount = itemsWithTotal.reduce((sum, item) => sum + item.totalAmount, 0);
 
     // Generate order number
+    const orderNo = getNextRunningNumber("internal-oil-order");
     const today = new Date();
-    const dateStr = today.toISOString().split("T")[0].replace(/-/g, "");
-    const orderNo = `IO-${dateStr}-${String(internalOrders.length + 1).padStart(3, "0")}`;
 
     const selectedBranch = branches.find((b) => b.id === selectedBranchId);
 
     const newOrder: InternalOilOrder = {
-      id: String(internalOrders.length + 1),
+      id: `IO-${Date.now()}`,
       orderNo,
       orderDate: today.toISOString().split("T")[0],
       requestedDate,
@@ -172,7 +157,7 @@ export default function InternalOilOrder() {
       notes,
     };
 
-    setInternalOrders([...internalOrders, newOrder]);
+    createInternalOrder(newOrder);
     setShowCreateModal(false);
     setOrderItems([]);
     setRequestedDate("");

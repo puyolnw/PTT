@@ -20,6 +20,8 @@ export interface DeliveryPurchaseOrder {
   invoiceNo: string;
   status: DeliveryPOStatus;
   items: DeliveryPurchaseOrderItem[];
+  totalAmount?: number;
+  netAmount?: number;
   invoicePdfName?: string;
   receiptPdfName?: string;
 }
@@ -82,6 +84,8 @@ const defaultPos: DeliveryPurchaseOrder[] = [
     invoiceNo: "INV-001",
     status: "รอรับของ",
     items: [{ product: "ดีเซล", liters: 10000 }],
+    totalAmount: 350000,
+    netAmount: 348000,
   },
   {
     id: "PO-2",
@@ -91,6 +95,8 @@ const defaultPos: DeliveryPurchaseOrder[] = [
     invoiceNo: "INV-002",
     status: "จ่ายเงินแล้ว",
     items: [{ product: "เบนซิน", liters: 5000 }],
+    totalAmount: 200000,
+    netAmount: 198000,
   },
   {
     id: "PO-3",
@@ -100,6 +106,8 @@ const defaultPos: DeliveryPurchaseOrder[] = [
     invoiceNo: "INV-003",
     status: "รอรับของ",
     items: [{ product: "ดีเซล", liters: 8000 }],
+    totalAmount: 280000,
+    netAmount: 278000,
   },
   {
     id: "PO-4",
@@ -109,6 +117,8 @@ const defaultPos: DeliveryPurchaseOrder[] = [
     invoiceNo: "INV-004",
     status: "จ่ายเงินแล้ว",
     items: [{ product: "ดีเซล", liters: 12000 }],
+    totalAmount: 420000,
+    netAmount: 418000,
   },
   {
     id: "PO-5",
@@ -118,6 +128,8 @@ const defaultPos: DeliveryPurchaseOrder[] = [
     invoiceNo: "INV-005",
     status: "รอรับของ",
     items: [{ product: "เบนซิน", liters: 4000 }],
+    totalAmount: 160000,
+    netAmount: 158000,
   },
 ];
 
