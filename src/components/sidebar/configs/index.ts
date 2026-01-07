@@ -1,3 +1,3 @@
 export * from "./accountingConfig";
 export * from "./gasStationConfig";
-export * from "./deliveryConfig";
+export * from "./deliverySidebarConfig";

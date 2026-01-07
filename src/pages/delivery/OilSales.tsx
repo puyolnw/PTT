@@ -21,8 +21,7 @@ import {
 import TableActionMenu from "@/components/TableActionMenu";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
-import deliveryMockData from "@/data/delivery_mock_data.json";
-import type { OilType, DeliveryNote, Receipt, OilReceipt } from "@/types/gasStation";
+import type { DeliveryNote, Receipt, OilReceipt, SaleTx } from "@/types/gasStation";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -34,56 +33,17 @@ const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
-// Storage Keys (Sync with InternalPumpSales) - DEPRECATED / MOCKED
-// const SALES_TX_STORAGE_KEY = "ptt.delivery.internalSales.v1";
-
-// Types (Sync with InternalPumpSales)
-type SaleSource = "truck-remaining" | "recovered";
-
-type SaleTx = {
-  id: string;
-  source: SaleSource;
-  createdAt: string;
-  fromBranchId: number;
-  fromBranchName: string;
-  toBranchId: number;
-  toBranchName: string;
-  oilType: OilType;
-  quantity: number;
-  pricePerLiter: number;
-  totalAmount: number;
-  deliveryNoteNo: string;
-  receiptNo: string;
-  transportNo?: string;
-  purchaseOrderNo?: string;
-  internalOrderNo?: string;
-  recoveredItemId?: string;
-  paymentStatus?: "unpaid" | "paid";
-};
-
-// function loadFromStorage<T>(key: string, fallback: T): T {
-//   try {
-//     const raw = window.localStorage.getItem(key);
-//     return raw ? JSON.parse(raw) : fallback;
-//   } catch {
-//     return fallback;
-//   }
-// }
-
 export default function DeliveryOilSales() {
-  const { deliveryNotes, receipts, oilReceipts, branches } = useGasStation();
+  const { deliveryNotes, receipts, oilReceipts, branches, saleTxs } = useGasStation();
   const { selectedBranches } = useBranch();
   const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
-
-  // State - Use Mock Data from JSON
-  const [saleTxs] = useState<SaleTx[]>(deliveryMockData.saleTxs as SaleTx[]);
 
   const [search, setSearch] = useState("");
   const [selectedDoc, setSelectedDoc] = useState<{ type: "DN" | "RCP" | "OR", no: string } | null>(null);
 
   const filteredSales = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return saleTxs.filter(t => {
+    return saleTxs.filter((t: SaleTx) => {
       const matchSearch = !q ||
         t.deliveryNoteNo.toLowerCase().includes(q) ||
         t.receiptNo.toLowerCase().includes(q) ||
@@ -100,8 +60,8 @@ export default function DeliveryOilSales() {
   }, [saleTxs, search, selectedBranchIds]);
 
   const summary = useMemo(() => {
-    const totalQty = filteredSales.reduce((sum, s) => sum + s.quantity, 0);
-    const totalVal = filteredSales.reduce((sum, s) => sum + s.totalAmount, 0);
+    const totalQty = filteredSales.reduce((sum: number, s: SaleTx) => sum + s.quantity, 0);
+    const totalVal = filteredSales.reduce((sum: number, s: SaleTx) => sum + s.totalAmount, 0);
     return { totalQty, totalVal, count: filteredSales.length };
   }, [filteredSales]);
 
@@ -154,7 +114,7 @@ export default function DeliveryOilSales() {
     totalAmount: tx.totalAmount,
     vatAmount: tx.totalAmount * 0.07,
     grandTotal: tx.totalAmount * 1.07,
-    documentType: "ใบกำกับภาษี",
+    documentType: "ใบเสร็จรับเงิน",
     status: "issued",
     createdAt: tx.createdAt,
     createdBy: "System Admin"
@@ -201,17 +161,17 @@ export default function DeliveryOilSales() {
     // First try to find in context (real data)
     let foundDoc = null;
     if (selectedDoc.type === "DN") {
-      foundDoc = deliveryNotes.find(dn => dn.deliveryNoteNo === selectedDoc.no);
+      foundDoc = deliveryNotes.find((dn: DeliveryNote) => dn.deliveryNoteNo === selectedDoc.no);
     } else if (selectedDoc.type === "RCP") {
-      foundDoc = receipts.find(r => r.receiptNo === selectedDoc.no);
+      foundDoc = receipts.find((r: Receipt) => r.receiptNo === selectedDoc.no);
     } else if (selectedDoc.type === "OR") {
-      foundDoc = oilReceipts.find(or => or.deliveryNoteNo === selectedDoc.no || or.receiptNo === selectedDoc.no);
+      foundDoc = oilReceipts.find((or: OilReceipt) => or.deliveryNoteNo === selectedDoc.no || or.receiptNo === selectedDoc.no);
     }
 
     if (foundDoc) return foundDoc;
 
     // Fallback: Generate mock data from saleTxs if corresponds
-    const relatedTx = saleTxs.find(tx =>
+    const relatedTx = saleTxs.find((tx: SaleTx) =>
       tx.deliveryNoteNo === selectedDoc.no ||
       tx.receiptNo === selectedDoc.no
     );
@@ -406,16 +366,16 @@ export default function DeliveryOilSales() {
           </div>
           
           <div style="border: 1px solid #000; padding: 15px; margin-bottom: 20px;">
-             <strong>ผลการตรวจสอบคุณภาพ:</strong>
-             <div style="display: flex; gap: 30px; margin-top: 10px;">
-                <div>Temperature: ${or.qualityTest.temperature}°C</div>
-                <div>API: ${or.qualityTest.apiGravity}</div>
-                <div>Result: ${or.qualityTest.testResult}</div>
-             </div>
+            <strong>ผลการตรวจสอบคุณภาพ:</strong>
+            <div style="display: flex; gap: 30px; margin-top: 10px;">
+              <div>Temperature: ${or.qualityTest.temperature}°C</div>
+              <div>API: ${or.qualityTest.apiGravity}</div>
+              <div>Result: ${or.qualityTest.testResult}</div>
+            </div>
           </div>
 
           <table class="table">
-            <thead><tr><th>รายการ</th><th>ถังที่</th><th>จำนวนสั่ง (ลิตร)</th><th>รับจริง (ลิตร)</th><th>ส่วนต่าง</th></tr></thead>
+            <thead><tr><th>รายการ</th><th>ถังที่</th><th>จำนวนสั่ง (ลิตรส)</th><th>รับจริง (ลิตร)</th><th>ส่วนต่าง</th></tr></thead>
             <tbody>
                ${or.items.map(it => `
                   <tr>
@@ -480,7 +440,7 @@ export default function DeliveryOilSales() {
         </div>
         <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
           <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map((id: string) => branches.find((b) => String(b.id) === id)?.name || id).join(", ")}
           </span>
         </div>
       </motion.div>
@@ -568,7 +528,7 @@ export default function DeliveryOilSales() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
-              {filteredSales.map((tx) => (
+              {filteredSales.map((tx: SaleTx) => (
                 <tr key={tx.id} className="hover:bg-blue-50/10 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-app">
@@ -708,6 +668,15 @@ export default function DeliveryOilSales() {
 // --- Sub-components for Document Viewing ---
 
 function DNView({ data }: { data: DeliveryNote }) {
+  const numberFormatter = new Intl.NumberFormat("th-TH", {
+    maximumFractionDigits: 0,
+  });
+  const currencyFormatter = new Intl.NumberFormat("th-TH", {
+    style: "currency",
+    currency: "THB",
+    maximumFractionDigits: 2,
+  });
+
   return (
     <div className="space-y-6 text-black dark:text-white">
       <div className="grid grid-cols-2 gap-8 border-b dark:border-gray-700 pb-6">
@@ -798,7 +767,7 @@ function DNView({ data }: { data: DeliveryNote }) {
             </div>
           ) : (
             <div className="h-20 flex items-center justify-center text-gray-300">
-              <p className="text-xs italic">ยังไม่มีการเซ็นรับ</p>
+              ..........................................
             </div>
           )}
         </div>
@@ -808,178 +777,166 @@ function DNView({ data }: { data: DeliveryNote }) {
 }
 
 function RCPView({ data }: { data: Receipt }) {
+  const numberFormatter = new Intl.NumberFormat("th-TH", {
+    maximumFractionDigits: 0,
+  });
+  const currencyFormatter = new Intl.NumberFormat("th-TH", {
+    style: "currency",
+    currency: "THB",
+    maximumFractionDigits: 2,
+  });
+
   return (
     <div className="space-y-6 text-black dark:text-white">
       <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">TAX INVOICE / RECEIPT</h3>
-          <p className="text-sm text-gray-500">ใบกำกับภาษี / ใบเสร็จรับเงิน</p>
+        <div className="space-y-1">
+          <h3 className="text-2xl font-black text-ptt-blue uppercase tracking-tight">PTT STATION</h3>
+          <p className="text-xs text-muted max-w-[240px]">สำนักงานใหญ่: 123 ถ.วิภาวดีรังสิต แขวงจตุจักร เขตจตุจักร กรุงเทพฯ 10900</p>
         </div>
         <div className="text-right">
-          <p className="text-xs font-bold text-gray-400 uppercase">วันที่ออกเอกสาร</p>
-          <p className="font-bold">{new Date(data.receiptDate).toLocaleDateString("th-TH")}</p>
+          <div className="text-xs font-bold text-gray-400 uppercase">เลขที่เอกสาร</div>
+          <p className="text-xl font-black text-app">{data.receiptNo}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-8 p-6 border dark:border-gray-700 rounded-2xl">
-        <div>
-          <div className="text-[10px] font-bold text-gray-400 uppercase">ลูกค้า (Customer)</div>
-          <p className="font-bold text-lg leading-tight">{data.customerName}</p>
-          <p className="text-sm text-gray-500 mt-1">{data.customerAddress}</p>
-          {data.customerTaxId && (
-            <p className="text-xs font-mono mt-2 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded inline-block">
-              TAX ID: {data.customerTaxId}
-            </p>
-          )}
-        </div>
-        <div className="text-right space-y-4">
+      <div className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border dark:border-gray-700 space-y-4">
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="text-[10px] font-bold text-gray-400 uppercase">เลขอ้างอิงใบส่งของ</div>
-            <p className="font-bold">{data.deliveryNoteNo || "—"}</p>
+            <div className="text-[10px] text-gray-400 uppercase font-bold">ชื่อลูกค้า / สาขา</div>
+            <p className="font-bold">{data.customerName}</p>
           </div>
-          {data.purchaseOrderNo && (
-            <div>
-              <div className="text-[10px] font-bold text-gray-400 uppercase">เลขอ้างอิงใบสั่งซื้อ (PO)</div>
-              <p className="font-bold">{data.purchaseOrderNo}</p>
-            </div>
-          )}
+          <div className="text-right">
+            <div className="text-[10px] text-gray-400 uppercase font-bold">วันที่</div>
+            <p className="font-bold">{new Date(data.receiptDate).toLocaleDateString("th-TH")}</p>
+          </div>
         </div>
+        <div>
+          <div className="text-[10px] text-gray-400 uppercase font-bold">ที่อยู่</div>
+          <p className="text-sm">{data.customerAddress}</p>
+        </div>
+        {data.customerTaxId && (
+          <div>
+            <div className="text-[10px] text-gray-400 uppercase font-bold">เลขประจำตัวผู้เสียภาษี</div>
+            <p className="text-sm font-mono">{data.customerTaxId}</p>
+          </div>
+        )}
       </div>
 
       <div className="border dark:border-gray-700 rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-800/50 border-b dark:border-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700">
             <tr>
-              <th className="px-4 py-3 text-left">รายการ (Description)</th>
+              <th className="px-4 py-3 text-left">รายละเอียด</th>
               <th className="px-4 py-3 text-right">จำนวน</th>
               <th className="px-4 py-3 text-right">ราคา/หน่วย</th>
-              <th className="px-4 py-3 text-right">จำนวนเงิน</th>
+              <th className="px-4 py-3 text-right">ยอดรวม</th>
             </tr>
           </thead>
-          <tbody className="divide-y dark:divide-gray-700">
-            {data.items.map((item, i) => (
+          <tbody className="divide-y dark:divide-gray-700 font-mono">
+            {data.items.map((it, i) => (
               <tr key={i}>
-                <td className="px-4 py-3 font-bold">{item.oilType}</td>
-                <td className="px-4 py-3 text-right font-mono">{numberFormatter.format(item.quantity)}</td>
-                <td className="px-4 py-3 text-right font-mono">{item.pricePerLiter.toFixed(2)}</td>
-                <td className="px-4 py-3 text-right font-mono font-bold">{currencyFormatter.format(item.totalAmount)}</td>
+                <td className="px-4 py-3 font-sans font-bold">{it.oilType}</td>
+                <td className="px-4 py-3 text-right">{numberFormatter.format(it.quantity)}</td>
+                <td className="px-4 py-3 text-right">{it.pricePerLiter.toFixed(2)}</td>
+                <td className="px-4 py-3 text-right font-bold">{currencyFormatter.format(it.totalAmount)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="flex justify-end">
-        <div className="w-72 space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">รวมเป็นเงิน (Sub-total)</span>
-            <span className="font-mono">{currencyFormatter.format(data.totalAmount - (data.vatAmount || 0))}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">ภาษีมูลค่าเพิ่ม (VAT 7%)</span>
-            <span className="font-mono">{currencyFormatter.format(data.vatAmount || 0)}</span>
-          </div>
-          <div className="pt-2 border-t dark:border-gray-700 flex justify-between items-center font-bold">
-            <span className="text-lg">ยอดเงินรวมสุทธิ</span>
-            <span className="text-2xl text-emerald-600 dark:text-emerald-400">{currencyFormatter.format(data.grandTotal)}</span>
-          </div>
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-muted">มูลค่ารวมสุทธิ (ก่อนภาษี)</span>
+          <span className="font-mono">{currencyFormatter.format(data.totalAmount)}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-muted">ภาษีมูลค่าเพิ่ม (7%)</span>
+          <span className="font-mono">{currencyFormatter.format(data.vatAmount)}</span>
+        </div>
+        <div className="flex justify-between p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
+          <span className="font-bold text-emerald-600 dark:text-emerald-400">จำนวนเงินรวมทั้งสิ้น</span>
+          <span className="text-xl font-black dark:text-white font-mono">{currencyFormatter.format(data.grandTotal)}</span>
         </div>
       </div>
-
-      {data.amountInWords && (
-        <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl text-center text-sm italic font-bold">
-          ({data.amountInWords})
-        </div>
-      )}
     </div>
   );
 }
 
 function ORView({ data }: { data: OilReceipt }) {
+  const numberFormatter = new Intl.NumberFormat("th-TH", {
+    maximumFractionDigits: 0,
+  });
+
   return (
     <div className="space-y-6 text-black dark:text-white">
-      <div className="flex justify-between items-center">
-        <h3 className="text-2xl font-bold text-orange-600 dark:text-orange-400">OIL RECEIVING RECORD</h3>
-        <div className="text-right">
-          <div className="text-[10px] font-bold text-gray-400 uppercase">วันที่รับของ</div>
-          <p className="font-bold">{new Date(data.receiveDate).toLocaleDateString("th-TH")} {data.receiveTime}</p>
-        </div>
+      <div className="flex items-center gap-4 bg-orange-50 dark:bg-orange-900/10 p-4 rounded-2xl border border-orange-100 dark:border-orange-900/30">
+        <AlertCircle className="w-6 h-6 text-orange-500" />
+        <p className="text-sm font-medium text-orange-700 dark:text-orange-400">ข้อมูลการรับทรัพยากร (Oil Receipt) เพื่อยืนยันปริมาณน้ำมันลงสต็อก</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 border dark:border-gray-700 rounded-2xl flex items-center gap-4">
-          <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
-            <Truck className="w-5 h-5 text-orange-600" />
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <div>
+            <div className="text-xs font-bold text-gray-400 uppercase">วันที่/เวลา รับน้ำมัน</div>
+            <p className="font-bold">{new Date(data.receiveDate).toLocaleDateString("th-TH")} @ {data.receiveTime}</p>
           </div>
           <div>
-            <span className="text-[10px] text-gray-400 uppercase">ทะเบียนรถขนส่ง</span>
-            <p className="font-bold">{data.truckLicensePlate}</p>
+            <div className="text-xs font-bold text-gray-400 uppercase">ผู้บันทึกระบบ</div>
+            <p className="font-bold">{data.createdBy}</p>
           </div>
         </div>
-        <div className="p-4 border dark:border-gray-700 rounded-2xl flex items-center gap-4">
-          <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
-            <User className="w-5 h-5 text-orange-600" />
-          </div>
+        <div className="space-y-4 text-right">
           <div>
-            <span className="text-[10px] text-gray-400 uppercase">พนักงานขับรถ</span>
-            <p className="font-bold">{data.driverName}</p>
+            <div className="text-xs font-bold text-gray-400 uppercase">อ้างอิงใบส่งของ</div>
+            <p className="font-bold text-blue-500">{data.deliveryNoteNo}</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-b dark:border-gray-700 flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-emerald-500" />
-          <h4 className="text-sm font-bold uppercase tracking-wider">Quality Test Results (ผลการตรวจสอบคุณภาพ)</h4>
-        </div>
-        <div className="p-6 grid grid-cols-3 gap-8">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-gray-400 mb-1">
-              <Thermometer className="w-4 h-4" />
-              <span className="text-[10px] font-bold uppercase">Temperature</span>
-            </div>
-            <p className="text-xl font-bold">{data.qualityTest.temperature}°C</p>
+      <div className="p-6 border dark:border-gray-700 rounded-2xl space-y-4 bg-white dark:bg-gray-800">
+        <h4 className="text-xs font-bold text-gray-400 uppercase border-b dark:border-gray-700 pb-2">ผลการตรวจสอบคุณภาพ (Quality Test)</h4>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center p-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border dark:border-gray-700">
+            <Thermometer className="w-4 h-4 text-red-400 mx-auto mb-1" />
+            <span className="text-[10px] block text-gray-400 uppercase">อุณหภูมิ</span>
+            <span className="font-bold">{data.qualityTest.temperature}°C</span>
           </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-gray-400 mb-1">
-              <TrendingUp className="w-4 h-4" />
-              <span className="text-[10px] font-bold uppercase">API Gravity</span>
-            </div>
-            <p className="text-xl font-bold">{data.qualityTest.apiGravity}</p>
+          <div className="text-center p-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border dark:border-gray-700">
+            <ShieldCheck className="w-4 h-4 text-blue-400 mx-auto mb-1" />
+            <span className="text-[10px] block text-gray-400 uppercase">API Gravity</span>
+            <span className="font-bold">{data.qualityTest.apiGravity}</span>
           </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-gray-400 mb-1">
-              <CheckCircle className="w-4 h-4 text-emerald-500" />
-              <span className="text-[10px] font-bold uppercase">Result</span>
-            </div>
-            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{data.qualityTest.testResult}</p>
+          <div className="text-center p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30">
+            <CheckCircle className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
+            <span className="text-[10px] block text-emerald-600 dark:text-emerald-400 uppercase">ผลการทดสอบ</span>
+            <span className="font-bold text-emerald-600 dark:text-emerald-400">{data.qualityTest.testResult}</span>
           </div>
         </div>
       </div>
 
       <div>
-        <div className="text-xs font-bold text-gray-400 uppercase mb-3 block">รายการที่รับเข้าถัง</div>
+        <div className="text-xs font-bold text-gray-400 uppercase mb-3 block">รายการรับจริงแยกตามถัง</div>
         <div className="border dark:border-gray-700 rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800/50 border-b dark:border-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700">
               <tr>
                 <th className="px-4 py-3 text-left">ชนิดน้ำมัน</th>
-                <th className="px-4 py-3 text-center">ถังเลขที่</th>
-                <th className="px-4 py-3 text-right">จำนวนสั่ง (L)</th>
-                <th className="px-4 py-3 text-right">จำนวนรับ (L)</th>
-                <th className="px-4 py-3 text-right">ส่วนต่าง (Gain/Loss)</th>
+                <th className="px-4 py-3 text-center">ถังที่</th>
+                <th className="px-4 py-3 text-right">สั่ง (ลิตร)</th>
+                <th className="px-4 py-3 text-right font-bold">รับจริง (ลิตร)</th>
+                <th className="px-4 py-3 text-right">ผลต่าง</th>
               </tr>
             </thead>
             <tbody className="divide-y dark:divide-gray-700 font-mono">
-              {data.items.map((item, i) => (
+              {data.items.map((it, i) => (
                 <tr key={i}>
-                  <td className="px-4 py-3 font-sans font-bold">{item.oilType}</td>
-                  <td className="px-4 py-3 text-center">#{item.tankNumber}</td>
-                  <td className="px-4 py-3 text-right">{numberFormatter.format(item.quantityOrdered)}</td>
-                  <td className="px-4 py-3 text-right font-bold text-blue-600 dark:text-blue-400">{numberFormatter.format(item.quantityReceived)}</td>
-                  <td className={`px-4 py-3 text-right font-bold ${item.differenceLiter < 0 ? "text-red-500" : item.differenceLiter > 0 ? "text-emerald-500" : "text-gray-400"
-                    }`}>
-                    {item.differenceLiter > 0 ? "+" : ""}{numberFormatter.format(item.differenceLiter)}
+                  <td className="px-4 py-3 font-sans font-bold">{it.oilType}</td>
+                  <td className="px-4 py-3 text-center font-bold">{it.tankNumber}</td>
+                  <td className="px-4 py-3 text-right text-muted">{numberFormatter.format(it.quantityOrdered)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-emerald-500">{numberFormatter.format(it.quantityReceived)}</td>
+                  <td className={`px-4 py-3 text-right ${it.differenceLiter < 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                    {it.differenceLiter > 0 ? '+' : ''}{numberFormatter.format(it.differenceLiter)}
                   </td>
                 </tr>
               ))}
@@ -990,7 +947,3 @@ function ORView({ data }: { data: OilReceipt }) {
     </div>
   );
 }
-
-
-
-

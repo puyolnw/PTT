@@ -495,6 +495,40 @@
       "receiptNo": "RCP-240505-001",
       "transportNo": "TP-240505-01",
       "paymentStatus": "unpaid"
+    },
+    {
+      "id": "TX-MOCK-SALE-001",
+      "source": "truck-remaining",
+      "createdAt": "2024-12-15T09:30:00.000Z",
+      "fromBranchId": 2,
+      "fromBranchName": "ดินดำ",
+      "toBranchId": 1,
+      "toBranchName": "ปั๊มไฮโซ",
+      "oilType": "Premium Diesel",
+      "quantity": 2500,
+      "pricePerLiter": 35.50,
+      "totalAmount": 88750,
+      "deliveryNoteNo": "DN-MOCK-001",
+      "receiptNo": "RCP-MOCK-001",
+      "transportNo": "TP-20241215-001",
+      "paymentStatus": "unpaid"
+    },
+    {
+      "id": "TX-MOCK-SALE-002",
+      "source": "truck-remaining",
+      "createdAt": "2024-12-16T08:30:00.000Z",
+      "fromBranchId": 3,
+      "fromBranchName": "หนองจิก",
+      "toBranchId": 2,
+      "toBranchName": "ดินดำ",
+      "oilType": "Premium Diesel",
+      "quantity": 1200,
+      "pricePerLiter": 34.20,
+      "totalAmount": 41040,
+      "deliveryNoteNo": "DN-MOCK-002",
+      "receiptNo": "RCP-MOCK-002",
+      "transportNo": "TP-20241216-005",
+      "paymentStatus": "unpaid"
     }
   ]
 }

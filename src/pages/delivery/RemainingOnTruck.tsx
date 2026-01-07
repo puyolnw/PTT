@@ -69,7 +69,9 @@ type RemainingRow = {
   branchName: string;
   oilType: DriverJob["destinationBranches"][0]["oilType"];
   plannedQty: number;
-  remainingQty: number;
+  remainingQty: number; // Quantity intended for this branch that is still on truck
+  soldQty: number; // Mid-route sales from this specific branch's intended oil
+  netRemainingQty: number; // Final quantity remaining on truck after sales
   branchStatus: DriverJob["destinationBranches"][0]["status"];
   sortTimeMs: number;
 };
@@ -81,7 +83,7 @@ function toSortTimeMs(job: DriverJob) {
 }
 
 export default function RemainingOnTruck() {
-  const { driverJobs, purchaseOrders, branches } = useGasStation();
+  const { driverJobs, purchaseOrders, branches, saleTxs } = useGasStation();
   const { selectedBranches } = useBranch();
   const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
 
@@ -116,6 +118,16 @@ export default function RemainingOnTruck() {
         const plannedQty = plannedFromCompartments > 0 ? plannedFromCompartments : b.quantity;
         const remainingQty = b.status === "ส่งแล้ว" ? 0 : plannedQty;
 
+        // Calculate sales related to this specific planned delivery
+        const relatedSales = saleTxs.filter(tx => 
+          tx.source === "truck-remaining" && 
+          tx.transportNo === job.transportNo && 
+          tx.fromBranchId === b.branchId &&
+          tx.oilType === b.oilType
+        );
+        const soldQty = relatedSales.reduce((sum, s) => sum + s.quantity, 0);
+        const netRemainingQty = Math.max(0, remainingQty - soldQty);
+
         all.push({
           jobId: job.id,
           transportNo: job.transportNo,
@@ -135,19 +147,21 @@ export default function RemainingOnTruck() {
           oilType: b.oilType,
           plannedQty,
           remainingQty,
+          soldQty,
+          netRemainingQty,
           branchStatus: b.status,
           sortTimeMs,
         });
       });
     });
     return all;
-  }, [driverJobs, poByOrderNo]);
+  }, [driverJobs, poByOrderNo, saleTxs]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows
       .filter((r) => {
-        if (!showZero && r.remainingQty <= 0) return false;
+        if (!showZero && r.netRemainingQty <= 0) return false;
         if (typeFilter !== "all" && r.orderType !== typeFilter) return false;
         if (statusFilter === "active" && r.jobStatus === "ส่งเสร็จ") return false;
         if (statusFilter === "completed" && r.jobStatus !== "ส่งเสร็จ") return false;
@@ -180,13 +194,15 @@ export default function RemainingOnTruck() {
   }, [rows, search, showZero, typeFilter, statusFilter, selectedBranchIds]);
 
   const summary = useMemo(() => {
-    const activeJobs = new Set<string>();
+    const activeTrucks = new Set<string>();
     let totalRemaining = 0;
     filtered.forEach((r) => {
-      if (r.jobStatus !== "ส่งเสร็จ") activeJobs.add(r.jobId);
-      totalRemaining += r.remainingQty;
+      if (r.jobStatus !== "ส่งเสร็จ") {
+        activeTrucks.add(r.truckPlateNumber);
+      }
+      totalRemaining += r.netRemainingQty;
     });
-    return { activeJobsCount: activeJobs.size, totalRemaining };
+    return { activeTrucksCount: activeTrucks.size, totalRemaining };
   }, [filtered]);
 
   return (
@@ -222,7 +238,9 @@ export default function RemainingOnTruck() {
               {statusFilter !== "completed" && (
                 <div className="text-right px-4 border-l border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">รถที่มีงาน</p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-white">{summary.activeJobsCount}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white">
+                    {summary.activeTrucksCount} <span className="text-sm font-normal text-gray-400">/ 2 คัน</span>
+                  </p>
                 </div>
               )}
             </div>
@@ -297,8 +315,10 @@ export default function RemainingOnTruck() {
                   <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">ประเภท</th>
                   <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">สาขาปลายทาง</th>
                   <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">ชนิดน้ำมัน</th>
-                  <th className="px-6 py-4 text-right font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">ปริมาณแผน (ลิตร)</th>
-                  <th className="px-6 py-4 text-right font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">คงเหลือ (ลิตร)</th>
+                  <th className="px-6 py-4 text-right font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">แผน (ลิตร)</th>
+                  <th className="px-6 py-4 text-center font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">ขายระหว่างทาง</th>
+                  <th className="px-6 py-4 text-right font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">ขายออก (ลิตร)</th>
+                  <th className="px-6 py-4 text-right font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">คงเหลือจริง (ลิตร)</th>
                   <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">สถานะรอบ</th>
                   <th className="px-6 py-4 text-left font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">สถานะสาขา</th>
                   <th className="px-6 py-4 text-center font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">จัดการ</th>
@@ -350,9 +370,27 @@ export default function RemainingOnTruck() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">
                       {r.plannedQty.toLocaleString()}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      {r.soldQty > 0 ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                          มีการแบ่งขาย
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">
+                      {r.soldQty > 0 ? (
+                        <span className="font-semibold text-amber-600 dark:text-amber-400">
+                          {r.soldQty.toLocaleString()}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">0</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className={r.remainingQty > 0 ? "text-blue-600 dark:text-blue-400 font-bold" : "text-gray-400"}>
-                        {r.remainingQty.toLocaleString()}
+                      <span className={r.netRemainingQty > 0 ? "text-blue-600 dark:text-blue-400 font-bold" : "text-gray-400"}>
+                        {r.netRemainingQty.toLocaleString()}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

@@ -14,7 +14,8 @@ import {
   Clock,
   Plus,
   Download,
-  X
+  X,
+  History
 } from "lucide-react";
 import TableActionMenu from "@/components/TableActionMenu";
 import { motion, AnimatePresence } from "framer-motion";
@@ -55,6 +56,8 @@ export default function InternalAPAR() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [modalMode, setModalMode] = useState<"approve" | "notify">("notify");
 
+  const [showInvoiceListModal, setShowInvoiceListModal] = useState(false);
+
   // Convert PurchaseOrders to internal virtual transactions
   // HQ (Branch 1) acts as the creditor for all sub-branches in a consolidated PTT order
   const virtualTxs = useMemo(() => {
@@ -66,7 +69,7 @@ export default function InternalAPAR() {
           
           vtxs.push({
             id: `po-${po.orderNo}-${b.branchId}`,
-            source: "recovered", // Placeholder source
+            source: "warehouse", 
             createdAt: po.orderDate + "T09:00:00Z", // Mock time
             fromBranchId: 1,
             fromBranchName: "ปั้มไฮโซ",
@@ -203,6 +206,126 @@ export default function InternalAPAR() {
     }).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
   }, [allTxs, statusFilter, selectedBranchIds, searchTerm]);
 
+  const handleDownloadInvoice = (tx: SaleTx, inv: { invoiceNo: string, date: string, amount: number }) => {
+    const fromBranch = branches.find(b => b.id === tx.fromBranchId);
+    const toBranch = branches.find(b => b.id === tx.toBranchId);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="th">
+      <head>
+        <meta charset="UTF-8">
+        <title>ใบกำกับภาษี - ${inv.invoiceNo}</title>
+        <style>
+          @page { size: A4; margin: 20mm; }
+          body { font-family: 'Sarabun', 'Helvetica', sans-serif; font-size: 14px; line-height: 1.6; color: #000; margin: 0; padding: 20px; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #1e40af; padding-bottom: 20px; }
+          .header h1 { font-size: 24px; font-weight: bold; margin: 0 0 10px 0; color: #1e40af; }
+          .header h2 { font-size: 18px; margin: 0; color: #4b5563; }
+          .doc-meta { display: flex; justify-content: space-between; margin-top: 15px; font-weight: bold; }
+          .company-info { display: flex; justify-content: space-between; margin-bottom: 40px; margin-top: 20px; gap: 40px; }
+          .company-side { flex: 1; padding: 15px; background: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb; }
+          .label { font-weight: bold; color: #1e40af; margin-bottom: 5px; text-transform: uppercase; font-size: 12px; }
+          .table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          .table th, .table td { border: 1px solid #e5e7eb; padding: 12px; text-align: right; }
+          .table th { background: #f3f4f6; text-align: center; color: #374151; font-weight: bold; }
+          .table td:first-child { text-align: left; }
+          .total-section { margin-top: 30px; border-top: 2px solid #1e40af; padding-top: 15px; }
+          .total-row { display: flex; justify-content: flex-end; gap: 40px; font-weight: bold; font-size: 18px; color: #1e40af; }
+          .footer { margin-top: 60px; text-align: center; font-style: italic; font-size: 12px; color: #9ca3af; border-top: 1px dashed #e5e7eb; padding-top: 20px; }
+          @media print { .no-print { display: none; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>ใบกำกับภาษีเต็มรูป / ใบเสร็จรับเงิน</h1>
+          <h2>(Tax Invoice / Receipt)</h2>
+          <div class="doc-meta">
+            <span>เลขที่เอกสาร: ${inv.invoiceNo}</span>
+            <span>วันที่ออกเอกสาร: ${new Date(inv.date).toLocaleDateString("th-TH", { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+          </div>
+        </div>
+        <div class="company-info">
+          <div class="company-side">
+            <div class="label">ผู้ขาย (เจ้าหนี้):</div>
+            <div style="font-weight: bold; font-size: 16px;">${tx.fromBranchName}</div>
+            <div>ที่อยู่: ${fromBranch?.address || "-"}</div>
+          </div>
+          <div class="company-side">
+            <div class="label">ผู้ซื้อ (ลูกหนี้):</div>
+            <div style="font-weight: bold; font-size: 16px;">${tx.toBranchName}</div>
+            <div>ที่อยู่: ${toBranch?.address || "-"}</div>
+          </div>
+        </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 60%">รายการ</th>
+              <th>จำนวน</th>
+              <th>ราคา/หน่วย</th>
+              <th>จำนวนเงิน</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div>ชำระเงินค่าน้ำมัน ${tx.oilType}</div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">อ้างอิงบิล/PO: ${tx.purchaseOrderNo || tx.deliveryNoteNo}</div>
+              </td>
+              <td>${tx.quantity.toLocaleString()} ลิตร</td>
+              <td>-</td>
+              <td>${inv.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="total-section">
+          <div class="total-row">
+            <span>ยอดเงินรวมสุทธิ (Grand Total):</span>
+            <span>${inv.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} ฿</span>
+          </div>
+        </div>
+        <div class="footer">
+          *** เอกสารนี้ออกด้วยระบบคอมพิวเตอร์และได้รับการยกเว้นการลงลายมือชื่อตามประกาศของกรมสรรพากร ***
+        </div>
+        <script>window.print();</script>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    } else {
+      alert("กรุณาอนุญาตให้เว็บแสดง Pop-up เพื่อเปิดเอกสาร");
+    }
+  };
+
+  const getSourceBadge = (source: SaleTx["source"], mode: "AR" | "AP") => {
+    switch (source) {
+      case "warehouse":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+            {mode === "AR" ? "ขายจากคลัง ปตท." : "ซื้อจากคลัง ปตท."}
+          </span>
+        );
+      case "truck-remaining":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+            {mode === "AR" ? "ขายน้ำมันค้างรถ" : "ซื้อน้ำมันค้างรถ"}
+          </span>
+        );
+      case "recovered":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400 border border-purple-200 dark:border-purple-800">
+            {mode === "AR" ? "ขายน้ำมันจากการดูด" : "ซื้อจากการดูด"}
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -334,6 +457,7 @@ export default function InternalAPAR() {
                     <thead>
                       <tr className="text-left bg-gray-50 dark:bg-gray-700/50">
                         <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300 rounded-l-xl">วันที่ - เลขที่ใบสั่งซื้อ</th>
+                        <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300">ประเภทการขาย</th>
                         <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300">สาขาผู้ซื้อ</th>
                         <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300 text-right">ยอดรวม</th>
                         <th className="px-6 py-4 font-semibold text-emerald-600 dark:text-emerald-400 text-right">รับเงินแล้ว</th>
@@ -360,6 +484,9 @@ export default function InternalAPAR() {
                                 )}
                               </div>
                             </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            {getSourceBadge(tx.source, "AR")}
                           </td>
                           <td className="px-6 py-4 font-medium">{tx.toBranchName}</td>
                           <td className="px-6 py-4 text-right font-medium">
@@ -396,15 +523,24 @@ export default function InternalAPAR() {
                             <div className="flex justify-center">
                               <TableActionMenu
                                 actions={[
+                                  ...(tx.taxInvoices && tx.taxInvoices.length > 0 ? [{
+                                    label: "ดู/ดาวน์โหลดใบกำกับภาษี",
+                                    icon: Download,
+                                    onClick: () => {
+                                      setSelectedTx(tx);
+                                      setShowInvoiceListModal(true);
+                                    },
+                                    variant: "success" as const
+                                  }] : []),
                                   ...(tx.paymentStatus !== 'paid' && (tx.paidAmount || 0) > 0 ? [{
-                                    label: "ออกใบกำกับภาษี",
+                                    label: "ออกใบกำกับภาษีเพิ่ม",
                                     icon: Receipt,
                                     onClick: () => {
                                       setSelectedTx(tx);
                                       setInvoiceAmount(tx.paidAmount || tx.totalAmount);
                                       setShowTaxInvoiceModal(true);
                                     },
-                                    variant: "success" as const
+                                    variant: "warning" as const
                                   }] : []),
                                   ...(tx.paymentRequest?.status === 'pending' ? [{
                                     label: "ยืนยันรับชำระเงิน",
@@ -451,6 +587,7 @@ export default function InternalAPAR() {
                     <thead>
                       <tr className="text-left bg-gray-50 dark:bg-gray-700/50">
                         <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300 rounded-l-xl">วันที่ - เลขที่ใบสั่งซื้อ</th>
+                        <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300">ประเภทการซื้อ</th>
                         <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300">สาขาเจ้าหนี้</th>
                         <th className="px-6 py-4 font-semibold text-gray-600 dark:text-gray-300 text-right">ยอดรวม</th>
                         <th className="px-6 py-4 font-semibold text-emerald-600 dark:text-emerald-400 text-right">ชำระแล้ว</th>
@@ -477,6 +614,9 @@ export default function InternalAPAR() {
                                 )}
                               </div>
                             </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            {getSourceBadge(tx.source, "AP")}
                           </td>
                           <td className="px-6 py-4 font-medium">{tx.fromBranchName}</td>
                           <td className="px-6 py-4 text-right font-medium">
@@ -525,11 +665,11 @@ export default function InternalAPAR() {
                                     variant: "primary" as const
                                   }] : []),
                                   ...(tx.taxInvoices && tx.taxInvoices.length > 0 ? [{
-                                    label: "ดาวน์โหลดใบกำกับภาษี",
+                                    label: "ดู/ดาวน์โหลดใบกำกับภาษี",
                                     icon: Download,
                                     onClick: () => {
-                                      const lastInvoice = tx.taxInvoices![tx.taxInvoices!.length - 1];
-                                      alert(`กำลังดาวน์โหลดใบกำกับภาษี: ${lastInvoice.invoiceNo}\nจำนวนเงิน: ${lastInvoice.amount.toLocaleString()} ฿`);
+                                      setSelectedTx(tx);
+                                      setShowInvoiceListModal(true);
                                     },
                                     variant: "success" as const
                                   }] : []),
@@ -679,7 +819,7 @@ export default function InternalAPAR() {
                           newInvoice
                         ]
                       }, selectedTx);
-                      alert(`ยืนยันการชำระเงินสำเร็จ\nออกใบกำกับภาษีเลขที่: ${newInvoice.invoiceNo}`);
+                      alert(`ยืนยันรับเงินสำเร็จ\nออกใบกำกับภาษีตามยอดชำระแล้ว: ${newInvoice.invoiceNo}`);
                     }
                     setShowPaymentModal(false);
                   }}
@@ -769,6 +909,85 @@ export default function InternalAPAR() {
                 >
                   <FileText className="w-5 h-5" />
                   ออกเอกสาร
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Invoice List Modal */}
+      <AnimatePresence>
+        {showInvoiceListModal && selectedTx && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-lg overflow-hidden"
+            >
+              <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Receipt className="w-6 h-6 text-emerald-500" />
+                    รายการใบกำกับภาษี
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">อ้างอิง: {selectedTx.purchaseOrderNo || selectedTx.deliveryNoteNo}</p>
+                </div>
+                <button onClick={() => setShowInvoiceListModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                <div className="bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-xl mb-2 flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-emerald-600" />
+                  <p className="text-xs text-emerald-800 dark:text-emerald-200 font-medium">
+                    ออกใบกำกับภาษีให้อัตโนมัติตามยอดเงินที่ชำระจริง (Inter-branch Auto-Invoice)
+                  </p>
+                </div>
+
+                {selectedTx.taxInvoices && selectedTx.taxInvoices.map((inv, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600 hover:border-emerald-200 dark:hover:border-emerald-900/50 transition-all">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg text-emerald-600">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-gray-900 dark:text-white">{inv.invoiceNo}</div>
+                        <div className="text-xs text-gray-500">{new Date(inv.date).toLocaleDateString("th-TH")}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="font-bold text-gray-900 dark:text-white">{inv.amount.toLocaleString()} ฿</div>
+                        <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">ชำระแล้ว</div>
+                      </div>
+                      <button 
+                        onClick={() => handleDownloadInvoice(selectedTx, inv)}
+                        className="p-2 bg-white dark:bg-gray-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-gray-200 dark:border-gray-600 rounded-lg transition-all shadow-sm"
+                        title="ดู/พิมพ์เอกสาร"
+                      >
+                        <Download className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {!selectedTx.taxInvoices || selectedTx.taxInvoices.length === 0 && (
+                  <div className="text-center py-10 text-gray-500">
+                    <History className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                    <p>ไม่พบประวัติการออกใบกำกับภาษี</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                <button 
+                  onClick={() => setShowInvoiceListModal(false)}
+                  className="px-6 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-bold rounded-xl transition-all"
+                >
+                  ปิดหน้ารายการ
                 </button>
               </div>
             </motion.div>
@@ -880,6 +1099,25 @@ export default function InternalAPAR() {
                     </div>
                   </div>
 
+                  {/* Actions inside detail */}
+                  {selectedTx.taxInvoices && selectedTx.taxInvoices.length > 0 && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Receipt className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm font-bold text-blue-900 dark:text-blue-100">ใบกำกับภาษี ({selectedTx.taxInvoices.length})</p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400">ชำระแล้วรวม {currencyFormatter.format(selectedTx.paidAmount || 0)}</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setShowInvoiceListModal(true)}
+                        className="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-all"
+                      >
+                        ดูรายการ
+                      </button>
+                    </div>
+                  )}
+
                   {/* Timeline section */}
                   <div className="space-y-4">
                     <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
@@ -911,7 +1149,7 @@ export default function InternalAPAR() {
                           </div>
                           <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/10 bg-emerald-50/20 dark:bg-emerald-900/5 shadow-sm transition-all hover:shadow-md">
                             <div className="flex items-center justify-between space-x-2 mb-1">
-                              <div className="font-bold text-emerald-700 dark:text-emerald-400">แจ้งชำระเงิน</div>
+                              <div className="font-bold text-emerald-700 dark:text-emerald-400">ชำระเงินสำเร็จ</div>
                               <time className="font-mono text-xs font-medium text-emerald-600">{new Date(pay.date).toLocaleString("th-TH")}</time>
                             </div>
                             <div className="text-base font-bold text-gray-900 dark:text-white mb-1">+{pay.amount.toLocaleString()} ฿</div>
@@ -928,11 +1166,17 @@ export default function InternalAPAR() {
                           </div>
                           <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-blue-100 dark:border-blue-900/10 bg-blue-50/20 dark:bg-blue-900/5 shadow-sm transition-all hover:shadow-md">
                             <div className="flex items-center justify-between space-x-2 mb-1">
-                              <div className="font-bold text-blue-700 dark:text-blue-400">ออกใบกำกับภาษี</div>
+                              <div className="font-bold text-blue-700 dark:text-blue-400">ออกใบกำกับภาษีอัตโนมัติ</div>
                               <time className="font-mono text-xs font-medium text-blue-600">{new Date(inv.date).toLocaleString("th-TH")}</time>
                             </div>
                             <div className="text-sm font-bold text-gray-900 dark:text-white mb-1">เลขที่: {inv.invoiceNo}</div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">ยอดเงิน: {inv.amount.toLocaleString()} ฿</div>
+                            <button 
+                              onClick={() => handleDownloadInvoice(selectedTx, inv)}
+                              className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:underline"
+                            >
+                              <Download className="w-3 h-3" /> ดาวน์โหลด
+                            </button>
                           </div>
                         </div>
                       ))}

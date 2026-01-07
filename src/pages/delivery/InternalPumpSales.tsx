@@ -4,7 +4,7 @@ import TableActionMenu from "@/components/TableActionMenu";
 
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
-import type { DeliveryNote, DriverJob, OilType, PurchaseOrder, Receipt } from "@/types/gasStation";
+import type { DeliveryNote, DriverJob, OilType, PurchaseOrder, Receipt, SaleTx, SaleSource } from "@/types/gasStation";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -15,8 +15,6 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
 const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
-
-type SaleSource = "truck-remaining" | "recovered";
 
 type TruckRemainingRow = {
   id: string; // inventory row id
@@ -47,89 +45,7 @@ type RecoveredOilItem = {
   notes?: string;
 };
 
-type SaleTx = {
-  id: string;
-  source: SaleSource;
-  createdAt: string;
-  fromBranchId: number;
-  fromBranchName: string;
-  toBranchId: number;
-  toBranchName: string;
-  oilType: OilType;
-  quantity: number;
-  pricePerLiter: number;
-  totalAmount: number;
-  deliveryNoteNo: string;
-  receiptNo: string;
-  // source refs
-  jobId?: string;
-  transportNo?: string;
-  purchaseOrderNo?: string;
-  internalOrderNo?: string;
-  destinationBranchId?: number;
-  destinationBranchName?: string;
-  recoveredItemId?: string;
-  paymentStatus?: "unpaid" | "paid";
-};
-
-const SALES_TX_STORAGE_KEY = "ptt.delivery.internalSales.v1";
 const RECOVERED_STORAGE_KEY = "ptt.delivery.recoveredOil.v1";
-
-// Mock up: แสดงตัวอย่างรายการขาย (เมื่อยังไม่มีข้อมูลขายจริง)
-const MOCK_SALES: SaleTx[] = [
-  {
-    id: "SALE-MOCK-001",
-    source: "truck-remaining",
-    createdAt: "2024-12-16T10:30:00+07:00",
-    fromBranchId: 1,
-    fromBranchName: "ปั๊มไฮโซ",
-    toBranchId: 2,
-    toBranchName: "ดินดำ",
-    oilType: "Diesel",
-    quantity: 500,
-    pricePerLiter: 32.5,
-    totalAmount: 16250,
-    deliveryNoteNo: "DN-MOCK-001",
-    receiptNo: "RCP-MOCK-001",
-    transportNo: "TP-20241216-006",
-    purchaseOrderNo: "SO-20241215-003",
-    destinationBranchId: 3,
-    destinationBranchName: "หนองจิก",
-  },
-  {
-    id: "SALE-MOCK-002",
-    source: "recovered",
-    createdAt: "2024-12-16T11:10:00+07:00",
-    fromBranchId: 2,
-    fromBranchName: "ดินดำ",
-    toBranchId: 3,
-    toBranchName: "หนองจิก",
-    oilType: "Gasohol 95",
-    quantity: 300,
-    pricePerLiter: 40.0,
-    totalAmount: 12000,
-    deliveryNoteNo: "DN-MOCK-002",
-    receiptNo: "RCP-MOCK-002",
-    recoveredItemId: "RCV-MOCK-001",
-  },
-  {
-    id: "SALE-MOCK-003",
-    source: "truck-remaining",
-    createdAt: "2024-12-16T14:30:00+07:00",
-    fromBranchId: 5,
-    fromBranchName: "ปั้มตักสิลา",
-    toBranchId: 4,
-    toBranchName: "บายพาส",
-    oilType: "Diesel",
-    quantity: 1200,
-    pricePerLiter: 29.5,
-    totalAmount: 35400,
-    deliveryNoteNo: "DN-MOCK-003",
-    receiptNo: "RCP-MOCK-003",
-    transportNo: "TP-20241216-009",
-    purchaseOrderNo: "SO-20241215-005",
-  },
-];
 
 function safeParseJson<T>(raw: string | null, fallback: T): T {
   try {
@@ -162,8 +78,6 @@ function inferOrderType(job: DriverJob): "internal" | "external" {
   return job.orderType ?? (job.purchaseOrderNo ? "external" : "internal");
 }
 
-// NOTE: Remaining-on-truck is computed per destination branch in `truckRows` (not aggregated by oil type anymore).
-
 function calculateVAT(amount: number, vatRate: number = 7) {
   const beforeVat = amount / (1 + vatRate / 100);
   const vat = amount - beforeVat;
@@ -184,11 +98,12 @@ export default function InternalPumpSales() {
     getNextRunningNumber,
     incrementRunningNumber,
     getBranchById,
+    saleTxs,
+    updateSaleTx
   } = useGasStation();
   const { selectedBranches } = useBranch();
   const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
 
-  const [saleTxs, setSaleTxs] = useState<SaleTx[]>(() => loadFromStorage<SaleTx[]>(SALES_TX_STORAGE_KEY, MOCK_SALES));
   const [recoveredItems, setRecoveredItems] = useState<RecoveredOilItem[]>(() =>
     loadFromStorage<RecoveredOilItem[]>(RECOVERED_STORAGE_KEY, [
       {
@@ -226,8 +141,8 @@ export default function InternalPumpSales() {
   const soldQtyByJobBranchOil = useMemo(() => {
     const m = new Map<string, number>();
     saleTxs
-      .filter((t) => t.source === "truck-remaining" && t.jobId && t.oilType && t.destinationBranchId)
-      .forEach((t) => {
+      .filter((t: SaleTx) => t.source === "truck-remaining" && t.jobId && t.oilType && t.destinationBranchId)
+      .forEach((t: SaleTx) => {
         const key = `${t.jobId}::${t.destinationBranchId}::${t.oilType}`;
         m.set(key, (m.get(key) || 0) + t.quantity);
       });
@@ -357,14 +272,10 @@ export default function InternalPumpSales() {
     return truckRows.filter((r) => r.transportNo === selectedTransportNo);
   }, [truckRows, selectedTransportNo]);
 
-  // NOTE: Inventory table is hidden by requirement, but inventoryRows is still used by the “เพิ่มรายการขาย” modal.
-
   const filteredSales = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    const base = saleTxs.length > 0 ? saleTxs : MOCK_SALES;
-
-    return base.filter((t) => {
+    return saleTxs.filter((t: SaleTx) => {
       const poText = t.purchaseOrderNo || "";
       const internalText = t.internalOrderNo || "";
       
@@ -559,11 +470,7 @@ export default function InternalPumpSales() {
       recoveredItemId: saleRecovered?.id,
     };
 
-    setSaleTxs((prev) => {
-      const next = [tx, ...prev];
-      saveToStorage(SALES_TX_STORAGE_KEY, next);
-      return next;
-    });
+    updateSaleTx(tx.id, {}, tx);
 
     if (saleSource === "recovered" && saleRecovered) {
       setRecoveredItems((prev) => {
@@ -772,8 +679,9 @@ export default function InternalPumpSales() {
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">ประเภทการขาย (เลือกก่อน)</label>
+                <label htmlFor="sale-source" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">ประเภทการขาย (เลือกก่อน)</label>
                 <select
+                  id="sale-source"
                   value={saleSource}
                   onChange={(e) => {
                     const v = e.target.value as SaleSource | "";
@@ -805,8 +713,9 @@ export default function InternalPumpSales() {
               {saleSource === "truck-remaining" && (
                 <>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">เลขที่ขนส่ง</label>
+                    <label htmlFor="transport-no" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">เลขที่ขนส่ง</label>
                     <select
+                      id="transport-no"
                       value={selectedTransportNo}
                       onChange={(e) => {
                         const tp = e.target.value;
@@ -827,8 +736,9 @@ export default function InternalPumpSales() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">น้ำมันของสาขาไหนบ้างที่เหลืออยู่บนรถ (เลือก)</label>
+                    <label htmlFor="truck-inventory" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">น้ำมันของสาขาไหนบ้างที่เหลืออยู่บนรถ (เลือก)</label>
                     <select
+                      id="truck-inventory"
                       value={selectedTruckInventoryId}
                       onChange={(e) => {
                         const id = e.target.value;
@@ -858,98 +768,110 @@ export default function InternalPumpSales() {
 
               {saleSource === "recovered" && (
                 <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">เลือกรายการน้ำมันที่ดูดขึ้นมา</label>
+                  <label htmlFor="sale-recovered" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">เลือกรายการน้ำมันที่ดูดขึ้นมา</label>
                   <select
+                    id="sale-recovered"
                     value={saleRecovered?.id || ""}
                     onChange={(e) => {
-                      const rid = e.target.value;
-                      const found = recoveredItems.find((x) => x.id === rid) || null;
+                      const id = e.target.value;
+                      const found = recoveredItems.find((x) => x.id === id) || null;
                       setSaleRecovered(found);
                     }}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
-                    <option value="">-- เลือกรายการ --</option>
+                    <option value="">-- เลือกรายการดูดขึ้นมา --</option>
                     {recoveredItems
                       .filter((x) => x.quantityAvailable > 0)
                       .map((x) => (
                         <option key={x.id} value={x.id}>
-                          {`${x.fromBranchName} • หลุม ${x.tankNumber ?? "-"} • ${x.oilType} • คงเหลือ ${numberFormatter.format(
-                            x.quantityAvailable
-                          )} ลิตร`}
+                          {`${x.fromBranchName} • ${x.oilType} • คงเหลือ ${numberFormatter.format(x.quantityAvailable)} ลิตร`}
                         </option>
                       ))}
                   </select>
+                  {saleRecovered && (
+                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      วันที่บันทึก: <span className="font-medium text-gray-900 dark:text-white">{new Date(saleRecovered.createdAt).toLocaleDateString("th-TH")}</span> • หลุม:{" "}
+                      <span className="font-medium text-gray-900 dark:text-white">{saleRecovered.tankNumber || "-"}</span> • หมายเหตุ: <span className="font-medium text-gray-900 dark:text-white">{saleRecovered.notes || "-"}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
-              <hr className="border-gray-200 dark:border-gray-700" />
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">ขายให้สาขา (ปลายทาง)</label>
-                <select
-                  value={saleToBranchId}
-                  onChange={(e) => setSaleToBranchId(Number(e.target.value))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                >
-                  <option value="">-- เลือกสาขา --</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  เช่น บจก. ปุ๋ยน้ำมัน (ดินดำ) หรือ บจก. ปุ๋ยน้ำมัน (หนองจิก)
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="sale-to-branch" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">ขายให้สาขา (ลูกหนี้)</label>
+                  <select
+                    id="sale-to-branch"
+                    value={saleToBranchId}
+                    onChange={(e) => setSaleToBranchId(parseInt(e.target.value, 10))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  >
+                    <option value="">-- เลือกสาขาผู้ซื้อ --</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="source-oil-type" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">ชนิดน้ำมัน (แสดงตามแหล่ง)</label>
+                  <input
+                    id="source-oil-type"
+                    value={saleSource === "truck-remaining" ? (saleTruckRow?.oilType || "ยังไม่เลือก") : (saleRecovered?.oilType || "ยังไม่เลือก")}
+                    disabled
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 outline-none"
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">จำนวน (ลิตร)</label>
+                  <label htmlFor="sale-qty" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">จำนวนที่ขาย (ลิตร)</label>
                   <input
+                    id="sale-qty"
                     type="number"
                     value={saleQty}
                     onChange={(e) => setSaleQty(e.target.value)}
-                    placeholder="เช่น 1000"
+                    placeholder="เช่น 500"
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">ราคาขายต่อลิตร (บาท)</label>
+                  <label htmlFor="sale-price" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">ราคาต่อลิตร (บาท)</label>
                   <input
+                    id="sale-price"
                     type="number"
                     value={salePrice}
                     onChange={(e) => setSalePrice(e.target.value)}
-                    placeholder="เช่น 30.50"
+                    placeholder="เช่น 32.50"
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
                 </div>
               </div>
 
-              {(saleQty && salePrice) ? (
-                <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-300">ยอดรวมทั้งสิ้น (รวมภาษี)</span>
-                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                      {currencyFormatter.format(Number(saleQty) * Number(salePrice))}
-                    </span>
+              {saleQty && salePrice && (
+                <div className="bg-blue-600 rounded-2xl p-6 text-white text-center shadow-lg shadow-blue-500/20">
+                  <div className="text-sm opacity-80 mb-1 font-medium">ยอดรวมสุทธิ (Grand Total)</div>
+                  <div className="text-4xl font-black">
+                    {currencyFormatter.format(parseFloat(saleQty) * parseFloat(salePrice))}
                   </div>
                 </div>
-              ) : null}
+              )}
             </div>
 
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+            <div className="p-6 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={closeSale}
-                className="px-5 py-2.5 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors"
+                className="px-6 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 ยกเลิก
               </button>
               <button
                 type="button"
                 onClick={handleSale}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-medium shadow-sm transition-colors"
+                className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
               >
                 บันทึกการขาย
               </button>
@@ -960,6 +882,3 @@ export default function InternalPumpSales() {
     </div>
   );
 }
-
-
-

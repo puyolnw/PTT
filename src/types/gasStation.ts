@@ -123,6 +123,15 @@ export interface InternalOilOrder {
   transportNo?: string; // เลขที่ขนส่ง
   deliveryDate?: string; // วันที่ส่ง
   notes?: string;
+  sourceType?: "external" | "sucked" | "remaining"; // แหล่งที่มา: PTT, ดูดคืน, เหลือบนรถ
+  sourceRefId?: string; // ID อ้างอิงแหล่งที่มา
+  // ข้อมูลคนขับและรถ
+  driverId?: number;
+  driverName?: string;
+  truckId?: string;
+  truckPlate?: string;
+  trailerId?: string;
+  trailerPlate?: string;
 }
 
 // ==================== Quotation ====================
@@ -478,7 +487,7 @@ export interface BranchOilReceipt {
 }
 
 // ==================== Inter-branch Sale (Sale Recording) ====================
-export type SaleSource = "truck-remaining" | "recovered";
+export type SaleSource = "truck-remaining" | "recovered" | "warehouse";
 
 export interface SaleTx {
   id: string;
