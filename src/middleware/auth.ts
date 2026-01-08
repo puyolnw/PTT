@@ -29,9 +29,11 @@ export function useAuthState() {
         isHR: role === "hr",
         hasRole: (checkRole: string) => {
             if (!role) return false;
+            // eslint-disable-next-line security/detect-object-injection
             return (ROLE_HIERARCHY[role] || 0) >= (ROLE_HIERARCHY[checkRole] || 0);
         },
         // Mock permission check for now - can be expanded
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         hasPermission: (_feature: string) => true,
     };
 }

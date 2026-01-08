@@ -7,10 +7,11 @@ export const handleError = (error: unknown, fallbackMessage: string = "เกิ
     let status: number | undefined;
 
     if (typeof error === 'object' && error !== null) {
-        if ('status' in error) {
-            status = (error as any).status;
-        } else if ('statusCode' in error) {
-            status = (error as any).statusCode;
+        const errObj = error as { status?: number; statusCode?: number; message?: string };
+        if ('status' in errObj && typeof errObj.status === 'number') {
+            status = errObj.status;
+        } else if ('statusCode' in errObj && typeof errObj.statusCode === 'number') {
+            status = errObj.statusCode;
         }
     }
 
@@ -45,8 +46,9 @@ export const handleError = (error: unknown, fallbackMessage: string = "เกิ
         }
 
         if (error instanceof Error && error.message && error.message !== "Login failed" && error.message !== "Failed to fetch") {
-            if ((error as any).message) {
-                message = (error as any).message;
+            const customError = error as { message?: string };
+            if (customError.message) {
+                message = customError.message;
             }
         }
     } else {
@@ -55,7 +57,7 @@ export const handleError = (error: unknown, fallbackMessage: string = "เกิ
         } else if (typeof error === "string") {
             message = error;
         } else if (typeof error === "object" && error !== null && "message" in error) {
-            message = String((error as any).message);
+            message = String((error as { message: unknown }).message);
         }
     }
 

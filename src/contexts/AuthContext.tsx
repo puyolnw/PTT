@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const decodeAndSetUser = (token: string) => {
         try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const decoded: any = jwtDecode(token);
 
             const currentTime = Date.now() / 1000;

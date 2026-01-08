@@ -10,7 +10,7 @@ export interface User {
 export interface LoginCredentials {
     username?: string;
     password?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export interface LoginResponse {
