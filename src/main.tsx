@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "@/index.css";
 import ErrorPage from "@/components/ErrorPage";
+import { Toaster } from "sonner";
 import LayoutAuth from "@/layouts/LayoutAuth";
 import LayoutMain from "@/layouts/LayoutMain";
 import LayoutHR from "@/layouts/LayoutHR";
@@ -1180,6 +1181,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <AuthProvider>
       <BranchProvider>
         <RouterProvider router={router} />
+        <Toaster richColors closeButton position="top-right" />
       </BranchProvider>
     </AuthProvider>
   </React.StrictMode>

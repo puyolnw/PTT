@@ -5,6 +5,7 @@ export const RoleBasedRedirect = () => {
     const { user } = useAuth();
     const role = user?.role || "employee";
 
+    if (role === "superadmin") return <Navigate to="/app/hr" replace />;
     if (role === "admin") return <Navigate to="/app/hr" replace />;
     if (role === "hr") return <Navigate to="/app/hr" replace />;
     if (role === "finance") return <Navigate to="/app/accounting" replace />;

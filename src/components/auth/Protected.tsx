@@ -1,6 +1,11 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { isAuthenticated } from "@/lib/auth";
+import { useAuth } from "@/contexts/AuthContext";
 
-export const Protected = ({ children }: { children: React.ReactNode }) =>
-    isAuthenticated() ? <>{children}</> : <Navigate to="/" replace />;
+export const Protected = ({ children }: { children: React.ReactNode }) => {
+    const { isAuthenticated, isLoading } = useAuth();
+
+    if (isLoading) return null;
+
+    return isAuthenticated ? <>{children}</> : <Navigate to="/" replace />;
+};

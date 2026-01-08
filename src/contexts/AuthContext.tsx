@@ -1,50 +1,104 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-import { AuthUser } from "./auth-types";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { authService } from "@/services/auth.service";
+import { AuthState, LoginCredentials, User } from "@/types/auth";
+import { jwtDecode } from "jwt-decode";
 
-interface AuthContextType {
-    user: AuthUser | null;
-    login: (user: AuthUser) => void;
+interface AuthContextType extends AuthState {
+    login: (credentials: LoginCredentials) => Promise<void>;
     logout: () => void;
-    isAuthenticated: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<AuthUser | null>(() => {
-        const savedUser = localStorage.getItem("ptt_user");
-        return savedUser ? JSON.parse(savedUser) : null;
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+    const [state, setState] = useState<AuthState>({
+        user: null,
+        accessToken: null,
+        isAuthenticated: false,
+        isLoading: true,
     });
 
-    const login = (userData: AuthUser) => {
-        setUser(userData);
-        localStorage.setItem("ptt_user", JSON.stringify(userData));
-        localStorage.setItem("auth_token", "mock-token-12345");
+    const decodeAndSetUser = (token: string) => {
+        try {
+            const decoded: any = jwtDecode(token);
+
+            const currentTime = Date.now() / 1000;
+            if (decoded.exp && decoded.exp < currentTime) {
+                throw new Error("Token expired");
+            }
+
+            const user: User = {
+                id: decoded.userId || decoded.sub,
+                username: decoded.username || decoded.sub,
+                email: decoded.email,
+                role: decoded.role,
+            };
+
+            setState({
+                user,
+                accessToken: token,
+                isAuthenticated: true,
+                isLoading: false,
+            });
+
+            return true;
+        } catch (error) {
+            console.error("Invalid token:", error);
+            return false;
+        }
+    };
+
+    useEffect(() => {
+        const savedToken = localStorage.getItem("accessToken");
+        if (savedToken) {
+            const isValid = decodeAndSetUser(savedToken);
+            if (!isValid) {
+                logout();
+            }
+        } else {
+            setState((prev) => ({ ...prev, isLoading: false }));
+        }
+    }, []);
+
+    const login = async (credentials: LoginCredentials) => {
+        setState((prev) => ({ ...prev, isLoading: true }));
+        try {
+            const response = await authService.login(credentials);
+            if (response.success && response.data) {
+                const { accessToken, refreshToken } = response.data;
+
+                localStorage.setItem("accessToken", accessToken);
+                localStorage.setItem("refreshToken", refreshToken);
+
+                decodeAndSetUser(accessToken);
+            }
+        } catch (error) {
+            setState((prev) => ({ ...prev, isLoading: false }));
+            throw error;
+        }
     };
 
     const logout = () => {
-        setUser(null);
-        localStorage.removeItem("ptt_user");
-        localStorage.removeItem("auth_token");
+        authService.logout();
+        setState({
+            user: null,
+            accessToken: null,
+            isAuthenticated: false,
+            isLoading: false,
+        });
     };
 
     return (
-        <AuthContext.Provider value={{
-            user,
-            login,
-            logout,
-            isAuthenticated: !!user
-        }}>
+        <AuthContext.Provider value={{ ...state, login, logout }}>
             {children}
         </AuthContext.Provider>
     );
-}
+};
 
-// eslint-disable-next-line react-refresh/only-export-components
-export function useAuth() {
+export const useAuth = () => {
     const context = useContext(AuthContext);
-    if (context === undefined) {
+    if (!context) {
         throw new Error("useAuth must be used within an AuthProvider");
     }
     return context;
-}
+};
