@@ -29,10 +29,8 @@ export default function ProtectedRoute({
     }
 
     if (requiredRoles.length > 0) {
-        // eslint-disable-next-line security/detect-object-injection
         const userRoleValue = ROLE_HIERARCHY[user.role as string] || 0;
         const hasAccess = requiredRoles.some(requiredRole => {
-            // eslint-disable-next-line security/detect-object-injection
             const requiredRoleValue = ROLE_HIERARCHY[requiredRole] || 0;
             return userRoleValue >= requiredRoleValue;
         });

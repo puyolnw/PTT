@@ -15,7 +15,12 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     // Use BranchContext
     const { selectedBranches, setSelectedBranches } = useBranch();
 
-    const currentUser = user || {
+    const currentUser: import("./types").UserProfile = user ? {
+        name: user.username || "User",
+        email: user.email || "user@ptt.com",
+        role: user.role as string || "employee",
+        avatar: undefined
+    } : {
         name: "PTT User",
         email: "user@ptt.com",
         role: "employee"
