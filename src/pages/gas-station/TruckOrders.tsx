@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, CheckCircle, Clock, Activity, XCircle, X, PackageCheck, User, GripVertical, Truck, MapPin, Eye, Droplet, Search } from "lucide-react";
+import { FileText, CheckCircle, Clock, Activity, XCircle, X, PackageCheck, User, GripVertical, Truck, MapPin, Eye, Droplet, Search, Navigation } from "lucide-react";
 import { mockApprovedOrders, mockPTTQuotations } from "../../data/gasStationOrders";
 import { mockTrucks, mockTrailers } from "../gas-station/TruckProfiles";
 import { mockDrivers } from "../../data/mockData";
@@ -124,9 +124,22 @@ function SortableBranchItem({ branch, index }: { branch: any; index: number }) {
 }
 
 export default function TruckOrders() {
-    const { branches } = useGasStation();
+    const { branches, internalOrders, updateInternalOrder } = useGasStation();
     const { selectedBranches } = useBranch();
     const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
+
+    // Internal orders that are approved and ready for transport
+    const readyInternalOrders = useMemo(() => {
+        return internalOrders.filter(order => 
+            order.status === "อนุมัติแล้ว" || 
+            order.status === "กำลังจัดส่ง" ||
+            order.items.some(item => item.deliverySource === "truck" || item.deliverySource === "suction")
+        ).filter(order => {
+            // ไม่เอาที่ส่งเสร็จสิ้นแล้วจริงๆ
+            if (order.status === "ส่งแล้ว") return false;
+            return true;
+        });
+    }, [internalOrders]);
 
     // State definitions
     const [newOrder, setNewOrder] = useState({
@@ -161,10 +174,45 @@ export default function TruckOrders() {
         })
     );
 
-    // Helper: get selected purchase order
+    // Helper: get selected purchase order (External or Internal)
     const selectedPurchaseOrder = useMemo(() => {
-        return mockApprovedOrders.find((o) => o.orderNo === newOrder.purchaseOrderNo) || null;
-    }, [newOrder.purchaseOrderNo]);
+        // Search in external orders
+        const external = mockApprovedOrders.find((o) => o.orderNo === newOrder.purchaseOrderNo);
+        if (external) return { ...external, type: "external" as const };
+
+        // Search in internal orders
+        const internal = internalOrders.find((o) => o.orderNo === newOrder.purchaseOrderNo);
+        if (internal) {
+            // ดึงข้อมูลคนขับและรถถ้ามีระบุในออเดอร์ภายใน
+            const firstItemWithTransport = internal.items.find(i => i.transportNo);
+            
+            // Map InternalOilOrder structure to something similar to external for UI consistency
+            return {
+                ...internal,
+                type: "internal" as const,
+                approveNo: internal.orderNo, // ใช้ IO No เป็นเลขอนุมัติ
+                branches: [
+                    {
+                        branchId: internal.fromBranchId,
+                        branchName: internal.fromBranchName,
+                        address: branches.find(b => b.id === internal.fromBranchId)?.address || "",
+                        items: internal.items.map(item => ({
+                            oilType: item.oilType,
+                            quantity: item.quantity,
+                            pricePerLiter: item.pricePerLiter,
+                            totalAmount: item.totalAmount
+                        })),
+                        totalAmount: internal.totalAmount
+                    }
+                ],
+                // เสริมข้อมูลแหล่งที่มา
+                deliverySource: internal.items[0]?.deliverySource,
+                sourceTransportNo: firstItemWithTransport?.transportNo,
+            };
+        }
+
+        return null;
+    }, [newOrder.purchaseOrderNo, internalOrders, branches]);
 
     // Get selected truck and trailer info
     const selectedTruck = useMemo(() => {
@@ -190,13 +238,14 @@ export default function TruckOrders() {
             }
 
             // Auto-fill truck, trailer, driver, and odometer from purchase order
-            if (selectedPurchaseOrder.truckId || selectedPurchaseOrder.truckPlateNumber) {
+            const po = selectedPurchaseOrder as any;
+            if (po.truckId || po.truckPlateNumber || po.truckPlate) {
                 setNewOrder((prev) => ({
                     ...prev,
-                    truckId: selectedPurchaseOrder.truckId || prev.truckId,
-                    trailerId: selectedPurchaseOrder.trailerId || prev.trailerId,
-                    driverId: selectedPurchaseOrder.driverId || prev.driverId,
-                    currentOdometer: selectedPurchaseOrder.currentOdometer || prev.currentOdometer,
+                    truckId: po.truckId || prev.truckId,
+                    trailerId: po.trailerId || prev.trailerId,
+                    driverId: String(po.driverId || prev.driverId),
+                    currentOdometer: po.currentOdometer || prev.currentOdometer,
                 }));
             }
         } else {
@@ -206,7 +255,8 @@ export default function TruckOrders() {
 
     // Auto-fill odometer when truck is selected (fallback if not in purchase order)
     useEffect(() => {
-        if (selectedTruck && selectedTruck.lastOdometerReading && !selectedPurchaseOrder?.currentOdometer) {
+        const po = selectedPurchaseOrder as any;
+        if (selectedTruck && selectedTruck.lastOdometerReading && !po?.currentOdometer) {
             setNewOrder((prev) => ({
                 ...prev,
                 currentOdometer: selectedTruck.lastOdometerReading || 0,
@@ -276,7 +326,10 @@ export default function TruckOrders() {
                     : "หลายสาขา",
                 oilType: order.items[0]?.oilType || "Premium Diesel",
                 quantity: order.items.reduce((sum: number, item: any) => sum + item.quantity, 0),
-                status: order.status as TruckOrder["status"],
+                status: (order.status === "กำลังขนส่ง" ? "delivering" : 
+                         order.status === "ขนส่งสำเร็จ" ? "completed" : 
+                         order.status === "รอเริ่ม" ? "ready-to-pickup" : 
+                         order.status) as TruckOrder["status"],
                 branches: order.branches,
                 createdAt: order.approvedAt || new Date().toISOString(),
                 createdBy: order.approvedBy || "ระบบ"
@@ -379,6 +432,24 @@ export default function TruckOrders() {
             return;
         }
 
+        // If it's an internal order, update its status in the context
+        if (selectedPurchaseOrder?.type === "internal") {
+            const internalOrder = internalOrders.find(o => o.orderNo === newOrder.purchaseOrderNo);
+            if (internalOrder) {
+                updateInternalOrder(internalOrder.id, {
+                    status: "กำลังจัดส่ง",
+                    transportNo: newOrder.transportNo,
+                    deliveryDate: newOrder.departureDate || new Date().toISOString().split('T')[0],
+                    truckId: newOrder.truckId,
+                    truckPlate: selectedTruck?.plateNumber,
+                    trailerId: newOrder.trailerId,
+                    trailerPlate: selectedTrailer?.plateNumber,
+                    driverId: Number(newOrder.driverId),
+                    driverName: selectedDriver?.name
+                });
+            }
+        }
+
         // In real app, this would call API
         console.log("Creating truck order:", {
             ...newOrder,
@@ -387,7 +458,9 @@ export default function TruckOrders() {
             truckPlateNumber: selectedTruck?.plateNumber,
             trailerPlateNumber: selectedTrailer?.plateNumber,
             driverName: selectedDriver ? selectedDriver.name : "",
+            orderType: selectedPurchaseOrder?.type || "external"
         });
+        
         setShowCreateOrderModal(false);
         setNewOrder({
             orderDate: new Date().toISOString().split("T")[0],
@@ -466,6 +539,8 @@ export default function TruckOrders() {
                 return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
             case "picking-up":
                 return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400";
+            case "delivering":
+                return "bg-blue-600 text-white animate-pulse";
             case "completed":
                 return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
             case "cancelled":
@@ -485,6 +560,8 @@ export default function TruckOrders() {
                 return "พร้อมรับ";
             case "picking-up":
                 return "กำลังไปรับ";
+            case "delivering":
+                return "กำลังจัดส่ง";
             case "completed":
                 return "เสร็จสิ้น";
             case "cancelled":
@@ -504,6 +581,8 @@ export default function TruckOrders() {
                 return <Clock className="w-4 h-4" />;
             case "picking-up":
                 return <Activity className="w-4 h-4" />;
+            case "delivering":
+                return <Navigation className="w-4 h-4 animate-bounce" />;
             case "completed":
                 return <CheckCircle className="w-4 h-4" />;
             case "cancelled":
@@ -575,6 +654,7 @@ export default function TruckOrders() {
                             <option value="quotation-recorded">บันทึกใบเสนอราคาแล้ว</option>
                             <option value="ready-to-pickup">พร้อมรับ</option>
                             <option value="picking-up">กำลังไปรับ</option>
+                            <option value="delivering">กำลังจัดส่ง</option>
                             <option value="completed">เสร็จสิ้น</option>
                             <option value="cancelled">ยกเลิก</option>
                         </select>
@@ -833,7 +913,7 @@ export default function TruckOrders() {
                                 <FileText className="w-8 h-8 text-gray-400" />
                             </div>
                             <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">ไม่พบรายการขนส่ง</p>
-                            <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">คลิกปุ่ม "สร้างการขนส่งใหม่" เพื่อเพิ่มรายการ</p>
+                            <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">คลิกปุ่ม &quot;สร้างการขนส่งใหม่&quot; เพื่อเพิ่มรายการ</p>
                         </div>
                     )
                 }
@@ -892,7 +972,7 @@ export default function TruckOrders() {
                                             </button>
                                         </div>
                                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                            💡 เลขขนส่งจะถูกสร้างอัตโนมัติเมื่อเปิดฟอร์มนี้ หรือคลิกปุ่ม "สร้างใหม่" เพื่อสร้างเลขใหม่
+                                            💡 เลขขนส่งจะถูกสร้างอัตโนมัติเมื่อเปิดฟอร์มนี้ หรือคลิกปุ่ม &quot;สร้างใหม่&quot; เพื่อสร้างเลขใหม่
                                         </p>
                                     </div>
 
@@ -934,26 +1014,93 @@ export default function TruckOrders() {
                                             required
                                         >
                                             <option value="">เลือกใบสั่งซื้อ</option>
-                                            {mockApprovedOrders.map((order) => (
-                                                <option key={order.orderNo} value={order.orderNo}>
-                                                    {order.orderNo} - {order.supplierOrderNo} ({order.branches.length} ปั๊ม)
-                                                </option>
-                                            ))}
+                                            
+                                            <optgroup label="--- ใบสั่งซื้อจาก ปตท (External PO) ---">
+                                                {mockApprovedOrders.map((order) => (
+                                                    <option key={order.orderNo} value={order.orderNo}>
+                                                        {order.orderNo} - {order.supplierOrderNo} ({order.branches.length} ปั๊ม)
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+
+                                            <optgroup label="--- ใบสั่งซื้อภายในปั๊ม (Internal IO) ---">
+                                                {readyInternalOrders.map((order) => {
+                                                    // ตรวจสอบแหล่งที่มาเพื่อแสดงในชื่อ dropdown
+                                                    const sources = Array.from(new Set(order.items.map(i => i.deliverySource).filter(Boolean)));
+                                                    const sourceText = sources.map(s => {
+                                                        if (s === "truck") return "🚚 น้ำมันค้างบนรถ";
+                                                        if (s === "suction") return "💉 จากการดูด";
+                                                        return "";
+                                                    }).filter(Boolean).join(", ");
+                                                    
+                                                    const totalQty = order.items.reduce((sum, i) => sum + i.quantity, 0);
+                                                    
+                                                    return (
+                                                        <option key={order.id} value={order.orderNo}>
+                                                            {order.orderNo} - {order.assignedFromBranchName || "ปั๊มไฮโซ"} → {order.fromBranchName} {sourceText ? `[${sourceText}]` : ""} ({totalQty.toLocaleString()} ลิตร)
+                                                        </option>
+                                                    );
+                                                })}
+                                            </optgroup>
                                         </select>
                                         {selectedPurchaseOrder && (
                                             <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                                                    📋ใบสั่งซื้อ: {selectedPurchaseOrder.orderNo}
-                                                </p>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                        📋 {selectedPurchaseOrder.type === "internal" ? "ใบสั่งซื้อภายใน (Internal IO)" : "ใบสั่งซื้อจาก ปตท (External PO)"}: {selectedPurchaseOrder.orderNo}
+                                                    </p>
+                                                    {selectedPurchaseOrder.type === "internal" && (
+                                                        <span className="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 rounded-full font-bold">
+                                                            INTERNAL
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs mb-3">
+                                                    {selectedPurchaseOrder.type === "external" && (
+                                                        <div className="bg-white/70 dark:bg-gray-800/40 border border-blue-100 dark:border-blue-900/40 rounded-lg p-2">
+                                                            <p className="text-gray-600 dark:text-gray-400">ใบอนุมัติขายเลขที่</p>
+                                                            <p className="font-semibold text-gray-900 dark:text-white">{(selectedPurchaseOrder as any).approveNo || "-"}</p>
+                                                        </div>
+                                                    )}
                                                     <div className="bg-white/70 dark:bg-gray-800/40 border border-blue-100 dark:border-blue-900/40 rounded-lg p-2">
-                                                        <p className="text-gray-600 dark:text-gray-400">ใบอนุมัติขายเลขที่</p>
-                                                        <p className="font-semibold text-gray-900 dark:text-white">{selectedPurchaseOrder.approveNo || "-"}</p>
-                                                    </div>
-                                                    <div className="bg-white/70 dark:bg-gray-800/40 border border-blue-100 dark:border-blue-900/40 rounded-lg p-2">
-                                                        <p className="text-gray-600 dark:text-gray-400">ใบสั่งซื้อเลขที่</p>
+                                                        <p className="text-gray-600 dark:text-gray-400">เลขที่ออเดอร์</p>
                                                         <p className="font-semibold text-gray-900 dark:text-white">{selectedPurchaseOrder.orderNo}</p>
                                                     </div>
+                                                    {selectedPurchaseOrder.type === "internal" ? (
+                                                        <>
+                                                            <div className="bg-white/70 dark:bg-gray-800/40 border border-blue-100 dark:border-blue-900/40 rounded-lg p-2">
+                                                                <p className="text-gray-600 dark:text-gray-400">ซื้อจากปั๊ม (ต้นทาง)</p>
+                                                                <p className="font-semibold text-blue-600 dark:text-blue-400">{(selectedPurchaseOrder as any).assignedFromBranchName || "ปั๊มไฮโซ"}</p>
+                                                            </div>
+                                                            <div className="bg-white/70 dark:bg-gray-800/40 border border-blue-100 dark:border-blue-900/40 rounded-lg p-2">
+                                                                <p className="text-gray-600 dark:text-gray-400">ปั๊มผู้สั่งซื้อ (ปลายทาง)</p>
+                                                                <p className="font-semibold text-purple-600 dark:text-purple-400">{(selectedPurchaseOrder as any).fromBranchName || "-"}</p>
+                                                            </div>
+                                                            {(selectedPurchaseOrder as any).deliverySource && (
+                                                                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-lg p-2 col-span-full">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <div>
+                                                                            <p className="text-[10px] font-bold text-purple-500 uppercase tracking-widest">แหล่งที่มาของน้ำมัน</p>
+                                                                            <p className="text-xs font-black text-purple-700 dark:text-purple-300">
+                                                                                {(selectedPurchaseOrder as any).deliverySource === "truck" ? "🚚 ขายจากน้ำมันในรถ" : "💉 ขายจากการดูด"}
+                                                                            </p>
+                                                                        </div>
+                                                                        {(selectedPurchaseOrder as any).sourceTransportNo && (
+                                                                            <div className="text-right">
+                                                                                <p className="text-[10px] font-bold text-purple-500 uppercase tracking-widest">เลขขนส่งอ้างอิง</p>
+                                                                                <p className="text-xs font-black text-purple-700 dark:text-purple-300">{(selectedPurchaseOrder as any).sourceTransportNo}</p>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <div className="bg-white/70 dark:bg-gray-800/40 border border-blue-100 dark:border-blue-900/40 rounded-lg p-2">
+                                                            <p className="text-gray-600 dark:text-gray-400">บริษัทคู่ค้า</p>
+                                                            <p className="font-semibold text-gray-900 dark:text-white">PTT Station</p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2 text-xs">
                                                     <div>
@@ -972,44 +1119,55 @@ export default function TruckOrders() {
                                                             {selectedPurchaseOrder.branches.length} ปั๊ม
                                                         </span>
                                                     </div>
+                                                    <div className="col-span-full mt-1 p-2 bg-white/50 dark:bg-gray-800/50 rounded-lg border border-blue-100 dark:border-blue-900/40">
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">ส่งให้ปั๊ม (ปลายทาง):</span>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {selectedPurchaseOrder.branches.map((branch, idx) => (
+                                                                <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md font-bold text-[11px]">
+                                                                    <MapPin className="w-3 h-3" />
+                                                                    {branch.branchName}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                {(selectedTruck || selectedTrailer || selectedDriver || selectedPurchaseOrder.truckPlateNumber || selectedPurchaseOrder.driverName) && (
+                                                {(selectedTruck || selectedTrailer || selectedDriver || (selectedPurchaseOrder as any).truckPlateNumber || (selectedPurchaseOrder as any).driverName) && (
                                                     <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
                                                         <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">ข้อมูลรถ:</p>
-                                                        <div className="grid grid-cols-2 gap-2 text-xs">
-                                                            {(selectedTruck?.plateNumber || selectedPurchaseOrder.truckPlateNumber) && (
-                                                                <div>
-                                                                    <span className="text-gray-600 dark:text-gray-400">รถ:</span>
-                                                                    <span className="font-medium text-gray-900 dark:text-white ml-1">
-                                                                        {selectedTruck?.plateNumber || selectedPurchaseOrder.truckPlateNumber}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            {(selectedTrailer?.plateNumber || selectedPurchaseOrder.trailerPlateNumber) && (
-                                                                <div>
-                                                                    <span className="text-gray-600 dark:text-gray-400">หาง:</span>
-                                                                    <span className="font-medium text-gray-900 dark:text-white ml-1">
-                                                                        {selectedTrailer?.plateNumber || selectedPurchaseOrder.trailerPlateNumber}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            {(selectedDriver?.name || selectedPurchaseOrder.driverName) && (
-                                                                <div>
-                                                                    <span className="text-gray-600 dark:text-gray-400">คนขับ:</span>
-                                                                    <span className="font-medium text-gray-900 dark:text-white ml-1">
-                                                                        {selectedDriver?.name || selectedPurchaseOrder.driverName}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            {(newOrder.currentOdometer || selectedPurchaseOrder.currentOdometer) && (
-                                                                <div>
-                                                                    <span className="text-gray-600 dark:text-gray-400">เลขไมล์:</span>
-                                                                    <span className="font-medium text-gray-900 dark:text-white ml-1">
-                                                                        {numberFormatter.format(newOrder.currentOdometer || selectedPurchaseOrder.currentOdometer || 0)} กม.
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                            {((selectedPurchaseOrder as any).truckPlateNumber || (selectedPurchaseOrder as any).truckPlate || selectedTruck?.plateNumber) && (
+                                                <div>
+                                                    <span className="text-gray-600 dark:text-gray-400">รถ:</span>
+                                                    <span className="font-medium text-gray-900 dark:text-white ml-1">
+                                                        {selectedTruck?.plateNumber || (selectedPurchaseOrder as any).truckPlateNumber || (selectedPurchaseOrder as any).truckPlate}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {((selectedPurchaseOrder as any).trailerPlateNumber || (selectedPurchaseOrder as any).trailerPlate || selectedTrailer?.plateNumber) && (
+                                                <div>
+                                                    <span className="text-gray-600 dark:text-gray-400">หาง:</span>
+                                                    <span className="font-medium text-gray-900 dark:text-white ml-1">
+                                                        {selectedTrailer?.plateNumber || (selectedPurchaseOrder as any).trailerPlateNumber || (selectedPurchaseOrder as any).trailerPlate}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {((selectedPurchaseOrder as any).driverName || selectedDriver?.name) && (
+                                                <div>
+                                                    <span className="text-gray-600 dark:text-gray-400">คนขับ:</span>
+                                                    <span className="font-medium text-gray-900 dark:text-white ml-1">
+                                                        {selectedDriver?.name || (selectedPurchaseOrder as any).driverName}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {(newOrder.currentOdometer || (selectedPurchaseOrder as any).currentOdometer) && (
+                                                <div>
+                                                    <span className="text-gray-600 dark:text-gray-400">เลขไมล์:</span>
+                                                    <span className="font-medium text-gray-900 dark:text-white ml-1">
+                                                        {numberFormatter.format(newOrder.currentOdometer || (selectedPurchaseOrder as any).currentOdometer || 0)} กม.
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
                                                     </div>
                                                 )}
                                                 <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
@@ -1119,12 +1277,12 @@ export default function TruckOrders() {
                                                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                                 required
                                             />
-                                            {selectedPurchaseOrder?.currentOdometer && (
+                                            {(selectedPurchaseOrder as any)?.currentOdometer && (
                                                 <p className="mt-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
-                                                    ✅ ดึงมาจากใบสั่งซื้อ: {numberFormatter.format(selectedPurchaseOrder.currentOdometer)} กม. (แก้ไขได้)
+                                                    ✅ ดึงมาจากใบสั่งซื้อ: {numberFormatter.format((selectedPurchaseOrder as any).currentOdometer)} กม. (แก้ไขได้)
                                                 </p>
                                             )}
-                                            {!selectedPurchaseOrder?.currentOdometer && selectedTruck && selectedTruck.lastOdometerReading && (
+                                            {!(selectedPurchaseOrder as any)?.currentOdometer && selectedTruck && selectedTruck.lastOdometerReading && (
                                                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                                     💡 ดึงมาจาก Profile รถ: {selectedTruck.lastOdometerReading.toLocaleString()} กม. (แก้ไขได้)
                                                 </p>
@@ -1382,10 +1540,68 @@ export default function TruckOrders() {
 
                                     {/* รายการน้ำมันแต่ละปั๊ม */}
                                     <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                            <p className="text-lg font-bold text-gray-900 dark:text-white">รายการส่งน้ำมันแต่ละปั๊ม</p>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                                <p className="text-lg font-bold text-gray-900 dark:text-white">รายการส่งน้ำมันแต่ละปั๊ม</p>
+                                            </div>
+                                            {selectedOrder.purchaseOrderNo?.startsWith("IO-") && (
+                                                <span className="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 rounded-full font-bold uppercase tracking-widest">
+                                                    INTERNAL IO
+                                                </span>
+                                            )}
                                         </div>
+
+                                        {/* ข้อมูลต้นทาง/แหล่งที่มา (สำหรับออเดอร์ภายใน) */}
+                                        {selectedOrder.purchaseOrderNo?.startsWith("IO-") ? (
+                                            <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800 space-y-3">
+                                                <div className="flex items-center justify-between border-b border-purple-100 dark:border-purple-800 pb-2">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] font-bold text-purple-500 uppercase">ซื้อจากปั๊ม (ต้นทาง)</span>
+                                                        <span className="text-sm font-black text-blue-600 dark:text-blue-400">ปั๊มไฮโซ</span>
+                                                    </div>
+                                                    <div className="text-right flex flex-col">
+                                                        <span className="text-[10px] font-bold text-purple-500 uppercase">เลขที่ออเดอร์ภายใน</span>
+                                                        <span className="text-sm font-black text-purple-700 dark:text-purple-300">{selectedOrder.purchaseOrderNo}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* ค้นหาข้อมูลแหล่งที่มาจาก internalOrders context */}
+                                                {(() => {
+                                                    const io = internalOrders.find(o => o.orderNo === selectedOrder.purchaseOrderNo);
+                                                    const firstItem = io?.items[0];
+                                                    if (!firstItem) return null;
+                                                    
+                                                    return (
+                                                        <div className="flex items-center justify-between pt-1">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-bold text-purple-500 uppercase tracking-widest">แหล่งที่มาของน้ำมัน</span>
+                                                                <span className="text-xs font-black text-purple-700 dark:text-purple-300">
+                                                                    {firstItem.deliverySource === "truck" ? "🚚 ขายจากน้ำมันในรถ" : "💉 ขายจากการดูด"}
+                                                                </span>
+                                                            </div>
+                                                            {firstItem.transportNo && (
+                                                                <div className="text-right flex flex-col">
+                                                                    <span className="text-[10px] font-bold text-purple-500 uppercase tracking-widest">เลขขนส่งอ้างอิง</span>
+                                                                    <span className="text-xs font-black text-purple-700 dark:text-purple-300">{firstItem.transportNo}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        ) : (
+                                            <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 flex items-center justify-between">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-blue-500 uppercase">บริษัทคู่ค้า (ต้นทาง)</span>
+                                                    <span className="text-sm font-black text-blue-600 dark:text-blue-400">PTT Station</span>
+                                                </div>
+                                                <div className="text-right flex flex-col">
+                                                    <span className="text-[10px] font-bold text-blue-500 uppercase">เลขที่ใบสั่งซื้อ</span>
+                                                    <span className="text-sm font-black text-blue-700 dark:text-blue-300">{selectedOrder.purchaseOrderNo || "-"}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                         {selectedOrder.branches && selectedOrder.branches.length > 0 ? (
                                             <div className="space-y-3">
                                                 {selectedOrder.branches.map((branch: any, idx: number) => (

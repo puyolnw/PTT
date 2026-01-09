@@ -94,7 +94,8 @@ interface GasStationContextType {
   // Actions - Internal Oil Orders
   createInternalOrder: (order: InternalOilOrder) => void;
   updateInternalOrder: (orderId: string, updates: Partial<InternalOilOrder>) => void;
-  approveInternalOrder: (orderId: string, approvedBy: string, fromBranchId: number) => void;
+  approveInternalOrder: (orderId: string, approvedBy: string, fromBranchId: number, items: InternalOilOrder["items"]) => void;
+  cancelInternalOrder: (orderId: string, cancelledBy: string) => void;
 
   // Actions - Running Numbers
   getNextRunningNumber: (documentType: RunningNumber["documentType"]) => string;
@@ -334,13 +335,143 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       fromBranchId: 2,
       fromBranchName: "ดินดำ",
       items: [
-        { oilType: "Premium Diesel", quantity: 5000, pricePerLiter: 32.5, totalAmount: 162500 },
-        { oilType: "Gasohol 95", quantity: 3000, pricePerLiter: 35.0, totalAmount: 105000 },
+        { oilType: "Premium Diesel", quantity: 5000, requestedQuantity: 5000, pricePerLiter: 0, totalAmount: 0 },
+        { oilType: "Gasohol 95", quantity: 3000, requestedQuantity: 3000, pricePerLiter: 0, totalAmount: 0 },
       ],
-      totalAmount: 267500,
+      totalAmount: 0,
       status: "รออนุมัติ",
       requestedBy: "ผู้จัดการดินดำ",
       requestedAt: "2024-12-15T10:30:00",
+    },
+    {
+      id: "IO-2",
+      orderNo: "IO-20241216-001",
+      orderDate: "2024-12-16",
+      requestedDate: "2024-12-18",
+      fromBranchId: 3,
+      fromBranchName: "หนองจิก",
+      assignedFromBranchId: 1,
+      assignedFromBranchName: "ปั๊มไฮโซ",
+      items: [
+        { 
+          oilType: "Diesel", 
+          quantity: 10000, 
+          requestedQuantity: 10000, 
+          pricePerLiter: 30.0, 
+          totalAmount: 300000,
+          deliverySource: "truck",
+          transportNo: "TP-20241216-001"
+        },
+      ],
+      totalAmount: 300000,
+      status: "อนุมัติแล้ว",
+      requestedBy: "ผู้จัดการหนองจิก",
+      requestedAt: "2024-12-16T09:15:00",
+      approvedBy: "พี่นิด",
+      approvedAt: "2024-12-16T14:20:00",
+    },
+    {
+      id: "IO-SUC",
+      orderNo: "IO-20241217-005",
+      orderDate: "2024-12-17",
+      requestedDate: "2024-12-22",
+      fromBranchId: 4,
+      fromBranchName: "บายพาส",
+      items: [
+        { 
+          oilType: "Diesel", 
+          quantity: 1000, 
+          requestedQuantity: 1000, 
+          pricePerLiter: 29.5, 
+          totalAmount: 29500,
+          deliverySource: "suction",
+          transportNo: "SUC-20241217-001"
+        },
+      ],
+      totalAmount: 29500,
+      status: "อนุมัติแล้ว",
+      requestedBy: "ผู้จัดการบายพาส",
+      requestedAt: "2024-12-17T14:20:00",
+      assignedFromBranchId: 1,
+      assignedFromBranchName: "ปั๊มไฮโซ",
+      approvedBy: "พี่นิด",
+      approvedAt: "2024-12-17T15:00:00",
+    },
+    {
+      id: "IO-3",
+      orderNo: "IO-20241217-001",
+      orderDate: "2024-12-17",
+      requestedDate: "2024-12-17",
+      fromBranchId: 5,
+      fromBranchName: "บายพาส",
+      assignedFromBranchId: 1,
+      assignedFromBranchName: "ปั๊มไฮโซ",
+      transportNo: "TP-20241215-001",
+      deliveryDate: "2024-12-17",
+      items: [
+        { 
+          oilType: "Gasohol 95", 
+          quantity: 15000, 
+          requestedQuantity: 15000, 
+          pricePerLiter: 43.0, 
+          totalAmount: 645000,
+          transportNo: "TP-20241215-001",
+          deliverySource: "truck"
+        },
+      ],
+      totalAmount: 645000,
+      status: "กำลังจัดส่ง",
+      requestedBy: "ผู้จัดการบายพาส",
+      requestedAt: "2024-12-17T08:00:00",
+      approvedBy: "พี่นิด",
+      approvedAt: "2024-12-17T08:30:00",
+    },
+    {
+      id: "IO-4",
+      orderNo: "IO-20241218-001",
+      orderDate: "2024-12-14",
+      requestedDate: "2024-12-14",
+      fromBranchId: 2,
+      fromBranchName: "ดินดำ",
+      assignedFromBranchId: 1,
+      assignedFromBranchName: "ปั๊มไฮโซ",
+      transportNo: "TP-20241214-002",
+      deliveryDate: "2024-12-14",
+      items: [
+        { 
+          oilType: "Diesel", 
+          quantity: 35000, 
+          requestedQuantity: 35000, 
+          pricePerLiter: 30.0, 
+          totalAmount: 1050000,
+          transportNo: "TP-20241214-002",
+          deliverySource: "truck"
+        },
+      ],
+      totalAmount: 1050000,
+      status: "ส่งแล้ว",
+      requestedBy: "ผู้จัดการดินดำ",
+      requestedAt: "2024-12-14T07:00:00",
+      approvedBy: "พี่นิด",
+      approvedAt: "2024-12-14T07:15:00",
+      receivedByName: "นายนพดล ประจำปั๊ม",
+      updatedAt: "2024-12-14T10:30:00",
+    },
+    {
+      id: "IO-5",
+      orderNo: "IO-20241219-001",
+      orderDate: "2024-12-19",
+      requestedDate: "2024-12-25",
+      fromBranchId: 4,
+      fromBranchName: "ตักสิลา",
+      items: [
+        { oilType: "E20", quantity: 5000, requestedQuantity: 5000, pricePerLiter: 0, totalAmount: 0 },
+      ],
+      totalAmount: 0,
+      status: "ยกเลิก",
+      requestedBy: "ผู้จัดการตักสิลา",
+      requestedAt: "2024-12-19T11:00:00",
+      notes: "ยกเลิกโดย พี่นิด เมื่อ 19/12/2024 13:00:00 เนื่องจากปั๊มต้นทางน้ำมันไม่พอ",
     },
   ]);
 
@@ -579,16 +710,26 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const approveInternalOrder = useCallback((orderId: string, approvedBy: string, fromBranchId: number) => {
+  const approveInternalOrder = useCallback((orderId: string, approvedBy: string, fromBranchId: number, items: InternalOilOrder["items"]) => {
     const fromBranch = branches.find(b => b.id === fromBranchId);
+    const totalAmount = items.reduce((sum, item) => sum + item.totalAmount, 0);
     updateInternalOrder(orderId, {
       status: "อนุมัติแล้ว",
       approvedBy,
       approvedAt: new Date().toISOString(),
       assignedFromBranchId: fromBranchId,
-      assignedFromBranchName: fromBranch?.name
+      assignedFromBranchName: fromBranch?.name,
+      items,
+      totalAmount
     });
   }, [updateInternalOrder, branches]);
+
+  const cancelInternalOrder = useCallback((orderId: string, cancelledBy: string) => {
+    updateInternalOrder(orderId, {
+      status: "ยกเลิก",
+      notes: `ยกเลิกโดย ${cancelledBy} เมื่อ ${new Date().toLocaleString()}`
+    });
+  }, [updateInternalOrder]);
 
   // Tank Entries
   const createTankEntry = useCallback((entry: TankEntryRecord) => {
@@ -707,9 +848,13 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     tankEntries: tankEntriesState.filter(te => 
       selectedBranchIds.length === 0 || selectedBranchIds.includes(te.branchId)
     ),
-    internalOrders: internalOrdersState.filter(o => 
-      selectedBranchIds.length === 0 || selectedBranchIds.includes(o.fromBranchId) || (o.assignedFromBranchId && selectedBranchIds.includes(o.assignedFromBranchId))
-    ),
+    internalOrders: internalOrdersState.filter(o => {
+      if (selectedBranchIds.length === 0) return true;
+      // ถ้าเลือก "ปั๊มไฮโซ" (ID 1) ให้เห็นคำสั่งซื้อทั้งหมด (เพราะปั๊มไฮโซเป็นคนจัดการคำสั่งซื้อจากปั๊มย่อยทั้งหมด)
+      if (selectedBranchIds.includes(1)) return true;
+      // ถ้าเลือกปั๊มย่อย ให้เห็นเฉพาะของปั๊มย่อยนั้นๆ
+      return selectedBranchIds.includes(o.fromBranchId) || (o.assignedFromBranchId && selectedBranchIds.includes(o.assignedFromBranchId));
+    }),
     allInternalOrders: internalOrdersState,
     trucks: mockTrucks,
     trailers: mockTrailers,
@@ -747,6 +892,7 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     createInternalOrder,
     updateInternalOrder,
     approveInternalOrder,
+    cancelInternalOrder,
     getNextRunningNumber,
     incrementRunningNumber,
     updateSaleTx,

@@ -649,6 +649,41 @@ export const mockApprovedOrders: ApprovedOrder[] = [
     driverName: "สมศักดิ์ ขับรถ",
     currentOdometer: 125800,
   },
+  {
+    approveNo: "519895415",
+    orderNo: "IO-20241217-005",
+    supplierOrderNo: "519895415",
+    billNo: "BILL-20241217-001",
+    orderDate: "2024-12-17",
+    deliveryDate: "2024-12-18",
+    items: [
+      { oilType: "Diesel", quantity: 1000, pricePerLiter: 29.5, totalAmount: 29500 },
+    ],
+    totalAmount: 29500,
+    branches: [
+      {
+        branchId: 4,
+        branchName: "ปั้มบายพาส",
+        legalEntityName: "บริษัท บายพาส ออยล์ จำกัด",
+        address: "123 ถนนสุขุมวิท กรุงเทพมหานคร 10110",
+        items: [
+          { oilType: "Diesel", quantity: 1000, pricePerLiter: 29.5, totalAmount: 29500 },
+        ],
+        totalAmount: 29500,
+        deliveryStatus: "กำลังส่ง",
+      },
+    ],
+    status: "กำลังขนส่ง",
+    approvedBy: "พี่นิด",
+    approvedAt: "2024-12-17 15:00",
+    truckId: "TRUCK-001",
+    truckPlateNumber: "กก 1111",
+    trailerId: "TRAILER-001",
+    trailerPlateNumber: "กข 1234",
+    driverId: "1",
+    driverName: "สมชาย ใจดี",
+    currentOdometer: 125500,
+  },
 ];
 
 // PTT Quotation Interface

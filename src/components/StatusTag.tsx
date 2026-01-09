@@ -42,7 +42,7 @@ export function getStatusVariant(
 ): "success" | "warning" | "danger" | "info" | "neutral" | "primary" {
   const lowerStatus = status.toLowerCase();
 
-  if (lowerStatus.includes("active") || lowerStatus.includes("ตรงเวลา") || lowerStatus.includes("อนุมัติแล้ว") || lowerStatus.includes("ผ่าน")) {
+  if (lowerStatus.includes("active") || lowerStatus.includes("ตรงเวลา") || lowerStatus.includes("อนุมัติแล้ว") || lowerStatus.includes("ยืนยันแล้ว") || lowerStatus.includes("ผ่าน")) {
     return "success";
   }
 
@@ -50,7 +50,7 @@ export function getStatusVariant(
     return "warning";
   }
 
-  if (lowerStatus.includes("ขาด") || lowerStatus.includes("ไม่ผ่าน") || lowerStatus.includes("resigned") || lowerStatus.includes("ไม่อนุมัติ")) {
+  if (lowerStatus.includes("ขาด") || lowerStatus.includes("ไม่ผ่าน") || lowerStatus.includes("resigned") || lowerStatus.includes("ไม่อนุมัติ") || lowerStatus.includes("ยกเลิก")) {
     return "danger";
   }
 

@@ -443,7 +443,7 @@ export default function ManageTrips() {
                             {selected.orderType === "external" ? (
                               <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
-                                  <span className="text-gray-500">PO No.</span>
+                                  <span className="text-gray-500">เลขที่ใบสั่งซื้อ</span>
                                   <span className="font-mono font-medium">{selected.purchaseOrderNo || "-"}</span>
                                 </div>
                                 {poMeta && (
@@ -470,7 +470,7 @@ export default function ManageTrips() {
                           </h4>
                           <div className="space-y-3">
                             <div>
-                              <div className="text-xs text-gray-500 mb-1 block">เลขที่คลัง (Warehouse No.)</div>
+                              <div className="text-xs text-gray-500 mb-1 block">เลขที่ใบกำกับภาษี</div>
                               <input
                                 value={warehouseNo}
                                 onChange={(e) => setWarehouseNo(e.target.value)}
@@ -479,27 +479,7 @@ export default function ManageTrips() {
                                 placeholder="ยังไม่ได้ระบุ"
                               />
                             </div>
-                            <div>
-                              <div className="text-xs text-gray-500 mb-1 block">เลขเอกสาร (Document No.)</div>
-                              <input
-                                value={depotDocumentNo}
-                                onChange={(e) => setDepotDocumentNo(e.target.value)}
-                                disabled={isReadOnly}
-                                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60"
-                                placeholder="เช่น เลขบิล"
-                              />
-                            </div>
-                            <div>
-                              <div className="text-xs text-gray-500 mb-1 block">หมายเหตุ</div>
-                              <textarea
-                                value={warehouseNotes}
-                                onChange={(e) => setWarehouseNotes(e.target.value)}
-                                disabled={isReadOnly}
-                                rows={2}
-                                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 resize-none"
-                                placeholder="-"
-                              />
-                            </div>
+
 
                             {modalMode === "edit" && (
                               <button

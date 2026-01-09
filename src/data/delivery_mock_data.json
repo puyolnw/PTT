@@ -339,7 +339,21 @@
       "transportNo": "TP-240501-01",
       "purchaseOrderNo": "PO-20240101-001",
       "internalOrderNo": "INT-240501-001",
-      "paymentStatus": "paid"
+      "paymentStatus": "paid",
+      "paymentHistory": [
+        {
+          "date": "2024-05-02T10:00:00.000Z",
+          "amount": 118000,
+          "method": "โอนเงินเข้าบัญชี"
+        }
+      ],
+      "taxInvoices": [
+        {
+          "invoiceNo": "INV-240502-001",
+          "date": "2024-05-02T10:05:00.000Z",
+          "amount": 118000
+        }
+      ]
     },
     {
       "id": "TX-20240501-002",
@@ -358,7 +372,21 @@
       "transportNo": "TP-240501-01",
       "purchaseOrderNo": "PO-20240101-001",
       "internalOrderNo": "INT-240501-002",
-      "paymentStatus": "paid"
+      "paymentStatus": "paid",
+      "paymentHistory": [
+        {
+          "date": "2024-05-01T14:00:00.000Z",
+          "amount": 107400,
+          "method": "Auto-Deduct"
+        }
+      ],
+      "taxInvoices": [
+        {
+          "invoiceNo": "INV-240501-005",
+          "date": "2024-05-01T14:05:00.000Z",
+          "amount": 107400
+        }
+      ]
     },
     {
       "id": "TX-20240502-001",
@@ -463,40 +491,6 @@
       "paymentStatus": "unpaid"
     },
     {
-      "id": "TX-20240504-001",
-      "source": "truck-remaining",
-      "createdAt": "2024-05-04T11:00:00.000Z",
-      "fromBranchId": 3,
-      "fromBranchName": "ปั้มหนองจิก",
-      "toBranchId": 1,
-      "toBranchName": "ปั้มไฮโซ",
-      "oilType": "Gasohol 91",
-      "quantity": 1000,
-      "pricePerLiter": 34.00,
-      "totalAmount": 34000,
-      "deliveryNoteNo": "DN-240504-001",
-      "receiptNo": "RCP-240504-001",
-      "transportNo": "TP-240504-01",
-      "paymentStatus": "unpaid"
-    },
-    {
-      "id": "TX-20240505-001",
-      "source": "truck-remaining",
-      "createdAt": "2024-05-05T15:30:00.000Z",
-      "fromBranchId": 4,
-      "fromBranchName": "ปั้มบายพาส",
-      "toBranchId": 2,
-      "toBranchName": "ปั้มดินดำ",
-      "oilType": "E20",
-      "quantity": 2000,
-      "pricePerLiter": 31.00,
-      "totalAmount": 62000,
-      "deliveryNoteNo": "DN-240505-001",
-      "receiptNo": "RCP-240505-001",
-      "transportNo": "TP-240505-01",
-      "paymentStatus": "unpaid"
-    },
-    {
       "id": "TX-MOCK-SALE-001",
       "source": "truck-remaining",
       "createdAt": "2024-12-15T09:30:00.000Z",
@@ -528,6 +522,187 @@
       "deliveryNoteNo": "DN-MOCK-002",
       "receiptNo": "RCP-MOCK-002",
       "transportNo": "TP-20241216-005",
+      "paymentStatus": "unpaid"
+    },
+    {
+      "id": "TX-MOCK-SALE-003",
+      "source": "truck-remaining",
+      "createdAt": "2024-12-18T10:00:00.000Z",
+      "fromBranchId": 1,
+      "fromBranchName": "ปั๊มไฮโซ",
+      "toBranchId": 4,
+      "toBranchName": "ปั้มบายพาส",
+      "oilType": "Gasohol 91",
+      "quantity": 5000,
+      "pricePerLiter": 34.50,
+      "totalAmount": 172500,
+      "deliveryNoteNo": "DN-MOCK-003",
+      "receiptNo": "RCP-MOCK-003",
+      "transportNo": "TP-20241218-001",
+      "paymentStatus": "unpaid"
+    },
+    {
+      "id": "TX-MOCK-SALE-004",
+      "source": "truck-remaining",
+      "createdAt": "2024-12-20T11:45:00.000Z",
+      "fromBranchId": 2,
+      "fromBranchName": "ดินดำ",
+      "toBranchId": 5,
+      "toBranchName": "ปั้มตักสิลา",
+      "oilType": "Diesel",
+      "quantity": 3000,
+      "pricePerLiter": 31.00,
+      "totalAmount": 93000,
+      "deliveryNoteNo": "DN-MOCK-004",
+      "receiptNo": "RCP-MOCK-004",
+      "transportNo": "TP-20241220-002",
+      "paymentStatus": "paid",
+      "paidAmount": 93000,
+      "paymentHistory": [
+        {
+          "date": "2024-12-21T09:00:00.000Z",
+          "amount": 93000,
+          "method": "โอนเงินเข้าบัญชี"
+        }
+      ],
+      "taxInvoices": [
+        {
+          "invoiceNo": "INV-MOCK-004",
+          "date": "2024-12-21T09:05:00.000Z",
+          "amount": 93000
+        }
+      ]
+    },
+    {
+      "id": "TX-MOCK-SALE-005",
+      "source": "truck-remaining",
+      "createdAt": "2024-12-22T14:20:00.000Z",
+      "fromBranchId": 4,
+      "fromBranchName": "ปั้มบายพาส",
+      "toBranchId": 3,
+      "toBranchName": "หนองจิก",
+      "oilType": "E20",
+      "quantity": 4000,
+      "pricePerLiter": 32.50,
+      "totalAmount": 130000,
+      "deliveryNoteNo": "DN-MOCK-005",
+      "receiptNo": "RCP-MOCK-005",
+      "transportNo": "TP-20241222-003",
+      "paymentStatus": "partial",
+      "paidAmount": 65000,
+      "paymentHistory": [
+         {
+          "date": "2024-12-23T10:00:00.000Z",
+          "amount": 65000,
+          "method": "เช็ค"
+         }
+      ],
+      "taxInvoices": [
+        {
+          "invoiceNo": "INV-MOCK-005",
+          "date": "2024-12-23T10:05:00.000Z",
+          "amount": 65000
+        }
+      ]
+    },
+    {
+      "id": "TX-MOCK-SALE-006",
+      "source": "truck-remaining",
+      "createdAt": "2024-12-25T08:00:00.000Z",
+      "fromBranchId": 5,
+      "fromBranchName": "ปั้มตักสิลา",
+      "toBranchId": 2,
+      "toBranchName": "ดินดำ",
+      "oilType": "Gasohol 95",
+      "quantity": 1500,
+      "pricePerLiter": 36.50,
+      "totalAmount": 54750,
+      "deliveryNoteNo": "DN-MOCK-006",
+      "receiptNo": "RCP-MOCK-006",
+      "transportNo": "TP-20241225-001",
+      "paymentStatus": "unpaid"
+    },
+    {
+      "id": "TX-MOCK-SALE-007",
+      "source": "recovered",
+      "createdAt": "2024-12-26T16:00:00.000Z",
+      "fromBranchId": 1,
+      "fromBranchName": "ปั๊มไฮโซ",
+      "toBranchId": 1,
+      "toBranchName": "ปั๊มไฮโซ",
+      "oilType": "Premium Diesel",
+      "quantity": 200,
+      "pricePerLiter": 32.00,
+      "totalAmount": 6400,
+      "deliveryNoteNo": "DN-REC-007",
+      "receiptNo": "RCP-REC-007",
+      "internalOrderNo": "REC-007",
+      "paymentStatus": "paid"
+    },
+    {
+      "id": "TX-MOCK-SALE-008",
+      "source": "truck-remaining",
+      "createdAt": "2025-01-02T09:30:00.000Z",
+      "fromBranchId": 3,
+      "fromBranchName": "หนองจิก",
+      "toBranchId": 4,
+      "toBranchName": "ปั้มบายพาส",
+      "oilType": "Diesel",
+      "quantity": 5500,
+      "pricePerLiter": 31.50,
+      "totalAmount": 173250,
+      "deliveryNoteNo": "DN-MOCK-008",
+      "receiptNo": "RCP-MOCK-008",
+      "transportNo": "TP-20250102-001",
+      "paymentStatus": "unpaid"
+    },
+    {
+      "id": "TX-MOCK-SALE-009",
+      "source": "truck-remaining",
+      "createdAt": "2025-01-03T11:00:00.000Z",
+      "fromBranchId": 2,
+      "fromBranchName": "ดินดำ",
+      "toBranchId": 1,
+      "toBranchName": "ปั๊มไฮโซ",
+      "oilType": "E20",
+      "quantity": 2500,
+      "pricePerLiter": 33.00,
+      "totalAmount": 82500,
+      "deliveryNoteNo": "DN-MOCK-009",
+      "receiptNo": "RCP-MOCK-009",
+      "transportNo": "TP-20250103-002",
+      "paymentStatus": "paid",
+      "paidAmount": 82500,
+      "paymentHistory": [
+        {
+          "date": "2025-01-03T14:00:00.000Z",
+          "amount": 82500,
+          "method": "เงินสด"
+        }
+      ],
+      "taxInvoices": [
+        {
+          "invoiceNo": "INV-250103-009",
+          "date": "2025-01-03T14:15:00.000Z",
+          "amount": 82500
+        }
+      ]
+    },
+    {
+      "id": "TX-MOCK-SALE-010",
+      "source": "truck-remaining",
+      "createdAt": "2025-01-05T08:15:00.000Z",
+      "fromBranchId": 4,
+      "fromBranchName": "ปั้มบายพาส",
+      "toBranchId": 5,
+      "toBranchName": "ปั้มตักสิลา",
+      "oilType": "Gasohol 95",
+      "quantity": 1800,
+      "pricePerLiter": 37.00,
+      "totalAmount": 66600,
+      "deliveryNoteNo": "DN-MOCK-010",
+      "receiptNo": "RCP-MOCK-010",
+      "transportNo": "TP-20250105-001",
       "paymentStatus": "unpaid"
     }
   ]

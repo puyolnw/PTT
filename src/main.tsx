@@ -228,6 +228,7 @@ import POGeneration from "@/pages/gas-station/POGeneration";
 import DriverApp from "@/pages/delivery/DriverApp";
 import DriverDashboard from "@/pages/delivery/DriverDashboard";
 import TransportTracking from "@/pages/delivery/TransportTracking";
+import InternalOilReceipt from "@/pages/delivery/InternalOilReceipt";
 import Quotation from "@/pages/gas-station/Quotation";
 import DeliveryNote from "@/pages/gas-station/DeliveryNote";
 import Receipt from "@/pages/gas-station/Receipt";
@@ -250,10 +251,12 @@ import DeliveryAlerts from "@/pages/delivery/Alerts";
 import DeliverySettings from "@/pages/delivery/Settings";
 import DeliveryOilSales from "@/pages/delivery/gs/OilSales";
 import DeliveryRecordFueling from "@/pages/delivery/gs/RecordFueling";
+import RequestOil from "@/pages/delivery/RequestOil";
 
 // ========== Delivery (reuse Gas Station pages) ==========
 import DeliveryReceiveOil from "@/pages/delivery/gs/ReceiveOil";
 import DeliveryInternalOilOrder from "@/pages/delivery/gs/InternalOilOrder";
+import DeliveryInternalOilOrderManagement from "@/pages/delivery/gs/InternalOilOrderManagement";
 import DeliveryRecordTankEntry from "@/pages/delivery/gs/RecordTankEntry";
 import DeliveryTruckOrders from "@/pages/delivery/gs/TruckOrders";
 import DeliveryDriverAppGasStation from "@/pages/delivery/gs/DriverApp";
@@ -1225,6 +1228,10 @@ const router = createBrowserRouter([
             element: <DeliveryDashboard />,
           },
           {
+            path: "request-oil",
+            element: <RequestOil />,
+          },
+          {
             path: "purchase-orders",
             element: <DeliveryPTTOrders />,
           },
@@ -1285,6 +1292,14 @@ const router = createBrowserRouter([
           {
             path: "internal-oil-order",
             element: <DeliveryInternalOilOrder />,
+          },
+          {
+            path: "internal-oil-order-management",
+            element: <DeliveryInternalOilOrderManagement />,
+          },
+          {
+            path: "internal-oil-receipt",
+            element: <InternalOilReceipt />,
           },
           {
             path: "record-tank-entry",

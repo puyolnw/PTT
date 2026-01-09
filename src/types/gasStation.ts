@@ -107,9 +107,14 @@ export interface InternalOilOrder {
   fromBranchName: string;
   items: Array<{
     oilType: OilType;
-    quantity: number; // จำนวนลิตร
+    quantity: number; // จำนวนลิตร (จำนวนที่ยืนยัน/ส่งจริง)
     pricePerLiter: number;
     totalAmount: number;
+    requestedQuantity?: number; // จำนวนที่ร้องขอตอนแรก
+    deliverySource?: "truck" | "suction" | "none";
+    transportNo?: string;
+    truckTripId?: string;
+    assignedFromBranchId?: number;
   }>;
   totalAmount: number;
   status: "รออนุมัติ" | "อนุมัติแล้ว" | "กำลังจัดส่ง" | "ส่งแล้ว" | "ยกเลิก";
@@ -132,6 +137,8 @@ export interface InternalOilOrder {
   truckPlate?: string;
   trailerId?: string;
   trailerPlate?: string;
+  receivedByName?: string; // ผู้รับน้ำมัน
+  updatedAt?: string;
 }
 
 // ==================== Quotation ====================

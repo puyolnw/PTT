@@ -9,9 +9,9 @@ import {
     ClipboardList,
     Droplet,
     Monitor,
-    DollarSign,
     Building2,
     Navigation,
+    ClipboardCheck
 } from "lucide-react";
 import { SidebarConfig } from "../types";
 
@@ -35,6 +35,9 @@ export const deliverySidebarConfig: SidebarConfig = {
             id: "orders",
             label: "การสั่งซื้อและรับน้ำมัน",
             items: [
+                { to: "/app/delivery/request-oil", icon: ShoppingCart, label: "สั่งน้ำมันจากสาขาไฮโซ", branchIds: ["2", "3", "4", "5"] },
+                { to: "/app/delivery/internal-oil-order-management", icon: ClipboardList, label: "จัดการคำสั่งซื้อ (สาขาไฮโซ)", branchIds: ["1"] },
+                { to: "/app/delivery/internal-oil-receipt", icon: ClipboardCheck, label: "รับน้ำมัน (ภายในปั๊ม)" },
                 { to: "/app/delivery/purchase-orders", icon: FileText, label: "ใบสั่งซื้อจากปตท." },
                 { to: "/app/delivery/internal-oil-order", icon: ShoppingCart, label: "สั่งซื้อน้ำมันภายในปั๊ม" },
                 { to: "/app/delivery/branch-oil-receipt", icon: ClipboardList, label: "ใบรับน้ำมัน (Branch Receipt)" },
@@ -56,12 +59,11 @@ export const deliverySidebarConfig: SidebarConfig = {
         },
         {
             id: "oil-management",
-            label: "จัดการน้ำมันคงเหลือ/ขาย/ดูดกลับ",
+            label: "จัดการน้ำมันคงเหลือ/ขาย/ดูด",
             items: [
                 { to: "/app/delivery/remaining-on-truck", icon: Droplet, label: "น้ำมันที่เหลือบนรถ" },
-                { to: "/app/delivery/internal-pump-sales", icon: DollarSign, label: "ขายน้ำมันภายในปั๊ม" },
+                // { to: "/app/delivery/internal-pump-sales", icon: DollarSign, label: "ขายน้ำมันภายในปั๊ม" },
                 { to: "/app/delivery/internal-apar", icon: Building2, label: "เจ้าหนี้ / ลูกหนี้ ภายใน" },
-                { to: "/app/delivery/oil-sales", icon: FileText, label: "บันทึกการขายน้ำมัน" },
                 { to: "/app/delivery/record-suction-oil", icon: ClipboardList, label: "บันทึกการดูดน้ำมัน" },
             ],
             roles: managerRoles

@@ -147,7 +147,7 @@ export interface TruckOrder {
   toBranch: string;
   oilType: string;
   quantity: number; // ลิตร
-  status: "draft" | "quotation-recorded" | "ready-to-pickup" | "picking-up" | "completed" | "cancelled";
+  status: "draft" | "quotation-recorded" | "ready-to-pickup" | "picking-up" | "delivering" | "completed" | "cancelled";
 
   // PTT Quotation fields (ใบเสนอราคาจาก ปตท.)
   pttQuotationNo?: string; // เลขที่ใบเสนอราคาจาก ปตท.

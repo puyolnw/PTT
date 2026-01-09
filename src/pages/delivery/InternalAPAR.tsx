@@ -1012,9 +1012,10 @@ export default function InternalAPAR() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl overflow-hidden"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-6xl overflow-hidden flex flex-col h-[85vh]"
               >
-                <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/20">
+                {/* Header */}
+                <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/20 shrink-0">
                   <div>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                       <FileText className="w-6 h-6 text-blue-500" />
@@ -1030,154 +1031,168 @@ export default function InternalAPAR() {
                   </button>
                 </div>
 
-                <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                  {/* Summary Status */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                      <div className="text-[10px] text-gray-500 uppercase font-bold">วันที่</div>
-                      <div className="text-sm font-semibold">{new Date(selectedTx.createdAt).toLocaleDateString("th-TH")}</div>
-                    </div>
-                    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                      <div className="text-[10px] text-gray-500 uppercase font-bold">สถานะการชำระ</div>
-                      <div className="mt-1">
-                        <StatusTag variant={selectedTx.paymentStatus === 'paid' ? 'success' : 'warning'}>
-                          {selectedTx.paymentStatus === 'paid' ? 'ชำระแล้ว' : 'ค้างชำระ'}
-                        </StatusTag>
+                {/* Body: 2 Columns */}
+                <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+                  
+                  {/* Left Column: Details & Items */}
+                  <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                    {/* Summary Status */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">วันที่เอกสาร</div>
+                        <div className="text-base font-bold text-gray-900 dark:text-white">{new Date(selectedTx.createdAt).toLocaleDateString("th-TH")}</div>
+                      </div>
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">สถานะการชำระ</div>
+                         <StatusTag variant={selectedTx.paymentStatus === 'paid' ? 'success' : 'warning'}>
+                            {selectedTx.paymentStatus === 'paid' ? 'ชำระแล้ว' : 'ค้างชำระ'}
+                         </StatusTag>
+                      </div>
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">สาขาต้นทาง (ผู้ขาย)</div>
+                        <div className="text-sm font-semibold truncate">{selectedTx.fromBranchName}</div>
+                      </div>
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">สาขาปลายทาง (ผู้ซื้อ)</div>
+                        <div className="text-sm font-semibold truncate">{selectedTx.toBranchName}</div>
                       </div>
                     </div>
-                    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                      <div className="text-[10px] text-gray-500 uppercase font-bold">สาขาต้นทาง</div>
-                      <div className="text-sm font-semibold truncate">{selectedTx.fromBranchName}</div>
-                    </div>
-                    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                      <div className="text-[10px] text-gray-500 uppercase font-bold">สาขาปลายทาง</div>
-                      <div className="text-sm font-semibold truncate">{selectedTx.toBranchName}</div>
-                    </div>
-                  </div>
 
-                  {/* Items Table */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                       รายการน้ำมัน
-                    </h4>
-                    <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden text-sm">
-                      <table className="w-full">
-                        <thead className="bg-gray-50 dark:bg-gray-900/50">
-                          <tr>
-                            <th className="px-4 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">ชนิดน้ำมัน</th>
-                            <th className="px-4 py-2 text-right font-semibold text-gray-600 dark:text-gray-400">จำนวน (ลิตร)</th>
-                            <th className="px-4 py-2 text-right font-semibold text-gray-600 dark:text-gray-400">ราคา/ลิตร</th>
-                            <th className="px-4 py-2 text-right font-semibold text-gray-600 dark:text-gray-400">รวมเงิน</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                          {linkedPO && branchDetail ? (
-                            branchDetail.items.map((item, idx) => (
-                              <tr key={idx}>
-                                <td className="px-4 py-3 font-medium">{item.oilType}</td>
-                                <td className="px-4 py-3 text-right">{item.quantity.toLocaleString()}</td>
-                                <td className="px-4 py-3 text-right">{item.pricePerLiter.toFixed(2)}</td>
-                                <td className="px-4 py-3 text-right font-bold">{item.totalAmount.toLocaleString()} ฿</td>
-                              </tr>
-                            ))
-                          ) : (
+                    {/* Items Table */}
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                         รายการน้ำมัน
+                      </h4>
+                      <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden text-sm">
+                        <table className="w-full">
+                          <thead className="bg-gray-50 dark:bg-gray-900/50">
                             <tr>
-                              <td className="px-4 py-3 font-medium">{selectedTx.oilType}</td>
-                              <td className="px-4 py-3 text-right">{selectedTx.quantity.toLocaleString()}</td>
-                              <td className="px-4 py-3 text-right">{selectedTx.pricePerLiter?.toFixed(2) || '-'}</td>
-                              <td className="px-4 py-3 text-right font-bold">{selectedTx.totalAmount.toLocaleString()} ฿</td>
+                              <th className="px-4 py-2 text-left font-semibold text-gray-600 dark:text-gray-400">ชนิดน้ำมัน</th>
+                              <th className="px-4 py-2 text-right font-semibold text-gray-600 dark:text-gray-400">จำนวน (ลิตร)</th>
+                              <th className="px-4 py-2 text-right font-semibold text-gray-600 dark:text-gray-400">ราคา/ลิตร</th>
+                              <th className="px-4 py-2 text-right font-semibold text-gray-600 dark:text-gray-400">รวมเงิน</th>
                             </tr>
-                          )}
-                        </tbody>
-                        <tfoot className="bg-gray-50/50 dark:bg-gray-900/30 font-bold border-t border-gray-100 dark:border-gray-700">
-                          <tr>
-                            <td colSpan={3} className="px-4 py-3 text-right text-gray-500 uppercase text-xs">ยอดรวมสุทธิ</td>
-                            <td className="px-4 py-3 text-right text-blue-600 dark:text-blue-400 text-base">{selectedTx.totalAmount.toLocaleString()} ฿</td>
-                          </tr>
-                        </tfoot>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {linkedPO && branchDetail ? (
+                              branchDetail.items.map((item, idx) => (
+                                <tr key={idx}>
+                                  <td className="px-4 py-3 font-medium">{item.oilType}</td>
+                                  <td className="px-4 py-3 text-right">{item.quantity.toLocaleString()}</td>
+                                  <td className="px-4 py-3 text-right">{item.pricePerLiter.toFixed(2)}</td>
+                                  <td className="px-4 py-3 text-right font-bold">{item.totalAmount.toLocaleString()} ฿</td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td className="px-4 py-3 font-medium">{selectedTx.oilType}</td>
+                                <td className="px-4 py-3 text-right">{selectedTx.quantity.toLocaleString()}</td>
+                                <td className="px-4 py-3 text-right">{selectedTx.pricePerLiter?.toFixed(2) || '-'}</td>
+                                <td className="px-4 py-3 text-right font-bold">{selectedTx.totalAmount.toLocaleString()} ฿</td>
+                              </tr>
+                            )}
+                          </tbody>
+                          <tfoot className="bg-gray-50/50 dark:bg-gray-900/30 font-bold border-t border-gray-100 dark:border-gray-700">
+                            <tr>
+                              <td colSpan={3} className="px-4 py-3 text-right text-gray-500 uppercase text-xs">ยอดรวมสุทธิ</td>
+                              <td className="px-4 py-3 text-right text-blue-600 dark:text-blue-400 text-base">{selectedTx.totalAmount.toLocaleString()} ฿</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
                     </div>
+
+                    {/* Actions Card */}
+                    {selectedTx.taxInvoices && selectedTx.taxInvoices.length > 0 && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Receipt className="w-5 h-5 text-blue-600" />
+                          <div>
+                            <p className="text-sm font-bold text-blue-900 dark:text-blue-100">ใบกำกับภาษี ({selectedTx.taxInvoices.length})</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">ชำระแล้วรวม {currencyFormatter.format(selectedTx.paidAmount || 0)}</p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => setShowInvoiceListModal(true)}
+                          className="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-all"
+                        >
+                          ดูรายการ
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Actions inside detail */}
-                  {selectedTx.taxInvoices && selectedTx.taxInvoices.length > 0 && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Receipt className="w-5 h-5 text-blue-600" />
-                        <div>
-                          <p className="text-sm font-bold text-blue-900 dark:text-blue-100">ใบกำกับภาษี ({selectedTx.taxInvoices.length})</p>
-                          <p className="text-xs text-blue-600 dark:text-blue-400">ชำระแล้วรวม {currencyFormatter.format(selectedTx.paidAmount || 0)}</p>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => setShowInvoiceListModal(true)}
-                        className="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-all"
-                      >
-                        ดูรายการ
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Timeline section */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
+                  {/* Right Column: Timeline */}
+                  <div className="lg:w-[400px] bg-gray-50 dark:bg-gray-800/50 border-t lg:border-t-0 lg:border-l border-gray-100 dark:border-gray-700 overflow-y-auto p-6 custom-scrollbar shrink-0">
+                    <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-6">
+                      <Clock className="w-4 h-4 text-blue-500" />
                       ไทม์ไลน์การดำเนินการ
                     </h4>
                     
                     <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent dark:before:via-gray-700">
                       
                       {/* Created Date */}
-                      <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-700 text-gray-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                          <Plus className="w-5 h-5" />
-                        </div>
-                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800/50 shadow-sm transition-all hover:shadow-md">
-                          <div className="flex items-center justify-between space-x-2 mb-1">
-                            <div className="font-bold text-gray-900 dark:text-gray-100">สร้างเอกสาร</div>
-                            <time className="font-mono text-xs font-medium text-blue-500">{new Date(selectedTx.createdAt).toLocaleDateString("th-TH")}</time>
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 italic">ดำเนินการโดย: {selectedTx.source === 'recovered' ? 'ระบบกลาง' : 'พนักงาน'}</div>
-                        </div>
+                      <div className="relative flex items-start gap-4 z-10">
+                         <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-700 text-gray-500 shadow shrink-0">
+                           <Plus className="w-5 h-5" />
+                         </div>
+                         <div className="flex-1 pt-1">
+                           <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm relative">
+                              <div className="absolute top-4 left-[-6px] w-3 h-3 bg-white dark:bg-gray-800 border-l border-b border-gray-100 dark:border-gray-700 transform rotate-45"></div>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-bold text-sm text-gray-900 dark:text-white">สร้างเอกสาร</span>
+                                <time className="text-[10px] bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-500">{new Date(selectedTx.createdAt).toLocaleDateString("th-TH")}</time>
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                ดำเนินการโดย: {selectedTx.source === 'recovered' ? 'ระบบกลาง' : 'พนักงาน'}
+                              </div>
+                           </div>
+                         </div>
                       </div>
 
                       {/* Payment Timeline */}
                       {(selectedTx.paymentHistory || []).map((pay, idx) => (
-                        <div key={`pay-${idx}`} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white dark:border-gray-800 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                        <div key={`pay-${idx}`} className="relative flex items-start gap-4 z-10">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white dark:border-gray-800 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 shadow shrink-0">
                             <DollarSign className="w-5 h-5" />
                           </div>
-                          <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/10 bg-emerald-50/20 dark:bg-emerald-900/5 shadow-sm transition-all hover:shadow-md">
-                            <div className="flex items-center justify-between space-x-2 mb-1">
-                              <div className="font-bold text-emerald-700 dark:text-emerald-400">ชำระเงินสำเร็จ</div>
-                              <time className="font-mono text-xs font-medium text-emerald-600">{new Date(pay.date).toLocaleString("th-TH")}</time>
+                          <div className="flex-1 pt-1">
+                            <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-emerald-100 dark:border-emerald-900/20 shadow-sm relative">
+                               <div className="absolute top-4 left-[-6px] w-3 h-3 bg-white dark:bg-gray-800 border-l border-b border-emerald-100 dark:border-emerald-900/20 transform rotate-45"></div>
+                               <div className="flex items-center justify-between mb-1">
+                                 <span className="font-bold text-sm text-emerald-700 dark:text-emerald-400">ชำระเงินสำเร็จ</span>
+                                 <time className="text-[10px] bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded text-emerald-600">{new Date(pay.date).toLocaleString("th-TH", { hour: '2-digit', minute: '2-digit' })}</time>
+                               </div>
+                               <div className="text-sm font-bold text-gray-900 dark:text-white mb-0.5">+{pay.amount.toLocaleString()} ฿</div>
+                               <div className="text-xs text-gray-500">{pay.method}</div>
                             </div>
-                            <div className="text-base font-bold text-gray-900 dark:text-white mb-1">+{pay.amount.toLocaleString()} ฿</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{pay.method}</div>
                           </div>
                         </div>
                       ))}
 
                       {/* Tax Invoice Timeline */}
                       {(selectedTx.taxInvoices || []).map((inv, idx) => (
-                        <div key={`inv-${idx}`} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white dark:border-gray-800 bg-blue-100 dark:bg-blue-900/30 text-blue-600 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                        <div key={`inv-${idx}`} className="relative flex items-start gap-4 z-10">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white dark:border-gray-800 bg-blue-100 dark:bg-blue-900/30 text-blue-600 shadow shrink-0">
                             <Receipt className="w-5 h-5" />
                           </div>
-                          <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-blue-100 dark:border-blue-900/10 bg-blue-50/20 dark:bg-blue-900/5 shadow-sm transition-all hover:shadow-md">
-                            <div className="flex items-center justify-between space-x-2 mb-1">
-                              <div className="font-bold text-blue-700 dark:text-blue-400">ออกใบกำกับภาษีอัตโนมัติ</div>
-                              <time className="font-mono text-xs font-medium text-blue-600">{new Date(inv.date).toLocaleString("th-TH")}</time>
+                           <div className="flex-1 pt-1">
+                            <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-blue-100 dark:border-blue-900/20 shadow-sm relative">
+                               <div className="absolute top-4 left-[-6px] w-3 h-3 bg-white dark:bg-gray-800 border-l border-b border-blue-100 dark:border-blue-900/20 transform rotate-45"></div>
+                               <div className="flex items-center justify-between mb-1">
+                                 <span className="font-bold text-sm text-blue-700 dark:text-blue-400">ออกใบกำกับภาษี</span>
+                                 <time className="text-[10px] bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded text-blue-600">{new Date(inv.date).toLocaleString("th-TH", { hour: '2-digit', minute: '2-digit' })}</time>
+                               </div>
+                               <div className="text-xs font-bold text-gray-900 dark:text-white mb-1">{inv.invoiceNo}</div>
+                               <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">ยอด: {inv.amount.toLocaleString()} ฿</div>
+                               <button 
+                                onClick={() => handleDownloadInvoice(selectedTx, inv)}
+                                className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:underline bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg w-fit"
+                              >
+                                <Download className="w-3 h-3" /> ดาวน์โหลด
+                              </button>
                             </div>
-                            <div className="text-sm font-bold text-gray-900 dark:text-white mb-1">เลขที่: {inv.invoiceNo}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">ยอดเงิน: {inv.amount.toLocaleString()} ฿</div>
-                            <button 
-                              onClick={() => handleDownloadInvoice(selectedTx, inv)}
-                              className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:underline"
-                            >
-                              <Download className="w-3 h-3" /> ดาวน์โหลด
-                            </button>
-                          </div>
+                           </div>
                         </div>
                       ))}
 
@@ -1185,10 +1200,11 @@ export default function InternalAPAR() {
                   </div>
                 </div>
 
-                <div className="p-6 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                {/* Footer */}
+                <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-end shrink-0">
                   <button 
                     onClick={() => setShowDetailModal(false)}
-                    className="px-8 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-bold rounded-xl transition-all hover:scale-105"
+                    className="px-6 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold rounded-xl transition-all"
                   >
                     ปิดหน้าต่าง
                   </button>
