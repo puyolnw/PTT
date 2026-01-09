@@ -111,6 +111,8 @@ export interface InternalOilOrder {
     pricePerLiter: number;
     totalAmount: number;
     requestedQuantity?: number; // จำนวนที่ร้องขอตอนแรก
+    unloadedQuantity?: number; // จำนวนที่ลงหลุมจริง
+    keptOnTruckQuantity?: number; // จำนวนที่เก็บไว้บนรถจริง
     deliverySource?: "truck" | "suction" | "none";
     transportNo?: string;
     truckTripId?: string;
@@ -541,10 +543,51 @@ export interface SaleTx {
   };
 }
 
+// ==================== Internal Pump Sale (ขายน้ำมันภายในปั๊ม) ====================
+export interface InternalPumpSale {
+  id: string;
+  saleNo: string; // เลขที่การขาย (Running Number)
+  saleDate: string; // วันที่ขาย
+  saleType: "🚚 ขายน้ำมันค้างรถ" | "💉 ขายน้ำมันจากการดูด" | "📦 ขายจากคลัง"; 
+  branchId: number; // สาขาที่ขาย
+  branchName: string;
+  buyerBranchId?: number; // สาขาที่ซื้อ (กรณีขายข้ามสาขา)
+  buyerBranchName?: string;
+  items: Array<{
+    oilType: OilType;
+    quantity: number; // จำนวนลิตร
+    pricePerLiter: number;
+    totalAmount: number;
+    tankNumber?: number; // หลุมที่ดูดออกมาขาย
+  }>;
+  totalAmount: number;
+  paidAmount: number; // รับเงินแล้ว
+  paymentRequestStatus: "pending" | "approved" | "none"; // ร้องขอการชำระ
+  paymentMethod: "เงินสด" | "เงินโอน" | "เครดิต" | "อื่นๆ";
+  customerName?: string; // ชื่อลูกค้า (ถ้ามี)
+  customerType?: "ทั่วไป" | "สมาชิก" | "รถบริษัท";
+  recordedBy: string;
+  recordedAt: string;
+  notes?: string;
+  status: "ปกติ" | "ยกเลิก";
+  paymentHistory?: Array<{
+    date: string;
+    amount: number;
+    method?: string;
+    note?: string;
+  }>;
+  taxInvoices?: Array<{
+    invoiceNo: string;
+    date: string;
+    amount: number;
+    receiptUrl?: string;
+  }>;
+}
+
 // ==================== Running Number ====================
 export interface RunningNumber {
   id: string;
-  documentType: "quotation" | "delivery-note" | "receipt" | "oil-receipt" | "tank-entry" | "internal-oil-order";
+  documentType: "quotation" | "delivery-note" | "receipt" | "oil-receipt" | "tank-entry" | "internal-oil-order" | "internal-pump-sale";
   prefix: string;
   year: number;
   month?: number;

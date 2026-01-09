@@ -35,7 +35,12 @@ export default function InternalOilReceipt() {
   const [selectedOrder, setSelectedOrder] = useState<InternalOilOrder | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [receivedItems, setReceivedItems] = useState<Array<{ oilType: OilType; quantity: number }>>([]);
+  const [receivedItems, setReceivedItems] = useState<Array<{ 
+    oilType: OilType; 
+    quantity: number; 
+    unloadedQuantity: number; 
+    keptOnTruckQuantity: number 
+  }>>([]);
   const [receiptNote, setReceiptNote] = useState("");
   const [receivedByName, setReceivedByName] = useState("");
 
@@ -74,181 +79,249 @@ export default function InternalOilReceipt() {
 
   // ฟังก์ชันสำหรับดาวน์โหลดเอกสาร (PO/DN)
   const handleDownload = (type: "po" | "dn", order: InternalOilOrder) => {
-    let htmlContent = "";
+    const isPO = type === "po";
+    const title = isPO ? "ใบสั่งซื้อ" : "ใบส่งของ";
+    const subTitle = isPO ? "PURCHASE ORDER" : "DELIVERY NOTE";
+    
+    // คำนวณยอดรวม (กรณีมีราคา)
+    const totalAmount = order.totalAmount || 0;
+    const vat = 0; 
+    const grandTotal = totalAmount + vat;
 
-    if (type === "po") {
-      htmlContent = `
-        <!DOCTYPE html>
-        <html lang="th">
-        <head>
-          <meta charset="UTF-8">
-          <title>ใบสั่งซื้อน้ำมันภายใน - ${order.orderNo}</title>
-          <style>
-            @page { size: A4; margin: 20mm; }
-            body { font-family: 'Sarabun', sans-serif; font-size: 14px; line-height: 1.6; color: #333; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #10b981; padding-bottom: 20px; }
-            .header h1 { color: #059669; margin: 0; font-size: 24px; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-            .info-box { padding: 15px; bg-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }
-            .label { font-weight: bold; color: #6b7280; font-size: 12px; text-transform: uppercase; margin-bottom: 4px; }
-            .value { font-weight: bold; color: #111827; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { background-color: #f3f4f6; color: #374151; font-weight: bold; padding: 12px; border: 1px solid #e5e7eb; text-align: left; }
-            td { padding: 12px; border: 1px solid #e5e7eb; }
-            .text-right { text-align: right; }
-            .total-row { background-color: #f9fafb; font-weight: bold; }
-            .footer { margin-top: 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 50px; text-align: center; }
-            .signature { border-top: 1px solid #9ca3af; margin-top: 40px; padding-top: 10px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>ใบสั่งซื้อน้ำมันภายใน (Internal Purchase Order)</h1>
-            <p>เลขที่: ${order.orderNo}</p>
-          </div>
-          <div class="info-grid">
-            <div class="info-box">
-              <div class="label">สั่งซื้อจากปั๊ม (ต้นทาง)</div>
-              <div class="value">${order.assignedFromBranchName || "ปั๊มไฮโซ"}</div>
-              <div style="margin-top: 10px;" class="label">ปั๊มที่สั่ง (ปลายทาง)</div>
-              <div class="value">${order.fromBranchName}</div>
+    // ฟังก์ชันแปลงเลขเป็นตัวอักษรไทย (อย่างง่าย)
+    const bahtText = (n: number) => {
+      if (n === 0) return "ศูนย์บาทถ้วน";
+      return `(${n.toLocaleString()}บาทถ้วน)`; 
+    };
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${title} - ${order.orderNo}</title>
+        <meta charset="utf-8">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
+          * { box-sizing: border-box; -webkit-print-color-adjust: exact; margin: 0; padding: 0; }
+          @page { size: A4; margin: 12mm; }
+          body { 
+            font-family: 'Sarabun', sans-serif; 
+            padding: 0; 
+            color: #000; 
+            line-height: 1.3;
+            background-color: white;
+            font-size: 12px;
+          }
+          
+          .page-container {
+            padding: 12mm;
+            max-height: 100vh;
+            overflow: hidden;
+          }
+
+          .header-section {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 10px;
+          }
+
+          .logo-box { 
+            width: 60px; 
+            height: 60px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+          .logo-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+          }
+
+          .company-info { flex: 1; font-size: 11px; line-height: 1.3; }
+          .company-name { font-weight: bold; font-size: 15px; margin-bottom: 2px; }
+
+          .doc-title { text-align: center; margin: 8px 0; }
+          .doc-title h1 { font-size: 16px; margin: 0; font-weight: bold; }
+          .doc-title p { font-size: 11px; margin: 1px 0 0 0; font-weight: bold; }
+
+          .customer-info-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 12px;
+            margin-bottom: 10px;
+            font-size: 11px;
+          }
+
+          .info-label { font-weight: bold; display: inline-block; width: 70px; }
+          .info-row { margin-bottom: 1px; line-height: 1.3; }
+
+          table { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 11px; border: 1px solid #000; }
+          th { background-color: #5c93d1; color: white; padding: 5px 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px; }
+          td { padding: 5px 3px; border: 1px solid #000; vertical-align: top; font-size: 11px; }
+          
+          .text-center { text-align: center; }
+          .text-right { text-align: right; }
+
+          .summary-section {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 8px;
+            margin-top: 6px;
+            font-size: 11px;
+          }
+          .baht-text-box {
+            border: 1px solid #000;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            min-height: 50px;
+            font-size: 11px;
+          }
+          .summary-table { width: 100%; border-collapse: collapse; border: 1px solid #000; }
+          .summary-table td { border: 1px solid #000; padding: 5px 6px; font-size: 11px; }
+          .summary-label { font-weight: bold; background-color: white; width: 60%; }
+
+          .footer-signature {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            text-align: center;
+            font-size: 11px;
+          }
+          .signature-line { border-top: 0px solid #333; margin-top: 25px; }
+
+          .bottom-contact {
+            margin-top: 12px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #555;
+            border-top: 1px solid #eee;
+            padding-top: 6px;
+          }
+
+          @media print {
+            body { padding: 0; }
+            .page-container { padding: 12mm; max-height: 277mm; }
+            @page { margin: 12mm; size: A4; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page-container">
+          <div class="header-section">
+            <div class="logo-box">
+              <img src="${window.location.origin}/images/PTT-logo.png" alt="PTT Logo" class="logo-img" onerror="this.innerHTML='<div style=\\'width:60px;height:60px;background:#0072bc;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;\\'>PTT</div>';" />
             </div>
-            <div class="info-box">
-              <div class="label">วันที่สั่งซื้อ</div>
-              <div class="value">${dateFormatter.format(new Date(order.orderDate))}</div>
-              <div style="margin-top: 10px;" class="label">วันที่ต้องการรับน้ำมัน</div>
-              <div class="value">${dateFormatter.format(new Date(order.requestedDate))}</div>
+            <div class="company-info">
+              <div class="company-name">PTT STATION</div>
+              <div>1187 ถนน สุขาภิบาล 17 ตำบลบรบือ</div>
+              <div>อำเภอบรบือ จังหวัดมหาสารคาม 44130</div>
+              <div>โทร. 091-9535355 &nbsp; ทะเบียนพาณิชย์ 1350200036462</div>
             </div>
           </div>
+
+          <div class="doc-title">
+            <h1>${title}</h1>
+            <p>${subTitle}</p>
+          </div>
+
+          <div class="customer-info-grid">
+            <div>
+              <div class="info-row"><span class="info-label">นามลูกค้า</span> ${order.fromBranchName}</div>
+              <div class="info-row"><span class="info-label">ที่อยู่</span> สาขา${order.fromBranchName} อ.เมืองมหาสารคาม</div>
+              <div class="info-row"><span class="info-label"></span> จังหวัดมหาสารคาม 44000</div>
+              <div class="info-row"><span class="info-label">เบอร์โทร</span> 043-123456</div>
+              <div class="info-row"><span class="info-label">เลขผู้เสียภาษี</span> ............................................</div>
+            </div>
+            <div style="text-align: right;">
+              <div class="info-row">เลขที่ &nbsp; ${order.orderNo.replace('REQ-','')} &nbsp; เล่มที่ 4</div>
+              <div class="info-row">วันที่ &nbsp; ${dateFormatter.format(new Date(order.orderDate))}</div>
+            </div>
+          </div>
+
           <table>
             <thead>
               <tr>
-                <th>รายการน้ำมัน</th>
-                <th class="text-right">จำนวน (ลิตร)</th>
-                <th class="text-right">ราคาต่อลิตร</th>
-                <th class="text-right">รวมเงิน</th>
+                <th style="width: 5%;">ลำดับ</th>
+                <th style="width: 50%;">รายการ</th>
+                <th style="width: 12%;">จำนวน</th>
+                <th style="width: 15%;">ราคา/หน่วย</th>
+                <th style="width: 18%;">จำนวนเงิน</th>
               </tr>
             </thead>
             <tbody>
-              ${order.items.map(item => `
+              ${order.items.map((item, index) => `
                 <tr>
-                  <td>${item.oilType}</td>
-                  <td class="text-right">${numberFormatter.format(item.requestedQuantity || item.quantity)}</td>
-                  <td class="text-right">${item.pricePerLiter > 0 ? currencyFormatter.format(item.pricePerLiter) : "รอกำหนด"}</td>
-                  <td class="text-right">${item.totalAmount > 0 ? currencyFormatter.format(item.totalAmount) : "รอกำหนด"}</td>
+                  <td class="text-center">${index + 1}.</td>
+                  <td>
+                    <div style="font-weight: bold; font-size: 11px;">น้ำมันเชื้อเพลิง ${item.oilType}</div>
+                    <div style="font-size: 9px; margin-top: 2px; color: #333; line-height: 1.2;">
+                      - ${item.deliverySource === 'truck' ? 'ขายจากน้ำมันในรถ' : item.deliverySource === 'suction' ? 'ขายจากการดูด' : 'จากคลัง'}<br>
+                      - เลขที่ขนส่งอ้างอิง: ${item.transportNo || '-'}<br>
+                      - จัดส่งโดย: ${order.assignedFromBranchName || 'ปั๊มไฮโซ'}
+                    </div>
+                  </td>
+                  <td class="text-right">${item.quantity.toLocaleString()}</td>
+                  <td class="text-right">${item.pricePerLiter > 0 ? item.pricePerLiter.toFixed(2) : '-'}</td>
+                  <td class="text-right">${item.totalAmount > 0 ? item.totalAmount.toLocaleString() : '-'}</td>
                 </tr>
-              `).join("")}
-            </tbody>
-            <tr class="total-row">
-              <td colspan="3" class="text-right">ยอดรวมทั้งสิ้น</td>
-              <td class="text-right">${order.totalAmount > 0 ? currencyFormatter.format(order.totalAmount) : "รอกำหนด"}</td>
-            </tr>
-          </table>
-          <div class="footer">
-            <div>
-              <div class="signature">ผู้สั่งซื้อ</div>
-              <p>${order.requestedBy}</p>
-            </div>
-            <div>
-              <div class="signature">ผู้อนุมัติ</div>
-              <p>${order.approvedBy || "พี่นิด"}</p>
-            </div>
-          </div>
-          <script>window.print();</script>
-        </body>
-        </html>
-      `;
-    } else {
-      htmlContent = `
-        <!DOCTYPE html>
-        <html lang="th">
-        <head>
-          <meta charset="UTF-8">
-          <title>ใบส่งของภายใน - ${order.orderNo}</title>
-          <style>
-            @page { size: A4; margin: 20mm; }
-            body { font-family: 'Sarabun', sans-serif; font-size: 14px; line-height: 1.6; color: #333; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #3b82f6; padding-bottom: 20px; }
-            .header h1 { color: #1d4ed8; margin: 0; font-size: 24px; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-            .info-box { padding: 15px; bg-color: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd; }
-            .label { font-weight: bold; color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 4px; }
-            .value { font-weight: bold; color: #0f172a; }
-            .transport-details { grid-column: span 2; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { background-color: #eff6ff; color: #1e40af; font-weight: bold; padding: 12px; border: 1px solid #bfdbfe; text-align: left; }
-            td { padding: 12px; border: 1px solid #e2e8f0; }
-            .text-right { text-align: right; }
-            .footer { margin-top: 50px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; text-align: center; }
-            .signature { border-top: 1px solid #94a3b8; margin-top: 40px; padding-top: 10px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>ใบส่งของภายใน (Internal Delivery Note)</h1>
-            <p>อ้างอิงออเดอร์: ${order.orderNo} | เลขที่ขนส่ง: ${order.transportNo || "-"}</p>
-          </div>
-          <div class="info-grid">
-            <div class="info-box">
-              <div class="label">จาก (ผู้ส่ง)</div>
-              <div class="value">${order.assignedFromBranchName || "ปั๊มไฮโซ"}</div>
-            </div>
-            <div class="info-box">
-              <div class="label">ถึง (ผู้รับ)</div>
-              <div class="value">${order.fromBranchName}</div>
-            </div>
-            <div class="transport-details">
-              <div>
-                <div class="label">พนักงานขับรถ</div>
-                <div class="value">${order.driverName || "-"}</div>
-              </div>
-              <div>
-                <div class="label">หัวรถ</div>
-                <div class="value">${order.truckPlate || "-"}</div>
-              </div>
-              <div>
-                <div class="label">หางรถ</div>
-                <div class="value">${order.trailerPlate || "-"}</div>
-              </div>
-            </div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>รายการน้ำมัน</th>
-                <th class="text-right">จำนวนที่ส่ง (ลิตร)</th>
-                <th>แหล่งที่มา</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${order.items.map(item => `
+              `).join('')}
+              ${Array(Math.max(0, Math.min(2, 5 - order.items.length))).fill(0).map(() => `
                 <tr>
-                  <td>${item.oilType}</td>
-                  <td class="text-right font-bold">${numberFormatter.format(item.quantity)}</td>
-                  <td>${item.deliverySource === "truck" ? "น้ำมันบนรถ" : item.deliverySource === "suction" ? "จากการดูด" : "-"}</td>
+                  <td style="height: 25px; border-top: 1px solid #000;"></td>
+                  <td style="border-top: 1px solid #000;"></td>
+                  <td style="border-top: 1px solid #000;"></td>
+                  <td style="border-top: 1px solid #000;"></td>
+                  <td style="border-top: 1px solid #000;"></td>
                 </tr>
-              `).join("")}
+              `).join('')}
             </tbody>
           </table>
-          <div class="footer">
-            <div>
-              <div class="signature">พนักงานขับรถ</div>
-              <p>( ผู้ส่งของ )</p>
-            </div>
-            <div>
-              <div class="signature">ผู้อนุมัติ</div>
-              <p>( ฝ่ายบริหาร )</p>
-            </div>
-            <div>
-              <div class="signature">ผู้รับของ</div>
-              <p>( ........................................ )</p>
-            </div>
+
+          <div class="summary-section">
+            <div class="baht-text-box">${bahtText(grandTotal)}</div>
+            <table class="summary-table">
+              <tr><td class="summary-label">รวมเงิน</td><td class="text-right">${totalAmount > 0 ? totalAmount.toLocaleString() : '-'}</td></tr>
+              <tr><td class="summary-label">ภาษีมูลค่าเพิ่ม</td><td class="text-right">-</td></tr>
+              <tr><td class="summary-label">รวมเงินทั้งสิ้น</td><td class="text-right" style="font-weight: bold;">${grandTotal > 0 ? grandTotal.toLocaleString() : '-'}</td></tr>
+            </table>
           </div>
-          <script>window.print();</script>
-        </body>
-        </html>
-      `;
-    }
+
+          <div class="footer-signature">
+            ${isPO ? `
+              <div class="signature-box">
+                <div style="height: 35px;"></div>
+                <div>()</div>
+                <div style="font-weight: bold; margin-top: 2px;">ผู้เสนอราคา</div>
+              </div>
+              <div class="signature-box"></div>
+            ` : `
+              <div class="signature-box">
+                <div style="margin-bottom: 25px;">ผู้รับของ</div>
+                <div>(......................................................)</div>
+              </div>
+              <div class="signature-box">
+                <div style="margin-bottom: 25px;">ผู้ส่งของ</div>
+                <div>()</div>
+              </div>
+            `}
+          </div>
+
+          <div class="bottom-contact">
+            <div>Tel: 0919535455</div><div>Line id: issara.ch</div><div>E-mail: ptt@gmail.com</div><div>http://www.ptt.com</div>
+          </div>
+        </div>
+        <script>window.onload = function() { window.print(); };</script>
+      </body>
+      </html>
+    `;
 
     const printWindow = window.open("", "_blank");
     if (printWindow) {
@@ -288,7 +361,9 @@ export default function InternalOilReceipt() {
     setSelectedOrder(order);
     setReceivedItems(order.items.map(item => ({
       oilType: item.oilType,
-      quantity: item.quantity // เริ่มต้นด้วยจำนวนที่ส่งจริงจากต้นทาง
+      quantity: item.quantity, // รวมทั้งหมด
+      unloadedQuantity: item.quantity, // เริ่มต้นให้ลงหลุมทั้งหมด
+      keptOnTruckQuantity: 0 // เริ่มต้นที่ 0
     })));
     setReceiptNote("");
     setReceivedByName("");
@@ -305,8 +380,10 @@ export default function InternalOilReceipt() {
     // อัปเดตรายการสินค้าพร้อมจำนวนที่รับจริง
     const updatedItems = selectedOrder.items.map((item, idx) => ({
       ...item,
-      quantity: receivedItems[idx].quantity, // อัปเดตเป็นจำนวนที่รับจริง
-      totalAmount: receivedItems[idx].quantity * item.pricePerLiter // คำนวณยอดเงินใหม่ตามที่รับจริง
+      quantity: receivedItems[idx].quantity, 
+      unloadedQuantity: receivedItems[idx].unloadedQuantity,
+      keptOnTruckQuantity: receivedItems[idx].keptOnTruckQuantity,
+      totalAmount: receivedItems[idx].quantity * item.pricePerLiter 
     }));
 
     const totalAmount = updatedItems.reduce((sum, item) => sum + item.totalAmount, 0);
@@ -686,28 +763,56 @@ export default function InternalOilReceipt() {
                         </div>
                       </div>
                       
-                      <div className="flex items-end gap-4">
-                        <div className="flex-1 space-y-1.5">
-                          <label htmlFor={`received-qty-${index}`} className="text-xs font-bold text-emerald-600 dark:text-emerald-500 uppercase">จำนวนที่ได้รับจริง (ลิตร)</label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label htmlFor={`unloaded-qty-${index}`} className="text-[10px] font-bold text-gray-400 uppercase">ลงหลุม (ลิตร)</label>
                           <div className="relative">
                             <input
-                              id={`received-qty-${index}`}
+                              id={`unloaded-qty-${index}`}
                               type="number"
-                              value={item.quantity}
+                              value={item.unloadedQuantity}
                               onChange={(e) => {
+                                const val = Number(e.target.value);
                                 const newItems = [...receivedItems];
-                                newItems[index].quantity = Number(e.target.value);
+                                newItems[index].unloadedQuantity = val;
+                                newItems[index].quantity = val + newItems[index].keptOnTruckQuantity;
                                 setReceivedItems(newItems);
                               }}
-                              className="w-full pl-4 pr-12 py-3 bg-emerald-50/30 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800 rounded-xl font-black text-xl text-emerald-700 dark:text-emerald-400 focus:ring-2 focus:ring-emerald-500 outline-none"
+                              className="w-full pl-3 pr-10 py-2 bg-emerald-50/20 border border-emerald-100 rounded-lg font-bold text-emerald-700 outline-none focus:ring-1 focus:ring-emerald-500"
                             />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald-500/50">ลิตร</span>
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-500/50">ลิตร</span>
                           </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label htmlFor={`kept-qty-${index}`} className="text-[10px] font-bold text-blue-600 uppercase">เก็บไว้บนรถ (ลิตร)</label>
+                          <div className="relative">
+                            <input
+                              id={`kept-qty-${index}`}
+                              type="number"
+                              value={item.keptOnTruckQuantity}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                const newItems = [...receivedItems];
+                                newItems[index].keptOnTruckQuantity = val;
+                                newItems[index].quantity = val + newItems[index].unloadedQuantity;
+                                setReceivedItems(newItems);
+                              }}
+                              className="w-full pl-3 pr-10 py-2 bg-blue-50/20 border border-blue-100 rounded-lg font-bold text-blue-700 outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-blue-500/50">ลิตร</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-50 dark:border-gray-700">
+                        <div className="flex-1 space-y-1">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">รวมที่ได้รับทั้งหมด</p>
+                          <p className="text-xl font-black text-emerald-600">{numberFormatter.format(item.quantity)} ลิตร</p>
                         </div>
                         
                         {/* ส่วนต่าง */}
-                        <div className="w-32 pb-3 text-right">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">ส่วนต่าง</p>
+                        <div className="w-32 text-right">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">ส่วนต่างจากต้นทาง</p>
                           <p className={`font-black text-lg ${item.quantity - selectedOrder.items[index].quantity === 0 ? "text-gray-400" : item.quantity - selectedOrder.items[index].quantity > 0 ? "text-blue-500" : "text-red-500"}`}>
                             {item.quantity - selectedOrder.items[index].quantity > 0 ? "+" : ""}{numberFormatter.format(item.quantity - selectedOrder.items[index].quantity)}
                           </p>

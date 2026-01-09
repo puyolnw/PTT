@@ -15,6 +15,7 @@ import type {
   FuelingRecord,
   RunningNumber,
   SaleTx,
+  InternalPumpSale,
 } from "@/types/gasStation";
 import type { TruckProfile, Trailer } from "@/pages/gas-station/TruckProfiles";
 import { branches, legalEntities, mockOrderSummary, mockApprovedOrders } from "@/data/gasStationOrders";
@@ -38,6 +39,7 @@ interface GasStationContextType {
   oilReceipts: OilReceipt[];
   internalOrders: InternalOilOrder[];
   allInternalOrders: InternalOilOrder[];
+  internalPumpSales: InternalPumpSale[];
   tankEntries: TankEntryRecord[];
   trucks: TruckProfile[];
   trailers: Trailer[];
@@ -96,6 +98,11 @@ interface GasStationContextType {
   updateInternalOrder: (orderId: string, updates: Partial<InternalOilOrder>) => void;
   approveInternalOrder: (orderId: string, approvedBy: string, fromBranchId: number, items: InternalOilOrder["items"]) => void;
   cancelInternalOrder: (orderId: string, cancelledBy: string) => void;
+
+  // Actions - Internal Pump Sales
+  addInternalPumpSale: (sale: InternalPumpSale) => void;
+  cancelInternalPumpSale: (saleId: string, cancelledBy: string) => void;
+  recordInternalPayment: (saleId: string, amount: number, method: string, note?: string) => void;
 
   // Actions - Running Numbers
   getNextRunningNumber: (documentType: RunningNumber["documentType"]) => string;
@@ -323,6 +330,7 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       ["delivery-note", { id: "rn-delivery-note", documentType: "delivery-note", prefix: "DN", year: 2024, currentNumber: 1, lastUpdated: new Date().toISOString() }],
       ["receipt", { id: "rn-receipt", documentType: "receipt", prefix: "RCP", year: 2024, currentNumber: 1, lastUpdated: new Date().toISOString() }],
       ["internal-oil-order", { id: "rn-internal-oil-order", documentType: "internal-oil-order", prefix: "IO", year: 2024, currentNumber: 1, lastUpdated: new Date().toISOString() }],
+      ["internal-pump-sale", { id: "rn-internal-pump-sale", documentType: "internal-pump-sale", prefix: "SL", year: 2024, currentNumber: 1, lastUpdated: new Date().toISOString() }],
     ])
   );
 
@@ -442,6 +450,8 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
           oilType: "Diesel", 
           quantity: 35000, 
           requestedQuantity: 35000, 
+          unloadedQuantity: 30000,
+          keptOnTruckQuantity: 5000,
           pricePerLiter: 30.0, 
           totalAmount: 1050000,
           transportNo: "TP-20241214-002",
@@ -473,6 +483,112 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       requestedAt: "2024-12-19T11:00:00",
       notes: "ยกเลิกโดย พี่นิด เมื่อ 19/12/2024 13:00:00 เนื่องจากปั๊มต้นทางน้ำมันไม่พอ",
     },
+  ]);
+
+  const [internalPumpSalesState, setInternalPumpSalesState] = useState<InternalPumpSale[]>([
+    {
+      id: "IPS-1",
+      saleNo: "DN-MOCK-009",
+      saleDate: "2025-01-03",
+      saleType: "🚚 ขายน้ำมันค้างรถ",
+      branchId: 2,
+      branchName: "ดินดำ",
+      buyerBranchId: 1,
+      buyerBranchName: "ปั๊มไฮโซ",
+      items: [
+        { oilType: "Diesel", quantity: 2750, pricePerLiter: 30.0, totalAmount: 82500 },
+      ],
+      totalAmount: 82500,
+      paidAmount: 82500,
+      paymentRequestStatus: "none",
+      paymentMethod: "เงินโอน",
+      customerType: "รถบริษัท",
+      recordedBy: "สมศรี ดินดำ",
+      recordedAt: "2025-01-03T14:30:00",
+      status: "ปกติ",
+      notes: "ขายจากรถขนส่ง อ้างอิง IO-20241218-001",
+      paymentHistory: [
+        { date: "2025-01-03T15:00:00", amount: 82500, method: "เงินโอน", note: "ชำระค่าซื้อน้ำมันภายใน" }
+      ],
+      taxInvoices: [
+        { invoiceNo: "INV-250103-009", date: "2025-01-03T15:00:00", amount: 82500 }
+      ]
+    },
+    {
+      id: "IPS-2",
+      saleNo: "DN-MOCK-004",
+      saleDate: "2024-12-20",
+      saleType: "🚚 ขายน้ำมันค้างรถ",
+      branchId: 2,
+      branchName: "ดินดำ",
+      buyerBranchId: 4,
+      buyerBranchName: "ปั๊มตักสิลา",
+      items: [
+        { oilType: "Diesel", quantity: 3100, pricePerLiter: 30.0, totalAmount: 93000 },
+      ],
+      totalAmount: 93000,
+      paidAmount: 93000,
+      paymentRequestStatus: "none",
+      paymentMethod: "เงินโอน",
+      customerType: "รถบริษัท",
+      recordedBy: "สมศรี ดินดำ",
+      recordedAt: "2024-12-20T09:15:00",
+      status: "ปกติ",
+      paymentHistory: [
+        { date: "2024-12-20T10:30:00", amount: 93000, method: "เงินโอน", note: "ชำระเรียบร้อย" }
+      ],
+      taxInvoices: [
+        { invoiceNo: "INV-241220-004", date: "2024-12-20T10:30:00", amount: 93000 }
+      ]
+    },
+    {
+      id: "IPS-3",
+      saleNo: "DN-MOCK-001",
+      saleDate: "2024-12-15",
+      saleType: "🚚 ขายน้ำมันค้างรถ",
+      branchId: 2,
+      branchName: "ดินดำ",
+      buyerBranchId: 1,
+      buyerBranchName: "ปั๊มไฮโซ",
+      items: [
+        { oilType: "Diesel", quantity: 2958, pricePerLiter: 30.0, totalAmount: 88750 },
+      ],
+      totalAmount: 88750,
+      paidAmount: 0,
+      paymentRequestStatus: "none",
+      paymentMethod: "เครดิต",
+      customerType: "รถบริษัท",
+      recordedBy: "สมศรี ดินดำ",
+      recordedAt: "2024-12-15T16:45:00",
+      status: "ปกติ"
+    },
+    {
+      id: "IPS-4",
+      saleNo: "DN-240502-REC01",
+      saleDate: "2024-05-02",
+      saleType: "💉 ขายน้ำมันจากการดูด",
+      branchId: 2,
+      branchName: "ดินดำ",
+      buyerBranchId: 2,
+      buyerBranchName: "ปั๊มดินดำ (Recycle)",
+      items: [
+        { oilType: "Gasohol 95", quantity: 150, pricePerLiter: 29.5, totalAmount: 4425 },
+      ],
+      totalAmount: 4425,
+      paidAmount: 4425,
+      paymentRequestStatus: "none",
+      paymentMethod: "เงินสด",
+      customerType: "ทั่วไป",
+      recordedBy: "สมศรี ดินดำ",
+      recordedAt: "2024-05-02T11:20:00",
+      status: "ปกติ",
+      paymentHistory: [
+        { date: "2024-05-02T11:20:00", amount: 4425, method: "เงินสด", note: "รับเงินสดหน้างาน" }
+      ],
+      taxInvoices: [
+        { invoiceNo: "INV-240502-R01", date: "2024-05-02T11:20:00", amount: 4425 }
+      ]
+    }
   ]);
 
   // Running Number Helpers
@@ -722,7 +838,7 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       items,
       totalAmount
     });
-  }, [updateInternalOrder, branches]);
+  }, [updateInternalOrder]);
 
   const cancelInternalOrder = useCallback((orderId: string, cancelledBy: string) => {
     updateInternalOrder(orderId, {
@@ -730,6 +846,50 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       notes: `ยกเลิกโดย ${cancelledBy} เมื่อ ${new Date().toLocaleString()}`
     });
   }, [updateInternalOrder]);
+
+  // Internal Pump Sales
+  const addInternalPumpSale = useCallback((sale: InternalPumpSale) => {
+    setInternalPumpSalesState((prev) => [...prev, sale]);
+    incrementRunningNumber("internal-pump-sale");
+  }, [incrementRunningNumber]);
+
+  const cancelInternalPumpSale = useCallback((saleId: string, cancelledBy: string) => {
+    setInternalPumpSalesState((prev) =>
+      prev.map((sale) => (sale.id === saleId ? { ...sale, status: "ยกเลิก", notes: `ยกเลิกโดย ${cancelledBy} เมื่อ ${new Date().toLocaleString()}` } : sale))
+    );
+  }, []);
+
+  const recordInternalPayment = useCallback((saleId: string, amount: number, method: string, note?: string) => {
+    setInternalPumpSalesState((prev) =>
+      prev.map((sale) => {
+        if (sale.id === saleId) {
+          const now = new Date().toISOString();
+          const newPaidAmount = (sale.paidAmount || 0) + amount;
+          
+          const newHistory = [
+            ...(sale.paymentHistory || []),
+            { date: now, amount, method, note }
+          ];
+
+          // Auto-generate Tax Invoice
+          const invoiceNo = `INV-${now.replace(/[-:T]/g, "").slice(2, 8)}-${Math.floor(100 + Math.random() * 900)}`;
+          const newInvoices = [
+            ...(sale.taxInvoices || []),
+            { invoiceNo, date: now, amount }
+          ];
+
+          return {
+            ...sale,
+            paidAmount: newPaidAmount,
+            paymentHistory: newHistory,
+            taxInvoices: newInvoices,
+            paymentRequestStatus: newPaidAmount >= sale.totalAmount ? "approved" : sale.paymentRequestStatus
+          };
+        }
+        return sale;
+      })
+    );
+  }, []);
 
   // Tank Entries
   const createTankEntry = useCallback((entry: TankEntryRecord) => {
@@ -856,6 +1016,7 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       return selectedBranchIds.includes(o.fromBranchId) || (o.assignedFromBranchId && selectedBranchIds.includes(o.assignedFromBranchId));
     }),
     allInternalOrders: internalOrdersState,
+    internalPumpSales: internalPumpSalesState.filter(s => selectedBranchIds.length === 0 || selectedBranchIds.includes(s.branchId)),
     trucks: mockTrucks,
     trailers: mockTrailers,
 
@@ -893,6 +1054,9 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     updateInternalOrder,
     approveInternalOrder,
     cancelInternalOrder,
+    addInternalPumpSale,
+    cancelInternalPumpSale,
+    recordInternalPayment,
     getNextRunningNumber,
     incrementRunningNumber,
     updateSaleTx,

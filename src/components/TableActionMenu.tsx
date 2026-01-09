@@ -8,10 +8,11 @@ interface ActionItem {
   icon?: React.ElementType;
   onClick: () => void;
   variant?: "default" | "danger" | "primary" | "success" | "warning";
+  hidden?: boolean;
 }
 
 interface TableActionMenuProps {
-  actions: ActionItem[];
+  actions: (ActionItem | null | undefined | false)[];
 }
 
 export default function TableActionMenu({ actions }: TableActionMenuProps) {
@@ -19,6 +20,10 @@ export default function TableActionMenu({ actions }: TableActionMenuProps) {
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const visibleActions = actions.filter((action): action is ActionItem => 
+    action !== null && action !== undefined && action !== false && !action.hidden
+  );
 
   useEffect(() => {
     const updatePosition = () => {
@@ -120,7 +125,7 @@ export default function TableActionMenu({ actions }: TableActionMenuProps) {
                 className="w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden ring-1 ring-black/5"
                 >
                 <div className="py-1">
-                    {actions.map((action, index) => (
+                    {visibleActions.map((action, index) => (
                     <button
                         key={index}
                         onClick={(e) => {

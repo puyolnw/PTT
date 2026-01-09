@@ -267,6 +267,7 @@ import DeliveryRemainingOnTruck from "@/pages/delivery/gs/RemainingOnTruck";
 import DeliveryInternalPumpSales from "@/pages/delivery/gs/InternalPumpSales";
 import DeliveryRecordSuctionOil from "@/pages/delivery/gs/RecordSuctionOil";
 import InternalAPAR from "@/pages/delivery/InternalAPAR";
+import InternalOilPayment from "@/pages/delivery/InternalOilPayment";
 
 import { isAuthenticated } from "@/lib/auth";
 import Forbidden from "@/components/Forbidden";
@@ -1270,6 +1271,10 @@ const router = createBrowserRouter([
           {
             path: "internal-apar",
             element: <InternalAPAR />,
+          },
+          {
+            path: "internal-payment",
+            element: <InternalOilPayment />,
           },
           {
             path: "oil-sales",
