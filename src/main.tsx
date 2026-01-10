@@ -241,6 +241,8 @@ import OilReceipt from "@/pages/gas-station/OilReceipt";
 import InternalOilOrder from "@/pages/gas-station/InternalOilOrder";
 import InternalOilOrderManagement from "@/pages/gas-station/InternalOilOrderManagement";
 import InternalTransport from "@/pages/gas-station/InternalTransport";
+import InternalDriverApp from "@/pages/gas-station/InternalDriverApp";
+import RecordFuelingInternal from "@/pages/gas-station/RecordFuelingInternal";
 import ReceiveOil from "@/pages/gas-station/ReceiveOil";
 import InterBranchTransfer from "@/pages/gas-station/InterBranchTransfer";
 
@@ -1335,6 +1337,10 @@ const router = createBrowserRouter([
             element: <DeliveryInternalOilOrderManagement />,
           },
           {
+            path: "internal-transport",
+            element: <InternalTransport />,
+          },
+          {
             path: "depot-oil-receipt",
             element: <DepotOilReceipt />,
           },
@@ -1377,6 +1383,14 @@ const router = createBrowserRouter([
           {
             path: "driver-app",
             element: <DriverApp />,
+          },
+          {
+            path: "internal-driver-app",
+            element: <InternalDriverApp />,
+          },
+          {
+            path: "internal-record-fueling",
+            element: <RecordFuelingInternal />,
           },
           {
             path: "transport-tracking",

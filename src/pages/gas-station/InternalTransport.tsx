@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, CheckCircle, Clock, Activity, XCircle, X, PackageCheck, User, GripVertical, Truck, MapPin, Eye, Droplet, Search, Save } from "lucide-react";
-import { branches } from "../../data/gasStationOrders";
-import { mockTrucks, mockTrailers } from "./TruckProfiles";
-import { mockDrivers } from "../../data/mockData";
+import { useGasStation } from "@/contexts/GasStationContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { mockDrivers } from "@/data/mockData";
 import StartTripModal from "../../components/truck/StartTripModal";
 import EndTripModal from "../../components/truck/EndTripModal";
 import {
@@ -23,7 +23,6 @@ import {
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { InternalOilOrder } from "@/types/gasStation";
 
 // Helper functions
 const generateTransportNo = () => {
@@ -88,59 +87,6 @@ interface InternalTransportOrder {
     createdBy: string;
 }
 
-// Mock data - Internal Oil Orders ที่อนุมัติแล้ว (ดึงจาก InternalOilOrderManagement)
-const mockApprovedInternalOrders: InternalOilOrder[] = [
-    {
-        id: "2",
-        orderNo: "IO-20241215-002",
-        orderDate: "2024-12-15",
-        requestedDate: "2024-12-18",
-        fromBranchId: 3,
-        fromBranchName: "หนองจิก",
-        items: [
-            { oilType: "Diesel", quantity: 4000, pricePerLiter: 30.00, totalAmount: 120000 },
-        ],
-        totalAmount: 120000,
-        status: "อนุมัติแล้ว",
-        requestedBy: "ผู้จัดการหนองจิก",
-        requestedAt: "2024-12-15T11:00:00",
-        approvedBy: "พี่นิด",
-        approvedAt: "2024-12-15T14:00:00",
-        assignedFromBranchId: 1,
-        assignedFromBranchName: "ปั๊มไฮโซ",
-    },
-];
-
-// Mock data - Internal Transport Orders
-const mockInternalTransports: InternalTransportOrder[] = [
-    {
-        id: "1",
-        transportNo: "IT-20241215-001",
-        orderDate: "2024-12-15",
-        departureDate: "2024-12-18",
-        internalOrderNo: "IO-20241215-002",
-        fromBranchId: 1,
-        fromBranchName: "ปั๊มไฮโซ",
-        toBranchId: 3,
-        toBranchName: "หนองจิก",
-        truckId: "TRUCK-001",
-        truckPlateNumber: "กก 1111",
-        trailerId: "TRAILER-001",
-        trailerPlateNumber: "กข 1234",
-        driverId: "32",
-        driverName: "สมศักดิ์ ขับรถ",
-        currentOdometer: 125500,
-        startFuel: 200,
-        items: [
-            { oilType: "Diesel", quantity: 4000 },
-        ],
-        totalAmount: 120000,
-        status: "ready-to-pickup",
-        createdAt: "2024-12-15T15:00:00",
-        createdBy: "ระบบ",
-    },
-];
-
 // Sortable Branch Item Component
 function SortableBranchItem({ branch, index }: { branch: any; index: number }) {
     const {
@@ -188,13 +134,67 @@ function SortableBranchItem({ branch, index }: { branch: any; index: number }) {
 }
 
 export default function InternalTransport() {
+    const { 
+        internalOrders, 
+        branches, 
+        trucks, 
+        trailers, 
+        allDriverJobs,
+        createDriverJob,
+        updateInternalOrder,
+        updateDriverJob
+    } = useGasStation();
+    const { user } = useAuth();
+
+    // Mapping DriverJobs to InternalTransportOrders for display
+    const internalTransports = useMemo(() => {
+        return allDriverJobs
+            .filter(job => job.orderType === "internal")
+            .map(job => {
+                const order = internalOrders.find(o => o.orderNo === job.internalOrderNo);
+                return {
+                    id: job.id,
+                    transportNo: job.transportNo,
+                    orderDate: job.transportDate,
+                    departureDate: job.transportDate,
+                    internalOrderNo: job.internalOrderNo || "",
+                    fromBranchId: job.sourceBranchId,
+                    fromBranchName: job.sourceBranchName,
+                    toBranchId: job.destinationBranches[0]?.branchId || 0,
+                    toBranchName: job.destinationBranches[0]?.branchName || "",
+                    truckId: "", // Not directly in DriverJob as ID
+                    truckPlateNumber: job.truckPlateNumber,
+                    trailerId: "", // Not directly in DriverJob as ID
+                    trailerPlateNumber: job.trailerPlateNumber,
+                    driverId: job.driverId || "",
+                    driverName: job.driverName || "",
+                    currentOdometer: job.startTrip?.startOdometer || 0,
+                    startFuel: job.startTrip?.startFuel || 0,
+                    items: job.destinationBranches.map(db => ({
+                        oilType: db.oilType,
+                        quantity: db.quantity
+                    })),
+                    totalAmount: order?.totalAmount || 0,
+                    status: job.status === "รอเริ่ม" ? "ready-to-pickup" : 
+                            job.status === "กำลังส่ง" ? "picking-up" : 
+                            job.status === "ส่งเสร็จ" ? "completed" : "draft",
+                    startOdometer: job.startTrip?.startOdometer,
+                    endOdometer: job.endOdometer,
+                    startTime: job.startTrip?.startedAt,
+                    endTime: job.updatedAt, // Using updatedAt as approx for endTime if not explicit
+                    notes: job.notes,
+                    createdAt: job.createdAt || "",
+                    createdBy: job.createdBy || ""
+                } as InternalTransportOrder;
+            });
+    }, [allDriverJobs, internalOrders]);
+
     // State definitions
-    const [internalTransports, setInternalTransports] = useState<InternalTransportOrder[]>(mockInternalTransports);
     const [newOrder, setNewOrder] = useState({
         orderDate: new Date().toISOString().split("T")[0],
-        departureDate: "",
+        departureDate: new Date().toISOString().split("T")[0],
         internalOrderNo: "",
-        transportNo: generateTransportNo(),
+        transportNo: "",
         truckId: "",
         trailerId: "",
         driverId: "",
@@ -224,17 +224,17 @@ export default function InternalTransport() {
 
     // Helper: get selected internal order
     const selectedInternalOrder = useMemo(() => {
-        return mockApprovedInternalOrders.find((o) => o.orderNo === newOrder.internalOrderNo) || null;
-    }, [newOrder.internalOrderNo]);
+        return internalOrders.find((o) => o.orderNo === newOrder.internalOrderNo) || null;
+    }, [newOrder.internalOrderNo, internalOrders]);
 
     // Get selected truck and trailer info
     const selectedTruck = useMemo(() => {
-        return mockTrucks.find((t: any) => t.id === newOrder.truckId) || null;
-    }, [newOrder.truckId]);
+        return trucks.find((t: any) => t.id === newOrder.truckId) || null;
+    }, [newOrder.truckId, trucks]);
 
     const selectedTrailer = useMemo(() => {
-        return mockTrailers.find((t: any) => t.id === newOrder.trailerId) || null;
-    }, [newOrder.trailerId]);
+        return trailers.find((t: any) => t.id === newOrder.trailerId) || null;
+    }, [newOrder.trailerId, trailers]);
 
     const selectedDriver = useMemo(() => {
         return mockDrivers.find((d: any) => String(d.id) === newOrder.driverId) || null;
@@ -245,10 +245,9 @@ export default function InternalTransport() {
         if (selectedInternalOrder) {
             // Auto-fill branches
             if (selectedInternalOrder.assignedFromBranchId && selectedInternalOrder.fromBranchId) {
-                const fromBranch = branches.find((b) => b.id === selectedInternalOrder.assignedFromBranchId);
                 const toBranch = branches.find((b) => b.id === selectedInternalOrder.fromBranchId);
                 
-                if (fromBranch && toBranch) {
+                if (toBranch) {
                     setOrderedBranches([{
                         branchId: toBranch.id,
                         branchName: toBranch.name,
@@ -262,23 +261,23 @@ export default function InternalTransport() {
                 }
             }
 
-            // Auto-fill truck, trailer, driver, odometer from internal order if available
-            // (ในระบบจริงอาจจะมีการกำหนดไว้แล้วใน Internal Order)
-            // สำหรับตอนนี้จะ auto-fill จาก transportNo ถ้ามี
-            if (selectedInternalOrder.transportNo && !newOrder.transportNo) {
-                setNewOrder((prev) => ({
+            // Auto-fill truck, trailer, driver if available in internal order
+            if (selectedInternalOrder.truckId || selectedInternalOrder.driverId) {
+                setNewOrder(prev => ({
                     ...prev,
-                    transportNo: selectedInternalOrder.transportNo || generateTransportNo(),
+                    truckId: selectedInternalOrder.truckId || prev.truckId,
+                    trailerId: selectedInternalOrder.trailerId || prev.trailerId,
+                    driverId: selectedInternalOrder.driverId ? String(selectedInternalOrder.driverId) : prev.driverId,
                 }));
             }
         } else {
             setOrderedBranches([]);
         }
-    }, [selectedInternalOrder]);
+    }, [selectedInternalOrder, branches]);
 
     // Auto-fill odometer when truck is selected
     useEffect(() => {
-        if (selectedTruck && selectedTruck.lastOdometerReading && newOrder.currentOdometer === 0) {
+        if (selectedTruck && selectedTruck.lastOdometerReading) {
             setNewOrder((prev) => ({
                 ...prev,
                 currentOdometer: selectedTruck.lastOdometerReading || 0,
@@ -360,39 +359,58 @@ export default function InternalTransport() {
             return;
         }
 
-        // Create transport order
-        const branch = orderedBranches[0];
-        const newTransport: InternalTransportOrder = {
-            id: String(internalTransports.length + 1),
+        if (!selectedInternalOrder) return;
+
+        // 1. สร้าง DriverJob สำหรับ App คนขับ
+        const newJob: any = {
+            id: `JOB-${Date.now()}`,
             transportNo: newOrder.transportNo,
-            orderDate: newOrder.orderDate,
-            departureDate: newOrder.departureDate,
+            transportDate: newOrder.departureDate,
+            transportTime: "08:00", // Default time
+            orderType: "internal",
             internalOrderNo: newOrder.internalOrderNo,
-            fromBranchId: selectedInternalOrder?.assignedFromBranchId || 1,
-            fromBranchName: selectedInternalOrder?.assignedFromBranchName || "ปั๊มไฮโซ",
-            toBranchId: branch.branchId,
-            toBranchName: branch.branchName,
-            truckId: newOrder.truckId,
+            sourceBranchId: selectedInternalOrder.assignedFromBranchId || 1,
+            sourceBranchName: selectedInternalOrder.assignedFromBranchName || "ปั๊มไฮโซ",
+            sourceAddress: branches.find(b => b.id === (selectedInternalOrder.assignedFromBranchId || 1))?.address || "",
+            destinationBranches: orderedBranches.map(branch => ({
+                branchId: branch.branchId,
+                branchName: branch.branchName,
+                address: branch.address,
+                oilType: branch.items[0]?.oilType || "Diesel",
+                quantity: branch.items[0]?.quantity || 0,
+                status: "รอส่ง"
+            })),
             truckPlateNumber: selectedTruck?.plateNumber || "",
-            trailerId: newOrder.trailerId,
             trailerPlateNumber: selectedTrailer?.plateNumber || "",
             driverId: newOrder.driverId,
             driverName: selectedDriver?.name || "",
-            currentOdometer: newOrder.currentOdometer,
-            startFuel: newOrder.startFuel,
-            items: branch.items || [],
-            totalAmount: branch.totalAmount || 0,
-            status: "ready-to-pickup",
-            notes: newOrder.notes,
+            status: "รอเริ่ม",
             createdAt: new Date().toISOString(),
-            createdBy: "ระบบ",
+            createdBy: user?.name || "ระบบ",
+            notes: newOrder.notes,
+            compartments: [] // Will be filled by driver or automatically
         };
 
-        setInternalTransports([...internalTransports, newTransport]);
+        createDriverJob(newJob);
+
+        // 2. อัปเดตสถานะของ InternalOilOrder เป็น "กำลังจัดส่ง"
+        updateInternalOrder(selectedInternalOrder.id, {
+            status: "กำลังจัดส่ง",
+            transportNo: newOrder.transportNo,
+            deliveryDate: newOrder.departureDate,
+            truckId: newOrder.truckId,
+            truckPlate: selectedTruck?.plateNumber,
+            trailerId: newOrder.trailerId,
+            trailerPlate: selectedTrailer?.plateNumber,
+            driverId: Number(newOrder.driverId),
+            driverName: selectedDriver?.name,
+            updatedAt: new Date().toISOString()
+        });
+
         setShowCreateOrderModal(false);
         setNewOrder({
             orderDate: new Date().toISOString().split("T")[0],
-            departureDate: "",
+            departureDate: new Date().toISOString().split("T")[0],
             internalOrderNo: "",
             transportNo: generateTransportNo(),
             truckId: "",
@@ -403,7 +421,7 @@ export default function InternalTransport() {
             notes: "",
         });
         setOrderedBranches([]);
-        alert(`สร้างรายการขนส่งสำเร็จ!\n\nเลขที่ขนส่ง: ${newTransport.transportNo}`);
+        alert(`สร้างรายการขนส่งและส่งงานให้คนขับสำเร็จ!\n\nเลขที่ขนส่ง: ${newJob.transportNo}`);
     };
 
     const handleViewOrderDetail = (order: InternalTransportOrder) => {
@@ -423,68 +441,41 @@ export default function InternalTransport() {
 
     const onStartTrip = (startOdometer: number, startTime: string, photo?: string, startFuel?: number) => {
         if (!selectedOrder) return;
-        console.log("Starting internal transport trip:", {
-            transportId: selectedOrder.id,
-            transportNo: selectedOrder.transportNo,
-            startOdometer,
-            startTime,
-            startFuel,
-            photo,
-        });
-
-        // Update order status
-        setInternalTransports((prev) =>
-            prev.map((order) =>
-                order.id === selectedOrder.id
-                    ? {
-                          ...order,
-                          status: "picking-up",
-                          startOdometer,
-                          startTime,
-                          startFuel: startFuel || 0,
-                      }
-                    : order
-            )
-        );
+        
+        // ค้นหา Job ID จาก transportNo
+        const job = allDriverJobs.find(j => j.transportNo === selectedOrder.transportNo);
+        if (job) {
+            updateDriverJob(job.id, {
+                status: "ออกเดินทางแล้ว",
+                startTrip: {
+                    startedAt: startTime,
+                    startOdometer,
+                    startOdometerPhoto: photo,
+                    startFuel: startFuel || 0
+                }
+            });
+        }
 
         setShowStartTripModal(false);
-        alert(`เริ่มเที่ยวขนส่งสำเร็จ!\n\nเลขที่ขนส่ง: ${selectedOrder.transportNo}\nเลขไมล์เริ่มต้น: ${startOdometer} กม.\nน้ำมันเริ่มต้น: ${startFuel || 0} ลิตร`);
+        alert(`เริ่มเที่ยวขนส่งสำเร็จ!\n\nเลขที่ขนส่ง: ${selectedOrder.transportNo}`);
     };
 
-    const onEndTrip = (endOdometer: number, endTime: string, photo?: string) => {
-        if (!selectedOrder || !selectedOrder.startOdometer || !selectedOrder.startTime) return;
+    const onEndTrip = (endOdometer: number, endTime: string) => {
+        if (!selectedOrder) return;
 
-        const totalDistance = endOdometer - selectedOrder.startOdometer;
-        const duration = new Date(endTime).getTime() - new Date(selectedOrder.startTime).getTime();
-
-        console.log("Ending internal transport trip:", {
-            transportId: selectedOrder.id,
-            transportNo: selectedOrder.transportNo,
-            endOdometer,
-            endTime,
-            totalDistance,
-            tripDuration: duration,
-            photo,
-        });
-
-        // Update order status
-        setInternalTransports((prev) =>
-            prev.map((order) =>
-                order.id === selectedOrder.id
-                    ? {
-                          ...order,
-                          status: "completed",
-                          endOdometer,
-                          endTime,
-                          totalDistance,
-                          tripDuration: duration,
-                      }
-                    : order
-            )
-        );
+        const job = allDriverJobs.find(j => j.transportNo === selectedOrder.transportNo);
+        if (job && job.startTrip) {
+            const totalDistance = endOdometer - job.startTrip.startOdometer;
+            updateDriverJob(job.id, {
+                status: "ส่งเสร็จ",
+                endOdometer,
+                updatedAt: endTime,
+                notes: `ระยะทางรวม ${totalDistance} กม.`
+            });
+        }
 
         setShowEndTripModal(false);
-        alert(`จบเที่ยวขนส่งสำเร็จ!\n\nเลขที่ขนส่ง: ${selectedOrder.transportNo}\nระยะทาง: ${totalDistance} กม.`);
+        alert(`จบเที่ยวขนส่งสำเร็จ!\n\nเลขที่ขนส่ง: ${selectedOrder.transportNo}`);
     };
 
     const getOrderStatusColor = (status: InternalTransportOrder["status"]) => {
@@ -910,11 +901,11 @@ export default function InternalTransport() {
                                         required
                                     >
                                         <option value="">เลือกออเดอร์ภายในปั๊ม</option>
-                                        {mockApprovedInternalOrders
+                                        {internalOrders
                                             .filter((order) => order.status === "อนุมัติแล้ว")
                                             .map((order) => (
                                                 <option key={order.id} value={order.orderNo}>
-                                                    {order.orderNo} - {order.fromBranchName} → {order.assignedFromBranchName} ({order.items.length} รายการ)
+                                                    {order.orderNo} - {order.fromBranchName} ← {order.assignedFromBranchName} ({order.items.length} รายการ)
                                                 </option>
                                             ))}
                                     </select>
@@ -964,7 +955,7 @@ export default function InternalTransport() {
                                             </div>
                                             {selectedInternalOrder.transportNo && (
                                                 <div className="mt-2 pt-2 border-t border-purple-200 dark:border-purple-800">
-                                                    <span className="text-xs text-gray-600 dark:text-gray-400">เลขที่ขนส่ง:</span>
+                                                    <span className="text-xs text-gray-600 dark:text-gray-400">เลขที่ขนส่งเดิม:</span>
                                                     <span className="text-xs font-medium text-purple-600 dark:text-purple-400 ml-1">
                                                         {selectedInternalOrder.transportNo}
                                                     </span>
@@ -986,7 +977,7 @@ export default function InternalTransport() {
                                             required
                                         >
                                             <option value="">เลือกรถ</option>
-                                            {mockTrucks.map((truck: any) => (
+                                            {trucks.map((truck: any) => (
                                                 <option key={truck.id} value={truck.id}>
                                                     {truck.plateNumber} - {truck.brand} {truck.model}
                                                 </option>
@@ -1010,7 +1001,7 @@ export default function InternalTransport() {
                                             required
                                         >
                                             <option value="">เลือกหาง</option>
-                                            {mockTrailers.map((trailer: any) => (
+                                            {trailers.map((trailer: any) => (
                                                 <option key={trailer.id} value={trailer.id}>
                                                     {trailer.plateNumber} - ความจุ {numberFormatter.format(trailer.capacity)} ลิตร
                                                 </option>
@@ -1018,7 +1009,6 @@ export default function InternalTransport() {
                                         </select>
                                     </div>
                                 </div>
-
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         คนขับรถ *

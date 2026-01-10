@@ -110,6 +110,7 @@ export const deliverySidebarConfig: SidebarConfig = {
             label: "การจัดการขนส่ง",
             items: [
                 { to: "/app/delivery/manage-trips", icon: Monitor, label: "จัดการรอบจัดส่ง" },
+                { to: "/app/delivery/internal-transport", icon: Truck, label: "รายการขนส่งภายในปั๊ม" },
                 { to: "/app/delivery/truck-orders", icon: FileText, label: "ระบบส่งน้ำมัน (รับ)" },
                 { to: "/app/delivery/transport-tracking", icon: Navigation, label: "ติดตามสถานะการขนส่ง" },
                 { to: "/app/delivery/truck-profiles", icon: Truck, label: "โปรไฟล์รถส่งน้ำมัน" },
@@ -122,10 +123,12 @@ export const deliverySidebarConfig: SidebarConfig = {
             label: "ส่วนของพนักงานขับรถ",
             items: [
                 { to: "/app/delivery/driver-dashboard", icon: LayoutDashboard, label: "แดชบอร์ดคนขับ" },
-                { to: "/app/delivery/driver-app", icon: User, label: "แอพพลิเคชั่นคนขับ" },
-                { to: "/app/delivery/record-fueling", icon: Gauge, label: "บันทึกการเติมน้ำมัน" },
+                { to: "/app/delivery/driver-app", icon: User, label: "แอพพลิเคชั่นคนขับ (PTT)" },
+                { to: "/app/delivery/internal-driver-app", icon: Truck, label: "แอพพลิเคชั่นคนขับ (ภายใน)" },
+                { to: "/app/delivery/record-fueling", icon: Gauge, label: "บันทึกการเติมน้ำมัน (PTT)" },
+                { to: "/app/delivery/internal-record-fueling", icon: Gauge, label: "บันทึกการเติมน้ำมัน (ภายใน)" },
             ],
-            roles: driverRoles
+            roles: [...driverRoles, ...managerRoles]
         },
     ]
 };

@@ -579,12 +579,12 @@ export default function InternalOilOrderManagement() {
       const branchTotalAvailable = calculateBranchInventoryForBranch(initialSupplyingBranchId, item.oilType);
       
       return {
-        oilType: item.oilType,
-        quantity: item.quantity, // จำนวนที่สั่ง
-        quantityToDeliver: item.quantity, // Default: ส่งตามที่สั่ง
+      oilType: item.oilType,
+      quantity: item.quantity, // จำนวนที่สั่ง
+      quantityToDeliver: item.quantity, // Default: ส่งตามที่สั่ง
         pricePerLiter: item.pricePerLiter || oilPrices[item.oilType] || 0,
         totalAmount: item.totalAmount || (item.quantity * (oilPrices[item.oilType] || 0)),
-        isFromOrder: true, // มาจากออเดอร์
+      isFromOrder: true, // มาจากออเดอร์
         assignedFromBranchId: initialSupplyingBranchId,
         branchTotalAvailable,
         deliverySource: "truck",
@@ -1546,7 +1546,7 @@ export default function InternalOilOrderManagement() {
                         key={index}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`p-6 rounded-[2rem] border-2 relative group transition-all shadow-sm ${
+                        className={`p-6 rounded-[2rem] border-2 relative group transition-all shadow-sm min-h-[120px] ${
                           item.isFromOrder
                             ? "bg-white dark:bg-gray-800 border-blue-50 dark:border-blue-900/30"
                             : "bg-purple-50/20 dark:bg-purple-900/10 border-purple-50 dark:border-purple-800"
@@ -1632,7 +1632,7 @@ export default function InternalOilOrderManagement() {
                           <div className="md:col-span-2 space-y-2">
                             <label htmlFor={`pricePerLiter-${index}`} className="text-[10px] font-black text-purple-600 uppercase tracking-widest block ml-1">ราคาขาย/ลิตร (บาท)</label>
                             <div className="relative">
-                              <input
+                                  <input
                                 id={`pricePerLiter-${index}`}
                                 type="number"
                                 step="0.01"
@@ -1645,8 +1645,35 @@ export default function InternalOilOrderManagement() {
                             </div>
                           </div>
 
-                          <div className="md:col-span-2 space-y-2">
-                            <label htmlFor={`quantityToDeliver-${index}`} className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">จำนวนส่งจริง (ลิตร)</label>
+                          <div className="md:col-span-2 flex flex-col">
+                            {/* Info messages - shown above input to avoid pushing layout */}
+                            <div className="mb-1 space-y-0.5 min-h-[20px]">
+                              {item.branchTotalAvailable !== undefined && (
+                                <div className="flex items-center gap-2 px-1">
+                                  <Droplet className="w-3 h-3 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                                  <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">
+                                    มีในปั๊ม: {item.branchTotalAvailable.toLocaleString()} ลิตร
+                                  </p>
+                                </div>
+                              )}
+                              {item.branchTotalAvailable !== undefined && item.quantityToDeliver > item.branchTotalAvailable && item.branchTotalAvailable > 0 && (
+                                <div className="flex items-center gap-2 px-1">
+                                  <X className="w-3 h-3 text-red-600 dark:text-red-400 flex-shrink-0" />
+                                  <p className="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-tighter">
+                                    มีน้ำมันไม่พอ (ต้องการ {item.quantityToDeliver.toLocaleString()} ลิตร)
+                                  </p>
+                                </div>
+                              )}
+                              {item.sourceAvailableQty !== undefined && (
+                                <div className="flex items-center gap-2 px-1">
+                                  <Truck className="w-3 h-3 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                                  <p className="text-[9px] font-black text-blue-500 dark:text-blue-400 uppercase tracking-tighter">
+                                    แหล่งที่มา: {item.sourceAvailableQty.toLocaleString()} ลิตร
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                            <label htmlFor={`quantityToDeliver-${index}`} className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1 mb-2">จำนวนส่งจริง (ลิตร)</label>
                             <div className="relative">
                               {/* Check if should be locked */}
                               {(() => {
@@ -1662,7 +1689,7 @@ export default function InternalOilOrderManagement() {
                                 if (isLocked) {
                                   // Show locked div with message
                                   return (
-                                    <div className="relative w-full px-4 py-3 bg-red-50/60 dark:bg-red-900/20 border-2 border-red-400 dark:border-red-700/50 rounded-2xl shadow-inner">
+                                    <div className="w-full px-4 py-3 bg-red-50/60 dark:bg-red-900/20 border-2 border-red-400 dark:border-red-700/50 rounded-2xl shadow-inner">
                                       <div className="flex items-center justify-between gap-2">
                                         <div className="flex items-center gap-2 flex-1 min-w-0">
                                           <Lock className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
@@ -1678,9 +1705,9 @@ export default function InternalOilOrderManagement() {
                                 // Show normal input
                                 return (
                                   <>
-                                    <input
+                                <input
                                       id={`quantityToDeliver-${index}`}
-                                      type="number"
+                                  type="number"
                                       value={item.quantityToDeliver || ""}
                                       onChange={e => handleUpdateDeliveryItem(index, "quantityToDeliver", Number(e.target.value))}
                                       className={`w-full px-4 py-3 pr-12 bg-white dark:bg-gray-800 border-2 rounded-2xl text-sm font-black text-right outline-none shadow-inner transition-all ${
@@ -1693,38 +1720,11 @@ export default function InternalOilOrderManagement() {
                                     {/* Qty Label */}
                                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] text-blue-400 dark:text-blue-500 font-black uppercase pointer-events-none tracking-tighter">
                                       Qty (L)
-                                    </div>
+                              </div>
                                   </>
                                 );
                               })()}
                             </div>
-                            {/* Available quantity info */}
-                            {item.branchTotalAvailable !== undefined && (
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2 px-1">
-                                  <Droplet className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                                  <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">
-                                    มีในปั๊ม: {item.branchTotalAvailable.toLocaleString()} ลิตร
-                                  </p>
-                                </div>
-                                {item.quantityToDeliver > item.branchTotalAvailable && item.branchTotalAvailable > 0 && (
-                                  <div className="flex items-center gap-2 px-1">
-                                    <X className="w-3 h-3 text-red-600 dark:text-red-400" />
-                                    <p className="text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-tighter">
-                                      มีน้ำมันไม่พอ (ต้องการ {item.quantityToDeliver.toLocaleString()} ลิตร)
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {item.sourceAvailableQty !== undefined && (
-                              <div className="flex items-center gap-2 px-1">
-                                <Truck className="w-3 h-3 text-blue-500 dark:text-blue-400" />
-                                <p className="text-[9px] font-black text-blue-500 dark:text-blue-400 uppercase tracking-tighter">
-                                  แหล่งที่มา: {item.sourceAvailableQty.toLocaleString()} ลิตร
-                                </p>
-                              </div>
-                            )}
                           </div>
 
                           <div className="md:col-span-3 space-y-2">
