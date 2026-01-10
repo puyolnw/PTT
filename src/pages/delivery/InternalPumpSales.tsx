@@ -18,9 +18,13 @@ import {
   Wallet,
   Tag,
   Briefcase,
+  Filter,
   Download,
   MapPin,
-  Check
+  Check,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGasStation } from "@/contexts/GasStationContext";
@@ -31,7 +35,7 @@ import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import TableActionMenu from "@/components/TableActionMenu";
 
 export default function InternalPumpSales() {
-  const { 
+  const {
     internalPumpSales, 
     addInternalPumpSale, 
     cancelInternalPumpSale,
@@ -42,6 +46,19 @@ export default function InternalPumpSales() {
   const { user } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [columnFilters, setColumnFilters] = useState<{
+    saleType: string;
+    buyerBranch: string;
+    status: string;
+    paymentRequestStatus: string;
+  }>({
+    saleType: "ทั้งหมด",
+    buyerBranch: "ทั้งหมด",
+    status: "ทั้งหมด",
+    paymentRequestStatus: "ทั้งหมด"
+  });
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'recordedAt', direction: 'desc' });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedSale, setSelectedSale] = useState<InternalPumpSale | null>(null);
@@ -53,7 +70,7 @@ export default function InternalPumpSales() {
     saleDate: string;
     saleType: "🚚 ขายน้ำมันค้างรถ" | "💉 ขายน้ำมันจากการดูด" | "📦 ขายจากคลัง";
     items: Array<{
-      oilType: OilType;
+    oilType: OilType;
       quantity: number;
       pricePerLiter: number;
       totalAmount: number;
@@ -92,7 +109,7 @@ export default function InternalPumpSales() {
   }), []);
 
   const filteredSales = useMemo(() => {
-    return internalPumpSales.filter(sale => {
+    let result = internalPumpSales.filter(sale => {
       const matchesSearch = 
         sale.saleNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sale.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -100,9 +117,155 @@ export default function InternalPumpSales() {
       
       const matchesBranch = selectedBranchIds.length === 0 || selectedBranchIds.includes(sale.branchId);
       
-      return matchesSearch && matchesBranch;
-    }).sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
-  }, [internalPumpSales, searchTerm, selectedBranchIds]);
+      // Column Filters
+      const matchesSaleType = columnFilters.saleType === "ทั้งหมด" || sale.saleType === columnFilters.saleType;
+      const matchesBuyerBranch = columnFilters.buyerBranch === "ทั้งหมด" || (sale.buyerBranchName || sale.customerName || "ทั่วไป") === columnFilters.buyerBranch;
+      const matchesStatus = columnFilters.status === "ทั้งหมด" || sale.status === columnFilters.status;
+      const matchesPaymentRequest = columnFilters.paymentRequestStatus === "ทั้งหมด" || (sale.paymentRequestStatus === "none" ? "ไม่ได้ขอ" : sale.paymentRequestStatus === "pending" ? "รอตรวจสอบ" : "อนุมัติแล้ว") === columnFilters.paymentRequestStatus;
+      
+      return matchesSearch && matchesBranch && matchesSaleType && matchesBuyerBranch && matchesStatus && matchesPaymentRequest;
+    });
+
+    if (sortConfig.key && sortConfig.direction) {
+      result.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortConfig.key) {
+          case 'saleDate':
+            aValue = new Date(a.saleDate).getTime();
+            bValue = new Date(b.saleDate).getTime();
+            break;
+          case 'unpaid':
+            aValue = a.totalAmount - (a.paidAmount || 0);
+            bValue = b.totalAmount - (b.paidAmount || 0);
+            break;
+          default:
+            aValue = (a as any)[sortConfig.key];
+            bValue = (b as any)[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+    }
+
+    return result;
+  }, [internalPumpSales, searchTerm, selectedBranchIds, columnFilters, sortConfig]);
+
+  const handleSort = (key: string) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        if (prev.direction === 'desc') return { key, direction: null };
+        return { key, direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+  };
+
+  // ดึงค่า Unique สำหรับ Filter Dropdowns
+  const filterOptions = useMemo(() => {
+    return {
+      saleType: ["ทั้งหมด", ...new Set(internalPumpSales.map(s => s.saleType))],
+      buyerBranch: ["ทั้งหมด", ...new Set(internalPumpSales.map(s => s.buyerBranchName || s.customerName || "ทั่วไป"))],
+      status: ["ทั้งหมด", ...new Set(internalPumpSales.map(s => s.status))],
+      paymentRequestStatus: ["ทั้งหมด", "รอตรวจสอบ", "อนุมัติแล้ว", "ไม่ได้ขอ"]
+    };
+  }, [internalPumpSales]);
+
+  const HeaderWithFilter = ({ label, columnKey, filterKey, options }: { 
+    label: string, 
+    columnKey?: string, 
+    filterKey?: keyof typeof columnFilters, 
+    options?: string[] 
+  }) => (
+    <th className="px-6 py-4 relative group">
+      <div className="flex items-center gap-2">
+        <div 
+          className={`flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors ${sortConfig.key === columnKey ? 'text-emerald-600' : ''}`}
+          onClick={() => columnKey && handleSort(columnKey)}
+        >
+          {label}
+          {columnKey && getSortIcon(columnKey)}
+        </div>
+        
+        {filterKey && options && (
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveDropdown(activeDropdown === filterKey ? null : filterKey);
+              }}
+              className={`p-1 rounded-md transition-all ${columnFilters[filterKey] !== "ทั้งหมด" ? "bg-emerald-500 text-white shadow-sm" : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"}`}
+            >
+              <Filter className="w-3 h-3" />
+            </button>
+            
+            <AnimatePresence>
+              {activeDropdown === filterKey && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setActiveDropdown(null)} 
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                  >
+                    {options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setColumnFilters(prev => ({ ...prev, [filterKey]: opt }));
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                          columnFilters[filterKey] === opt 
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        {opt}
+                        {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </th>
+  );
+
+  const isAnyFilterActive = useMemo(() => {
+    return columnFilters.saleType !== "ทั้งหมด" || 
+           columnFilters.buyerBranch !== "ทั้งหมด" || 
+           columnFilters.status !== "ทั้งหมด" || 
+           columnFilters.paymentRequestStatus !== "ทั้งหมด";
+  }, [columnFilters]);
+
+  const clearFilters = () => {
+    setColumnFilters({
+      saleType: "ทั้งหมด",
+      buyerBranch: "ทั้งหมด",
+      status: "ทั้งหมด",
+      paymentRequestStatus: "ทั้งหมด"
+    });
+    setSearchTerm("");
+  };
 
   const stats = useMemo(() => {
     const active = filteredSales.filter(s => s.status === "ปกติ");
@@ -164,7 +327,7 @@ export default function InternalPumpSales() {
       buyerBranchId: newSale.buyerBranchId,
       buyerBranchName: buyerBranch?.name || newSale.customerName || "ทั่วไป",
       items: newSale.items,
-      totalAmount,
+          totalAmount,
       paidAmount: newSale.paymentMethod === "เครดิต" ? 0 : totalAmount,
       paymentRequestStatus: "none",
       paymentMethod: newSale.paymentMethod,
@@ -202,18 +365,18 @@ export default function InternalPumpSales() {
       {/* Header */}
       <header className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
+            <div>
             <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
               <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
                 <DollarSign className="w-8 h-8 text-white" />
               </div>
-              ขายน้ำมันภายในปั๊ม
-            </h1>
+                ขายน้ำมันภายในปั๊ม
+              </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
               <History className="w-4 h-4" />
               บันทึกและจัดการรายการขายน้ำมันของแต่ละสาขา
             </p>
-          </div>
+            </div>
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
@@ -221,7 +384,7 @@ export default function InternalPumpSales() {
             <Plus className="w-5 h-5" />
             บันทึกการขายใหม่
           </button>
-        </div>
+          </div>
       </header>
 
       {/* Stats Cards */}
@@ -251,12 +414,12 @@ export default function InternalPumpSales() {
           <div className="flex items-center gap-4">
             <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
               <Droplet className="w-6 h-6 text-emerald-500" />
-            </div>
+          </div>
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ปริมาณขายรวม</p>
               <p className="text-2xl font-black text-gray-900 dark:text-white">{numberFormatter.format(stats.totalVolume)} ลิตร</p>
-            </div>
-          </div>
+        </div>
+      </div>
         </motion.div>
 
         <motion.div
@@ -268,7 +431,7 @@ export default function InternalPumpSales() {
           <div className="flex items-center gap-4">
             <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl">
               <DollarSign className="w-6 h-6 text-amber-500" />
-            </div>
+        </div>
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ยอดขายรวม</p>
               <p className="text-2xl font-black text-gray-900 dark:text-white">{currencyFormatter.format(stats.totalAmount)}</p>
@@ -288,14 +451,25 @@ export default function InternalPumpSales() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
           />
+            </div>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+            <MapPin className="w-4 h-4" />
+            <span className="text-sm font-bold whitespace-nowrap">
+              {selectedBranchIds.length === 0 ? "ทุกสาขา" : `สาขาที่เลือก (${selectedBranchIds.length})`}
+            </span>
+          </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50">
-          <MapPin className="w-4 h-4" />
-          <span className="text-sm font-bold">
-            {selectedBranchIds.length === 0 ? "ทุกสาขา" : `สาขาที่เลือก (${selectedBranchIds.length})`}
-          </span>
-        </div>
-      </div>
 
       {/* Sales List */}
       <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
@@ -303,17 +477,64 @@ export default function InternalPumpSales() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
-                <th className="px-6 py-4">วันที่ - เลขที่ใบสั่งซื้อ</th>
-                <th className="px-6 py-4">ประเภทการขาย</th>
-                <th className="px-6 py-4">สาขาผู้ซื้อ</th>
-                <th className="px-6 py-4 text-right">ยอดรวม</th>
-                <th className="px-6 py-4 text-right">รับเงินแล้ว</th>
-                <th className="px-6 py-4 text-right font-bold text-rose-500">ค้างรับ</th>
-                <th className="px-6 py-4 text-center">ร้องขอการชำระ</th>
-                <th className="px-6 py-4 text-center">สถานะ</th>
+                <HeaderWithFilter 
+                  label="วันที่ - เลขที่ใบสั่งซื้อ" 
+                  columnKey="saleDate" 
+                />
+                <HeaderWithFilter 
+                  label="ประเภทการขาย" 
+                  columnKey="saleType" 
+                  filterKey="saleType"
+                  options={filterOptions.saleType}
+                />
+                <HeaderWithFilter 
+                  label="สาขาผู้ซื้อ" 
+                  columnKey="buyerBranchName" 
+                  filterKey="buyerBranch"
+                  options={filterOptions.buyerBranch}
+                />
+                <th 
+                  className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => handleSort('totalAmount')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    ยอดรวม
+                    {getSortIcon('totalAmount')}
+            </div>
+                </th>
+                <th 
+                  className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => handleSort('paidAmount')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    รับเงินแล้ว
+                    {getSortIcon('paidAmount')}
+          </div>
+                </th>
+                <th 
+                  className="px-6 py-4 text-right font-bold text-rose-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => handleSort('unpaid')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    ค้างรับ
+                    {getSortIcon('unpaid')}
+                  </div>
+                </th>
+                <HeaderWithFilter 
+                  label="ร้องขอการชำระ" 
+                  columnKey="paymentRequestStatus" 
+                  filterKey="paymentRequestStatus"
+                  options={filterOptions.paymentRequestStatus}
+                />
+                <HeaderWithFilter 
+                  label="สถานะ" 
+                  columnKey="status" 
+                  filterKey="status"
+                  options={filterOptions.status}
+                />
                 <th className="px-6 py-4 text-center">จัดการ</th>
-              </tr>
-            </thead>
+                </tr>
+              </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
               {filteredSales.length === 0 ? (
                 <tr>
@@ -322,7 +543,7 @@ export default function InternalPumpSales() {
                       <Search className="w-8 h-8 opacity-20" />
                       ไม่พบรายการขายที่ค้นหา
                     </div>
-                  </td>
+                    </td>
                 </tr>
               ) : (
                 filteredSales.map((sale) => {
@@ -333,13 +554,13 @@ export default function InternalPumpSales() {
                         <div className="flex flex-col">
                           <span className="font-bold text-gray-900 dark:text-white">
                             {new Date(sale.saleDate).toLocaleDateString('th-TH')}
-                          </span>
+                      </span>
                           <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
                             <FileText className="w-3 h-3" />
                             {sale.saleNo}
                           </span>
                         </div>
-                      </td>
+                    </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold border ${
                           sale.saleType.includes("ค้างรถ") 
@@ -348,19 +569,19 @@ export default function InternalPumpSales() {
                         }`}>
                           {sale.saleType}
                         </span>
-                      </td>
+                    </td>
                       <td className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">
                         {sale.buyerBranchName || sale.customerName || "-"}
-                      </td>
+                    </td>
                       <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
                         {currencyFormatter.format(sale.totalAmount)}
-                      </td>
+                    </td>
                       <td className="px-6 py-4 text-right text-emerald-600 font-bold">
                         {currencyFormatter.format(sale.paidAmount || 0)}
-                      </td>
+                    </td>
                       <td className="px-6 py-4 text-right font-black text-rose-600">
                         {currencyFormatter.format(unpaid)}
-                      </td>
+                    </td>
                       <td className="px-6 py-4 text-center">
                         {sale.paymentRequestStatus === "pending" ? (
                           <StatusTag variant="warning">รอตรวจสอบ</StatusTag>
@@ -376,13 +597,13 @@ export default function InternalPumpSales() {
                         </StatusTag>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex justify-center">
-                          <TableActionMenu
-                            actions={[
-                              {
-                                label: "ดูรายละเอียด",
-                                icon: Eye,
-                                onClick: () => {
+                      <div className="flex justify-center">
+                        <TableActionMenu
+                          actions={[
+                            {
+                              label: "ดูรายละเอียด",
+                              icon: Eye,
+                              onClick: () => {
                                   setSelectedSale(sale);
                                   setShowDetailModal(true);
                                 }
@@ -398,18 +619,18 @@ export default function InternalPumpSales() {
                                 variant: "danger",
                                 hidden: sale.status === "ยกเลิก",
                                 onClick: () => handleCancelSale(sale)
-                              }
-                            ]}
-                          />
-                        </div>
-                      </td>
-                    </tr>
+                            }
+                          ]}
+                        />
+                      </div>
+                    </td>
+                  </tr>
                   );
                 })
               )}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
       </div>
 
       {/* Create Sale Modal */}
@@ -426,23 +647,23 @@ export default function InternalPumpSales() {
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-emerald-500 rounded-xl">
                     <Plus className="w-6 h-6 text-white" />
-                  </div>
+                </div>
                   <div>
                     <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">บันทึกการขายน้ำมัน</h2>
                     <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">กรอกข้อมูลการขายและรายการน้ำมัน</p>
-                  </div>
                 </div>
+              </div>
                 <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">
                   <X className="w-5 h-5 text-gray-400" />
-                </button>
-              </div>
+              </button>
+            </div>
 
               <div className="p-6 overflow-y-auto space-y-6">
                 {/* Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-inner text-sm">
                   <div className="space-y-1.5">
                     <label htmlFor="branch-select" className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">สาขาที่ขาย</label>
-                    <select
+                <select
                       id="branch-select"
                       value={newSale.branchId}
                       onChange={(e) => setNewSale(prev => ({ ...prev, branchId: Number(e.target.value) }))}
@@ -451,8 +672,8 @@ export default function InternalPumpSales() {
                       {branches.map(b => (
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
-                    </select>
-                  </div>
+                </select>
+              </div>
                   <div className="space-y-1.5">
                     <label htmlFor="sale-type-select" className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">ประเภทการขาย</label>
                     <select
@@ -476,7 +697,7 @@ export default function InternalPumpSales() {
                       className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none"
                     />
                   </div>
-                </div>
+                  </div>
 
                 {/* Buyer Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-blue-50/30 dark:bg-blue-900/10 rounded-2xl border border-blue-100/50 dark:border-blue-800/50">
@@ -493,7 +714,7 @@ export default function InternalPumpSales() {
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
                     </select>
-                  </div>
+                      </div>
                   <div className="space-y-1.5 text-sm">
                     <label htmlFor="customer-name" className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest block ml-1">ชื่อลูกค้า (กรณีภายนอก)</label>
                     <div className="relative">
@@ -507,7 +728,7 @@ export default function InternalPumpSales() {
                         onChange={(e) => setNewSale(prev => ({ ...prev, customerName: e.target.value }))}
                         className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-blue-100 dark:border-blue-800/50 rounded-xl font-bold text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50 disabled:bg-gray-100"
                       />
-                    </div>
+                  </div>
                   </div>
                   <div className="space-y-1.5 text-sm">
                     <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest block ml-1">ประเภทลูกค้า</span>
@@ -527,7 +748,7 @@ export default function InternalPumpSales() {
                         </button>
                       ))}
                     </div>
-                  </div>
+                </div>
                 </div>
 
                 {/* Oil Items */}
@@ -559,7 +780,7 @@ export default function InternalPumpSales() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="space-y-1.5">
                             <label htmlFor={`oil-type-${index}`} className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">ประเภทน้ำมัน</label>
-                            <select
+                  <select
                               id={`oil-type-${index}`}
                               value={item.oilType}
                               onChange={(e) => handleUpdateItem(index, { oilType: e.target.value as OilType })}
@@ -571,12 +792,12 @@ export default function InternalPumpSales() {
                               <option value="Premium Gasohol 95">Premium Gasohol 95</option>
                               <option value="Gasohol 91">Gasohol 91</option>
                               <option value="E20">E20</option>
-                            </select>
-                          </div>
+                  </select>
+                </div>
                           <div className="space-y-1.5">
                             <label htmlFor={`quantity-${index}`} className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">จำนวน (ลิตร)</label>
                             <div className="relative">
-                              <input
+                  <input
                                 id={`quantity-${index}`}
                                 type="number"
                                 value={item.quantity || ""}
@@ -585,21 +806,21 @@ export default function InternalPumpSales() {
                                 placeholder="0"
                               />
                               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300">ลิตร</span>
-                            </div>
-                          </div>
+                </div>
+              </div>
                           <div className="space-y-1.5">
                             <label htmlFor={`price-${index}`} className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">ราคา/ลิตร</label>
                             <div className="relative">
-                              <input
+                  <input
                                 id={`price-${index}`}
-                                type="number"
+                    type="number"
                                 value={item.pricePerLiter || ""}
                                 onChange={(e) => handleUpdateItem(index, { pricePerLiter: Number(e.target.value) })}
                                 className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl font-bold text-blue-600 text-right pr-12 outline-none"
                                 placeholder="0.00"
                               />
                               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300">฿</span>
-                            </div>
+                </div>
                           </div>
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-800/50">
@@ -608,8 +829,8 @@ export default function InternalPumpSales() {
                         </div>
                       </div>
                     ))}
-                  </div>
                 </div>
+              </div>
 
                 {/* Footer Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-3xl border-2 border-dashed border-emerald-500/20">
@@ -631,8 +852,8 @@ export default function InternalPumpSales() {
                             {method}
                           </button>
                         ))}
-                      </div>
-                    </div>
+                  </div>
+                </div>
                     <div className="space-y-1.5">
                       <label htmlFor="sale-notes" className="text-[10px] font-black text-emerald-600 uppercase tracking-widest block ml-1">หมายเหตุ</label>
                       <textarea
@@ -665,23 +886,23 @@ export default function InternalPumpSales() {
                     </div>
                   </div>
                 </div>
-              </div>
+            </div>
 
               <div className="p-6 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex gap-3">
-                <button
+              <button
                   onClick={() => setShowCreateModal(false)}
                   className="flex-1 px-6 py-4 bg-white dark:bg-gray-800 text-gray-500 font-black rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest text-sm"
-                >
-                  ยกเลิก
-                </button>
-                <button
+              >
+                ยกเลิก
+              </button>
+              <button
                   onClick={handleSaveSale}
                   className="flex-[2] px-6 py-4 bg-emerald-500 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/30 hover:bg-emerald-600 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
-                >
+              >
                   <Check className="w-5 h-5" />
-                  บันทึกการขาย
-                </button>
-              </div>
+                บันทึกการขาย
+              </button>
+            </div>
             </motion.div>
           </div>
         )}
@@ -701,7 +922,7 @@ export default function InternalPumpSales() {
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-500 rounded-xl">
                     <FileText className="w-6 h-6 text-white" />
-                  </div>
+        </div>
                   <div>
                     <h2 className="text-xl font-black text-blue-800 dark:text-blue-400">รายละเอียดการขาย</h2>
                     <p className="text-xs text-blue-600 dark:text-blue-500 font-bold">เลขที่รายการ: {selectedSale.saleNo}</p>

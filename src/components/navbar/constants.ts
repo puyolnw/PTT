@@ -1,7 +1,13 @@
-import { Users, PiggyBank, BarChart3, FileText, Store, Building, Calculator, Fuel, Truck } from "lucide-react";
+import { Users, PiggyBank, BarChart3, FileText, Store, Building, Calculator, Fuel, Truck, LayoutGrid } from "lucide-react";
 import { Module, Branch } from "./types";
 
 export const modules: Module[] = [
+    {
+        name: "Dashboard",
+        path: "/app/dashboard",
+        icon: LayoutGrid
+        // ไม่ระบุ roles = ทุกคนเห็น
+    },
     {
         name: "ระบบพนักงาน",
         path: "/app/hr",

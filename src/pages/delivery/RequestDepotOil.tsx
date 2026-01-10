@@ -1,0 +1,801 @@
+import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ShoppingCart,
+  Search,
+  X,
+  Building2,
+  FileText,
+  Eye,
+  Droplet,
+  Calendar,
+  Download,
+  FileCheck,
+  Truck,
+  Navigation,
+  MapPin,
+  Clock,
+  User,
+  Fuel,
+  Check,
+  CheckCircle
+} from "lucide-react";
+import { useGasStation } from "@/contexts/GasStationContext";
+import { useBranch } from "@/contexts/BranchContext";
+import type { InternalOilOrder, DriverJob } from "@/types/gasStation";
+import StatusTag, { getStatusVariant } from "@/components/StatusTag";
+import GasStationWrap from "./gs/_GasStationWrap";
+
+// --- Helper Components from TransportTracking ---
+const StepIcon = ({ name, className }: { name: string, className?: string }) => {
+    switch (name) {
+        case "truck": return <Truck className={className} />;
+        case "map-pin": return <MapPin className={className} />;
+        case "droplet": return <Droplet className={className} />;
+        case "download": return <Download className={className} />;
+        case "check": return <Check className={className} />;
+        case "check-circle": return <CheckCircle className={className} />;
+        case "fuel": return <Fuel className={className} />;
+        default: return <Check className={className} />;
+    }
+};
+
+const JobTimeline = ({ job }: { job: DriverJob }) => {
+    const timelineItems = useMemo(() => {
+        if (!job) return [];
+        interface TimelineItem {
+            id: string;
+            title: string;
+            timestamp: string;
+            dateTime?: string;
+            status: string;
+            icon: string;
+            sequence?: number;
+        }
+        const items: TimelineItem[] = [];
+        
+        const isJobFinished = job.status === "ส่งเสร็จ";
+        
+        const formatTime = (isoString?: string, fallbackText: string = "ยังไม่ถึง") => {
+            if (isoString) {
+                return new Date(isoString).toLocaleTimeString("th-TH", { hour: '2-digit', minute: '2-digit' }) + " น.";
+            }
+            if (isJobFinished) return "เสร็จสิ้น";
+            return fallbackText;
+        };
+
+        // 1. Job Received
+        items.push({
+            id: "step-1-received",
+            title: "ได้รับงาน",
+            timestamp: formatTime(job.createdAt, "08:00 น."),
+            dateTime: job.createdAt,
+            status: "completed",
+            icon: "check"
+        });
+
+        // 2. Start Trip
+        const isStarted = !!job.startTrip || isJobFinished;
+        items.push({
+            id: "step-2-start",
+            title: `ออกจากปั๊มต้นทาง (${job.sourceBranchName})`,
+            timestamp: isStarted ? formatTime(job.startTrip?.startedAt) : "ยังไม่เริ่ม",
+            dateTime: job.startTrip?.startedAt,
+            status: isStarted ? "completed" : "active",
+            icon: "truck"
+        });
+
+        // 3. Arrive Depot
+        const isArrivedDepot = !!job.warehouseConfirmation || isJobFinished;
+        items.push({
+            id: "step-3-warehouse",
+            title: `ถึงคลังน้ำมัน`, 
+            timestamp: isArrivedDepot ? formatTime(job.warehouseConfirmation?.confirmedAt) : "รอดำเนินการ",
+            dateTime: job.warehouseConfirmation?.confirmedAt,
+            status: isArrivedDepot ? "completed" : (isStarted ? "active" : "pending"),
+            icon: "map-pin"
+        });
+
+        // 4. Pickup Oil
+        const isPickedUp = !!job.pickupConfirmation || isJobFinished;
+        items.push({
+            id: "step-4-pickup",
+            title: "รับน้ำมัน",
+            timestamp: isPickedUp ? formatTime(job.pickupConfirmation?.confirmedAt) : "รอดำเนินการ",
+            dateTime: job.pickupConfirmation?.confirmedAt,
+            status: isPickedUp ? "completed" : (isArrivedDepot ? "active" : "pending"),
+            icon: "droplet"
+        });
+
+        // 5. Destinations
+        const branches = [...job.destinationBranches];
+        if (job.routeOrder && job.routeOrder.length > 0) {
+            branches.sort((a, b) => {
+                const indexA = job.routeOrder!.indexOf(a.branchId);
+                const indexB = job.routeOrder!.indexOf(b.branchId);
+                return indexA - indexB;
+            });
+        }
+
+        let firstNextPendingAdded = false;
+        branches.forEach((branch) => {
+            const isDelivered = branch.status === "ส่งแล้ว" || isJobFinished;
+            const isArrivedBranch = !!branch.arrivalConfirmation || isDelivered;
+
+            // Arrival
+            let arrivalStatus = "pending";
+             if (isArrivedBranch) arrivalStatus = "completed";
+             else if (isPickedUp && !firstNextPendingAdded) { arrivalStatus = "active"; firstNextPendingAdded = true; }
+
+            items.push({
+                id: `step-branch-${branch.branchId}-arrive`,
+                title: `ถึงปั๊ม (${branch.branchName})`,
+                timestamp: arrivalStatus === "completed" ? formatTime(branch.arrivalConfirmation?.confirmedAt || (isDelivered ? branch.deliveryConfirmation?.confirmedAt : undefined)) : (arrivalStatus === "active" ? "กำลังเดินทาง" : "รอดำเนินการ"),
+                dateTime: branch.arrivalConfirmation?.confirmedAt,
+                status: arrivalStatus,
+                icon: "map-pin",
+                sequence: items.length
+            });
+
+             // Unload
+            let unloadStatus = "pending";
+            if (isDelivered) unloadStatus = "completed";
+            else if (arrivalStatus === "completed" && !firstNextPendingAdded) { unloadStatus = "active"; firstNextPendingAdded = true; }
+
+            items.push({
+                id: `step-branch-${branch.branchId}-unload`,
+                title: `ลงน้ำมัน (${branch.branchName})`,
+                timestamp: isDelivered ? formatTime(branch.deliveryConfirmation?.confirmedAt) : "รอดำเนินการ",
+                dateTime: branch.deliveryConfirmation?.confirmedAt,
+                status: unloadStatus,
+                icon: "download",
+                sequence: items.length
+            });
+        });
+
+        // 6. Finish
+        const isFinished = isJobFinished && (!!job.depotArrival || !!job.endOdometer);
+        const allDelivered = job.destinationBranches.every(b => b.status === "ส่งแล้ว" || isJobFinished);
+        items.push({
+            id: "step-end",
+            title: "กลับถึงปั๊ม (จบงาน)",
+            timestamp: isFinished ? formatTime(job.depotArrival?.arrivedAt) : "รอดำเนินการ",
+            status: isFinished ? "completed" : (allDelivered ? "active" : "pending"),
+            icon: "check-circle",
+            sequence: items.length
+        });
+
+        return items;
+    }, [job]);
+
+    return (
+        <div className="relative pl-2 space-y-4">
+            {timelineItems.map((item, index) => {
+                const isLast = index === timelineItems.length - 1;
+                return (
+                    <div key={item.id} className="relative flex gap-3">
+                        {!isLast && (
+                            <div className="absolute left-[9px] top-6 bottom-[-20px] w-0.5 border-l border-dashed border-gray-200 dark:border-gray-700" />
+                        )}
+                        <div className="relative z-10 shrink-0">
+                             <div className={`w-5 h-5 rounded-full flex items-center justify-center shadow-sm ${
+                                item.status === "completed" ? "bg-green-500 text-white" : 
+                                item.status === "active" ? "bg-blue-500 text-white animate-pulse" : 
+                                "bg-gray-100 text-gray-400 dark:bg-gray-700"
+                            }`}>
+                                <StepIcon name={item.icon} className="w-3 h-3" />
+                            </div>
+                        </div>
+                        <div className={`${item.status === "active" ? "pt-0 -mt-0.5" : "pt-0.5"}`}>
+                            <h4 className={`font-bold text-xs ${
+                                item.status === "active" ? "text-blue-600 dark:text-blue-400" :
+                                item.status === "completed" ? "text-gray-900 dark:text-white" :
+                                "text-gray-400 dark:text-gray-500"
+                            }`}>
+                                {item.title}
+                            </h4>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                                {item.timestamp}
+                            </p>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+function RequestDepotOilContent() {
+  const { 
+    branches, 
+    internalOrders, 
+    purchaseOrders,
+    getDriverJobByTransportNo,
+  } = useGasStation();
+  const { selectedBranches } = useBranch();
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState<InternalOilOrder | null>(null);
+
+  // กรองเฉพาะออเดอร์ที่เป็น "external" (สั่งจากคลัง) 
+  // และดึงข้อมูลจาก purchaseOrders (PTT) มารวมด้วยเพื่อให้เห็นรายการที่ส่วนกลางสั่งให้
+  const depotOrders = useMemo(() => {
+    // 1. ออเดอร์ภายในที่ระบุว่าเป็น external
+    const fromInternal = internalOrders
+      .filter(order => order.sourceType === "external")
+      .map(order => ({
+        ...order,
+        displayOrderNo: order.orderNo,
+        isPTT: false
+      }));
+
+    // 2. ออเดอร์จาก PTT ที่มีสาขาของเราเป็นผู้รับ
+    const fromPTT = purchaseOrders
+      .filter(po => po.branches.some(b => selectedBranchIds.includes(b.branchId) || selectedBranchIds.length === 0))
+      .map(po => {
+        // หาข้อมูลสาขาที่เป็นของเรา (ถ้าเลือกไว้) หรือสาขาแรกที่เจอ
+        const myBranchInfo = po.branches.find(b => selectedBranchIds.includes(b.branchId)) || po.branches[0];
+        
+        return {
+          id: po.orderNo,
+          orderNo: po.orderNo,
+          displayOrderNo: po.orderNo, // ใช้เลข PO จาก PTT
+          orderDate: po.orderDate,
+          requestedDate: po.deliveryDate,
+          fromBranchId: myBranchInfo.branchId,
+          fromBranchName: myBranchInfo.branchName,
+          items: myBranchInfo.items.map(i => ({
+            ...i,
+            requestedQuantity: i.quantity,
+            unloadedQuantity: po.status === "ขนส่งสำเร็จ" ? i.quantity : 0,
+            keptOnTruckQuantity: 0
+          })),
+          totalAmount: myBranchInfo.totalAmount,
+          // แมพสถานะ PTT ให้เข้ากับสถานะของหน้าจัดการ
+          status: po.status === "ขนส่งสำเร็จ" ? "ส่งแล้ว" : 
+                  po.status === "กำลังขนส่ง" ? "กำลังจัดส่ง" : 
+                  po.status === "รอเริ่ม" ? "อนุมัติแล้ว" : "ยกเลิก",
+          sourceType: "external",
+          isPTT: true,
+          transportNo: po.supplierOrderNo,
+          notes: "(สั่งซื้อผ่านส่วนกลาง/คลัง ปตท.)"
+        } as unknown as InternalOilOrder;
+      });
+
+    // รวมและเรียงลำดับตามวันที่
+    return [...fromInternal, ...fromPTT].sort((a, b) => {
+      const dateA = new Date(a.orderDate).getTime();
+      const dateB = new Date(b.orderDate).getTime();
+      return dateB - dateA;
+    });
+  }, [internalOrders, purchaseOrders, selectedBranchIds]);
+
+  const filteredOrders = useMemo(() => {
+    return depotOrders.filter(order => {
+      const matchesSearch = order.orderNo.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           order.fromBranchName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesBranch = selectedBranchIds.length === 0 || selectedBranchIds.includes(order.fromBranchId);
+      return matchesSearch && matchesBranch;
+    });
+  }, [depotOrders, searchTerm, selectedBranchIds]);
+
+  const { internalPumpSales } = useGasStation();
+
+  return (
+    <div className="space-y-6 pb-20">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <ShoppingCart className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">สั่งน้ำมันจากคลัง (ปตท.)</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">รายการน้ำมันที่ส่วนกลางสั่งซื้อจากคลัง ปตท. ให้สาขาของคุณ</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter & Search */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="ค้นหาเลขที่คำขอ หรือชื่อสาขา..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+          />
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 dark:bg-gray-900 text-gray-500 text-xs uppercase font-bold">
+              <tr>
+                <th className="px-6 py-4">เลขที่ใบสั่ง</th>
+                <th className="px-6 py-4">สาขาที่สั่ง</th>
+                 <th className="px-6 py-4">วันที่ต้องการรับ</th>
+                 <th className="px-6 py-4">รายการ</th>
+                 <th className="px-6 py-4 text-right">รับน้ำมันจริง</th>
+                 <th className="px-6 py-4 text-right">การขาย</th>
+                 <th className="px-6 py-4 text-right">เหลือบนรถ</th>
+                <th className="px-6 py-4 text-center">สถานะ</th>
+                <th className="px-6 py-4 text-right">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+               {filteredOrders.length === 0 ? (
+                 <tr>
+                   <td colSpan={9} className="px-6 py-12 text-center text-gray-400">
+                     ไม่พบข้อมูลคำร้องขอ
+                   </td>
+                 </tr>
+              ) : (
+                filteredOrders.map((order) => {
+                  const orderedQty = order.items.reduce((sum, i) => sum + (i.requestedQuantity || i.quantity), 0);
+                  
+                  // หาจำนวนที่เก็บไว้บนรถตอนรับ (Initial Kept on Truck)
+                  const initialKeptOnTruck = order.items.reduce((sum, i) => sum + (i.keptOnTruckQuantity || 0), 0);
+                  
+                  // ค้นหาข้อมูลการขายที่เกี่ยวข้อง
+                  const relatedSales = internalPumpSales.filter(s => 
+                    s.branchId === order.fromBranchId && 
+                    s.saleType.includes("ค้างรถ") &&
+                    (s.notes?.includes(order.orderNo) || s.notes?.includes(order.transportNo || ""))
+                  );
+
+                  const soldLiters = relatedSales.reduce((sum, s) => 
+                    sum + s.items.reduce((iSum, item) => iSum + item.quantity, 0), 0
+                  );
+
+                  // ยอดเหลือบนรถปัจจุบัน
+                  const currentRemainingOnTruck = order.status === "ส่งแล้ว" 
+                    ? Math.max(0, initialKeptOnTruck - soldLiters)
+                    : 0;
+
+                  return (
+                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-emerald-600 dark:text-emerald-400">{order.orderNo}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-gray-400" />
+                          <span>{order.fromBranchName}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span>{order.requestedDate}</span>
+                        </div>
+                      </td>
+                       <td className="px-6 py-4">
+                         <span className="text-sm text-gray-600 dark:text-gray-300">
+                           {order.items.length} รายการ ({orderedQty.toLocaleString()} ลิตร)
+                         </span>
+                       </td>
+                       <td className="px-6 py-4 text-right">
+                         {order.status === "ส่งแล้ว" ? (
+                           <div className="flex flex-col items-end">
+                             <span className="text-xs font-black text-emerald-600">
+                               {(order.items.reduce((sum, i) => sum + i.quantity, 0)).toLocaleString()} ลิตร
+                             </span>
+                             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">รับเข้าคลังจริง</span>
+                           </div>
+                         ) : (
+                           <span className="text-xs text-gray-300 italic font-medium">รอการรับสินค้า</span>
+                         )}
+                       </td>
+                       <td className="px-6 py-4 text-right">
+                        {order.status === "ส่งแล้ว" ? (
+                          <div className="flex flex-col items-end">
+                            <span className={`text-xs font-black ${soldLiters > 0 ? "text-orange-600" : "text-gray-400"}`}>
+                              {soldLiters > 0 ? `-${soldLiters.toLocaleString()}` : "0"} ลิตร
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+                              {soldLiters > 0 ? `ขายออกไป (${relatedSales.length} บิล)` : "ยังไม่มีการขาย"}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-300 italic font-medium">รอการรับสินค้า</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {order.status === "ส่งแล้ว" ? (
+                          <div className="flex flex-col items-end">
+                            <span className={`text-xs font-black ${currentRemainingOnTruck > 0 ? "text-blue-600" : "text-gray-400"}`}>
+                              {currentRemainingOnTruck.toLocaleString()} ลิตร
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">เหลือบนรถ</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-300 italic">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <StatusTag variant={getStatusVariant(order.status)}>{order.status}</StatusTag>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button 
+                          onClick={() => setSelectedOrderDetail(order)}
+                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        >
+                          <Eye className="w-5 h-5 text-gray-400" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Detail Modal */}
+      <AnimatePresence>
+        {selectedOrderDetail && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 sticky top-0 z-10">
+                <h2 className="text-xl font-bold flex items-center gap-2 text-emerald-600">
+                  <FileText />
+                  รายละเอียดคำสั่งซื้อและติดตามการจัดส่ง (จากคลัง)
+                </h2>
+                <button onClick={() => setSelectedOrderDetail(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-100 dark:divide-gray-700">
+                  {/* ฝั่งซ้าย: ข้อมูลออเดอร์และรายการสินค้า */}
+                  <div className="p-6 space-y-8">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">เลขที่ใบสั่งซื้อ</p>
+                        <p className="text-lg font-black text-gray-900 dark:text-white">{selectedOrderDetail.orderNo}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">สถานะปัจจุบัน</p>
+                        <StatusTag variant={getStatusVariant(selectedOrderDetail.status)}>{selectedOrderDetail.status}</StatusTag>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">สาขาที่สั่ง</p>
+                        <p className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-emerald-600" />
+                          {selectedOrderDetail.fromBranchName}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">วันที่ต้องการรับ</p>
+                        <p className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-emerald-600" />
+                          {selectedOrderDetail.requestedDate}
+                        </p>
+                      </div>
+                      {selectedOrderDetail.assignedFromBranchName && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">ดำเนินการโดย</p>
+                          <p className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            {selectedOrderDetail.assignedFromBranchName}
+                          </p>
+                        </div>
+                      )}
+                      {selectedOrderDetail.status !== "รออนุมัติ" && selectedOrderDetail.status !== "ยกเลิก" && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">มูลค่ารวมทั้งสิ้น</p>
+                          <p className="text-xl font-black text-emerald-600 tracking-tight">฿{selectedOrderDetail.totalAmount.toLocaleString()}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* สรุปข้อมูลการจัดส่ง */}
+                    {selectedOrderDetail.status !== "รออนุมัติ" && selectedOrderDetail.status !== "ยกเลิก" && (
+                      <div className="mt-6 p-5 bg-gradient-to-br from-gray-50 to-emerald-50/30 dark:from-gray-900/50 dark:to-emerald-900/10 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-inner">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <ShoppingCart className="w-3 h-3" /> สรุปข้อมูลการจัดส่งจากคลังทั้งหมด
+                        </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">เลขที่ใบสั่งซื้อ</span>
+                            <span className="text-sm font-black text-gray-900 dark:text-white">{selectedOrderDetail.orderNo}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">สั่งซื้อจากปั๊ม</span>
+                            <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{selectedOrderDetail.fromBranchName}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">เลขที่ขนส่งอ้างอิง</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {Array.from(new Set(selectedOrderDetail.items.map(item => item.transportNo).filter(Boolean))).length > 0 ? (
+                                Array.from(new Set(selectedOrderDetail.items.map(item => item.transportNo).filter(Boolean))).map((no, idx) => (
+                                  <span key={idx} className="inline-block px-2 py-1 bg-white dark:bg-gray-800 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 rounded-lg text-[10px] font-bold shadow-sm">
+                                    {no}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-xs text-gray-400 italic font-medium">รอดำเนินการ...</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            {selectedOrderDetail.items.map((item, idx) => (
+                              <div key={idx} className="flex justify-between items-center text-sm">
+                                <span className="text-gray-600 dark:text-gray-400 font-medium">{item.oilType}</span>
+                                <span className="font-bold text-gray-900 dark:text-white">{item.quantity.toLocaleString()} ลิตร</span>
+                              </div>
+                            ))}
+                            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center text-sm font-black">
+                              <span className="text-emerald-600 dark:text-emerald-400 uppercase text-[10px] tracking-widest">รวมจำนวนลิตรทั้งสิ้น:</span>
+                              <span className="text-emerald-600 dark:text-emerald-400 underline decoration-double text-lg">
+                                {selectedOrderDetail.items.reduce((sum, item) => sum + item.quantity, 0).toLocaleString()} ลิตร
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col justify-end items-end border-l border-gray-200 dark:border-gray-700 pl-6">
+                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">มูลค่ารวมที่จะส่งทั้งสิ้น</span>
+                            <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">
+                              ฿{selectedOrderDetail.totalAmount.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-medium mt-1">* ราคานี้รวมภาษีมูลค่าเพิ่มแล้ว (ถ้ามี)</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        <Droplet className="w-3 h-3" /> รายการสินค้าที่สั่งซื้อ
+                      </p>
+                      <div className="space-y-3">
+                        {selectedOrderDetail.items.map((item, idx) => (
+                          <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all hover:shadow-md">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="font-black text-gray-800 dark:text-gray-200">{item.oilType}</span>
+                              {selectedOrderDetail.status !== "รออนุมัติ" && selectedOrderDetail.status !== "ยกเลิก" && (
+                                <span className="text-xs font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 rounded-lg border border-emerald-100 dark:border-emerald-800">
+                                  ฿{item.pricePerLiter.toFixed(2)} / ลิตร
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1 p-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                                <p className="text-[9px] font-bold text-gray-400 uppercase">จำนวนที่สั่ง</p>
+                                <p className="font-black text-gray-600">{(item.requestedQuantity || item.quantity).toLocaleString()} <span className="text-[10px] font-normal">ลิตร</span></p>
+                              </div>
+                              <div className="space-y-1 p-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                                <p className="text-[9px] font-bold text-gray-400 uppercase">จำนวนที่รับจริง</p>
+                                <p className={`font-black ${selectedOrderDetail.status === "รออนุมัติ" ? "text-gray-400 italic font-normal" : "text-emerald-600"}`}>
+                                  {selectedOrderDetail.status === "รออนุมัติ" ? "รอการยืนยัน" : `${item.quantity.toLocaleString()} ลิตร`}
+                                </p>
+                              </div>
+
+                              {selectedOrderDetail.status === "ส่งแล้ว" && (
+                                <>
+                                  <div className="space-y-1 p-2 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800">
+                                    <p className="text-[9px] font-bold text-emerald-600 uppercase">ลงหลุม (Tank)</p>
+                                    <p className="font-black text-emerald-700">{(item.unloadedQuantity || 0).toLocaleString()} <span className="text-[10px] font-normal">ลิตร</span></p>
+                                  </div>
+                                  <div className="space-y-1 p-2 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800">
+                                    <p className="text-[9px] font-bold text-blue-600 uppercase">เก็บไว้บนรถ (Truck)</p>
+                                    <p className="font-black text-blue-700">{(item.keptOnTruckQuantity || 0).toLocaleString()} <span className="text-[10px] font-normal">ลิตร</span></p>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+
+                            {selectedOrderDetail.status !== "รออนุมัติ" && selectedOrderDetail.status !== "ยกเลิก" && (
+                              <div className="mt-3 space-y-3">
+                                {item.deliverySource && (
+                                  <div className="flex items-center justify-between text-[10px] font-bold uppercase p-2 bg-emerald-50/50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                                    <div className="flex flex-col">
+                                      <span className="text-gray-400">แหล่งที่มา</span>
+                                      <span className="text-emerald-600 dark:text-emerald-400">
+                                        สั่งจากคลัง ปตท.
+                                      </span>
+                                    </div>
+                                    {item.transportNo && (
+                                      <div className="flex flex-col text-right">
+                                        <span className="text-gray-400">เลขขนส่งอ้างอิง</span>
+                                        <span className="text-purple-600 dark:text-purple-400">{item.transportNo}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase">รวมมูลค่ารายการนี้</span>
+                                  <span className="font-black text-emerald-600 text-lg">฿{item.totalAmount.toLocaleString()}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {selectedOrderDetail.notes && (
+                      <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-900/30">
+                        <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                          <FileText className="w-3 h-3" /> หมายเหตุ
+                        </p>
+                        <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">{selectedOrderDetail.notes}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ฝั่งขวา: ติดตามการจัดส่งและเอกสาร */}
+                  <div className="p-6 space-y-8 bg-gray-50/50 dark:bg-gray-900/20">
+                    {selectedOrderDetail.status !== "รออนุมัติ" && selectedOrderDetail.status !== "ยกเลิก" ? (
+                      <div className="space-y-6">
+                        <div className="space-y-4">
+                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                            <Navigation className="w-3 h-3" /> ติดตามสถานะการจัดส่ง
+                          </p>
+                          <div className="space-y-4">
+                            {Array.from(new Set(selectedOrderDetail.items.map(i => i.transportNo).filter(Boolean))).map((tNo) => {
+                              const job = getDriverJobByTransportNo(tNo!);
+                              if (!job) return (
+                                <div key={tNo} className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className="p-2 bg-orange-50 dark:bg-orange-900/30 rounded-lg text-orange-600">
+                                        <Truck className="w-5 h-5" />
+                                      </div>
+                                      <div>
+                                        <p className="text-xs font-bold text-gray-400 uppercase">เลขที่ขนส่ง</p>
+                                        <p className="font-black text-gray-900 dark:text-white">{tNo}</p>
+                                      </div>
+                                    </div>
+                                    <span className="text-[10px] font-bold text-orange-500 bg-orange-50 dark:bg-orange-900/30 px-3 py-1 rounded-full border border-orange-100 dark:border-orange-800 animate-pulse">
+                                      กำลังจัดเตรียมภาระงาน
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                              return (
+                                <div key={tNo} className="bg-white dark:bg-gray-800 rounded-3xl border border-emerald-100 dark:border-emerald-900/30 shadow-sm overflow-hidden border-t-4 border-t-emerald-500">
+                                  <div className="p-5 space-y-6">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl text-emerald-600">
+                                          <Truck className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                          <p className="text-[10px] font-bold text-gray-400 uppercase">เลขที่ขนส่ง</p>
+                                          <p className="text-lg font-black text-gray-900 dark:text-white leading-none">{tNo}</p>
+                                        </div>
+                                      </div>
+                                      <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider shadow-sm ${
+                                        job.status === "ส่งเสร็จ" ? "bg-green-500 text-white" : 
+                                        "bg-emerald-600 text-white animate-pulse"
+                                      }`}>
+                                        {job.status}
+                                      </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div className="flex flex-col gap-1 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-2xl">
+                                        <span className="text-gray-400 font-bold uppercase text-[9px]">พนักงานขับรถ</span>
+                                        <span className="font-black text-gray-700 dark:text-gray-300 flex items-center gap-1.5 text-sm">
+                                          <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
+                                            <User className="w-3 h-3 text-emerald-600" />
+                                          </div>
+                                          {job.driverName || "ไม่ระบุ"}
+                                        </span>
+                                      </div>
+                                      <div className="flex flex-col gap-1 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-2xl">
+                                        <span className="text-gray-400 font-bold uppercase text-[9px]">ทะเบียนรถ</span>
+                                        <span className="font-black text-gray-700 dark:text-gray-300 text-sm">{job.truckPlateNumber}</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="space-y-4 pt-2">
+                                      <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1.5">
+                                        <Clock className="w-3.5 h-3.5 text-emerald-500" /> ลำดับสถานะการจัดส่งแบบ Real-time
+                                      </p>
+                                      <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                        <JobTimeline job={job} />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                            <FileCheck className="w-3 h-3" /> เอกสารดิจิทัลประกอบออเดอร์
+                          </p>
+                          <div className="grid grid-cols-2 gap-4">
+                            <button 
+                              className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 text-emerald-600 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-emerald-500 transition-all shadow-sm group"
+                            >
+                              <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                                <FileCheck className="w-5 h-5" />
+                              </div>
+                              <div className="text-left">
+                                <p className="text-[9px] font-bold uppercase text-gray-400">ใบสั่งซื้อ</p>
+                                <p className="text-sm font-black">Depot PO</p>
+                              </div>
+                              <Download className="w-4 h-4 ml-auto text-gray-300 group-hover:text-emerald-500" />
+                            </button>
+                            <button 
+                              className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 text-purple-600 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-purple-500 transition-all shadow-sm group"
+                            >
+                              <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                                <Truck className="w-5 h-5" />
+                              </div>
+                              <div className="text-left">
+                                <p className="text-[9px] font-bold uppercase text-gray-400">ใบส่งของ</p>
+                                <p className="text-sm font-black">Depot DN</p>
+                              </div>
+                              <Download className="w-4 h-4 ml-auto text-gray-300 group-hover:text-purple-500" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-4 opacity-50">
+                        <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                          <Clock className="w-10 h-10 text-gray-400" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-500 uppercase tracking-widest text-xs">อยู่ระหว่างรอการดำเนินการ</p>
+                          <p className="text-sm text-gray-400 mt-1 max-w-[200px]">เมื่อออเดอร์ได้รับการอนุมัติ คุณจะสามารถติดตามสถานะการจัดส่งได้ที่นี่</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-end sticky bottom-0 z-10">
+                <button
+                  onClick={() => setSelectedOrderDetail(null)}
+                  className="px-10 py-3 bg-gray-900 dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 text-white rounded-2xl font-black transition-all shadow-lg active:scale-95"
+                >
+                  ปิดหน้าต่าง
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export default function RequestDepotOil() {
+  return (
+    <GasStationWrap>
+      <RequestDepotOilContent />
+    </GasStationWrap>
+  );
+}

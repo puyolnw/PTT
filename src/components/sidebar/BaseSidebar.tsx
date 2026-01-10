@@ -54,52 +54,64 @@ export default function BaseSidebar({
         );
     };
 
-    const renderItem = (item: SidebarItem) => (
-        <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            title={item.label}
-            aria-label={item.label}
-            onClick={isMobile ? onClose : undefined}
-            className={({ isActive }) =>
-                `p-3 rounded-xl hover:panel relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-ptt-blue/30 ${isActive ? "panel shadow-md" : ""
-                } ${showText ? 'flex items-center gap-3 w-full' : 'justify-center'}`
-            }
-            style={{
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-        >
-            {({ isActive }) => (
-                <>
-                    {isActive && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-ptt-blue rounded-r-full shadow-[0_0_8px_rgba(40,103,224,0.6)]" />
-                    )}
+    const renderItem = (item: SidebarItem) => {
+        if (item.isHeader) {
+            return (
+                <div key={item.label} className={`px-3 py-2 mt-2 first:mt-0 ${showText ? 'block' : 'hidden'}`}>
+                    <span className="text-[10px] font-bold text-muted uppercase tracking-widest opacity-60">
+                        {item.label}
+                    </span>
+                </div>
+            );
+        }
 
-                    <item.icon
-                        className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${isActive ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
-                            }`}
-                        strokeWidth={1.5}
-                        style={{
-                            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                        }}
-                    />
+        return (
+            <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                title={item.label}
+                aria-label={item.label}
+                onClick={isMobile ? onClose : undefined}
+                className={({ isActive }) =>
+                    `p-3 rounded-xl hover:panel relative group hover:scale-105 active:scale-95 outline-none focus:outline-none focus:ring-2 focus:ring-ptt-blue/30 ${isActive ? "panel shadow-md" : ""
+                    } ${showText ? 'flex items-center gap-3 w-full' : 'justify-center'}`
+                }
+                style={{
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+            >
+                {({ isActive }) => (
+                    <>
+                        {isActive && (
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-ptt-blue rounded-r-full shadow-[0_0_8px_rgba(40,103,224,0.6)]" />
+                        )}
 
-                    {showText && (
-                        <span
-                            className={`text-sm font-medium whitespace-nowrap overflow-hidden ${isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
+                        <item.icon
+                            className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 ${isActive ? "text-[var(--accent)]" : "text-muted group-hover:text-app"
                                 }`}
+                            strokeWidth={1.5}
                             style={{
-                                transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
                             }}
-                        >
-                            {item.label}
-                        </span>
-                    )}
-                </>
-            )}
-        </NavLink>
-    );
+                        />
+
+                        {showText && (
+                            <span
+                                className={`text-sm font-medium whitespace-nowrap overflow-hidden ${isActive ? "text-[var(--accent)]" : "text-app group-hover:text-app"
+                                    }`}
+                                style={{
+                                    transition: 'color 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                }}
+                            >
+                                {item.label}
+                            </span>
+                        )}
+                    </>
+                )}
+            </NavLink>
+        );
+    };
 
     return (
         <aside

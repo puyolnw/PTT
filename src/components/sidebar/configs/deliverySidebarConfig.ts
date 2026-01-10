@@ -35,16 +35,73 @@ export const deliverySidebarConfig: SidebarConfig = {
         },
         {
             id: "orders",
-            label: "การสั่งซื้อและรับน้ำมัน",
+            label: "การจัดการสั่งซื้อ",
             items: [
-                { to: "/app/delivery/request-oil", icon: ShoppingCart, label: "สั่งน้ำมันจากสาขาไฮโซ", branchIds: ["2", "3", "4", "5"] },
+                { to: "", icon: null, label: "การจัดการ", isHeader: true },
+                { to: "/app/delivery/purchase-orders", icon: FileText, label: "สร้างใบสั่งซื้อ(คลังปตท.)" },
+                { to: "/app/delivery/depot-oil-order-management", icon: ClipboardList, label: "จัดการคำสั่งซื้อจากคลัง (สาขาไฮโซ)", branchIds: ["1"] },
                 { to: "/app/delivery/internal-oil-order-management", icon: ClipboardList, label: "จัดการคำสั่งซื้อ (สาขาไฮโซ)", branchIds: ["1"] },
+                { to: "", icon: null, label: "ภายใน", isHeader: true },
+                { to: "/app/delivery/request-oil", icon: ShoppingCart, label: "สั่งซื้อน้ำมันจากสาขาภายใน", branchIds: [ "1", "2", "3", "4", "5"] },
+                { to: "/app/delivery/internal-payment", icon: CreditCard, label: "ชำระค่าน้ำมัน" },
+                { to: "", icon: null, label: "คลัง ปตท.", isHeader: true },
+                { to: "/app/delivery/request-depot-oil", icon: ShoppingCart, label: "รายการสั่งซื้อน้ำมันจากส่วนกลาง", branchIds: [ "1", "2", "3", "4", "5"] },
+
+                // { to: "/app/delivery/internal-oil-order", icon: ShoppingCart, label: "สั่งซื้อน้ำมันภายในปั๊ม" },
+                // { to: "/app/delivery/branch-oil-receipt", icon: ClipboardList, label: "ใบรับน้ำมัน (Branch Receipt)" },
+            ],
+            roles: managerRoles
+        },
+        {
+            id: "receive-oil",
+            label: "การจัดการรับน้ำมัน",
+            items: [
+                { to: "", icon: null, label: "ภายใน", isHeader: true },
                 { to: "/app/delivery/internal-oil-receipt", icon: ClipboardCheck, label: "รับน้ำมัน (ภายในปั๊ม)" },
+                { to: "", icon: null, label: "คลัง ปตท.", isHeader: true },
+                { to: "/app/delivery/depot-oil-receipt", icon: ClipboardCheck, label: "รับน้ำมันจากคลัง (ปตท.)", branchIds: ["1", "2", "3", "4", "5"] },
+            ],
+            roles: managerRoles
+        },
+        {
+            id: "oil-management",
+            label: "จัดการน้ำมันคงเหลือ",
+            items: [
+                { to: "", icon: null, label: "ภายใน", isHeader: true },
+                { to: "/app/delivery/internal-pump-sales", icon: DollarSign, label: "ขายน้ำมันภาย(ในปั๊ม)" },
+                { to: "/app/delivery/record-suction-oil", icon: ClipboardList, label: "บันทึกการดูดน้ำมัน" },
+                { to: "", icon: null, label: "ภาครัฐ/เอกชน", isHeader: true },
+                { to: "/app/delivery/external-sector-sales", icon: Building2, label: "ขายน้ำมัน (ภาครัฐ/เอกชน)", branchIds: ["1"] },
+                // { to: "/app/delivery/remaining-on-truck", icon: Droplet, label: "น้ำมันที่เหลือบนรถ" },
+                // { to: "/app/delivery/internal-apar", icon: Building2, label: "เจ้าหนี้ / ลูกหนี้ ภายใน" },
+            ],
+            roles: managerRoles
+        },
+        {
+            id: "order-payments",
+            label: "การจัดการชำระค่าซื้อน้ำมัน",
+            items: [
+                { to: "", icon: null, label: "ภายใน", isHeader: true },
+                { to: "/app/delivery/internal-pump-sales", icon: DollarSign, label: "ขายน้ำมันภาย(ในปั๊ม)" },
                 { to: "/app/delivery/internal-payment", icon: CreditCard, label: "ชำระค่าน้ำมัน (ภายใน)" },
-                { to: "/app/delivery/purchase-orders", icon: FileText, label: "ใบสั่งซื้อจากปตท." },
-                { to: "/app/delivery/internal-oil-order", icon: ShoppingCart, label: "สั่งซื้อน้ำมันภายในปั๊ม" },
-                { to: "/app/delivery/branch-oil-receipt", icon: ClipboardList, label: "ใบรับน้ำมัน (Branch Receipt)" },
-                { to: "/app/delivery/record-tank-entry", icon: Droplet, label: "บันทึกน้ำมันลงหลุม" },
+                { to: "", icon: null, label: "ภาครัฐ/เอกชน", isHeader: true },
+                { to: "/app/delivery/external-sector-sales", icon: Building2, label: "ขายน้ำมัน (ภาครัฐ/เอกชน)", branchIds: ["1"] },
+                // { to: "/app/delivery/remaining-on-truck", icon: Droplet, label: "น้ำมันที่เหลือบนรถ" },
+                // { to: "/app/delivery/internal-apar", icon: Building2, label: "เจ้าหนี้ / ลูกหนี้ ภายใน" },
+            ],
+            roles: managerRoles
+        },
+        {
+            id: "oil-sales",
+            label: "จัดการการขายน้ำมัน",
+            items: [
+                { to: "", icon: null, label: "ภายใน", isHeader: true },
+                { to: "/app/delivery/internal-pump-sales", icon: DollarSign, label: "ขายน้ำมันภาย(ในปั๊ม)" },
+                { to: "/app/delivery/internal-payment", icon: CreditCard, label: "ชำระค่าน้ำมัน (ภายใน)" },
+                { to: "", icon: null, label: "ภาครัฐ/เอกชน", isHeader: true },
+                { to: "/app/delivery/external-sector-sales", icon: Building2, label: "ขายน้ำมัน (ภาครัฐ/เอกชน)", branchIds: ["1"] },
+                // { to: "/app/delivery/remaining-on-truck", icon: Droplet, label: "น้ำมันที่เหลือบนรถ" },
+                // { to: "/app/delivery/internal-apar", icon: Building2, label: "เจ้าหนี้ / ลูกหนี้ ภายใน" },
             ],
             roles: managerRoles
         },
@@ -57,17 +114,6 @@ export const deliverySidebarConfig: SidebarConfig = {
                 { to: "/app/delivery/transport-tracking", icon: Navigation, label: "ติดตามสถานะการขนส่ง" },
                 { to: "/app/delivery/truck-profiles", icon: Truck, label: "โปรไฟล์รถส่งน้ำมัน" },
                 { to: "/app/delivery/trailer-profiles", icon: Droplet, label: "โปรไฟล์หางรถน้ำมัน" },
-            ],
-            roles: managerRoles
-        },
-        {
-            id: "oil-management",
-            label: "จัดการน้ำมันคงเหลือ/ขาย/ดูด",
-            items: [
-                { to: "/app/delivery/remaining-on-truck", icon: Droplet, label: "น้ำมันที่เหลือบนรถ" },
-                { to: "/app/delivery/internal-pump-sales", icon: DollarSign, label: "ขายน้ำมันภายในปั๊ม" },
-                { to: "/app/delivery/internal-apar", icon: Building2, label: "เจ้าหนี้ / ลูกหนี้ ภายใน" },
-                { to: "/app/delivery/record-suction-oil", icon: ClipboardList, label: "บันทึกการดูดน้ำมัน" },
             ],
             roles: managerRoles
         },

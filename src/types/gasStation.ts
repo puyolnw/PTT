@@ -36,6 +36,8 @@ export interface OrderItem {
   quantity: number;
   pricePerLiter: number;
   totalAmount: number;
+  unloadedQuantity?: number;
+  keptOnTruckQuantity?: number;
 }
 
 export interface OrderSummaryItem {
@@ -130,6 +132,7 @@ export interface InternalOilOrder {
   transportNo?: string; // เลขที่ขนส่ง
   deliveryDate?: string; // วันที่ส่ง
   notes?: string;
+  approveNo?: string; // ใบอนุมัติขายเลขที่
   sourceType?: "external" | "sucked" | "remaining"; // แหล่งที่มา: PTT, ดูดคืน, เหลือบนรถ
   sourceRefId?: string; // ID อ้างอิงแหล่งที่มา
   // ข้อมูลคนขับและรถ
@@ -565,7 +568,9 @@ export interface InternalPumpSale {
   paymentRequestStatus: "pending" | "approved" | "none"; // ร้องขอการชำระ
   paymentMethod: "เงินสด" | "เงินโอน" | "เครดิต" | "อื่นๆ";
   customerName?: string; // ชื่อลูกค้า (ถ้ามี)
-  customerType?: "ทั่วไป" | "สมาชิก" | "รถบริษัท";
+  customerType?: "ทั่วไป" | "สมาชิก" | "รถบริษัท" | "ภาครัฐ" | "เอกชน";
+  customerTaxId?: string; // เลขผู้เสียภาษี (สำหรับภาครัฐ/เอกชน)
+  customerAddress?: string; // ที่อยู่ลูกค้า (สำหรับภาครัฐ/เอกชน)
   recordedBy: string;
   recordedAt: string;
   notes?: string;

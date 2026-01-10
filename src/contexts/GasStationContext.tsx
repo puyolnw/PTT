@@ -40,6 +40,7 @@ interface GasStationContextType {
   internalOrders: InternalOilOrder[];
   allInternalOrders: InternalOilOrder[];
   internalPumpSales: InternalPumpSale[];
+  allInternalPumpSales: InternalPumpSale[];
   tankEntries: TankEntryRecord[];
   trucks: TruckProfile[];
   trailers: Trailer[];
@@ -483,6 +484,125 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       requestedAt: "2024-12-19T11:00:00",
       notes: "ยกเลิกโดย พี่นิด เมื่อ 19/12/2024 13:00:00 เนื่องจากปั๊มต้นทางน้ำมันไม่พอ",
     },
+    // Mock Data for Depot Orders (sourceType: external)
+    {
+      id: "DEPO-MOCK-1",
+      orderNo: "DEPO-250110-001",
+      orderDate: "2025-01-10",
+      requestedDate: "2025-01-15",
+      fromBranchId: 2,
+      fromBranchName: "ดินดำ",
+      sourceType: "external",
+      items: [
+        { oilType: "Diesel", quantity: 15000, requestedQuantity: 15000, pricePerLiter: 0, totalAmount: 0 },
+        { oilType: "Gasohol 95", quantity: 5000, requestedQuantity: 5000, pricePerLiter: 0, totalAmount: 0 },
+      ],
+      totalAmount: 0,
+      status: "รออนุมัติ",
+      requestedBy: "สมชาย ดินดำ",
+      requestedAt: "2025-01-10T08:30:00",
+    },
+    {
+      id: "DEPO-MOCK-2",
+      orderNo: "DEPO-250109-005",
+      orderDate: "2025-01-09",
+      requestedDate: "2025-01-12",
+      fromBranchId: 3,
+      fromBranchName: "หนองจิก",
+      sourceType: "external",
+      assignedFromBranchId: 1,
+      assignedFromBranchName: "ปั๊มไฮโซ",
+      items: [
+        { oilType: "Premium Diesel", quantity: 10000, requestedQuantity: 10000, pricePerLiter: 32.5, totalAmount: 325000 },
+      ],
+      totalAmount: 325000,
+      status: "อนุมัติแล้ว",
+      requestedBy: "สมศรี หนองจิก",
+      requestedAt: "2025-01-09T14:20:00",
+      approvedBy: "พี่นิด",
+      approvedAt: "2025-01-09T16:00:00",
+    },
+    {
+      id: "DEPO-MOCK-3",
+      orderNo: "DEPO-250108-002",
+      orderDate: "2025-01-08",
+      requestedDate: "2025-01-10",
+      fromBranchId: 4,
+      fromBranchName: "ตักสิลา",
+      sourceType: "external",
+      assignedFromBranchId: 1,
+      assignedFromBranchName: "ปั๊มไฮโซ",
+      transportNo: "TP-250110-DEP1",
+      deliveryDate: "2025-01-10",
+      items: [
+        { 
+          oilType: "Gasohol 95", 
+          quantity: 12000, 
+          requestedQuantity: 12000, 
+          pricePerLiter: 38.0, 
+          totalAmount: 456000,
+          transportNo: "TP-250110-DEP1",
+          deliverySource: "truck"
+        },
+      ],
+      totalAmount: 456000,
+      status: "กำลังจัดส่ง",
+      requestedBy: "สมใจ ตักสิลา",
+      requestedAt: "2025-01-08T10:00:00",
+      approvedBy: "พี่นิด",
+      approvedAt: "2025-01-08T11:30:00",
+    },
+    {
+      id: "DEPO-MOCK-4",
+      orderNo: "DEPO-250105-001",
+      orderDate: "2025-01-05",
+      requestedDate: "2025-01-07",
+      fromBranchId: 5,
+      fromBranchName: "บายพาส",
+      sourceType: "external",
+      assignedFromBranchId: 1,
+      assignedFromBranchName: "ปั๊มไฮโซ",
+      transportNo: "TP-250107-DEP2",
+      deliveryDate: "2025-01-07",
+      items: [
+        { 
+          oilType: "Diesel", 
+          quantity: 20000, 
+          requestedQuantity: 20000, 
+          unloadedQuantity: 18000,
+          keptOnTruckQuantity: 2000,
+          pricePerLiter: 30.0, 
+          totalAmount: 600000,
+          transportNo: "TP-250107-DEP2",
+          deliverySource: "truck"
+        },
+      ],
+      totalAmount: 600000,
+      status: "ส่งแล้ว",
+      requestedBy: "วิชัย บายพาส",
+      requestedAt: "2025-01-05T09:00:00",
+      approvedBy: "พี่นิด",
+      approvedAt: "2025-01-05T10:00:00",
+      receivedByName: "นายกิตติ",
+      updatedAt: "2025-01-07T14:30:00",
+    },
+    {
+      id: "DEPO-MOCK-5",
+      orderNo: "DEPO-250101-009",
+      orderDate: "2025-01-01",
+      requestedDate: "2025-01-05",
+      fromBranchId: 2,
+      fromBranchName: "ดินดำ",
+      sourceType: "external",
+      items: [
+        { oilType: "E20", quantity: 8000, requestedQuantity: 8000, pricePerLiter: 0, totalAmount: 0 },
+      ],
+      totalAmount: 0,
+      status: "ยกเลิก",
+      requestedBy: "สมชาย ดินดำ",
+      requestedAt: "2025-01-01T11:00:00",
+      notes: "ยกเลิกเนื่องจากคลัง ปตท. แจ้งสินค้าหมดชั่วคราว",
+    },
   ]);
 
   const [internalPumpSalesState, setInternalPumpSalesState] = useState<InternalPumpSale[]>([
@@ -560,7 +680,9 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       customerType: "รถบริษัท",
       recordedBy: "สมศรี ดินดำ",
       recordedAt: "2024-12-15T16:45:00",
-      status: "ปกติ"
+      status: "ปกติ",
+      paymentHistory: [],
+      taxInvoices: []
     },
     {
       id: "IPS-4",
@@ -587,6 +709,166 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       ],
       taxInvoices: [
         { invoiceNo: "INV-240502-R01", date: "2024-05-02T11:20:00", amount: 4425 }
+      ]
+    },
+    {
+      id: "IPS-5",
+      saleNo: "HQ-MOCK-001",
+      saleDate: "2024-12-15",
+      saleType: "🚚 ขายน้ำมันค้างรถ",
+      branchId: 1,
+      branchName: "ปั๊มไฮโซ",
+      buyerBranchId: 2,
+      buyerBranchName: "ปั้มดินดำ",
+      items: [
+        { oilType: "Diesel", quantity: 2500, pricePerLiter: 30.0, totalAmount: 75000 },
+      ],
+      totalAmount: 75000,
+      paidAmount: 25000,
+      paymentRequestStatus: "none",
+      paymentMethod: "เครดิต",
+      customerType: "รถบริษัท",
+      recordedBy: "ผู้จัดการปั๊มไฮโซ",
+      recordedAt: "2024-12-15T10:00:00",
+      status: "ปกติ",
+      paymentHistory: [
+        { date: "2024-12-20T14:00:00", amount: 25000, method: "เงินโอน", note: "ชำระบางส่วนรอบแรก" }
+      ],
+      taxInvoices: [
+        { invoiceNo: "INV-241220-001", date: "2024-12-20T14:00:00", amount: 25000 }
+      ]
+    },
+    {
+      id: "IPS-6",
+      saleNo: "NJ-MOCK-001",
+      saleDate: "2024-12-10",
+      saleType: "💉 ขายน้ำมันจากการดูด",
+      branchId: 3,
+      branchName: "ปั้มหนองจิก",
+      buyerBranchId: 2,
+      buyerBranchName: "ปั้มดินดำ",
+      items: [
+        { oilType: "Gasohol 95", quantity: 2000, pricePerLiter: 29.5, totalAmount: 59000 },
+      ],
+      totalAmount: 59000,
+      paidAmount: 0,
+      paymentRequestStatus: "none",
+      paymentMethod: "เครดิต",
+      customerType: "รถบริษัท",
+      recordedBy: "ผู้จัดการหนองจิก",
+      recordedAt: "2024-12-10T09:30:00",
+      status: "ปกติ",
+      paymentHistory: [],
+      taxInvoices: []
+    },
+    {
+      id: "IPS-7",
+      saleNo: "HQ-MOCK-002",
+      saleDate: "2024-11-20",
+      saleType: "🚚 ขายน้ำมันค้างรถ",
+      branchId: 1,
+      branchName: "ปั๊มไฮโซ",
+      buyerBranchId: 2,
+      buyerBranchName: "ปั้มดินดำ",
+      items: [
+        { oilType: "Diesel", quantity: 5000, pricePerLiter: 30.0, totalAmount: 150000 },
+      ],
+      totalAmount: 150000,
+      paidAmount: 150000,
+      paymentRequestStatus: "none",
+      paymentMethod: "เครดิต",
+      customerType: "รถบริษัท",
+      recordedBy: "ผู้จัดการปั๊มไฮโซ",
+      recordedAt: "2024-11-20T10:00:00",
+      status: "ปกติ",
+      paymentHistory: [
+        { date: "2024-11-25T09:30:00", amount: 50000, method: "เงินโอน", note: "ชำระรอบที่ 1" },
+        { date: "2024-11-30T14:15:00", amount: 50000, method: "เงินโอน", note: "ชำระรอบที่ 2" },
+        { date: "2024-12-05T11:00:00", amount: 50000, method: "เงินโอน", note: "ชำระรอบสุดท้าย" }
+      ],
+      taxInvoices: [
+        { invoiceNo: "INV-241125-001", date: "2024-11-25T09:30:00", amount: 50000 },
+        { invoiceNo: "INV-241130-001", date: "2024-11-30T14:15:00", amount: 50000 },
+        { invoiceNo: "INV-241205-001", date: "2024-12-05T11:00:00", amount: 50000 }
+      ]
+    },
+    // Mock Data for External Sector Sales (Government/Private) - Only for HISO (Branch 1)
+    {
+      id: "IPS-EXT-1",
+      saleNo: "SL-EXT-20250109-001",
+      saleDate: "2025-01-09",
+      saleType: "📦 ขายจากคลัง",
+      branchId: 1,
+      branchName: "ปั๊มไฮโซ",
+      customerName: "องค์การบริหารส่วนจังหวัดมหาสารคาม",
+      customerType: "ภาครัฐ",
+      customerTaxId: "0994000161404",
+      customerAddress: "ต.แวงน่าง อ.เมือง จ.มหาสารคาม 44000",
+      items: [
+        { oilType: "Diesel", quantity: 5000, pricePerLiter: 32.5, totalAmount: 162500 }
+      ],
+      totalAmount: 162500,
+      paidAmount: 0,
+      paymentRequestStatus: "none",
+      paymentMethod: "เครดิต",
+      recordedBy: "พี่นิด",
+      recordedAt: "2025-01-09T09:00:00",
+      status: "ปกติ"
+    },
+    {
+      id: "IPS-EXT-2",
+      saleNo: "SL-EXT-20250109-002",
+      saleDate: "2025-01-09",
+      saleType: "📦 ขายจากคลัง",
+      branchId: 1,
+      branchName: "ปั๊มไฮโซ",
+      customerName: "บริษัท รับเหมาก่อสร้าง จำกัด (มหาชน)",
+      customerType: "เอกชน",
+      customerTaxId: "0107537000521",
+      customerAddress: "123 ถ.หลักเมือง อ.บรบือ จ.มหาสารคาม 44130",
+      items: [
+        { oilType: "Gasohol 95", quantity: 2000, pricePerLiter: 38.0, totalAmount: 76000 },
+        { oilType: "Diesel", quantity: 1000, pricePerLiter: 32.5, totalAmount: 32500 }
+      ],
+      totalAmount: 108500,
+      paidAmount: 108500,
+      paymentRequestStatus: "none",
+      paymentMethod: "เงินโอน",
+      recordedBy: "พี่นิด",
+      recordedAt: "2025-01-09T10:30:00",
+      status: "ปกติ",
+      paymentHistory: [
+        { date: "2025-01-09T10:35:00", amount: 108500, method: "เงินโอน", note: "โอนชำระเต็มจำนวน" }
+      ],
+      taxInvoices: [
+        { invoiceNo: "INV-250109-789", date: "2025-01-09T10:35:00", amount: 108500 }
+      ]
+    },
+    {
+      id: "IPS-8",
+      saleNo: "BP-MOCK-001",
+      saleDate: "2024-12-08",
+      saleType: "💉 ขายน้ำมันจากการดูด",
+      branchId: 4,
+      branchName: "ปั้มบายพาส",
+      buyerBranchId: 2,
+      buyerBranchName: "ปั้มดินดำ",
+      items: [
+        { oilType: "Gasohol 91", quantity: 1500, pricePerLiter: 28.5, totalAmount: 42750 },
+      ],
+      totalAmount: 42750,
+      paidAmount: 20000,
+      paymentRequestStatus: "none",
+      paymentMethod: "เครดิต",
+      customerType: "รถบริษัท",
+      recordedBy: "ผู้จัดการบายพาส",
+      recordedAt: "2024-12-08T13:20:00",
+      status: "ปกติ",
+      paymentHistory: [
+        { date: "2024-12-12T10:00:00", amount: 20000, method: "เงินโอน", note: "ชำระส่วนแรก" }
+      ],
+      taxInvoices: [
+        { invoiceNo: "INV-241212-001", date: "2024-12-12T10:00:00", amount: 20000 }
       ]
     }
   ]);
@@ -871,8 +1153,9 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
             { date: now, amount, method, note }
           ];
 
-          // Auto-generate Tax Invoice
-          const invoiceNo = `INV-${now.replace(/[-:T]/g, "").slice(2, 8)}-${Math.floor(100 + Math.random() * 900)}`;
+          // Auto-generate Tax Invoice - ออกใบกำกับภาษีอัตโนมัติตามยอดเงินที่จ่าย
+          const dateStr = now.replace(/[-:T]/g, "").slice(2, 8); // YYMMDD
+          const invoiceNo = `INV-${dateStr}-${String(Math.floor(100 + Math.random() * 900)).padStart(3, '0')}`;
           const newInvoices = [
             ...(sale.taxInvoices || []),
             { invoiceNo, date: now, amount }
@@ -1017,6 +1300,7 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
     }),
     allInternalOrders: internalOrdersState,
     internalPumpSales: internalPumpSalesState.filter(s => selectedBranchIds.length === 0 || selectedBranchIds.includes(s.branchId)),
+    allInternalPumpSales: internalPumpSalesState,
     trucks: mockTrucks,
     trailers: mockTrailers,
 

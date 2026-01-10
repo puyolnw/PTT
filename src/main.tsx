@@ -14,6 +14,10 @@ import LayoutRental from "@/layouts/LayoutRental";
 import LayoutAccounting from "@/layouts/LayoutAccounting";
 import LayoutGasStation from "@/layouts/LayoutGasStation";
 import LayoutDelivery from "@/layouts/LayoutDelivery";
+import LayoutDashboard from "@/layouts/LayoutDashboard";
+
+// ========== Dashboard Pages ==========
+import Dashboard from "@/pages/dashboard/Dashboard";
 
 // ========== HR Pages ==========
 import HRDashboard from "@/pages/hr/Dashboard";
@@ -252,6 +256,8 @@ import DeliverySettings from "@/pages/delivery/Settings";
 import DeliveryOilSales from "@/pages/delivery/gs/OilSales";
 import DeliveryRecordFueling from "@/pages/delivery/gs/RecordFueling";
 import RequestOil from "@/pages/delivery/RequestOil";
+import RequestDepotOil from "@/pages/delivery/RequestDepotOil";
+import DepotOilOrderManagement from "@/pages/delivery/DepotOilOrderManagement";
 
 // ========== Delivery (reuse Gas Station pages) ==========
 import DeliveryReceiveOil from "@/pages/delivery/gs/ReceiveOil";
@@ -268,6 +274,8 @@ import DeliveryInternalPumpSales from "@/pages/delivery/gs/InternalPumpSales";
 import DeliveryRecordSuctionOil from "@/pages/delivery/gs/RecordSuctionOil";
 import InternalAPAR from "@/pages/delivery/InternalAPAR";
 import InternalOilPayment from "@/pages/delivery/InternalOilPayment";
+import ExternalSectorSales from "@/pages/delivery/ExternalSectorSales";
+import DepotOilReceipt from "@/pages/delivery/DepotOilReceipt";
 
 import { isAuthenticated } from "@/lib/auth";
 import Forbidden from "@/components/Forbidden";
@@ -319,6 +327,18 @@ const router = createBrowserRouter([
       {
         path: "forbidden",
         element: <Forbidden />,
+      },
+
+      // ========== DASHBOARD ==========
+      {
+        path: "dashboard",
+        element: <LayoutDashboard />,
+        children: [
+          {
+            index: true,
+            element: <Dashboard />,
+          },
+        ],
       },
 
       // ========== HR MODULE ==========
@@ -1233,6 +1253,14 @@ const router = createBrowserRouter([
             element: <RequestOil />,
           },
           {
+            path: "request-depot-oil",
+            element: <RequestDepotOil />,
+          },
+          {
+            path: "depot-oil-order-management",
+            element: <DepotOilOrderManagement />,
+          },
+          {
             path: "purchase-orders",
             element: <DeliveryPTTOrders />,
           },
@@ -1263,6 +1291,10 @@ const router = createBrowserRouter([
           {
             path: "internal-pump-sales",
             element: <DeliveryInternalPumpSales />,
+          },
+          {
+            path: "external-sector-sales",
+            element: <ExternalSectorSales />,
           },
           {
             path: "record-suction-oil",
@@ -1301,6 +1333,10 @@ const router = createBrowserRouter([
           {
             path: "internal-oil-order-management",
             element: <DeliveryInternalOilOrderManagement />,
+          },
+          {
+            path: "depot-oil-receipt",
+            element: <DepotOilReceipt />,
           },
           {
             path: "internal-oil-receipt",

@@ -5,6 +5,7 @@ export interface SidebarItem {
     end?: boolean;
     roles?: string[]; // roles ที่สามารถเห็นเมนูนี้ได้
     branchIds?: string[]; // สาขาที่สามารถเห็นเมนูนี้ได้
+    isHeader?: boolean; // เพิ่มเพื่อรองรับการแสดงผลเป็นหัวข้อหมวดหมู่ภายใน
 }
 
 export interface SidebarGroup {
