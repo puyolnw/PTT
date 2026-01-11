@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, CheckCircle, Clock, Activity, XCircle, X, PackageCheck, User, GripVertical, Truck, MapPin, Eye, Droplet, Search, Navigation } from "lucide-react";
+import { FileText, CheckCircle, Clock, Activity, XCircle, X, PackageCheck, User, GripVertical, Truck, MapPin, Eye, Droplet, Search, Navigation, Filter, ChevronUp, ChevronDown, ChevronsUpDown, History, Plus, Check } from "lucide-react";
 import { mockApprovedOrders, mockPTTQuotations } from "../../data/gasStationOrders";
 import { mockTrucks, mockTrailers } from "../gas-station/TruckProfiles";
 import { mockDrivers } from "../../data/mockData";
@@ -27,6 +27,7 @@ import {
 import { useBranch } from "@/contexts/BranchContext";
 import { CSS } from "@dnd-kit/utilities";
 import TableActionMenu from "@/components/TableActionMenu";
+import StatusTag from "@/components/StatusTag";
 
 // Helper functions (moved from missing utils or reconstructed)
 const generateTransportNo = () => {
@@ -165,6 +166,13 @@ export default function TruckOrders() {
     const [filterDateFrom, setFilterDateFrom] = useState<string>("");
     const [filterDateTo, setFilterDateTo] = useState<string>("");
     const [filterBranch, setFilterBranch] = useState<number | "all">("all");
+    const [columnFilters, setColumnFilters] = useState<{
+        status: string;
+    }>({
+        status: "ทั้งหมด"
+    });
+    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'orderDate', direction: 'desc' });
 
     // DnD Sensors
     const sensors = useSensors(
@@ -401,7 +409,7 @@ export default function TruckOrders() {
 
     // Filter orders
     const filteredOrders = useMemo(() => {
-        return combinedOrders.filter((order) => {
+        let result = combinedOrders.filter((order) => {
             const matchesSearch =
                 order.orderNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 order.transportNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -409,7 +417,10 @@ export default function TruckOrders() {
                 order.driver.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 order.purchaseOrderNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 order.pttQuotationNo?.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesStatus = filterStatus === "all" || order.status === filterStatus;
+            
+            // Column Filters
+            const matchesStatus = columnFilters.status === "ทั้งหมด" || order.status === columnFilters.status;
+            const matchesFilterStatus = filterStatus === "all" || order.status === filterStatus;
 
             // Date filter
             const matchesDate = isDateInRange(order.orderDate, filterDateFrom, filterDateTo);
@@ -422,9 +433,47 @@ export default function TruckOrders() {
             const matchesGlobalBranch = selectedBranchIds.length === 0 ||
                 (order.branches && order.branches.some((b: any) => selectedBranchIds.includes(b.branchId)));
 
-            return matchesSearch && matchesStatus && matchesDate && matchesBranch && matchesGlobalBranch;
+            return matchesSearch && matchesStatus && matchesFilterStatus && matchesDate && matchesBranch && matchesGlobalBranch;
         });
-    }, [searchTerm, filterStatus, filterDateFrom, filterDateTo, filterBranch, combinedOrders, selectedBranchIds]);
+
+        // Sorting
+        if (sortConfig.key && sortConfig.direction) {
+            result.sort((a, b) => {
+                let aValue: any;
+                let bValue: any;
+
+                switch (sortConfig.key) {
+                    case 'orderDate':
+                        aValue = new Date(a.orderDate).getTime();
+                        bValue = new Date(b.orderDate).getTime();
+                        break;
+                    case 'transportNo':
+                        aValue = a.transportNo;
+                        bValue = b.transportNo;
+                        break;
+                    case 'orderNo':
+                        aValue = a.orderNo;
+                        bValue = b.orderNo;
+                        break;
+                    default:
+                        aValue = (a as any)[sortConfig.key];
+                        bValue = (b as any)[sortConfig.key];
+                }
+
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        } else {
+            result.sort((a, b) => {
+                const aTime = new Date(a.orderDate).getTime();
+                const bTime = new Date(b.orderDate).getTime();
+                return bTime - aTime;
+            });
+        }
+
+        return result;
+    }, [searchTerm, filterStatus, filterDateFrom, filterDateTo, filterBranch, combinedOrders, selectedBranchIds, columnFilters, sortConfig]);
 
     const handleCreateOrder = () => {
         if (!newOrder.purchaseOrderNo || !newOrder.truckId || !newOrder.trailerId || !newOrder.driverId) {
@@ -592,211 +641,344 @@ export default function TruckOrders() {
         }
     };
 
+    const handleSort = (key: string) => {
+        setSortConfig(prev => {
+            if (prev.key === key) {
+                if (prev.direction === 'asc') return { key, direction: 'desc' };
+                if (prev.direction === 'desc') return { key, direction: null };
+                return { key, direction: 'asc' };
+            }
+            return { key, direction: 'asc' };
+        });
+    };
+
+    const getSortIcon = (key: string) => {
+        if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+        return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+    };
+
+    // ดึงค่า Unique สำหรับ Filter Dropdowns
+    const filterOptions = useMemo(() => {
+        return {
+            status: ["ทั้งหมด", ...new Set(combinedOrders.map(o => o.status))]
+        };
+    }, [combinedOrders]);
+
+    const HeaderWithFilter = ({ label, columnKey, filterKey, options }: { 
+        label: string, 
+        columnKey?: string, 
+        filterKey?: keyof typeof columnFilters, 
+        options?: string[] 
+    }) => (
+        <th className="px-6 py-4 relative group">
+            <div className="flex items-center gap-2">
+                <div 
+                    className={`flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors ${sortConfig.key === columnKey ? 'text-emerald-600' : ''}`}
+                    onClick={() => columnKey && handleSort(columnKey)}
+                >
+                    {label}
+                    {columnKey && getSortIcon(columnKey)}
+                </div>
+                
+                {filterKey && options && (
+                    <div className="relative">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveDropdown(activeDropdown === filterKey ? null : filterKey);
+                            }}
+                            className={`p-1 rounded-md transition-all ${columnFilters[filterKey] !== "ทั้งหมด" ? "bg-emerald-500 text-white shadow-sm" : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"}`}
+                        >
+                            <Filter className="w-3 h-3" />
+                        </button>
+                        
+                        <AnimatePresence>
+                            {activeDropdown === filterKey && (
+                                <>
+                                    <div 
+                                        className="fixed inset-0 z-10" 
+                                        onClick={() => setActiveDropdown(null)} 
+                                    />
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                                    >
+                                        {options.map((opt) => (
+                                            <button
+                                                key={opt}
+                                                onClick={() => {
+                                                    setColumnFilters(prev => ({ ...prev, [filterKey]: opt }));
+                                                    setActiveDropdown(null);
+                                                }}
+                                                className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                                                    columnFilters[filterKey] === opt 
+                                                        ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                                                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                                }`}
+                                            >
+                                                {opt}
+                                                {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                </>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                )}
+            </div>
+        </th>
+    );
+
+    const isAnyFilterActive = useMemo(() => {
+        return columnFilters.status !== "ทั้งหมด" ||
+               filterDateFrom !== "" ||
+               filterDateTo !== "" ||
+               searchTerm !== "" ||
+               filterStatus !== "all" ||
+               filterBranch !== "all";
+    }, [columnFilters, filterDateFrom, filterDateTo, searchTerm, filterStatus, filterBranch]);
+
+    const clearFilters = () => {
+        setColumnFilters({
+            status: "ทั้งหมด"
+        });
+        setSearchTerm("");
+        setFilterDateFrom("");
+        setFilterDateTo("");
+        setFilterStatus("all");
+        setFilterBranch("all");
+    };
+
+    // Stats
+    const stats = useMemo(() => {
+        return {
+            total: combinedOrders.length,
+            active: combinedOrders.filter(o => ["ready-to-pickup", "picking-up", "delivering"].includes(o.status)).length,
+            completed: combinedOrders.filter(o => o.status === "completed").length,
+        };
+    }, [combinedOrders]);
+
     return (
-        <div className="space-y-6 p-6">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
             {/* Header */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <header className="mb-8">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+                            <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+                                <Truck className="w-8 h-8 text-white" />
+                            </div>
+                            รายการขนส่ง (Truck Orders)
+                        </h1>
+                        <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
+                            <History className="w-4 h-4" />
+                            จัดการเที่ยวรถขนส่ง บันทึกเลขไมล์ และติดตามสถานะการจัดส่ง
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => setShowCreateOrderModal(true)}
+                        className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/20 transition-all font-bold"
+                    >
+                        <Plus className="w-5 h-5" />
+                        สร้างการขนส่งใหม่
+                    </button>
+                </div>
+            </header>
+
+            {/* Stats Dashboard */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+                >
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                            <Truck className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+                            <Truck className="w-6 h-6 text-blue-500" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                                รายการขนส่ง (Truck Orders)
-                            </h1>
-                            <p className="text-gray-500 dark:text-gray-400 mt-1">
-                                จัดการเที่ยวรถขนส่ง บันทึกเลขไมล์ และติดตามสถานะการจัดส่ง
-                            </p>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">งานทั้งหมด</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.total} รายการ</p>
                         </div>
                     </div>
-                    <div className="flex flex-col md:flex-row items-center gap-4">
-                        <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
-                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
-                            </span>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl">
+                            <Navigation className="w-6 h-6 text-amber-500" />
                         </div>
-                        <button
-                            onClick={() => setShowCreateOrderModal(true)}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
-                        >
-                            <PackageCheck className="w-5 h-5" />
-                            สร้างการขนส่งใหม่
-                        </button>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">กำลังดำเนินการ</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.active} รายการ</p>
+                        </div>
                     </div>
-                </div>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+                            <CheckCircle className="w-6 h-6 text-emerald-500" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">เสร็จสิ้น</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.completed} รายการ</p>
+                        </div>
+                    </div>
+                </motion.div>
             </div>
 
-            {/* Filters */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                <div className="space-y-4">
-                    {/* Row 1: Search */}
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            {/* Filter Bar */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+                <div className="relative flex-1 w-full">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                        type="text"
+                        placeholder="ค้นหาเลขออเดอร์, เลขขนส่ง, รถ, คนขับ..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
+                    />
+                </div>
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative flex-1 md:flex-initial">
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="ค้นหาเลขออเดอร์, เลขขนส่ง, รถ, คนขับ..."
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            type="date"
+                            value={filterDateFrom}
+                            onChange={(e) => setFilterDateFrom(e.target.value)}
+                            className="pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium text-sm"
+                            placeholder="จากวันที่"
                         />
                     </div>
-
-                    {/* Row 2: Filters */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                            <option value="all">สถานะทั้งหมด</option>
-                            <option value="draft">ร่าง</option>
-                            <option value="quotation-recorded">บันทึกใบเสนอราคาแล้ว</option>
-                            <option value="ready-to-pickup">พร้อมรับ</option>
-                            <option value="picking-up">กำลังไปรับ</option>
-                            <option value="delivering">กำลังจัดส่ง</option>
-                            <option value="completed">เสร็จสิ้น</option>
-                            <option value="cancelled">ยกเลิก</option>
-                        </select>
-
-                        <select
-                            value={filterBranch === "all" ? "all" : filterBranch}
-                            onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                            <option value="all">ทุกปั๊ม</option>
-                            {branches
-                                .sort((a, b) => {
-                                    const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
-                                    return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
-                                })
-                                .map((branch) => (
-                                    <option key={branch.id} value={branch.id}>
-                                        {branch.name}
-                                    </option>
-                                ))}
-                        </select>
-
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="date"
-                                value={filterDateFrom}
-                                onChange={(e) => setFilterDateFrom(e.target.value)}
-                                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                title="วันที่เริ่มต้น"
-                            />
-                            <span className="text-gray-500 dark:text-gray-400 font-medium">ถึง</span>
-                            <input
-                                type="date"
-                                value={filterDateTo}
-                                onChange={(e) => setFilterDateTo(e.target.value)}
-                                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                title="วันที่สิ้นสุด"
-                            />
-                        </div>
-
-                        {(filterDateFrom || filterDateTo || searchTerm || filterStatus !== "all" || filterBranch !== "all") && (
-                            <button
-                                onClick={() => {
-                                    setSearchTerm("");
-                                    setFilterStatus("all");
-                                    setFilterDateFrom("");
-                                    setFilterDateTo("");
-                                    setFilterBranch("all");
-                                }}
-                                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-300 dark:border-gray-600 whitespace-nowrap"
-                            >
-                                ล้างตัวกรอง
-                            </button>
-                        )}
+                    <span className="text-gray-400 font-bold">-</span>
+                    <div className="relative flex-1 md:flex-initial">
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                            type="date"
+                            value={filterDateTo}
+                            onChange={(e) => setFilterDateTo(e.target.value)}
+                            className="pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium text-sm"
+                            placeholder="ถึงวันที่"
+                        />
                     </div>
+                </div>
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    {isAnyFilterActive && (
+                        <button
+                            onClick={clearFilters}
+                            className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+                        >
+                            <X className="w-4 h-4" />
+                            ล้างตัวกรอง
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* Orders Table */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gray-50 dark:bg-gray-700/50">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <div className="flex items-center gap-2">
-                                        <FileText className="w-4 h-4" />
-                                        เลขออเดอร์
-                                    </div>
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <div className="flex items-center gap-2">
-                                        <Truck className="w-4 h-4" />
-                                        เลขที่ขนส่ง
-                                    </div>
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <div className="flex items-center gap-2">
-                                        <Clock className="w-4 h-4" />
-                                        วันที่
-                                    </div>
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <div className="flex items-center gap-2">
-                                        <Truck className="w-4 h-4" />
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                                <HeaderWithFilter 
+                                    label="เลขออเดอร์" 
+                                    columnKey="orderNo" 
+                                />
+                                <HeaderWithFilter 
+                                    label="เลขที่ขนส่ง" 
+                                    columnKey="transportNo" 
+                                />
+                                <HeaderWithFilter 
+                                    label="วันที่" 
+                                    columnKey="orderDate" 
+                                />
+                                <th className="px-6 py-4">
+                                    <div className="flex items-center gap-1.5">
+                                        <Truck className="w-3 h-3" />
                                         รถ / หาง
                                     </div>
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <div className="flex items-center gap-2">
-                                        <User className="w-4 h-4" />
+                                <th className="px-6 py-4">
+                                    <div className="flex items-center gap-1.5">
+                                        <User className="w-3 h-3" />
                                         คนขับ
                                     </div>
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <div className="flex items-center gap-2">
-                                        <Activity className="w-4 h-4" />
+                                <th className="px-6 py-4">
+                                    <div className="flex items-center gap-1.5">
+                                        <Activity className="w-3 h-3" />
                                         เลขไมล์
                                     </div>
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <div className="flex items-center gap-2">
-                                        <Droplet className="w-4 h-4" />
+                                <th className="px-6 py-4">
+                                    <div className="flex items-center gap-1.5">
+                                        <Droplet className="w-3 h-3" />
                                         น้ำมันเริ่มต้น
                                     </div>
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    <div className="flex items-center gap-2">
-                                        <MapPin className="w-4 h-4" />
+                                <th className="px-6 py-4">
+                                    <div className="flex items-center gap-1.5">
+                                        <MapPin className="w-3 h-3" />
                                         ปลายทาง
                                     </div>
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">สถานะ</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">สถานะรับน้ำมัน</th>
-                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">จัดการ</th>
+                                <HeaderWithFilter 
+                                    label="สถานะ" 
+                                    filterKey="status"
+                                    options={filterOptions.status}
+                                />
+                                <th className="px-6 py-4">สถานะรับน้ำมัน</th>
+                                <th className="px-6 py-4 text-center">จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-                            {filteredOrders.map((order) => (
-                                <tr
-                                    key={order.id}
-                                    onClick={() => handleViewOrderDetail(order)}
-                                    className="hover:bg-blue-50/50 dark:hover:bg-gray-700/70 cursor-pointer transition-all duration-200 group"
-                                >
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
-                                            <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
-                                                <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                            </div>
-                                            <span className="text-sm font-semibold text-gray-900 dark:text-white">{order.orderNo}</span>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
+                            {filteredOrders.length === 0 ? (
+                                <tr>
+                                    <td colSpan={11} className="px-6 py-12 text-center text-gray-400 italic font-medium">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Search className="w-8 h-8 opacity-20" />
+                                            ไม่พบรายการที่ค้นหา
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                                            {order.transportNo}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="text-sm text-gray-900 dark:text-white">
-                                            {dateFormatterShort.format(new Date(order.orderDate))}
-                                        </span>
-                                    </td>
+                                </tr>
+                            ) : (
+                                filteredOrders.map((order) => (
+                                    <tr
+                                        key={order.id}
+                                        className="group hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors font-medium"
+                                    >
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-gray-900 dark:text-white">
+                                                    {order.orderNo}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="font-bold text-gray-700 dark:text-gray-300">
+                                                {order.transportNo}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="font-bold text-gray-700 dark:text-gray-300">
+                                                {dateFormatterShort.format(new Date(order.orderDate))}
+                                            </span>
+                                        </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex flex-col gap-1">
                                             <div className="flex items-center gap-1.5">
@@ -839,85 +1021,65 @@ export default function TruckOrders() {
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium shadow-sm ${getOrderStatusColor(order.status)}`}>
-                                            {getOrderStatusIcon(order.status)}
-                                            {getOrderStatusText(order.status)}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium shadow-sm ${order.oilReceiptId ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"}`}>
-                                            {order.oilReceiptId ? (
-                                                <>
-                                                    <CheckCircle className="w-3.5 h-3.5" />
-                                                    รับแล้ว
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Clock className="w-3.5 h-3.5" />
-                                                    ยังไม่รับ
-                                                </>
-                                            )}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                                        <div className="flex items-center gap-2 justify-center">
-                                            {/* Completed Trip Info */}
-                                            {order.status === "completed" && order.totalDistance && (
-                                                <div className="text-sm text-center bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg whitespace-nowrap">
-                                                    <div className="font-semibold text-emerald-600 dark:text-emerald-400">{numberFormatter.format(order.totalDistance)} กม.</div>
-                                                    <div className="text-xs text-gray-500 dark:text-gray-400">{order.tripDuration && formatDuration(order.tripDuration)}</div>
-                                                </div>
-                                            )}
-
-                                            <TableActionMenu
-                                                actions={[
-                                                    ...(order.status === "ready-to-pickup" ? [{
-                                                        label: "เริ่มเดินทาง",
-                                                        icon: Truck,
-                                                        onClick: () => handleStartTrip(order),
-                                                        variant: "primary" as const
-                                                    }] : []),
-                                                    ...(order.status === "picking-up" && !order.oilReceiptId ? [{
-                                                        label: "บันทึกการรับน้ำมัน",
-                                                        icon: PackageCheck,
-                                                        onClick: () => window.location.href = `/app/gas-station/oil-receipt?orderId=${order.id}`,
-                                                        variant: "warning" as const
-                                                    }] : []),
-                                                    ...(order.status === "picking-up" ? [{
-                                                        label: "จบงาน",
-                                                        icon: CheckCircle,
-                                                        onClick: () => handleEndTrip(order),
-                                                        variant: "success" as const
-                                                    }] : []),
-                                                    {
-                                                        label: "ดูรายละเอียด",
-                                                        icon: Eye,
-                                                        onClick: () => handleViewOrderDetail(order)
-                                                    }
-                                                ]}
-                                            />
-                                        </div>
-                                    </td>
-                                </tr>
-
-                            ))
-                            }
-                        </tbody >
+                                        <td className="px-6 py-4">
+                                            <StatusTag variant={
+                                                order.status === "completed" ? "success" :
+                                                ["delivering", "picking-up"].includes(order.status) ? "info" :
+                                                order.status === "ready-to-pickup" ? "warning" :
+                                                "neutral"
+                                            }>
+                                                {getOrderStatusText(order.status)}
+                                            </StatusTag>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <StatusTag variant={order.oilReceiptId ? "success" : "neutral"}>
+                                                {order.oilReceiptId ? "รับแล้ว" : "ยังไม่รับ"}
+                                            </StatusTag>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex justify-center">
+                                                {order.status === "completed" && order.totalDistance && (
+                                                    <div className="text-xs text-center bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg mr-2">
+                                                        <div className="font-semibold text-emerald-600 dark:text-emerald-400">{numberFormatter.format(order.totalDistance)} กม.</div>
+                                                        {order.tripDuration && <div className="text-[10px] text-gray-500 dark:text-gray-400">{formatDuration(order.tripDuration)}</div>}
+                                                    </div>
+                                                )}
+                                                <TableActionMenu
+                                                    actions={[
+                                                        ...(order.status === "ready-to-pickup" ? [{
+                                                            label: "เริ่มเดินทาง",
+                                                            icon: Truck,
+                                                            onClick: () => handleStartTrip(order),
+                                                            variant: "primary" as const
+                                                        }] : []),
+                                                        ...(order.status === "picking-up" && !order.oilReceiptId ? [{
+                                                            label: "บันทึกการรับน้ำมัน",
+                                                            icon: PackageCheck,
+                                                            onClick: () => window.location.href = `/app/gas-station/oil-receipt?orderId=${order.id}`,
+                                                            variant: "warning" as const
+                                                        }] : []),
+                                                        ...(order.status === "picking-up" ? [{
+                                                            label: "จบงาน",
+                                                            icon: CheckCircle,
+                                                            onClick: () => handleEndTrip(order),
+                                                            variant: "success" as const
+                                                        }] : []),
+                                                        {
+                                                            label: "ดูรายละเอียด",
+                                                            icon: Eye,
+                                                            onClick: () => handleViewOrderDetail(order)
+                                                        }
+                                                    ]}
+                                                />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
                     </table >
-                </div >
-                {
-                    filteredOrders.length === 0 && (
-                        <div className="text-center py-16">
-                            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
-                                <FileText className="w-8 h-8 text-gray-400" />
-                            </div>
-                            <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">ไม่พบรายการขนส่ง</p>
-                            <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">คลิกปุ่ม &quot;สร้างการขนส่งใหม่&quot; เพื่อเพิ่มรายการ</p>
-                        </div>
-                    )
-                }
-            </div >
+                </div>
+            </div>
 
             {/* Create Order Modal */}
             <AnimatePresence>
@@ -937,13 +1099,20 @@ export default function TruckOrders() {
                                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">สร้างการขนส่งใหม่</h2>
+                                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-emerald-500 rounded-xl">
+                                            <FileText className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">สร้างการขนส่งใหม่</h2>
+                                        </div>
+                                    </div>
                                     <button
                                         onClick={() => setShowCreateOrderModal(false)}
-                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                        className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors"
                                     >
-                                        <X className="w-5 h-5 text-gray-500" />
+                                        <X className="w-5 h-5 text-gray-400" />
                                     </button>
                                 </div>
 
@@ -1357,16 +1526,16 @@ export default function TruckOrders() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
                                     <button
                                         onClick={() => setShowCreateOrderModal(false)}
-                                        className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                        className="px-6 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-2xl transition-colors font-bold"
                                     >
                                         ยกเลิก
                                     </button>
                                     <button
                                         onClick={handleCreateOrder}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                        className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl transition-colors font-bold shadow-lg shadow-emerald-500/20"
                                     >
                                         สร้างรายการขนส่ง
                                     </button>
@@ -1395,15 +1564,21 @@ export default function TruckOrders() {
                                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                                        รายละเอียดการขนส่ง {selectedOrder.transportNo}
-                                    </h2>
+                                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-emerald-500 rounded-xl">
+                                            <FileText className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">รายละเอียดการขนส่ง</h2>
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">เลขขนส่ง: {selectedOrder.transportNo}</p>
+                                        </div>
+                                    </div>
                                     <button
                                         onClick={() => setShowOrderDetailModal(false)}
-                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                        className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors"
                                     >
-                                        <X className="w-5 h-5 text-gray-500" />
+                                        <X className="w-5 h-5 text-gray-400" />
                                     </button>
                                 </div>
 

@@ -15,7 +15,11 @@ import {
   Building,
   ShieldCheck,
   Printer,
-  Clock
+  Clock,
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGasStation } from "@/contexts/GasStationContext";
@@ -39,6 +43,19 @@ export default function ExternalSectorSales() {
   const { user } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [columnFilters, setColumnFilters] = useState<{
+    customerType: string;
+    status: string;
+    paymentMethod: string;
+  }>({
+    customerType: "ทั้งหมด",
+    status: "ทั้งหมด",
+    paymentMethod: "ทั้งหมด"
+  });
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'recordedAt', direction: 'desc' });
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedSale, setSelectedSale] = useState<InternalPumpSale | null>(null);
@@ -112,8 +129,33 @@ export default function ExternalSectorSales() {
     currency: "THB",
   }), []);
 
+  const handleSort = (key: string) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        if (prev.direction === 'desc') return { key, direction: null };
+        return { key, direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+  };
+
+  const filterOptions = useMemo(() => {
+    const external = internalPumpSales.filter(s => s.customerType === "ภาครัฐ" || s.customerType === "เอกชน");
+    return {
+      customerType: ["ทั้งหมด", "ภาครัฐ", "เอกชน"],
+      status: ["ทั้งหมด", ...new Set(external.map(s => s.status))],
+      paymentMethod: ["ทั้งหมด", "เงินสด", "เงินโอน", "เครดิต", "อื่นๆ"]
+    };
+  }, [internalPumpSales]);
+
   const filteredSales = useMemo(() => {
-    return internalPumpSales.filter(sale => {
+    let result = internalPumpSales.filter(sale => {
       // กรองเฉพาะรายการที่เป็นภาครัฐหรือเอกชน และเป็นของสาขาไฮโซ
       const isExternalSector = sale.customerType === "ภาครัฐ" || sale.customerType === "เอกชน";
       if (!isExternalSector) return false;
@@ -124,9 +166,134 @@ export default function ExternalSectorSales() {
         sale.customerTaxId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sale.items.some(item => item.oilType.toLowerCase().includes(searchTerm.toLowerCase()));
       
-      return matchesSearch;
-    }).sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
-  }, [internalPumpSales, searchTerm]);
+      // Column Filters
+      const matchesCustomerType = columnFilters.customerType === "ทั้งหมด" || sale.customerType === columnFilters.customerType;
+      const matchesStatus = columnFilters.status === "ทั้งหมด" || sale.status === columnFilters.status;
+      const matchesPaymentMethod = columnFilters.paymentMethod === "ทั้งหมด" || sale.paymentMethod === columnFilters.paymentMethod;
+      
+      const saleDate = new Date(sale.saleDate);
+      const matchesDate = (!filterDateFrom || saleDate >= new Date(filterDateFrom)) && 
+                          (!filterDateTo || saleDate <= new Date(filterDateTo));
+      
+      return matchesSearch && matchesCustomerType && matchesStatus && matchesPaymentMethod && matchesDate;
+    });
+
+    if (sortConfig.key && sortConfig.direction) {
+      result.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortConfig.key) {
+          case 'saleDate':
+            aValue = new Date(a.saleDate).getTime();
+            bValue = new Date(b.saleDate).getTime();
+            break;
+          case 'totalAmount':
+            aValue = a.totalAmount;
+            bValue = b.totalAmount;
+            break;
+          default:
+            aValue = (a as any)[sortConfig.key];
+            bValue = (b as any)[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+    }
+
+    return result;
+  }, [internalPumpSales, searchTerm, columnFilters, filterDateFrom, filterDateTo, sortConfig]);
+
+  const HeaderWithFilter = ({ label, columnKey, filterKey, options }: { 
+    label: string, 
+    columnKey?: string, 
+    filterKey?: keyof typeof columnFilters, 
+    options?: string[] 
+  }) => (
+    <th className="px-6 py-4 relative group">
+      <div className="flex items-center gap-2">
+        <div 
+          className={`flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors ${sortConfig.key === columnKey ? 'text-emerald-600' : ''}`}
+          onClick={() => columnKey && handleSort(columnKey)}
+        >
+          {label}
+          {columnKey && getSortIcon(columnKey)}
+        </div>
+        
+        {filterKey && options && (
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveDropdown(activeDropdown === filterKey ? null : filterKey);
+              }}
+              className={`p-1 rounded-md transition-all ${columnFilters[filterKey] !== "ทั้งหมด" ? "bg-emerald-500 text-white shadow-sm" : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"}`}
+            >
+              <Filter className="w-3 h-3" />
+            </button>
+            
+            <AnimatePresence>
+              {activeDropdown === filterKey && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setActiveDropdown(null)} 
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                  >
+                    {options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setColumnFilters(prev => ({ ...prev, [filterKey]: opt }));
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                          columnFilters[filterKey] === opt 
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        {opt}
+                        {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </th>
+  );
+
+  const isAnyFilterActive = useMemo(() => {
+    return columnFilters.customerType !== "ทั้งหมด" || 
+           columnFilters.status !== "ทั้งหมด" ||
+           columnFilters.paymentMethod !== "ทั้งหมด" ||
+           filterDateFrom !== "" ||
+           filterDateTo !== "";
+  }, [columnFilters, filterDateFrom, filterDateTo]);
+
+  const clearFilters = () => {
+    setColumnFilters({
+      customerType: "ทั้งหมด",
+      status: "ทั้งหมด",
+      paymentMethod: "ทั้งหมด"
+    });
+    setSearchTerm("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+  };
 
   const stats = useMemo(() => {
     const active = filteredSales.filter(s => s.status === "ปกติ");
@@ -463,8 +630,28 @@ export default function ExternalSectorSales() {
             placeholder="ค้นหาชื่อหน่วยงาน, เลขผู้เสียภาษี, เลขที่ใบสั่งซื้อ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white font-medium"
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
           />
+        </div>
+        <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-2xl font-bold text-sm">
+          <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="bg-transparent outline-none" />
+          <span className="text-gray-400">-</span>
+          <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="bg-transparent outline-none" />
+        </div>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+            <MapPin className="w-4 h-4" />
+            <span className="text-sm font-bold whitespace-nowrap">สาขาไฮโซ (สำนักงานกลาง)</span>
+          </div>
         </div>
       </div>
 
@@ -474,23 +661,26 @@ export default function ExternalSectorSales() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
-                <th className="px-6 py-4">วันที่ - เลขที่รายการ</th>
+                <HeaderWithFilter label="วันที่ - เลขที่รายการ" columnKey="saleDate" />
                 <th className="px-6 py-4">หน่วยงาน / ลูกค้า</th>
-                <th className="px-6 py-4">ประเภท</th>
-                <th className="px-6 py-4 text-right">ยอดรวมสุทธิ</th>
+                <HeaderWithFilter label="ประเภท" columnKey="customerType" filterKey="customerType" options={filterOptions.customerType} />
+                <th className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" onClick={() => handleSort('totalAmount')}>
+                  <div className="flex items-center justify-end gap-2">ยอดรวมสุทธิ {getSortIcon('totalAmount')}</div>
+                </th>
                 <th className="px-6 py-4 text-right">ชำระแล้ว</th>
                 <th className="px-6 py-4 text-right text-rose-500">ค้างรับ</th>
-                <th className="px-6 py-4 text-center">การชำระ</th>
+                <HeaderWithFilter label="การชำระ" columnKey="paymentMethod" filterKey="paymentMethod" options={filterOptions.paymentMethod} />
+                <HeaderWithFilter label="สถานะ" columnKey="status" filterKey="status" options={filterOptions.status} />
                 <th className="px-6 py-4 text-center">จัดการ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm font-medium">
               {filteredSales.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400 italic font-medium">
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-400">
                     <div className="flex flex-col items-center gap-2">
-                      <Search className="w-8 h-8 opacity-20" />
-                      ไม่พบรายการขายที่ค้นหา
+                      <FileText className="w-12 h-12 text-gray-300" />
+                      <p className="text-sm font-bold">ไม่พบรายการขาย</p>
                     </div>
                   </td>
                 </tr>
@@ -590,14 +780,14 @@ export default function ExternalSectorSales() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-600 rounded-xl shadow-lg">
+                  <div className="p-2 bg-emerald-500 rounded-xl">
                     <Plus className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-blue-800 dark:text-blue-400">บันทึกการขาย (ภาครัฐ/เอกชน)</h2>
-                    <p className="text-xs text-blue-600 dark:text-blue-500 font-bold italic">ทำรายการโดย: สำนักงานใหญ่ (ไฮโซ)</p>
+                    <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">บันทึกการขาย (ภาครัฐ/เอกชน)</h2>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">ทำรายการโดย: สำนักงานใหญ่ (ไฮโซ)</p>
                   </div>
                 </div>
                 <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">
@@ -832,16 +1022,16 @@ export default function ExternalSectorSales() {
                 </div>
               </div>
 
-              <div className="p-6 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex gap-3">
+              <div className="p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 sticky bottom-0 z-10">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-6 py-4 bg-white dark:bg-gray-800 text-gray-500 font-black rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest text-xs"
+                  className="px-10 py-3 bg-gray-900 dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 text-white rounded-2xl font-black transition-all shadow-lg active:scale-95"
                 >
                   ยกเลิก
                 </button>
                 <button
                   onClick={handleSaveSale}
-                  className="flex-[2] px-6 py-4 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-600/30 hover:bg-blue-700 transition-all active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                  className="px-10 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black transition-all shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2"
                 >
                   <Check className="w-5 h-5" />
                   ยืนยันและบันทึกการขาย
@@ -862,14 +1052,14 @@ export default function ExternalSectorSales() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-600 rounded-xl">
+                  <div className="p-2 bg-emerald-500 rounded-xl">
                     <Building className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-blue-800 dark:text-blue-400 uppercase">รายละเอียดการขายภายนอก</h2>
-                    <p className="text-xs text-blue-600 dark:text-blue-500 font-bold tracking-tight">เลขที่บิล: {selectedSale.saleNo}</p>
+                    <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">รายละเอียดการขายภายนอก</h2>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">เลขที่บิล: {selectedSale.saleNo}</p>
                   </div>
                 </div>
                 <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">
@@ -974,16 +1164,16 @@ export default function ExternalSectorSales() {
                 )}
               </div>
 
-              <div className="p-6 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex gap-3">
+              <div className="p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 sticky bottom-0 z-10">
                 <button
                   onClick={() => setShowDetailModal(false)}
-                  className="flex-1 px-6 py-4 bg-white dark:bg-gray-800 text-gray-500 font-black rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest text-xs"
+                  className="px-10 py-3 bg-gray-900 dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 text-white rounded-2xl font-black transition-all shadow-lg active:scale-95"
                 >
                   ปิดหน้าต่าง
                 </button>
                 <button
                   onClick={() => handleDownloadInvoice(selectedSale)}
-                  className="flex-1 px-6 py-4 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-600/30 hover:bg-blue-700 transition-all active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                  className="px-10 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black transition-all shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2"
                 >
                   <Printer className="w-5 h-5" />
                   ใบกำกับภาษี

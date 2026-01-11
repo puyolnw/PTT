@@ -18,7 +18,11 @@ import {
   User,
   Fuel,
   Check,
-  CheckCircle
+  CheckCircle,
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
@@ -216,6 +220,17 @@ function RequestDepotOilContent() {
   const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [columnFilters, setColumnFilters] = useState<{
+    status: string;
+    branch: string;
+  }>({
+    status: "ทั้งหมด",
+    branch: "ทั้งหมด"
+  });
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'orderDate', direction: 'desc' });
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [selectedOrderDetail, setSelectedOrderDetail] = useState<InternalOilOrder | null>(null);
 
   // กรองเฉพาะออเดอร์ที่เป็น "external" (สั่งจากคลัง) 
@@ -271,14 +286,160 @@ function RequestDepotOilContent() {
     });
   }, [internalOrders, purchaseOrders, selectedBranchIds]);
 
+  const handleSort = (key: string) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        if (prev.direction === 'desc') return { key, direction: null };
+        return { key, direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+  };
+
+  const filterOptions = useMemo(() => {
+    return {
+      status: ["ทั้งหมด", ...new Set(depotOrders.map(o => o.status))],
+      branch: ["ทั้งหมด", ...new Set(depotOrders.map(o => o.fromBranchName))]
+    };
+  }, [depotOrders]);
+
   const filteredOrders = useMemo(() => {
-    return depotOrders.filter(order => {
+    let result = depotOrders.filter(order => {
       const matchesSearch = order.orderNo.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            order.fromBranchName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesBranch = selectedBranchIds.length === 0 || selectedBranchIds.includes(order.fromBranchId);
-      return matchesSearch && matchesBranch;
+      
+      // Column Filters
+      const matchesStatus = columnFilters.status === "ทั้งหมด" || order.status === columnFilters.status;
+      const matchesBranchFilter = columnFilters.branch === "ทั้งหมด" || order.fromBranchName === columnFilters.branch;
+      
+      const orderDate = new Date(order.orderDate);
+      const matchesDate = (!filterDateFrom || orderDate >= new Date(filterDateFrom)) && 
+                          (!filterDateTo || orderDate <= new Date(filterDateTo));
+      
+      return matchesSearch && matchesBranch && matchesStatus && matchesBranchFilter && matchesDate;
     });
-  }, [depotOrders, searchTerm, selectedBranchIds]);
+
+    if (sortConfig.key && sortConfig.direction) {
+      result.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortConfig.key) {
+          case 'orderDate':
+            aValue = new Date(a.orderDate).getTime();
+            bValue = new Date(b.orderDate).getTime();
+            break;
+          case 'requestedDate':
+            aValue = new Date(a.requestedDate).getTime();
+            bValue = new Date(b.requestedDate).getTime();
+            break;
+          default:
+            aValue = (a as any)[sortConfig.key];
+            bValue = (b as any)[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
+    }
+
+    return result;
+  }, [depotOrders, searchTerm, selectedBranchIds, columnFilters, filterDateFrom, filterDateTo, sortConfig]);
+
+  const HeaderWithFilter = ({ label, columnKey, filterKey, options }: { 
+    label: string, 
+    columnKey?: string, 
+    filterKey?: keyof typeof columnFilters, 
+    options?: string[] 
+  }) => (
+    <th className="px-6 py-4 relative group">
+      <div className="flex items-center gap-2">
+        <div 
+          className={`flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors ${sortConfig.key === columnKey ? 'text-emerald-600' : ''}`}
+          onClick={() => columnKey && handleSort(columnKey)}
+        >
+          {label}
+          {columnKey && getSortIcon(columnKey)}
+        </div>
+        
+        {filterKey && options && (
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveDropdown(activeDropdown === filterKey ? null : filterKey);
+              }}
+              className={`p-1 rounded-md transition-all ${columnFilters[filterKey] !== "ทั้งหมด" ? "bg-emerald-500 text-white shadow-sm" : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"}`}
+            >
+              <Filter className="w-3 h-3" />
+            </button>
+            
+            <AnimatePresence>
+              {activeDropdown === filterKey && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setActiveDropdown(null)} 
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                  >
+                    {options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setColumnFilters(prev => ({ ...prev, [filterKey]: opt }));
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                          columnFilters[filterKey] === opt 
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        {opt}
+                        {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </th>
+  );
+
+  const isAnyFilterActive = useMemo(() => {
+    return columnFilters.status !== "ทั้งหมด" || 
+           columnFilters.branch !== "ทั้งหมด" ||
+           filterDateFrom !== "" ||
+           filterDateTo !== "";
+  }, [columnFilters, filterDateFrom, filterDateTo]);
+
+  const clearFilters = () => {
+    setColumnFilters({
+      status: "ทั้งหมด",
+      branch: "ทั้งหมด"
+    });
+    setSearchTerm("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+  };
 
   const { internalPumpSales } = useGasStation();
 
@@ -305,42 +466,83 @@ function RequestDepotOilContent() {
         </div>
       </div>
 
-      {/* Filter & Search */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      {/* Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
             placeholder="ค้นหาเลขที่คำขอ หรือชื่อสาขา..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
           />
+        </div>
+        <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-2xl font-bold text-sm">
+          <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="bg-transparent outline-none" />
+          <span className="text-gray-400">-</span>
+          <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="bg-transparent outline-none" />
+        </div>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+            <MapPin className="w-4 h-4" />
+            <span className="text-sm font-bold whitespace-nowrap">
+              {selectedBranchIds.length === 0 ? "ทุกสาขา" : `สาขาที่เลือก (${selectedBranchIds.length})`}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-gray-50 dark:bg-gray-900 text-gray-500 text-xs uppercase font-bold">
-              <tr>
-                <th className="px-6 py-4">เลขที่ใบสั่ง</th>
-                <th className="px-6 py-4">สาขาที่สั่ง</th>
-                 <th className="px-6 py-4">วันที่ต้องการรับ</th>
-                 <th className="px-6 py-4">รายการ</th>
-                 <th className="px-6 py-4 text-right">รับน้ำมันจริง</th>
-                 <th className="px-6 py-4 text-right">การขาย</th>
-                 <th className="px-6 py-4 text-right">เหลือบนรถ</th>
-                <th className="px-6 py-4 text-center">สถานะ</th>
-                <th className="px-6 py-4 text-right">จัดการ</th>
+          <table className="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                <HeaderWithFilter 
+                  label="เลขที่ใบสั่ง" 
+                  columnKey="orderDate" 
+                />
+                <HeaderWithFilter 
+                  label="สาขาที่สั่ง" 
+                  columnKey="fromBranchName" 
+                  filterKey="branch"
+                  options={filterOptions.branch}
+                />
+                <HeaderWithFilter 
+                  label="วันที่ต้องการรับ" 
+                  columnKey="requestedDate" 
+                />
+                <th className="px-6 py-4">รายการ</th>
+                <th className="px-6 py-4 text-right">รับน้ำมันจริง</th>
+                <th className="px-6 py-4 text-right">การขาย</th>
+                <th className="px-6 py-4 text-right">เหลือบนรถ</th>
+                <HeaderWithFilter 
+                  label="สถานะ" 
+                  columnKey="status" 
+                  filterKey="status"
+                  options={filterOptions.status}
+                />
+                <th className="px-6 py-4 text-center">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 font-medium">
                {filteredOrders.length === 0 ? (
                  <tr>
                    <td colSpan={9} className="px-6 py-12 text-center text-gray-400">
-                     ไม่พบข้อมูลคำร้องขอ
+                     <div className="flex flex-col items-center gap-2">
+                       <FileText className="w-12 h-12 text-gray-300" />
+                       <p className="text-sm font-bold">ไม่พบข้อมูลคำร้องขอ</p>
+                     </div>
                    </td>
                  </tr>
               ) : (
@@ -367,18 +569,28 @@ function RequestDepotOilContent() {
                     : 0;
 
                   return (
-                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-emerald-600 dark:text-emerald-400">{order.orderNo}</td>
+                    <tr key={order.id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-gray-400" />
-                          <span>{order.fromBranchName}</span>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-900 dark:text-white">
+                            {new Date(order.orderDate).toLocaleDateString('th-TH')}
+                          </span>
+                          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            {order.orderNo}
+                          </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-gray-400" />
+                          {order.fromBranchName}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-gray-400" />
-                          <span>{order.requestedDate}</span>
+                          {order.requestedDate}
                         </div>
                       </td>
                        <td className="px-6 py-4">
@@ -427,13 +639,15 @@ function RequestDepotOilContent() {
                       <td className="px-6 py-4 text-center">
                         <StatusTag variant={getStatusVariant(order.status)}>{order.status}</StatusTag>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <button 
-                          onClick={() => setSelectedOrderDetail(order)}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                        >
-                          <Eye className="w-5 h-5 text-gray-400" />
-                        </button>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-center">
+                          <button 
+                            onClick={() => setSelectedOrderDetail(order)}
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                          >
+                            <Eye className="w-4 h-4 text-gray-400" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -449,17 +663,25 @@ function RequestDepotOilContent() {
         {selectedOrderDetail && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col"
             >
-              <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 sticky top-0 z-10">
-                <h2 className="text-xl font-bold flex items-center gap-2 text-emerald-600">
-                  <FileText />
-                  รายละเอียดคำสั่งซื้อและติดตามการจัดส่ง (จากคลัง)
-                </h2>
-                <button onClick={() => setSelectedOrderDetail(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500 rounded-xl">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">รายละเอียดคำสั่งซื้อและติดตามการจัดส่ง (จากคลัง)</h2>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">อ้างอิง: {selectedOrderDetail.orderNo}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedOrderDetail(null)} 
+                  className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors"
+                >
                   <X className="w-5 h-5 text-gray-400" />
                 </button>
               </div>

@@ -870,6 +870,144 @@ export function GasStationProvider({ children }: { children: ReactNode }) {
       taxInvoices: [
         { invoiceNo: "INV-241212-001", date: "2024-12-12T10:00:00", amount: 20000 }
       ]
+    },
+    // Mock Data for Hiso Pump Sales (Internal only)
+    {
+      id: "IPS-HIS-1",
+      saleNo: "SL-HIS-250110-001",
+      saleDate: "2025-01-10",
+      saleType: "📦 ขายจากคลัง",
+      branchId: 1,
+      branchName: "ปั๊มไฮโซ",
+      buyerBranchId: 2,
+      buyerBranchName: "ปั้มดินดำ",
+      items: [
+        { oilType: "Diesel", quantity: 15000, pricePerLiter: 30.0, totalAmount: 450000 }
+      ],
+      totalAmount: 450000,
+      paidAmount: 450000,
+      paymentRequestStatus: "approved",
+      paymentMethod: "เงินโอน",
+      customerType: "รถบริษัท",
+      customerName: "ปั้มดินดำ",
+      recordedBy: "พี่นิด",
+      recordedAt: "2025-01-10T08:30:00",
+      status: "ปกติ",
+      paymentHistory: [{ date: "2025-01-10T10:00:00", amount: 450000, method: "เงินโอน", note: "ชำระเต็มจำนวน" }]
+    },
+    {
+      id: "IPS-HIS-2",
+      saleNo: "SL-HIS-250110-002",
+      saleDate: "2025-01-10",
+      saleType: "📦 ขายจากคลัง",
+      branchId: 1,
+      branchName: "ปั๊มไฮโซ",
+      buyerBranchId: 3,
+      buyerBranchName: "ปั้มหนองจิก",
+      items: [
+        { oilType: "Gasohol 95", quantity: 5000, pricePerLiter: 38.0, totalAmount: 190000 }
+      ],
+      totalAmount: 190000,
+      paidAmount: 50000,
+      paymentRequestStatus: "pending",
+      paymentMethod: "เครดิต",
+      customerType: "รถบริษัท",
+      customerName: "ปั้มหนองจิก",
+      recordedBy: "พี่นิด",
+      recordedAt: "2025-01-10T09:15:00",
+      status: "ปกติ",
+      paymentHistory: [
+        { date: "2025-01-11T10:00:00", amount: 50000, method: "เงินโอน", note: "ชำระงวดแรก" }
+      ],
+      taxInvoices: [
+        { invoiceNo: "INV-250111-010", date: "2025-01-11T10:00:00", amount: 50000 }
+      ]
+    },
+    {
+      id: "IPS-HIS-3",
+      saleNo: "SL-HIS-250109-005",
+      saleDate: "2025-01-09",
+      saleType: "📦 ขายจากคลัง",
+      branchId: 1,
+      branchName: "ปั๊มไฮโซ",
+      buyerBranchId: 4,
+      buyerBranchName: "ปั้มตักสิลา",
+      items: [
+        { oilType: "Diesel", quantity: 8000, pricePerLiter: 30.0, totalAmount: 240000 },
+        { oilType: "E20", quantity: 2000, pricePerLiter: 34.5, totalAmount: 69000 }
+      ],
+      totalAmount: 309000,
+      paidAmount: 150000,
+      paymentRequestStatus: "none",
+      paymentMethod: "เครดิต",
+      customerType: "รถบริษัท",
+      customerName: "ปั้มตักสิลา",
+      recordedBy: "พี่นิด",
+      recordedAt: "2025-01-09T14:20:00",
+      status: "ปกติ",
+      paymentHistory: [
+        { date: "2025-01-09T15:00:00", amount: 50000, method: "เงินโอน", note: "ชำระมัดจำงวดที่ 1" },
+        { date: "2025-01-10T09:00:00", amount: 100000, method: "เงินโอน", note: "ชำระงวดที่ 2" }
+      ],
+      taxInvoices: [
+        { invoiceNo: "INV-250109-001", date: "2025-01-09T15:00:00", amount: 50000 },
+        { invoiceNo: "INV-250110-002", date: "2025-01-10T09:00:00", amount: 100000 }
+      ]
+    },
+    {
+      id: "IPS-HIS-4",
+      saleNo: "SL-HIS-250108-002",
+      saleDate: "2025-01-08",
+      saleType: "📦 ขายจากคลัง",
+      branchId: 1,
+      branchName: "ปั๊มไฮโซ",
+      buyerBranchId: 5,
+      buyerBranchName: "ปั้มบายพาส",
+      items: [
+        { oilType: "Gasohol 91", quantity: 12000, pricePerLiter: 37.5, totalAmount: 450000 }
+      ],
+      totalAmount: 450000,
+      paidAmount: 0,
+      paymentRequestStatus: "none",
+      paymentMethod: "เครดิต",
+      customerType: "รถบริษัท",
+      customerName: "ปั้มบายพาส",
+      recordedBy: "พี่นิด",
+      recordedAt: "2025-01-08T10:00:00",
+      status: "ยกเลิก",
+      notes: "ยกเลิกเนื่องจากระบุสาขาผู้ซื้อผิดพลาด"
+    },
+    {
+      id: "IPS-HIS-5",
+      saleNo: "SL-HIS-250107-001",
+      saleDate: "2025-01-07",
+      saleType: "📦 ขายจากคลัง",
+      branchId: 1,
+      branchName: "ปั๊มไฮโซ",
+      buyerBranchId: 2,
+      buyerBranchName: "ปั้มดินดำ",
+      items: [
+        { oilType: "Diesel", quantity: 20000, pricePerLiter: 30.0, totalAmount: 600000 }
+      ],
+      totalAmount: 600000,
+      paidAmount: 600000,
+      paymentRequestStatus: "approved",
+      paymentMethod: "เงินโอน",
+      customerType: "รถบริษัท",
+      customerName: "ปั้มดินดำ",
+      recordedBy: "พี่นิด",
+      recordedAt: "2025-01-07T11:30:00",
+      status: "ปกติ",
+      paymentHistory: [
+        { date: "2025-01-07T13:00:00", amount: 200000, method: "เงินโอน", note: "ชำระงวดที่ 1" },
+        { date: "2025-01-08T10:00:00", amount: 200000, method: "เงินโอน", note: "ชำระงวดที่ 2" },
+        { date: "2025-01-09T14:00:00", amount: 200000, method: "เงินโอน", note: "ชำระงวดสุดท้าย" }
+      ],
+      taxInvoices: [
+        { invoiceNo: "INV-250107-001", date: "2025-01-07T13:00:00", amount: 200000 },
+        { invoiceNo: "INV-250108-002", date: "2025-01-08T10:00:00", amount: 200000 },
+        { invoiceNo: "INV-250109-003", date: "2025-01-09T14:00:00", amount: 200000 }
+      ]
     }
   ]);
 

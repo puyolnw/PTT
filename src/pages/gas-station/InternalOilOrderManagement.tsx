@@ -21,7 +21,12 @@ import {
   Save,
   PlusCircle,
   Paperclip as AttachmentIcon,
-  Lock
+  Lock,
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  Check
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
@@ -150,10 +155,21 @@ export default function InternalOilOrderManagement() {
   }, [selectedBranches]);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | InternalOilOrder["status"]>("all");
-  const [filterBranch, setFilterBranch] = useState<number | "all">("all");
+  const [columnFilters, setColumnFilters] = useState<{
+    status: string;
+    fromBranch: string;
+    toBranch: string;
+  }>({
+    status: "ทั้งหมด",
+    fromBranch: "ทั้งหมด",
+    toBranch: "ทั้งหมด"
+  });
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'orderDate', direction: 'desc' });
   const [filterDateFrom, setFilterDateFrom] = useState<string>("");
   const [filterDateTo, setFilterDateTo] = useState<string>("");
+  
+  const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -520,12 +536,40 @@ export default function InternalOilOrderManagement() {
     return true;
   };
 
+  const handleSort = (key: string) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        if (prev.direction === 'desc') return { key, direction: null };
+        return { key, direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+  };
+
+  const filterOptions = useMemo(() => {
+    const orders = internalOrders.filter(o => {
+      const isMeantForHiso = o.assignedFromBranchId === 1 || o.status === "รออนุมัติ";
+      return isMeantForHiso;
+    });
+    return {
+      status: ["ทั้งหมด", ...new Set(orders.map(o => o.status))],
+      fromBranch: ["ทั้งหมด", ...new Set(orders.map(o => o.fromBranchName))],
+      toBranch: ["ทั้งหมด", ...new Set(orders.map(o => o.assignedFromBranchName || "ยังไม่ได้กำหนด").filter(Boolean))]
+    };
+  }, [internalOrders]);
+
   // Filter orders
   const filteredOrders = useMemo(() => {
     // ถ้าไม่ได้เลือกปั๊มไฮโซ ไม่ต้องแสดงข้อมูลใดๆ
     if (!isHisoSelected) return [];
 
-    return internalOrders.filter((order) => {
+    let result = internalOrders.filter((order) => {
       // เฉพาะออเดอร์ที่สั่งมายังไฮโซ (หรือยังไม่ได้ระบุผู้ส่ง ซึ่งถือว่าเป็นไฮโซ)
       const isMeantForHiso = order.assignedFromBranchId === 1 || order.status === "รออนุมัติ";
       if (!isMeantForHiso) return false;
@@ -534,16 +578,134 @@ export default function InternalOilOrderManagement() {
         order.orderNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.fromBranchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.assignedFromBranchName?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = filterStatus === "all" || order.status === filterStatus;
       
-      // หน้านี้ไม่รองรับการกรองสาขาจากหน้าบาร์ (ยกเว้นการเช็คว่าต้องเป็นไฮโซถึงจะเห็น)
-      // แต่ยังรองรับการกรองจาก Dropdown ภายในหน้าเอง (filterBranch)
-      const matchesBranch = filterBranch === "all" || order.fromBranchId === filterBranch;
+      const matchesBranch = selectedBranchIds.length === 0 || selectedBranchIds.includes(order.fromBranchId);
+
+      // Column Filters
+      const matchesStatus = columnFilters.status === "ทั้งหมด" || order.status === columnFilters.status;
+      const matchesFromBranch = columnFilters.fromBranch === "ทั้งหมด" || order.fromBranchName === columnFilters.fromBranch;
+      const matchesToBranch = columnFilters.toBranch === "ทั้งหมด" || (order.assignedFromBranchName || "ยังไม่ได้กำหนด") === columnFilters.toBranch;
 
       const matchesDate = isDateInRange(order.orderDate, filterDateFrom, filterDateTo);
-      return matchesSearch && matchesStatus && matchesBranch && matchesDate;
+      return matchesSearch && matchesBranch && matchesStatus && matchesFromBranch && matchesToBranch && matchesDate;
     });
-  }, [internalOrders, searchTerm, filterStatus, filterBranch, filterDateFrom, filterDateTo, isHisoSelected]);
+
+    if (sortConfig.key && sortConfig.direction) {
+      result.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortConfig.key) {
+          case 'orderDate':
+            aValue = new Date(a.orderDate).getTime();
+            bValue = new Date(b.orderDate).getTime();
+            break;
+          case 'totalAmount':
+            aValue = a.totalAmount;
+            bValue = b.totalAmount;
+            break;
+          default:
+            aValue = (a as any)[sortConfig.key];
+            bValue = (b as any)[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
+    }
+
+    return result;
+  }, [internalOrders, searchTerm, selectedBranchIds, columnFilters, filterDateFrom, filterDateTo, sortConfig, isHisoSelected]);
+
+  const HeaderWithFilter = ({ label, columnKey, filterKey, options }: { 
+    label: string, 
+    columnKey?: string, 
+    filterKey?: keyof typeof columnFilters, 
+    options?: string[] 
+  }) => (
+    <th className="px-6 py-4 relative group">
+      <div className="flex items-center gap-2">
+        <div 
+          className={`flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors ${sortConfig.key === columnKey ? 'text-emerald-600' : ''}`}
+          onClick={() => columnKey && handleSort(columnKey)}
+        >
+          {label}
+          {columnKey && getSortIcon(columnKey)}
+        </div>
+        
+        {filterKey && options && (
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveDropdown(activeDropdown === filterKey ? null : filterKey);
+              }}
+              className={`p-1 rounded-md transition-all ${columnFilters[filterKey] !== "ทั้งหมด" ? "bg-emerald-500 text-white shadow-sm" : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"}`}
+            >
+              <Filter className="w-3 h-3" />
+            </button>
+            
+            <AnimatePresence>
+              {activeDropdown === filterKey && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setActiveDropdown(null)} 
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                  >
+                    {options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setColumnFilters(prev => ({ ...prev, [filterKey]: opt }));
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                          columnFilters[filterKey] === opt 
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        {opt}
+                        {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </th>
+  );
+
+  const isAnyFilterActive = useMemo(() => {
+    return columnFilters.status !== "ทั้งหมด" || 
+           columnFilters.fromBranch !== "ทั้งหมด" || 
+           columnFilters.toBranch !== "ทั้งหมด" ||
+           filterDateFrom !== "" ||
+           filterDateTo !== "";
+  }, [columnFilters, filterDateFrom, filterDateTo]);
+
+  const clearFilters = () => {
+    setColumnFilters({
+      status: "ทั้งหมด",
+      fromBranch: "ทั้งหมด",
+      toBranch: "ทั้งหมด"
+    });
+    setSearchTerm("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+  };
 
   // Statistics
   const stats = useMemo(() => {
@@ -901,28 +1063,6 @@ export default function InternalOilOrderManagement() {
           </p>
         </div>
           
-          <div className="flex bg-white dark:bg-gray-800 p-1 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <button
-              onClick={() => setFilterStatus("all")}
-              className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${
-                filterStatus === "all" 
-                  ? "bg-purple-600 text-white shadow-lg shadow-purple-600/20" 
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              ทั้งหมด
-            </button>
-            <button
-              onClick={() => setFilterStatus("รออนุมัติ")}
-              className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${
-                filterStatus === "รออนุมัติ" 
-                  ? "bg-purple-600 text-white shadow-lg shadow-purple-600/20" 
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              รออนุมัติ
-            </button>
-            </div>
 
           <button
             onClick={() => setShowCreateModal(true)}
@@ -997,53 +1137,37 @@ export default function InternalOilOrderManagement() {
               className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-purple-600 outline-none text-gray-900 dark:text-white font-medium"
             />
           </div>
-          <div className="flex gap-2">
-            <select
-              value={filterBranch}
-              onChange={(e) => setFilterBranch(e.target.value === "all" ? "all" : Number(e.target.value))}
-              className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-purple-600 outline-none text-gray-900 dark:text-white font-bold text-sm min-w-[150px]"
-            >
-              <option value="all">ทุกปั๊ม</option>
-              {branches
-                .sort((a, b) => {
-                  const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
-                  return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
-                })
-                .map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-            </select>
-            <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-4 py-2 rounded-2xl font-bold text-sm">
-              <input
-                type="date"
-                value={filterDateFrom}
-                onChange={(e) => setFilterDateFrom(e.target.value)}
-                className="bg-transparent border-none outline-none text-gray-900 dark:text-white"
-              />
-              <span className="text-gray-400">-</span>
-              <input
-                type="date"
-                value={filterDateTo}
-                onChange={(e) => setFilterDateTo(e.target.value)}
-                className="bg-transparent border-none outline-none text-gray-900 dark:text-white"
-              />
-            </div>
-            {(filterDateFrom || filterDateTo || searchTerm || filterBranch !== "all") && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-2xl font-bold text-sm">
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              className="bg-transparent outline-none"
+            />
+            <span className="text-gray-400">-</span>
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="bg-transparent outline-none"
+            />
+          </div>
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            {isAnyFilterActive && (
               <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setFilterBranch("all");
-                  setFilterDateFrom("");
-                  setFilterDateTo("");
-                }}
-                className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-2xl hover:bg-gray-200 transition-colors"
-                title="ล้างตัวกรอง"
+                onClick={clearFilters}
+                className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
+                ล้างตัวกรอง
               </button>
             )}
+            <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+              <MapPin className="w-4 h-4" />
+              <span className="text-sm font-bold whitespace-nowrap">
+                {selectedBranchIds.length === 0 ? "ทุกสาขา" : `สาขาที่เลือก (${selectedBranchIds.length})`}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -1054,12 +1178,38 @@ export default function InternalOilOrderManagement() {
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
-                <th className="px-6 py-4">เลขที่ออเดอร์ / วันที่</th>
-                <th className="px-6 py-4">ปั๊มที่สั่ง</th>
-                <th className="px-6 py-4">ปั๊มที่ส่ง</th>
+                <HeaderWithFilter 
+                  label="เลขที่ออเดอร์ / วันที่" 
+                  columnKey="orderDate" 
+                />
+                <HeaderWithFilter 
+                  label="ปั๊มที่สั่ง" 
+                  columnKey="fromBranchName" 
+                  filterKey="fromBranch"
+                  options={filterOptions.fromBranch}
+                />
+                <HeaderWithFilter 
+                  label="ปั๊มที่ส่ง" 
+                  columnKey="assignedFromBranchName" 
+                  filterKey="toBranch"
+                  options={filterOptions.toBranch}
+                />
                 <th className="px-6 py-4 text-right">จำนวนน้ำมัน (ลิตร)</th>
-                <th className="px-6 py-4 text-right">มูลค่ารวม</th>
-                <th className="px-6 py-4 text-center">สถานะ</th>
+                <th 
+                  className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => handleSort('totalAmount')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    มูลค่ารวม
+                    {getSortIcon('totalAmount')}
+                  </div>
+                </th>
+                <HeaderWithFilter 
+                  label="สถานะ" 
+                  columnKey="status" 
+                  filterKey="status"
+                  options={filterOptions.status}
+                />
                 <th className="px-6 py-4 text-center">จัดการ</th>
               </tr>
             </thead>

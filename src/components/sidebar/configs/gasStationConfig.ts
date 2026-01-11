@@ -20,7 +20,6 @@ export const gasStationSidebarConfig: SidebarConfig = {
                 { to: "/app/gas-station/internal-oil-order-management", icon: ShoppingCart, label: "รายการสั่งซื้อน้ำมันภายในปั๊ม", branchIds: ["1"] },
                 { to: "/app/gas-station/internal-transport", icon: Truck, label: "ระบบขนส่งภายในปั๊ม" },
                 { to: "/app/gas-station/inter-branch-transfer", icon: FileText, label: "ข้อมูลการส่งน้ำมันระหว่างปั๊ม" },
-                { to: "/app/gas-station/record-tank-entry", icon: Droplet, label: "บันทึกน้ำมันลงหลุม" },
             ],
             roles: ["admin", "manager", "gas-station"]
         },

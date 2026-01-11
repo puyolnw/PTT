@@ -8,18 +8,26 @@ import {
   CheckCircle2,
   AlertCircle,
   Fuel,
-  ChevronRight,
   X,
   User,
   Phone,
   Droplet,
   Download,
   Check,
-  CheckCircle
+  CheckCircle,
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  History,
+  FileText,
+  Eye
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { DriverJob } from "@/types/gasStation";
+import StatusTag from "@/components/StatusTag";
+import TableActionMenu from "@/components/TableActionMenu";
 
 // --- Helper Components from DriverDashboard ---
 const StepIcon = ({ name, className }: { name: string, className?: string }) => {
@@ -205,6 +213,15 @@ export default function TransportTracking() {
   const { driverJobs } = useGasStation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedJob, setSelectedJob] = useState<DriverJob | null>(null);
+  const [columnFilters, setColumnFilters] = useState<{
+    status: string;
+  }>({
+    status: "ทั้งหมด"
+  });
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'createdAt', direction: 'desc' });
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
 
   // Stats
   const stats = useMemo(() => {
@@ -218,177 +235,417 @@ export default function TransportTracking() {
 
   // Filtered Jobs
   const filteredJobs = useMemo(() => {
-    return driverJobs.filter(job => 
-      job.transportNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.driverName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.truckPlateNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (job.internalOrderNo && job.internalOrderNo.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (job.purchaseOrderNo && job.purchaseOrderNo.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [driverJobs, searchTerm]);
+    let result = driverJobs.filter(job => {
+      const matchesSearch =
+        job.transportNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.driverName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.truckPlateNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (job.internalOrderNo && job.internalOrderNo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (job.purchaseOrderNo && job.purchaseOrderNo.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ส่งเสร็จ": return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
-      case "กำลังส่ง": return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
-      case "รับน้ำมันแล้ว": return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400";
-      case "รอเริ่ม": return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
-      default: return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
+      // Column Filters
+      const matchesStatus = columnFilters.status === "ทั้งหมด" || job.status === columnFilters.status;
+
+      // Date Range Filter
+      const matchesDateFrom = !filterDateFrom || (job.createdAt && new Date(job.createdAt) >= new Date(filterDateFrom));
+      const matchesDateTo = !filterDateTo || (job.createdAt && new Date(job.createdAt) <= new Date(filterDateTo));
+
+      return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo;
+    });
+
+    // Sorting
+    if (sortConfig.key && sortConfig.direction) {
+      result.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortConfig.key) {
+          case 'createdAt':
+            aValue = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            bValue = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            break;
+          case 'transportNo':
+            aValue = a.transportNo;
+            bValue = b.transportNo;
+            break;
+          case 'driverName':
+            aValue = a.driverName || "";
+            bValue = b.driverName || "";
+            break;
+          default:
+            aValue = (a as any)[sortConfig.key];
+            bValue = (b as any)[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      });
     }
+
+    return result;
+  }, [driverJobs, searchTerm, columnFilters, sortConfig, filterDateFrom, filterDateTo]);
+
+  const handleSort = (key: string) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        if (prev.direction === 'desc') return { key, direction: null };
+        return { key, direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+  };
+
+  // ดึงค่า Unique สำหรับ Filter Dropdowns
+  const filterOptions = useMemo(() => {
+    return {
+      status: ["ทั้งหมด", ...new Set(driverJobs.map(j => j.status))]
+    };
+  }, [driverJobs]);
+
+  const HeaderWithFilter = ({ label, columnKey, filterKey, options }: { 
+    label: string, 
+    columnKey?: string, 
+    filterKey?: keyof typeof columnFilters, 
+    options?: string[] 
+  }) => (
+    <th className="px-6 py-4 relative group">
+      <div className="flex items-center gap-2">
+        <div 
+          className={`flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors ${sortConfig.key === columnKey ? 'text-emerald-600' : ''}`}
+          onClick={() => columnKey && handleSort(columnKey)}
+        >
+          {label}
+          {columnKey && getSortIcon(columnKey)}
+        </div>
+        
+        {filterKey && options && (
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveDropdown(activeDropdown === filterKey ? null : filterKey);
+              }}
+              className={`p-1 rounded-md transition-all ${columnFilters[filterKey] !== "ทั้งหมด" ? "bg-emerald-500 text-white shadow-sm" : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"}`}
+            >
+              <Filter className="w-3 h-3" />
+            </button>
+            
+            <AnimatePresence>
+              {activeDropdown === filterKey && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setActiveDropdown(null)} 
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                  >
+                    {options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setColumnFilters(prev => ({ ...prev, [filterKey]: opt }));
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                          columnFilters[filterKey] === opt 
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        {opt}
+                        {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </th>
+  );
+
+  const isAnyFilterActive = useMemo(() => {
+    return columnFilters.status !== "ทั้งหมด" ||
+           filterDateFrom !== "" ||
+           filterDateTo !== "";
+  }, [columnFilters, filterDateFrom, filterDateTo]);
+
+  const clearFilters = () => {
+    setColumnFilters({
+      status: "ทั้งหมด"
+    });
+    setSearchTerm("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-8 bg-[#F8FAFC] dark:bg-gray-900 min-h-screen font-sans pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2 border-b border-gray-200 dark:border-gray-800">
-        <div>
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-4">
-            <div className="p-3 bg-blue-600 rounded-xl shadow-lg shadow-blue-500/20">
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
                 <Navigation className="w-8 h-8 text-white" />
-            </div>
-            ติดตามสถานะคนขับ
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2 ml-[80px]">
-            แดชบอร์ดสำหรับผู้ดูแลระบบ (Admin) เพื่อติดตามการขนส่งทั้งหมด
-          </p>
+              </div>
+              ติดตามสถานะคนขับ
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
+              <History className="w-4 h-4" />
+              แดชบอร์ดสำหรับผู้ดูแลระบบ (Admin) เพื่อติดตามการขนส่งทั้งหมด
+            </p>
+          </div>
         </div>
+      </header>
+
+      {/* Stats Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+              <Truck className="w-6 h-6 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">งานทั้งหมด</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.total} รายการ</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl">
+              <Navigation className="w-6 h-6 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">กำลังวิ่งงาน</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.active} รายการ</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ส่งเสร็จแล้ว</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.completed} รายการ</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl">
+              <AlertCircle className="w-6 h-6 text-yellow-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">รอดำเนินการ</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.pending} รายการ</p>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600">
-                    <Truck className="w-5 h-5" />
-                </div>
-                <span className="text-sm text-gray-500">งานทั้งหมด</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+      {/* Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="ค้นหาตามคนขับ, ทะเบียนรถ, หรือเลขที่ใบงาน..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
+          />
         </div>
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-600">
-                    <Navigation className="w-5 h-5" />
-                </div>
-                <span className="text-sm text-gray-500">กำลังวิ่งงาน</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.active}</p>
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="relative flex-1 md:flex-initial">
+            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              className="pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium text-sm"
+              placeholder="จากวันที่"
+            />
+          </div>
+          <span className="text-gray-400 font-bold">-</span>
+          <div className="relative flex-1 md:flex-initial">
+            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium text-sm"
+              placeholder="ถึงวันที่"
+            />
+          </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-600">
-                    <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <span className="text-sm text-gray-500">ส่งเสร็จแล้ว</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.completed}</p>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
         </div>
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-yellow-600">
-                    <AlertCircle className="w-5 h-5" />
-                </div>
-                <span className="text-sm text-gray-500">รอดำเนินการ</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.pending}</p>
-        </div>
-      </div>
-
-      {/* Search Filter */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-        <input
-          type="text"
-          placeholder="ค้นหาตามคนขับ, ทะเบียนรถ, หรือเลขที่ใบงาน..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-800 border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500/50 text-gray-900 dark:text-white placeholder-gray-400"
-        />
       </div>
 
       {/* Jobs Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">เลขที่เที่ยวรถ</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">วันที่</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">พนักงานขับรถ</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ทะเบียนรถ</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">สถานะ</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">การจัดการ</th>
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                <HeaderWithFilter 
+                  label="เลขที่เที่ยวรถ" 
+                  columnKey="transportNo" 
+                />
+                <HeaderWithFilter 
+                  label="วันที่" 
+                  columnKey="createdAt" 
+                />
+                <th 
+                  className="px-6 py-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => handleSort('driverName')}
+                >
+                  <div className="flex items-center gap-2">
+                    พนักงานขับรถ
+                    {getSortIcon('driverName')}
+                  </div>
+                </th>
+                <th className="px-6 py-4">
+                  <div className="flex items-center gap-1.5">
+                    <Truck className="w-3 h-3" />
+                    ทะเบียนรถ
+                  </div>
+                </th>
+                <HeaderWithFilter 
+                  label="สถานะ" 
+                  filterKey="status"
+                  options={filterOptions.status}
+                />
+                <th className="px-6 py-4 text-center">การจัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              <AnimatePresence>
-                {filteredJobs.map((job) => (
-                  <motion.tr
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
+              {filteredJobs.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400 italic font-medium">
+                    <div className="flex flex-col items-center gap-2">
+                      <Search className="w-8 h-8 opacity-20" />
+                      ไม่พบรายการที่ค้นหา
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredJobs.map((job) => (
+                  <tr
                     key={job.id}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors"
+                    className="group hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors font-medium"
                   >
                     <td className="px-6 py-4">
-                      <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                         <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-500">
-                            <Truck className="w-4 h-4" />
-                         </div>
-                         {job.transportNo}
+                      <div className="flex flex-col">
+                        <span className="font-bold text-gray-900 dark:text-white">
+                          {job.transportNo}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-mono text-sm text-gray-600 dark:text-gray-300">
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-gray-700 dark:text-gray-300">
                         {job.createdAt ? new Date(job.createdAt).toLocaleDateString("th-TH") : "-"}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 font-bold text-xs">
-                           {job.driverName ? job.driverName.charAt(0) : "U"}
+                        <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-900 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                          <User className="w-4 h-4 text-blue-500" />
                         </div>
-                        <span className="text-sm text-gray-700 dark:text-gray-200">{job.driverName || "ไม่ระบุคนขับ"}</span>
+                        <span className="font-bold text-gray-700 dark:text-gray-300">{job.driverName || "ไม่ระบุคนขับ"}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                      <span className="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                    <td className="px-6 py-4">
+                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter flex items-center gap-1">
+                        <Truck className="w-3 h-3" />
                         {job.truckPlateNumber}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${getStatusColor(job.status)}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full mr-2 ${
-                            job.status === "ส่งเสร็จ" ? "bg-green-500" :
-                            ["กำลังส่ง", "ออกเดินทางแล้ว"].includes(job.status) ? "bg-blue-500" :
-                            "bg-gray-400"
-                        }`} />
+                      <StatusTag variant={
+                        job.status === "ส่งเสร็จ" ? "success" :
+                        ["กำลังส่ง", "ออกเดินทางแล้ว"].includes(job.status) ? "info" :
+                        job.status === "รอเริ่ม" ? "warning" :
+                        "neutral"
+                      }>
                         {job.status}
-                      </span>
+                      </StatusTag>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => setSelectedJob(job)}
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-1.5 rounded-lg text-sm font-bold transition-all inline-flex items-center gap-1"
-                      >
-                         รายละเอียด 
-                         <ChevronRight className="w-4 h-4" />
-                      </button>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-center">
+                        <TableActionMenu
+                          actions={[
+                            {
+                              label: "ดูรายละเอียด",
+                              icon: Eye,
+                              onClick: () => setSelectedJob(job)
+                            }
+                          ]}
+                        />
+                      </div>
                     </td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
-
-      {filteredJobs.length === 0 && (
-          <div className="text-center py-20 text-gray-400">
-              <Truck className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p>ไม่พบรายการที่ค้นหา</p>
-          </div>
-      )}
 
       {/* Detail Modal */}
       <AnimatePresence>
@@ -401,30 +658,21 @@ export default function TransportTracking() {
                     className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] shadow-2xl"
                 >
                     {/* Modal Header */}
-                    <div className="p-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center shrink-0 sticky top-0 z-10">
-                        <div>
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600">
-                                    <Truck className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                                        {selectedJob.transportNo}
-                                        <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(selectedJob.status)}`}>
-                                            {selectedJob.status}
-                                        </span>
-                                    </h2>
-                                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
-                                        สร้างเมื่อ: {selectedJob.createdAt ? new Date(selectedJob.createdAt).toLocaleDateString("th-TH", { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : "-"} น.
-                                    </p>
-                                </div>
+                    <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-emerald-500 rounded-xl">
+                                <FileText className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">รายละเอียดการขนส่ง</h2>
+                                <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">เลขขนส่ง: {selectedJob.transportNo}</p>
                             </div>
                         </div>
                         <button 
                             onClick={() => setSelectedJob(null)}
-                            className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 p-2 rounded-full transition-colors text-gray-500 dark:text-gray-400"
+                            className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors"
                         >
-                            <X className="w-6 h-6" />
+                            <X className="w-5 h-5 text-gray-400" />
                         </button>
                     </div>
 

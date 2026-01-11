@@ -1,16 +1,11 @@
-import { GasStationProvider } from "@/contexts/GasStationContext";
-import Orders from "@/pages/gas-station/Orders";
+import Orders from "@/pages/delivery/Orders";
 
 /**
- * Reuse Gas Station "ใบสั่งซื้อจากปตท." UI inside Delivery module.
- * This wrapper exists because Orders.tsx depends on GasStationContext.
+ * Wrapper for Orders component in Delivery module.
+ * Orders.tsx has been moved from gas-station to delivery module.
  */
 export default function DeliveryPTTOrders() {
-  return (
-    <GasStationProvider>
-      <Orders />
-    </GasStationProvider>
-  );
+  return <Orders />;
 }
 
 

@@ -185,7 +185,6 @@ import AccountingSettings from "@/pages/accounting/Settings";
 // ========== Gas Station Pages ==========
 import GasStationDashboard from "@/pages/gas-station/Dashboard";
 import StationOrder from "@/pages/gas-station/StationOrder";
-import Orders from "@/pages/gas-station/Orders";
 import OrderManagement from "@/pages/gas-station/OrderManagement";
 import Payments from "@/pages/gas-station/Payments";
 import Sales from "@/pages/gas-station/Sales";
@@ -198,7 +197,7 @@ import PurchaseBook from "@/pages/gas-station/PurchaseBook";
 import WholesaleBook from "@/pages/gas-station/WholesaleBook";
 import ControlSheet from "@/pages/gas-station/ControlSheet";
 import TankEntryBook from "@/pages/gas-station/TankEntryBook";
-import RecordTankEntry from "@/pages/gas-station/RecordTankEntry";
+import RecordTankEntry from "@/pages/delivery/RecordTankEntry";
 import OilTransfer from "@/pages/gas-station/OilTransfer";
 import QualityTest from "@/pages/gas-station/QualityTest";
 import DepositSlips from "@/pages/gas-station/DepositSlips";
@@ -265,7 +264,6 @@ import DepotOilOrderManagement from "@/pages/delivery/DepotOilOrderManagement";
 import DeliveryReceiveOil from "@/pages/delivery/gs/ReceiveOil";
 import DeliveryInternalOilOrder from "@/pages/delivery/gs/InternalOilOrder";
 import DeliveryInternalOilOrderManagement from "@/pages/delivery/gs/InternalOilOrderManagement";
-import DeliveryRecordTankEntry from "@/pages/delivery/gs/RecordTankEntry";
 import DeliveryTruckOrders from "@/pages/delivery/gs/TruckOrders";
 import DeliveryDriverAppGasStation from "@/pages/delivery/gs/DriverApp";
 import DeliveryTruckProfiles from "@/pages/delivery/gs/TruckProfiles";
@@ -276,6 +274,7 @@ import DeliveryInternalPumpSales from "@/pages/delivery/gs/InternalPumpSales";
 import DeliveryRecordSuctionOil from "@/pages/delivery/gs/RecordSuctionOil";
 import InternalAPAR from "@/pages/delivery/InternalAPAR";
 import InternalOilPayment from "@/pages/delivery/InternalOilPayment";
+import HisoPumpSales from "@/pages/delivery/HisoPumpSales";
 import ExternalSectorSales from "@/pages/delivery/ExternalSectorSales";
 import DepotOilReceipt from "@/pages/delivery/DepotOilReceipt";
 
@@ -1018,7 +1017,7 @@ const router = createBrowserRouter([
           },
           {
             path: "orders",
-            element: <Orders />,
+            element: <DeliveryPTTOrders />,
           },
           {
             path: "order-management",
@@ -1163,10 +1162,6 @@ const router = createBrowserRouter([
             element: <TankEntryBook />,
           },
           {
-            path: "record-tank-entry",
-            element: <RecordTankEntry />,
-          },
-          {
             path: "oil-transfer",
             element: <OilTransfer />,
           },
@@ -1295,6 +1290,10 @@ const router = createBrowserRouter([
             element: <DeliveryInternalPumpSales />,
           },
           {
+            path: "hiso-pump-sales",
+            element: <HisoPumpSales />,
+          },
+          {
             path: "external-sector-sales",
             element: <ExternalSectorSales />,
           },
@@ -1350,7 +1349,7 @@ const router = createBrowserRouter([
           },
           {
             path: "record-tank-entry",
-            element: <DeliveryRecordTankEntry />,
+            element: <RecordTankEntry />,
           },
           {
             path: "truck-orders",

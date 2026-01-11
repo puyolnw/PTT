@@ -16,7 +16,12 @@ import {
   Navigation,
   MapPin,
   Download,
-  Receipt
+  Receipt,
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  Calendar
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGasStation } from "@/contexts/GasStationContext";
@@ -35,6 +40,19 @@ export default function InternalOilPayment() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedSale, setSelectedSale] = useState<InternalPumpSale | null>(null);
+  const [columnFilters, setColumnFilters] = useState<{
+    saleType: string;
+    branch: string;
+    status: string;
+  }>({
+    saleType: "ทั้งหมด",
+    branch: "ทั้งหมด",
+    status: "ทั้งหมด"
+  });
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'recordedAt', direction: 'desc' });
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
 
   // Form State for payment
   const [paymentForm, setPaymentForm] = useState({
@@ -57,7 +75,7 @@ export default function InternalOilPayment() {
   // กรองตามสาขาที่เลือก - แสดงว่าสาขาที่เลือกติดหนี้สาขาไหนบ้าง
   // ถ้าเลือกปั้มดินดำ แสดงว่าปั้มดินดำติดหนี้ปั้มไหนบ้าง (กรองตาม buyerBranchId = สาขาที่เลือก)
   const myPurchases = useMemo(() => {
-    return allInternalPumpSales.filter(sale => {
+    let result = allInternalPumpSales.filter(sale => {
       // กรองตามสาขาที่เลือกเป็นผู้ซื้อ (buyer) - แสดงว่าสาขาที่เลือกติดหนี้สาขาไหนบ้าง
       const matchesBranchFilter = selectedBranchIds.length === 0 || selectedBranchIds.includes(sale.buyerBranchId || 0);
       
@@ -70,9 +88,56 @@ export default function InternalOilPayment() {
         ? (sale.totalAmount > (sale.paidAmount || 0) && sale.status === "ปกติ")
         : (sale.totalAmount <= (sale.paidAmount || 0) || sale.status === "ยกเลิก");
 
-      return matchesBranchFilter && matchesSearch && matchesTab;
-    }).sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
-  }, [allInternalPumpSales, searchTerm, selectedBranchIds, activeTab]);
+      // Column Filters
+      const matchesSaleType = columnFilters.saleType === "ทั้งหมด" || sale.saleType === columnFilters.saleType;
+      const matchesBranch = columnFilters.branch === "ทั้งหมด" || sale.branchName === columnFilters.branch;
+      const matchesStatus = columnFilters.status === "ทั้งหมด" || sale.status === columnFilters.status;
+
+      // Date Range Filter
+      const matchesDateFrom = !filterDateFrom || new Date(sale.saleDate) >= new Date(filterDateFrom);
+      const matchesDateTo = !filterDateTo || new Date(sale.saleDate) <= new Date(filterDateTo);
+
+      return matchesBranchFilter && matchesSearch && matchesTab && matchesSaleType && matchesBranch && matchesStatus && matchesDateFrom && matchesDateTo;
+    });
+
+    // Sorting
+    if (sortConfig.key && sortConfig.direction) {
+      result.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortConfig.key) {
+          case 'saleDate':
+            aValue = new Date(a.saleDate).getTime();
+            bValue = new Date(b.saleDate).getTime();
+            break;
+          case 'totalAmount':
+            aValue = a.totalAmount;
+            bValue = b.totalAmount;
+            break;
+          case 'paidAmount':
+            aValue = a.paidAmount || 0;
+            bValue = b.paidAmount || 0;
+            break;
+          case 'unpaid':
+            aValue = a.totalAmount - (a.paidAmount || 0);
+            bValue = b.totalAmount - (b.paidAmount || 0);
+            break;
+          default:
+            aValue = (a as any)[sortConfig.key];
+            bValue = (b as any)[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+    }
+
+    return result;
+  }, [allInternalPumpSales, searchTerm, selectedBranchIds, activeTab, columnFilters, sortConfig, filterDateFrom, filterDateTo]);
 
   const stats = useMemo(() => {
     // กรองเฉพาะรายการที่สาขาที่เลือกเป็นผู้ซื้อ (buyer/debtor)
@@ -135,6 +200,118 @@ export default function InternalOilPayment() {
       alert("ชำระเงินเรียบร้อยแล้ว ระบบได้ออกใบกำกับภาษีให้คุณโดยอัตโนมัติ");
       setShowPaymentModal(false);
     }
+  };
+
+  const handleSort = (key: string) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        if (prev.direction === 'desc') return { key, direction: null };
+        return { key, direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+  };
+
+  // ดึงค่า Unique สำหรับ Filter Dropdowns
+  const filterOptions = useMemo(() => {
+    return {
+      saleType: ["ทั้งหมด", ...new Set(allInternalPumpSales.map(s => s.saleType))],
+      branch: ["ทั้งหมด", ...new Set(allInternalPumpSales.map(s => s.branchName))],
+      status: ["ทั้งหมด", ...new Set(allInternalPumpSales.map(s => s.status))]
+    };
+  }, [allInternalPumpSales]);
+
+  const HeaderWithFilter = ({ label, columnKey, filterKey, options }: { 
+    label: string, 
+    columnKey?: string, 
+    filterKey?: keyof typeof columnFilters, 
+    options?: string[] 
+  }) => (
+    <th className="px-6 py-4 relative group">
+      <div className="flex items-center gap-2">
+        <div 
+          className={`flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors ${sortConfig.key === columnKey ? 'text-emerald-600' : ''}`}
+          onClick={() => columnKey && handleSort(columnKey)}
+        >
+          {label}
+          {columnKey && getSortIcon(columnKey)}
+        </div>
+        
+        {filterKey && options && (
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveDropdown(activeDropdown === filterKey ? null : filterKey);
+              }}
+              className={`p-1 rounded-md transition-all ${columnFilters[filterKey] !== "ทั้งหมด" ? "bg-emerald-500 text-white shadow-sm" : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"}`}
+            >
+              <Filter className="w-3 h-3" />
+            </button>
+            
+            <AnimatePresence>
+              {activeDropdown === filterKey && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setActiveDropdown(null)} 
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                  >
+                    {options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setColumnFilters(prev => ({ ...prev, [filterKey]: opt }));
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                          columnFilters[filterKey] === opt 
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        {opt}
+                        {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </th>
+  );
+
+  const isAnyFilterActive = useMemo(() => {
+    return columnFilters.saleType !== "ทั้งหมด" || 
+           columnFilters.branch !== "ทั้งหมด" || 
+           columnFilters.status !== "ทั้งหมด" ||
+           filterDateFrom !== "" ||
+           filterDateTo !== "";
+  }, [columnFilters, filterDateFrom, filterDateTo]);
+
+  const clearFilters = () => {
+    setColumnFilters({
+      saleType: "ทั้งหมด",
+      branch: "ทั้งหมด",
+      status: "ทั้งหมด"
+    });
+    setSearchTerm("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
   };
 
   const handleDownloadTaxInvoice = (sale: InternalPumpSale, invoice: { invoiceNo: string; date: string; amount: number }) => {
@@ -436,7 +613,7 @@ export default function InternalOilPayment() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-              <div className="p-2 bg-rose-500 rounded-2xl shadow-lg shadow-rose-500/20">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
                 <CreditCard className="w-8 h-8 text-white" />
               </div>
               ชำระค่าน้ำมัน (ภายใน)
@@ -452,7 +629,7 @@ export default function InternalOilPayment() {
               onClick={() => setActiveTab("pending")}
               className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${
                 activeTab === "pending" 
-                  ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20" 
+                  ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" 
                   : "text-gray-400 hover:text-gray-600"
               }`}
             >
@@ -462,7 +639,7 @@ export default function InternalOilPayment() {
               onClick={() => setActiveTab("completed")}
               className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${
                 activeTab === "completed" 
-                  ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20" 
+                  ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" 
                   : "text-gray-400 hover:text-gray-600"
               }`}
             >
@@ -479,70 +656,157 @@ export default function InternalOilPayment() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-6"
         >
-          <div className="p-4 bg-rose-50 dark:bg-rose-900/20 rounded-2xl">
-            <AlertCircle className="w-8 h-8 text-rose-500" />
+          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+            <AlertCircle className="w-8 h-8 text-emerald-500" />
           </div>
           <div>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ยอดค้างชำระรวม</p>
             <p className="text-3xl font-black text-gray-900 dark:text-white">{currencyFormatter.format(stats.pendingAmount)}</p>
-            <p className="text-sm font-bold text-rose-500 mt-1">{stats.pendingCount} รายการที่รอการชำระ</p>
+            <p className="text-sm font-bold text-emerald-500 mt-1">{stats.pendingCount} รายการที่รอการชำระ</p>
           </div>
         </motion.div>
         
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-3xl shadow-xl shadow-blue-500/20 flex items-center justify-between text-white">
-          <div className="space-y-1">
-            <p className="text-xs font-bold text-blue-100 uppercase tracking-widest">สาขาที่สั่งซื้อ</p>
-            <p className="text-2xl font-black">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-6"
+        >
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+            <Building2 className="w-8 h-8 text-blue-500" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">สาขาที่สั่งซื้อ</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white">
               {stats.buyerBranchName}
             </p>
-            <p className="text-blue-200 text-sm font-medium flex items-center gap-2">
+            <p className="text-sm font-bold text-blue-500 mt-1 flex items-center gap-2">
               <Building2 className="w-4 h-4" />
               ตรวจสอบยอดหนี้และแจ้งชำระเงิน
             </p>
           </div>
-          <div className="opacity-20">
-            <Building2 className="w-20 h-20" />
-          </div>
-        </div>
+        </motion.div>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex items-center gap-4">
-        <div className="relative flex-1">
+      {/* Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
             placeholder="ค้นหาเลขที่บิล หรือ ชื่อสาขาผู้ขาย..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-rose-500 outline-none text-gray-900 dark:text-white font-medium"
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
           />
+        </div>
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="relative flex-1 md:flex-initial">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              className="pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium text-sm"
+              placeholder="จากวันที่"
+            />
+          </div>
+          <span className="text-gray-400 font-bold">-</span>
+          <div className="relative flex-1 md:flex-initial">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium text-sm"
+              placeholder="ถึงวันที่"
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+            <MapPin className="w-4 h-4" />
+            <span className="text-sm font-bold whitespace-nowrap">
+              {selectedBranchIds.length === 0 ? "ทุกสาขา" : `สาขาที่เลือก (${selectedBranchIds.length})`}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Payment List */}
       <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-sm">
+          <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
-                <th className="px-6 py-4">วันที่บิล / เลขที่บิล</th>
-                <th className="px-6 py-4">สาขาผู้ขาย (เจ้าหนี้)</th>
-                <th className="px-6 py-4">ประเภทรายการ</th>
-                <th className="px-6 py-4 text-right">ยอดเงินรวม</th>
-                <th className="px-6 py-4 text-right text-emerald-600">ชำระแล้ว</th>
-                <th className="px-6 py-4 text-right font-black text-rose-500">ยอดคงค้าง</th>
-                <th className="px-6 py-4 text-center">การชำระเงิน</th>
+                <HeaderWithFilter 
+                  label="วันที่บิล / เลขที่บิล" 
+                  columnKey="saleDate" 
+                />
+                <HeaderWithFilter 
+                  label="สาขาผู้ขาย (เจ้าหนี้)" 
+                  columnKey="branchName" 
+                  filterKey="branch"
+                  options={filterOptions.branch}
+                />
+                <HeaderWithFilter 
+                  label="ประเภทรายการ" 
+                  columnKey="saleType" 
+                  filterKey="saleType"
+                  options={filterOptions.saleType}
+                />
+                <th 
+                  className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => handleSort('totalAmount')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    ยอดเงินรวม
+                    {getSortIcon('totalAmount')}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => handleSort('paidAmount')}
+                >
+                  <div className="flex items-center justify-end gap-2 text-emerald-600">
+                    ชำระแล้ว
+                    {getSortIcon('paidAmount')}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-4 text-right font-black text-rose-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => handleSort('unpaid')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    ยอดคงค้าง
+                    {getSortIcon('unpaid')}
+                  </div>
+                </th>
+                <HeaderWithFilter 
+                  label="สถานะ" 
+                  columnKey="status" 
+                  filterKey="status"
+                  options={filterOptions.status}
+                />
                 <th className="px-6 py-4 text-center">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 font-medium">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
               {myPurchases.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400 italic font-medium">
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-400 italic font-medium">
                     <div className="flex flex-col items-center gap-2">
-                      <CreditCard className="w-8 h-8 opacity-20" />
-                      ไม่พบรายการสั่งซื้อที่ต้องชำระ
+                      <Search className="w-8 h-8 opacity-20" />
+                      ไม่พบรายการสั่งซื้อที่ค้นหา
                     </div>
                   </td>
                 </tr>
@@ -589,18 +853,9 @@ export default function InternalOilPayment() {
                         {currencyFormatter.format(unpaid)}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {sale.paymentRequestStatus === "pending" ? (
-                          <StatusTag variant="warning">รอตรวจสอบ</StatusTag>
-                        ) : sale.totalAmount <= (sale.paidAmount || 0) ? (
-                          <StatusTag variant="success">ชำระครบแล้ว</StatusTag>
-                        ) : (
-                          <button
-                            onClick={() => handleOpenPayment(sale)}
-                            className="px-4 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-black rounded-lg transition-colors shadow-sm"
-                          >
-                            แจ้งชำระเงิน
-                          </button>
-                        )}
+                        <StatusTag variant={sale.status === "ปกติ" ? "success" : "danger"}>
+                          {sale.status}
+                        </StatusTag>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex justify-center">
@@ -649,14 +904,14 @@ export default function InternalOilPayment() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[95vh]"
             >
-              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-rose-50 dark:bg-rose-900/20">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-rose-500 rounded-xl">
+                  <div className="p-2 bg-emerald-500 rounded-xl">
                     <DollarSign className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-rose-800 dark:text-rose-400">แจ้งชำระค่าน้ำมัน</h2>
-                    <p className="text-xs text-rose-600 dark:text-rose-500 font-bold">อ้างอิงบิลเลขที่: {selectedSale.saleNo}</p>
+                    <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">แจ้งชำระค่าน้ำมัน</h2>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">อ้างอิงบิลเลขที่: {selectedSale.saleNo}</p>
                   </div>
                 </div>
                 <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">
@@ -675,8 +930,8 @@ export default function InternalOilPayment() {
                     </p>
                   </div>
                   <div className="text-right space-y-1 text-sm">
-                    <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest">ยอดที่ต้องชำระ (คงเหลือ)</p>
-                    <p className="text-2xl font-black text-rose-600">
+                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">ยอดที่ต้องชำระ (คงเหลือ)</p>
+                    <p className="text-2xl font-black text-emerald-600">
                       {currencyFormatter.format(selectedSale.totalAmount - (selectedSale.paidAmount || 0))}
                     </p>
                   </div>
@@ -690,7 +945,7 @@ export default function InternalOilPayment() {
                       type="number"
                       value={paymentForm.amount}
                       onChange={(e) => setPaymentForm(prev => ({ ...prev, amount: Number(e.target.value) }))}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl font-black text-xl text-emerald-600 outline-none focus:border-rose-500 transition-colors"
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl font-black text-xl text-emerald-600 outline-none focus:border-emerald-500 transition-colors"
                     />
                   </div>
                   <div className="space-y-2 text-sm">
@@ -723,7 +978,7 @@ export default function InternalOilPayment() {
                         onClick={() => setPaymentForm(prev => ({ ...prev, method: m }))}
                         className={`py-3 rounded-2xl text-[10px] font-black transition-all border ${
                           paymentForm.method === m 
-                            ? "bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/20" 
+                            ? "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20" 
                             : "bg-white dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700 hover:bg-gray-50"
                         }`}
                       >
@@ -735,9 +990,9 @@ export default function InternalOilPayment() {
 
                 <div className="space-y-3">
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">หลักฐานการโอนเงิน (Slip)</span>
-                  <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-3xl p-8 flex flex-col items-center justify-center gap-4 hover:border-rose-500 transition-colors cursor-pointer bg-gray-50/50 dark:bg-gray-900/50 group">
+                  <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-3xl p-8 flex flex-col items-center justify-center gap-4 hover:border-emerald-500 transition-colors cursor-pointer bg-gray-50/50 dark:bg-gray-900/50 group">
                     <div className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm group-hover:scale-110 transition-transform">
-                      <Upload className="w-8 h-8 text-gray-400 group-hover:text-rose-500" />
+                      <Upload className="w-8 h-8 text-gray-400 group-hover:text-emerald-500" />
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-black text-gray-600 dark:text-gray-300">คลิกเพื่ออัปโหลดรูปภาพหลักฐาน</p>
@@ -753,7 +1008,7 @@ export default function InternalOilPayment() {
                     value={paymentForm.notes}
                     onChange={(e) => setPaymentForm(prev => ({ ...prev, notes: e.target.value }))}
                     placeholder="ระบุหมายเหตุการโอนเงิน (ถ้ามี)"
-                    className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl outline-none focus:border-rose-500 transition-colors h-24 resize-none"
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl outline-none focus:border-emerald-500 transition-colors h-24 resize-none"
                   />
                 </div>
               </div>
@@ -767,7 +1022,7 @@ export default function InternalOilPayment() {
                 </button>
                 <button
                   onClick={handleConfirmPayment}
-                  className="flex-[2] px-6 py-4 bg-rose-500 text-white font-black rounded-2xl shadow-xl shadow-rose-500/30 hover:bg-rose-600 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                  className="flex-[2] px-6 py-4 bg-emerald-500 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/30 hover:bg-emerald-600 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
                 >
                   <Check className="w-5 h-5" />
                   ยืนยันการชำระเงิน
@@ -788,14 +1043,14 @@ export default function InternalOilPayment() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-600 rounded-xl shadow-lg">
+                  <div className="p-2 bg-emerald-500 rounded-xl shadow-lg">
                     <FileText className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-blue-800 dark:text-blue-400 uppercase tracking-tight">รายละเอียดรายการธุรกรรมภายใน</h2>
-                    <p className="text-xs text-blue-600 dark:text-blue-500 font-bold">อ้างอิง: {selectedSale.saleNo}</p>
+                    <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-tight">รายละเอียดรายการธุรกรรมภายใน</h2>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">อ้างอิง: {selectedSale.saleNo}</p>
                   </div>
                 </div>
                 <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors group">
@@ -963,7 +1218,7 @@ export default function InternalOilPayment() {
                       alert("ยังไม่มีใบกำกับภาษีสำหรับรายการนี้");
                     }
                   }}
-                  className="flex-1 px-6 py-4 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-600/30 hover:bg-blue-700 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                  className="flex-1 px-6 py-4 bg-emerald-500 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/30 hover:bg-emerald-600 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
                   disabled={!selectedSale || !selectedSale.taxInvoices || selectedSale.taxInvoices.length === 0}
                 >
                   <Download className="w-5 h-5" />

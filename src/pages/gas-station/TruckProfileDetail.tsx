@@ -17,6 +17,7 @@ import {
   Building2,
   FileText,
   AlertTriangle,
+  History,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -27,6 +28,17 @@ const dateFormatter = new Intl.DateTimeFormat("th-TH", {
   year: "numeric",
   month: "long",
   day: "numeric",
+});
+
+const dateFormatterShort = new Intl.DateTimeFormat("th-TH", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+
+const timeFormatter = new Intl.DateTimeFormat("th-TH", {
+  hour: "2-digit",
+  minute: "2-digit",
 });
 
 
@@ -68,6 +80,20 @@ interface TruckProfile {
   vehicleTaxExpiry?: string;
   insuranceExpiry?: string;
   hazmatLicenseExpiry?: string;
+  // ข้อมูลเพิ่มเติม
+  lastOdometerReading?: number;
+  lastOdometerDate?: string;
+  lastFuelReading?: number;
+  lastFuelDate?: string;
+  currentDriverId?: string;
+  currentDriverName?: string;
+  purchaseDate?: string;
+  purchasePrice?: number;
+  registrationDate?: string;
+  color?: string;
+  fuelType?: string;
+  engineCapacity?: string;
+  transmission?: string;
 }
 
 // Interface สำหรับประวัติการใช้งาน
@@ -83,6 +109,32 @@ interface TripHistory {
   distance: number;
   driver: string;
   status: "completed" | "in-progress" | "cancelled";
+  startTime?: string;
+  endTime?: string;
+  startOdometer?: number;
+  endOdometer?: number;
+  fuelConsumption?: number;
+  cost?: number;
+  transportNo?: string;
+}
+
+// Interface สำหรับประวัติการบำรุงรักษา
+interface MaintenanceHistory {
+  id: string;
+  truckId: string;
+  date: string;
+  type: "routine" | "repair" | "inspection" | "emergency";
+  description: string;
+  cost: number;
+  mileage: number;
+  serviceProvider?: string;
+  notes?: string;
+  nextServiceDate?: string;
+  parts?: Array<{
+    name: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
 }
 
 // Mock data - หาง 3 หาง
@@ -148,6 +200,19 @@ const mockTrucks: TruckProfile[] = [
     vehicleTaxExpiry: "2025-06-30",
     insuranceExpiry: "2025-09-20",
     hazmatLicenseExpiry: "2025-11-15",
+    lastOdometerReading: 125450,
+    lastOdometerDate: "2024-12-15",
+    lastFuelReading: 350,
+    lastFuelDate: "2024-12-15",
+    currentDriverId: "DRIVER-001",
+    currentDriverName: "สมชาย ใจดี",
+    purchaseDate: "2020-03-15",
+    purchasePrice: 3500000,
+    registrationDate: "2020-03-20",
+    color: "ขาว",
+    fuelType: "ดีเซล",
+    engineCapacity: "7,800 cc",
+    transmission: "Manual 6-speed",
   },
   {
     id: "TRUCK-002",
@@ -187,6 +252,13 @@ const mockTripHistory: TripHistory[] = [
     distance: 45,
     driver: "สมชาย ใจดี",
     status: "completed",
+    startTime: "2024-12-15T08:00:00",
+    endTime: "2024-12-15T10:30:00",
+    startOdometer: 125405,
+    endOdometer: 125450,
+    fuelConsumption: 25,
+    cost: 15000,
+    transportNo: "TP-20241215-001",
   },
   {
     id: "TRIP-002",
@@ -200,6 +272,13 @@ const mockTripHistory: TripHistory[] = [
     distance: 60,
     driver: "สมชาย ใจดี",
     status: "completed",
+    startTime: "2024-12-14T07:30:00",
+    endTime: "2024-12-14T11:00:00",
+    startOdometer: 125345,
+    endOdometer: 125405,
+    fuelConsumption: 30,
+    cost: 12000,
+    transportNo: "TP-20241214-001",
   },
   {
     id: "TRIP-003",
@@ -213,6 +292,13 @@ const mockTripHistory: TripHistory[] = [
     distance: 55,
     driver: "สมชาย ใจดี",
     status: "completed",
+    startTime: "2024-12-13T09:00:00",
+    endTime: "2024-12-13T12:15:00",
+    startOdometer: 125290,
+    endOdometer: 125345,
+    fuelConsumption: 28,
+    cost: 18000,
+    transportNo: "TP-20241213-001",
   },
   {
     id: "TRIP-004",
@@ -226,6 +312,13 @@ const mockTripHistory: TripHistory[] = [
     distance: 100,
     driver: "สมชาย ใจดี",
     status: "completed",
+    startTime: "2024-12-12T06:00:00",
+    endTime: "2024-12-12T13:30:00",
+    startOdometer: 125190,
+    endOdometer: 125290,
+    fuelConsumption: 50,
+    cost: 25000,
+    transportNo: "TP-20241212-001",
   },
   {
     id: "TRIP-005",
@@ -239,6 +332,13 @@ const mockTripHistory: TripHistory[] = [
     distance: 80,
     driver: "วิชัย รักงาน",
     status: "completed",
+    startTime: "2024-12-14T08:00:00",
+    endTime: "2024-12-14T13:00:00",
+    startOdometer: 98000,
+    endOdometer: 98080,
+    fuelConsumption: 40,
+    cost: 18000,
+    transportNo: "TP-20241214-002",
   },
   {
     id: "TRIP-006",
@@ -252,6 +352,76 @@ const mockTripHistory: TripHistory[] = [
     distance: 100,
     driver: "วิชัย รักงาน",
     status: "completed",
+    startTime: "2024-12-13T07:00:00",
+    endTime: "2024-12-13T14:00:00",
+    startOdometer: 97900,
+    endOdometer: 98000,
+    fuelConsumption: 50,
+    cost: 20000,
+    transportNo: "TP-20241213-002",
+  },
+];
+
+// Mock data - ประวัติการบำรุงรักษา
+const mockMaintenanceHistory: MaintenanceHistory[] = [
+  {
+    id: "MAINT-001",
+    truckId: "TRUCK-001",
+    date: "2024-11-20",
+    type: "routine",
+    description: "เปลี่ยนน้ำมันเครื่อง, เปลี่ยนกรองอากาศ, ตรวจเช็คระบบเบรก",
+    cost: 8500,
+    mileage: 123000,
+    serviceProvider: "ศูนย์บริการ Isuzu",
+    notes: "รถอยู่ในสภาพดี ไม่พบปัญหาอะไร",
+    nextServiceDate: "2025-02-20",
+    parts: [
+      { name: "น้ำมันเครื่อง", quantity: 20, unitPrice: 250 },
+      { name: "กรองอากาศ", quantity: 1, unitPrice: 1200 },
+      { name: "กรองน้ำมันเครื่อง", quantity: 1, unitPrice: 800 },
+    ],
+  },
+  {
+    id: "MAINT-002",
+    truckId: "TRUCK-001",
+    date: "2024-08-15",
+    type: "repair",
+    description: "ซ่อมระบบเบรก, เปลี่ยนผ้าเบรกหน้า-หลัง",
+    cost: 15000,
+    mileage: 115000,
+    serviceProvider: "อู่ซ่อมรถยนต์ ABC",
+    notes: "ผ้าเบรกหมดอายุ ต้องเปลี่ยนใหม่",
+    parts: [
+      { name: "ผ้าเบรกหน้า", quantity: 2, unitPrice: 2500 },
+      { name: "ผ้าเบรกหลัง", quantity: 2, unitPrice: 2000 },
+      { name: "น้ำมันเบรก", quantity: 2, unitPrice: 500 },
+    ],
+  },
+  {
+    id: "MAINT-003",
+    truckId: "TRUCK-001",
+    date: "2024-05-10",
+    type: "inspection",
+    description: "ตรวจเช็คสภาพรถประจำปี, ตรวจเช็คระบบไฟฟ้า",
+    cost: 3000,
+    mileage: 108000,
+    serviceProvider: "ศูนย์บริการ Isuzu",
+    notes: "ผ่านการตรวจสอบทุกมาตรฐาน",
+  },
+  {
+    id: "MAINT-004",
+    truckId: "TRUCK-001",
+    date: "2024-02-25",
+    type: "routine",
+    description: "เปลี่ยนน้ำมันเครื่อง, เปลี่ยนกรองน้ำมันเชื้อเพลิง, ตรวจเช็คยาง",
+    cost: 7200,
+    mileage: 100000,
+    serviceProvider: "ศูนย์บริการ Isuzu",
+    nextServiceDate: "2024-05-25",
+    parts: [
+      { name: "น้ำมันเครื่อง", quantity: 20, unitPrice: 250 },
+      { name: "กรองน้ำมันเชื้อเพลิง", quantity: 1, unitPrice: 1500 },
+    ],
   },
 ];
 
@@ -304,6 +474,14 @@ export default function TruckProfileDetail() {
     if (!truck) return [];
     return mockTripHistory
       .filter((trip) => trip.truckId === truck.id)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [truck]);
+
+  // หาประวัติการบำรุงรักษา
+  const maintenanceHistory = useMemo(() => {
+    if (!truck) return [];
+    return mockMaintenanceHistory
+      .filter((maint) => maint.truckId === truck.id)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [truck]);
 
@@ -360,50 +538,49 @@ export default function TruckProfileDetail() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4"
-      >
-        <button
-          onClick={() => navigate("/app/gas-station/truck-profiles")}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            {truck.plateNumber}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {truck.brand} {truck.model} ({truck.year})
-          </p>
+      <header className="mb-8">
+        <div className="flex items-center gap-4 mb-4">
+          <button
+            onClick={() => navigate("/app/gas-station/truck-profiles")}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+                <Truck className="w-8 h-8 text-white" />
+              </div>
+              {truck.plateNumber}
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
+              <History className="w-4 h-4" />
+              {truck.brand} {truck.model} ({truck.year})
+            </p>
+          </div>
+          <span
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(
+              truck.status
+            )}`}
+          >
+            {truck.status === "active" ? (
+              <CheckCircle className="w-4 h-4" />
+            ) : (
+              <AlertCircle className="w-4 h-4" />
+            )}
+            {truck.status === "active" ? "ใช้งาน" : truck.status === "inactive" ? "ไม่ใช้งาน" : "ซ่อมบำรุง"}
+          </span>
         </div>
-        <span
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(
-            truck.status
-          )}`}
-        >
-          {truck.status === "active" ? (
-            <CheckCircle className="w-4 h-4" />
-          ) : (
-            <AlertCircle className="w-4 h-4" />
-          )}
-          {truck.status === "active" ? "ใช้งาน" : truck.status === "inactive" ? "ไม่ใช้งาน" : "ซ่อมบำรุง"}
-        </span>
-      </motion.div>
+      </header>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
         <button
           onClick={() => setSelectedTab("overview")}
-          className={`px-6 py-3 font-medium transition-colors ${selectedTab === "overview"
-            ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+          className={`px-6 py-3 font-bold transition-colors ${selectedTab === "overview"
+            ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400"
             : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             }`}
         >
@@ -411,8 +588,8 @@ export default function TruckProfileDetail() {
         </button>
         <button
           onClick={() => setSelectedTab("trips")}
-          className={`px-6 py-3 font-medium transition-colors ${selectedTab === "trips"
-            ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+          className={`px-6 py-3 font-bold transition-colors ${selectedTab === "trips"
+            ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400"
             : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             }`}
         >
@@ -420,8 +597,8 @@ export default function TruckProfileDetail() {
         </button>
         <button
           onClick={() => setSelectedTab("documents")}
-          className={`px-6 py-3 font-medium transition-colors ${selectedTab === "documents"
-            ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+          className={`px-6 py-3 font-bold transition-colors ${selectedTab === "documents"
+            ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400"
             : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             }`}
         >
@@ -429,8 +606,8 @@ export default function TruckProfileDetail() {
         </button>
         <button
           onClick={() => setSelectedTab("maintenance")}
-          className={`px-6 py-3 font-medium transition-colors ${selectedTab === "maintenance"
-            ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+          className={`px-6 py-3 font-bold transition-colors ${selectedTab === "maintenance"
+            ? "text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400"
             : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             }`}
         >
@@ -442,21 +619,19 @@ export default function TruckProfileDetail() {
       {selectedTab === "overview" && (
         <div className="space-y-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">เที่ยวทั้งหมด</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                    {numberFormatter.format(truck.totalTrips)}
-                  </p>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+                  <Activity className="w-6 h-6 text-blue-500" />
                 </div>
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <Activity className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">เที่ยวทั้งหมด</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white">{numberFormatter.format(truck.totalTrips)} เที่ยว</p>
                 </div>
               </div>
             </motion.div>
@@ -465,18 +640,15 @@ export default function TruckProfileDetail() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">ระยะทางรวม</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                    {numberFormatter.format(truck.totalDistance)}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">กิโลเมตร</p>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-2xl">
+                  <MapPin className="w-6 h-6 text-purple-500" />
                 </div>
-                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                  <MapPin className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ระยะทางรวม</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white">{numberFormatter.format(truck.totalDistance)} กม.</p>
                 </div>
               </div>
             </motion.div>
@@ -485,18 +657,15 @@ export default function TruckProfileDetail() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">น้ำมันส่งรวม</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                    {numberFormatter.format(truck.totalOilDelivered)}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">ลิตร</p>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-2xl">
+                  <Droplet className="w-6 h-6 text-orange-500" />
                 </div>
-                <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                  <Droplet className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">น้ำมันส่งรวม</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white">{numberFormatter.format(truck.totalOilDelivered)} ลิตร</p>
                 </div>
               </div>
             </motion.div>
@@ -505,17 +674,15 @@ export default function TruckProfileDetail() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">เที่ยวเดือนนี้</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                    {stats?.thisMonthTrips || 0}
-                  </p>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+                  <TrendingUp className="w-6 h-6 text-emerald-500" />
                 </div>
-                <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">เที่ยวเดือนนี้</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white">{stats?.thisMonthTrips || 0} เที่ยว</p>
                 </div>
               </div>
             </motion.div>
@@ -527,10 +694,10 @@ export default function TruckProfileDetail() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6"
             >
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <Settings className="w-5 h-5" />
+              <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-emerald-500" />
                 ข้อมูลรถ
               </h3>
               <div className="space-y-3">
@@ -556,12 +723,76 @@ export default function TruckProfileDetail() {
                   <span className="text-gray-600 dark:text-gray-400">เลขตัวถัง:</span>
                   <span className="font-semibold text-gray-900 dark:text-white">{truck.chassisNumber}</span>
                 </div>
+                {truck.color && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">สี:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{truck.color}</span>
+                  </div>
+                )}
+                {truck.fuelType && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">ประเภทเชื้อเพลิง:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{truck.fuelType}</span>
+                  </div>
+                )}
+                {truck.engineCapacity && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">ขนาดเครื่องยนต์:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{truck.engineCapacity}</span>
+                  </div>
+                )}
+                {truck.transmission && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">ระบบเกียร์:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{truck.transmission}</span>
+                  </div>
+                )}
+                {truck.purchaseDate && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">วันที่ซื้อ:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {dateFormatter.format(new Date(truck.purchaseDate))}
+                    </span>
+                  </div>
+                )}
+                {truck.purchasePrice && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">ราคาซื้อ:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {numberFormatter.format(truck.purchasePrice)} บาท
+                    </span>
+                  </div>
+                )}
                 {truck.lastTripDate && (
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">เที่ยวล่าสุด:</span>
                     <span className="font-semibold text-gray-900 dark:text-white">
                       {dateFormatter.format(new Date(truck.lastTripDate))}
                     </span>
+                  </div>
+                )}
+                {truck.lastOdometerReading && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">เลขไมล์ล่าสุด:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {numberFormatter.format(truck.lastOdometerReading)} กม.
+                      {truck.lastOdometerDate && ` (${dateFormatterShort.format(new Date(truck.lastOdometerDate))})`}
+                    </span>
+                  </div>
+                )}
+                {truck.lastFuelReading !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">น้ำมันล่าสุด:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {numberFormatter.format(truck.lastFuelReading)} ลิตร
+                      {truck.lastFuelDate && ` (${dateFormatterShort.format(new Date(truck.lastFuelDate))})`}
+                    </span>
+                  </div>
+                )}
+                {truck.currentDriverName && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">คนขับปัจจุบัน:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{truck.currentDriverName}</span>
                   </div>
                 )}
               </div>
@@ -572,10 +803,10 @@ export default function TruckProfileDetail() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6"
             >
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <Droplet className="w-5 h-5" />
+              <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <Droplet className="w-5 h-5 text-emerald-500" />
                 หางที่ใช้อยู่
               </h3>
               {currentTrailer ? (
@@ -621,10 +852,10 @@ export default function TruckProfileDetail() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6"
           >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Truck className="w-5 h-5" />
+            <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Truck className="w-5 h-5 text-emerald-500" />
               หางที่ใช้ได้ ({compatibleTrailers.length} หาง)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -671,17 +902,17 @@ export default function TruckProfileDetail() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6"
           >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5" />
+            <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-emerald-500" />
               เอกสารประจำรถ
             </h3>
 
             {/* Truck Head Documents */}
             <div className="mb-6">
-              <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
-                <Truck className="w-4 h-4" />
+              <h4 className="text-md font-black text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                <Truck className="w-4 h-4 text-emerald-500" />
                 เอกสารรถหัวลาก ({truck.plateNumber})
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -814,8 +1045,8 @@ export default function TruckProfileDetail() {
             {/* Trailer Documents */}
             {currentTrailer && (
               <div>
-                <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
-                  <Droplet className="w-4 h-4" />
+                <h4 className="text-md font-black text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                  <Droplet className="w-4 h-4 text-emerald-500" />
                   เอกสารหาง ({currentTrailer.plateNumber})
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -954,151 +1185,300 @@ export default function TruckProfileDetail() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
         >
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700/50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    วันที่
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    หาง
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    จาก
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    ไป
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    ประเภทน้ำมัน
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    ปริมาณ
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    ระยะทาง
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    คนขับ
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    สถานะ
-                  </th>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                  <th className="px-6 py-4">วันที่</th>
+                  <th className="px-6 py-4">หาง</th>
+                  <th className="px-6 py-4">จาก</th>
+                  <th className="px-6 py-4">ไป</th>
+                  <th className="px-6 py-4">ประเภทน้ำมัน</th>
+                  <th className="px-6 py-4">ปริมาณ</th>
+                  <th className="px-6 py-4">ระยะทาง</th>
+                  <th className="px-6 py-4">คนขับ</th>
+                  <th className="px-6 py-4">เวลา</th>
+                  <th className="px-6 py-4">เลขไมล์</th>
+                  <th className="px-6 py-4">น้ำมันใช้</th>
+                  <th className="px-6 py-4">ค่าใช้จ่าย</th>
+                  <th className="px-6 py-4">สถานะ</th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {tripHistory.map((trip) => {
-                  const trailer = mockTrailers.find((t) => t.id === trip.trailerId);
-                  return (
-                    <tr key={trip.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {dateFormatter.format(new Date(trip.date))}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {trailer?.plateNumber || trip.trailerId}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-gray-400" />
-                          {trip.fromBranch}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-blue-500" />
-                          {trip.toBranch}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        <div className="flex items-center gap-2">
-                          <Droplet className="w-4 h-4 text-orange-500" />
-                          {trip.oilType}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
-                        {numberFormatter.format(trip.quantity)} ลิตร
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {numberFormatter.format(trip.distance)} กม.
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-gray-400" />
-                          {trip.driver}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${trip.status === "completed"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                            : trip.status === "in-progress"
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                            }`}
-                        >
-                          {trip.status === "completed"
-                            ? "เสร็จสิ้น"
-                            : trip.status === "in-progress"
-                              ? "กำลังดำเนินการ"
-                              : "ยกเลิก"}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
+                {tripHistory.length === 0 ? (
+                  <tr>
+                    <td colSpan={13} className="px-6 py-12 text-center text-gray-400 italic font-medium">
+                      <div className="flex flex-col items-center gap-2">
+                        <Activity className="w-8 h-8 opacity-20" />
+                        ไม่มีประวัติการใช้งาน
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  tripHistory.map((trip) => {
+                    const trailer = mockTrailers.find((t) => t.id === trip.trailerId);
+                    return (
+                      <tr key={trip.id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors font-medium">
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-gray-700 dark:text-gray-300">
+                            {dateFormatterShort.format(new Date(trip.date))}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-gray-700 dark:text-gray-300">
+                            {trailer?.plateNumber || trip.trailerId}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-gray-400" />
+                            <span className="font-bold text-gray-700 dark:text-gray-300">{trip.fromBranch}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-emerald-500" />
+                            <span className="font-bold text-gray-700 dark:text-gray-300">{trip.toBranch}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Droplet className="w-4 h-4 text-orange-500" />
+                            <span className="font-bold text-gray-700 dark:text-gray-300">{trip.oilType}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-gray-700 dark:text-gray-300">
+                            {numberFormatter.format(trip.quantity)} ลิตร
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-gray-700 dark:text-gray-300">
+                            {numberFormatter.format(trip.distance)} กม.
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-gray-400" />
+                            <span className="font-bold text-gray-700 dark:text-gray-300">{trip.driver}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {trip.startTime && trip.endTime ? (
+                            <div className="flex flex-col">
+                              <span className="font-bold text-gray-700 dark:text-gray-300">{timeFormatter.format(new Date(trip.startTime))} - {timeFormatter.format(new Date(trip.endTime))}</span>
+                              {trip.transportNo && (
+                                <span className="text-xs text-gray-500">{trip.transportNo}</span>
+                              )}
+                            </div>
+                          ) : "-"}
+                        </td>
+                        <td className="px-6 py-4">
+                          {trip.startOdometer && trip.endOdometer ? (
+                            <div className="flex flex-col">
+                              <span className="font-bold text-gray-700 dark:text-gray-300">{numberFormatter.format(trip.startOdometer)} - {numberFormatter.format(trip.endOdometer)}</span>
+                              <span className="text-xs text-gray-500">({numberFormatter.format(trip.endOdometer - trip.startOdometer)} กม.)</span>
+                            </div>
+                          ) : "-"}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-gray-700 dark:text-gray-300">
+                            {trip.fuelConsumption ? `${numberFormatter.format(trip.fuelConsumption)} ลิตร` : "-"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-gray-700 dark:text-gray-300">
+                            {trip.cost ? `${numberFormatter.format(trip.cost)} บาท` : "-"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-bold ${trip.status === "completed"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                              : trip.status === "in-progress"
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                              }`}
+                          >
+                            {trip.status === "completed"
+                              ? "เสร็จสิ้น"
+                              : trip.status === "in-progress"
+                                ? "กำลังดำเนินการ"
+                                : "ยกเลิก"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
-          {tripHistory.length === 0 && (
-            <div className="text-center py-12">
-              <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">ไม่มีประวัติการใช้งาน</p>
-            </div>
-          )}
         </motion.div>
       )}
 
       {/* Maintenance Tab */}
       {selectedTab === "maintenance" && (
         <div className="space-y-6">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {truck.lastMaintenanceDate && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">บำรุงรักษาล่าสุด</p>
+                    <p className="text-lg font-black text-gray-900 dark:text-white mt-1">
+                      {dateFormatter.format(new Date(truck.lastMaintenanceDate))}
+                    </p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-emerald-500" />
+                </div>
+              </motion.div>
+            )}
+            {truck.nextMaintenanceDate && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-amber-50 dark:bg-amber-900/20 rounded-3xl border border-amber-200 dark:border-amber-800 shadow-sm p-6"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">บำรุงรักษาครั้งถัดไป</p>
+                    <p className="text-lg font-black text-gray-900 dark:text-white mt-1">
+                      {dateFormatter.format(new Date(truck.nextMaintenanceDate))}
+                    </p>
+                    {truck.nextMaintenanceDate && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 font-bold">
+                        เหลืออีก {getDaysUntilExpiry(truck.nextMaintenanceDate)} วัน
+                      </p>
+                    )}
+                  </div>
+                  <Clock className="w-8 h-8 text-amber-500" />
+                </div>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Maintenance History */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+            transition={{ delay: 0.2 }}
+            className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6"
           >
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Wrench className="w-5 h-5" />
-              ประวัติการบำรุงรักษา
+            <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Wrench className="w-5 h-5 text-emerald-500" />
+              ประวัติการบำรุงรักษา ({maintenanceHistory.length} รายการ)
             </h3>
             <div className="space-y-4">
-              {truck.lastMaintenanceDate && (
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">บำรุงรักษาล่าสุด</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {dateFormatter.format(new Date(truck.lastMaintenanceDate))}
-                      </p>
-                    </div>
-                    <CheckCircle className="w-6 h-6 text-emerald-500" />
-                  </div>
+              {maintenanceHistory.length === 0 ? (
+                <div className="text-center py-12">
+                  <Wrench className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-gray-400">ไม่มีประวัติการบำรุงรักษา</p>
                 </div>
-              )}
-              {truck.nextMaintenanceDate && (
-                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">บำรุงรักษาครั้งถัดไป</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {dateFormatter.format(new Date(truck.nextMaintenanceDate))}
-                      </p>
+              ) : (
+                maintenanceHistory.map((maint) => {
+                  const getTypeColor = (type: string) => {
+                    switch (type) {
+                      case "routine":
+                        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+                      case "repair":
+                        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+                      case "inspection":
+                        return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400";
+                      case "emergency":
+                        return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400";
+                      default:
+                        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
+                    }
+                  };
+
+                  const getTypeText = (type: string) => {
+                    switch (type) {
+                      case "routine":
+                        return "บำรุงรักษาปกติ";
+                      case "repair":
+                        return "ซ่อมแซม";
+                      case "inspection":
+                        return "ตรวจเช็ค";
+                      case "emergency":
+                        return "ฉุกเฉิน";
+                      default:
+                        return type;
+                    }
+                  };
+
+                  return (
+                    <div
+                      key={maint.id}
+                      className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getTypeColor(maint.type)}`}>
+                              {getTypeText(maint.type)}
+                            </span>
+                            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                              {dateFormatter.format(new Date(maint.date))}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              เลขไมล์: {numberFormatter.format(maint.mileage)} กม.
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{maint.description}</p>
+                          {maint.serviceProvider && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              รับบริการที่: {maint.serviceProvider}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-gray-900 dark:text-white">
+                            {numberFormatter.format(maint.cost)} บาท
+                          </p>
+                        </div>
+                      </div>
+                      {maint.parts && maint.parts.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">รายการอะไหล่:</p>
+                          <div className="space-y-1">
+                            {maint.parts.map((part, idx) => (
+                              <div key={idx} className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                                <span>
+                                  {part.name} x {part.quantity}
+                                </span>
+                                <span className="font-medium">
+                                  {numberFormatter.format(part.quantity * part.unitPrice)} บาท
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {maint.notes && (
+                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">หมายเหตุ:</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{maint.notes}</p>
+                        </div>
+                      )}
+                      {maint.nextServiceDate && (
+                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            บำรุงรักษาครั้งถัดไป: {dateFormatter.format(new Date(maint.nextServiceDate))}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <Clock className="w-6 h-6 text-amber-500" />
-                  </div>
-                </div>
+                  );
+                })
               )}
             </div>
           </motion.div>

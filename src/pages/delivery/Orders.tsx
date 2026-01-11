@@ -32,9 +32,14 @@ import {
   Upload,
   Image,
   Paperclip,
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  Check,
 } from "lucide-react";
-import NewOrderForm from "./NewOrderForm";
-import { mockTruckOrders, type TruckOrder, mockTrucks, mockTrailers } from "./TruckProfiles";
+import NewOrderForm from "@/pages/gas-station/NewOrderForm";
+import { mockTruckOrders, type TruckOrder, mockTrucks, mockTrailers } from "@/pages/gas-station/TruckProfiles";
 import TableActionMenu from "@/components/TableActionMenu";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
@@ -100,6 +105,13 @@ export default function Orders() {
   const { selectedBranches } = useBranch();
   const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [columnFilters, setColumnFilters] = useState<{
+    status: string;
+  }>({
+    status: "ทั้งหมด"
+  });
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'orderDate', direction: 'desc' });
 
   const [showTruckModal, setShowTruckModal] = useState(false);
   // Date filter state
@@ -191,27 +203,72 @@ export default function Orders() {
     return true;
   }
 
-  // Apply all filters to purchaseOrders
-  const filteredPurchaseOrders = purchaseOrders.filter(order => {
-    // Date filter (orderDate)
-    if (!isDateInRange(order.orderDate, filterDate, filterDateTo)) return false;
+  // Apply all filters and sorting to purchaseOrders
+  const filteredPurchaseOrders = useMemo(() => {
+    const result = purchaseOrders.filter(order => {
+      // Date filter (orderDate)
+      if (!isDateInRange(order.orderDate, filterDate, filterDateTo)) return false;
 
-    // Branch filter
-    const matchBranch = selectedBranchIds.length === 0 || 
-      order.branches.some(b => selectedBranchIds.includes(b.branchId));
-    if (!matchBranch) return false;
+      // Branch filter
+      const matchBranch = selectedBranchIds.length === 0 || 
+        order.branches.some(b => selectedBranchIds.includes(b.branchId));
+      if (!matchBranch) return false;
 
-    // Search term (branch, oil type, orderNo)
-    if (searchTerm.trim()) {
-      const t = searchTerm.trim().toLowerCase();
-      const found =
-        order.orderNo.toLowerCase().includes(t) ||
-        order.branches.some(b => b.branchName.toLowerCase().includes(t)) ||
-        order.items.some(i => i.oilType.toLowerCase().includes(t));
-      if (!found) return false;
+      // Search term (branch, oil type, orderNo)
+      if (searchTerm.trim()) {
+        const t = searchTerm.trim().toLowerCase();
+        const found =
+          order.orderNo.toLowerCase().includes(t) ||
+          order.branches.some(b => b.branchName.toLowerCase().includes(t)) ||
+          order.items.some(i => i.oilType.toLowerCase().includes(t));
+        if (!found) return false;
+      }
+
+      // Column Filters
+      const matchesStatus = columnFilters.status === "ทั้งหมด" || order.status === columnFilters.status;
+      if (!matchesStatus) return false;
+
+      return true;
+    });
+
+    // Apply sorting
+    if (sortConfig.key && sortConfig.direction) {
+      result.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortConfig.key) {
+          case 'orderDate':
+            aValue = new Date(a.orderDate).getTime();
+            bValue = new Date(b.orderDate).getTime();
+            break;
+          case 'deliveryDate':
+            aValue = new Date(a.deliveryDate).getTime();
+            bValue = new Date(b.deliveryDate).getTime();
+            break;
+          case 'totalAmount':
+            aValue = a.totalAmount;
+            bValue = b.totalAmount;
+            break;
+          case 'totalQuantity':
+            aValue = a.items.reduce((sum, item) => sum + item.quantity, 0);
+            bValue = b.items.reduce((sum, item) => sum + item.quantity, 0);
+            break;
+          default:
+            aValue = (a as any)[sortConfig.key];
+            bValue = (b as any)[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
     }
-    return true;
-  });
+
+    return result;
+  }, [purchaseOrders, filterDate, filterDateTo, selectedBranchIds, searchTerm, columnFilters, sortConfig]);
 
   // Helper to map Thai status to English if needed (for compatibility)
   function mapStatus(status: string) {
@@ -222,6 +279,110 @@ export default function Orders() {
       default: return status;
     }
   }
+
+  const handleSort = (key: string) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        if (prev.direction === 'desc') return { key, direction: null };
+        return { key, direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+  };
+
+  // ดึงค่า Unique สำหรับ Filter Dropdowns
+  const filterOptions = useMemo(() => {
+    return {
+      status: ["ทั้งหมด", ...new Set(purchaseOrders.map(o => o.status))]
+    };
+  }, [purchaseOrders]);
+
+  const HeaderWithFilter = ({ label, columnKey, filterKey, options }: { 
+    label: string, 
+    columnKey?: string, 
+    filterKey?: keyof typeof columnFilters, 
+    options?: string[] 
+  }) => (
+    <th className="px-6 py-4 relative group">
+      <div className="flex items-center gap-2">
+        <div 
+          className={`flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors ${sortConfig.key === columnKey ? 'text-emerald-600' : ''}`}
+          onClick={() => columnKey && handleSort(columnKey)}
+        >
+          {label}
+          {columnKey && getSortIcon(columnKey)}
+        </div>
+        
+        {filterKey && options && (
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveDropdown(activeDropdown === filterKey ? null : filterKey);
+              }}
+              className={`p-1 rounded-md transition-all ${columnFilters[filterKey] !== "ทั้งหมด" ? "bg-emerald-500 text-white shadow-sm" : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"}`}
+            >
+              <Filter className="w-3 h-3" />
+            </button>
+            
+            <AnimatePresence>
+              {activeDropdown === filterKey && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setActiveDropdown(null)} 
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                  >
+                    {options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setColumnFilters(prev => ({ ...prev, [filterKey]: opt }));
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                          columnFilters[filterKey] === opt 
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        {opt}
+                        {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </th>
+  );
+
+  const isAnyFilterActive = useMemo(() => {
+    return columnFilters.status !== "ทั้งหมด";
+  }, [columnFilters]);
+
+  const clearFilters = () => {
+    setColumnFilters({
+      status: "ทั้งหมด"
+    });
+    setSearchTerm("");
+    setFilterDate("");
+    setFilterDateTo("");
+  };
 
   const getStatusColor = (status: string) => {
     // Map Thai status to English for PurchaseOrder status
@@ -251,32 +412,34 @@ export default function Orders() {
   };
 
   return (
-
-    <div className="space-y-6 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4"
-      >
-        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shadow-sm">
-          <ShoppingCart className="w-6 h-6 text-blue-600" />
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+                <ShoppingCart className="w-8 h-8 text-white" />
+              </div>
+              ใบสั่งซื้อจากปตท.
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
+              <History className="w-4 h-4" />
+              ปั๊มไฮโซ - สั่งน้ำมันให้ทุกสาขา
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setNewOrderItems([]);
+              setShowNewOrderModal(true);
+            }}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+          >
+            <Plus className="w-5 h-5" />
+            สร้างใบสั่งซื้อใหม่
+          </button>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white font-display">
-            ใบสั่งซื้อจากปตท.
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            ปั๊มไฮโซ - สั่งน้ำมันให้ทุกสาขา
-          </p>
-        </div>
-
-        <div className="ml-auto flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
-          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
-          </span>
-        </div>
-      </motion.div>
+      </header>
 
       {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -382,73 +545,110 @@ export default function Orders() {
         </motion.div>
       </div>
 
-      {/* Main Content Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden text-sm"
-      >
-        {/* Filters & Actions Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col items-center gap-4 lg:flex-row">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+      {/* Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="ค้นหาเลขที่ใบสั่งซื้อ, สาขา, ประเภทน้ำมัน..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
+          />
+        </div>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+            <MapPin className="w-4 h-4" />
+            <span className="text-sm font-bold whitespace-nowrap">
+              {selectedBranchIds.length === 0 ? "ทุกสาขา" : `สาขาที่เลือก (${selectedBranchIds.length})`}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-1 rounded-2xl border border-gray-200 dark:border-gray-700">
             <input
-              type="text"
-              placeholder="ค้นหาสาขา, ประเภทน้ำมัน..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              type="date"
+              value={filterDate}
+              onChange={e => setFilterDate(e.target.value)}
+              className="bg-transparent border-none text-gray-700 dark:text-gray-200 text-sm focus:ring-0 cursor-pointer rounded-xl px-2"
+            />
+            <span className="text-gray-400">-</span>
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={e => setFilterDateTo(e.target.value)}
+              className="bg-transparent border-none text-gray-700 dark:text-gray-200 text-sm focus:ring-0 cursor-pointer rounded-xl px-2"
             />
           </div>
-
-          <div className="flex items-center gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
-            <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900/50 p-1 rounded-lg border border-gray-200 dark:border-gray-600">
-              <input
-                type="date"
-                value={filterDate}
-                onChange={e => setFilterDate(e.target.value)}
-                className="bg-transparent border-none text-gray-700 dark:text-gray-200 text-sm focus:ring-0 cursor-pointer"
-              />
-              <span className="text-gray-400">-</span>
-              <input
-                type="date"
-                value={filterDateTo}
-                onChange={e => setFilterDateTo(e.target.value)}
-                className="bg-transparent border-none text-gray-700 dark:text-gray-200 text-sm focus:ring-0 cursor-pointer"
-              />
-            </div>
-
-            <button
-              onClick={() => {
-                setNewOrderItems([]);
-                setShowNewOrderModal(true);
-              }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              สร้างใบสั่งซื้อใหม่
-            </button>
-          </div>
         </div>
+      </div>
 
-        {/* Table */}
-        {filteredPurchaseOrders.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-medium">
+      {/* Orders List */}
+      <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                <HeaderWithFilter 
+                  label="เลขที่ใบสั่งซื้อ" 
+                  columnKey="orderNo" 
+                />
+                <HeaderWithFilter 
+                  label="วันที่สั่ง" 
+                  columnKey="orderDate" 
+                />
+                <HeaderWithFilter 
+                  label="วันที่ส่ง" 
+                  columnKey="deliveryDate" 
+                />
+                <th className="px-6 py-4">จำนวนปั๊ม</th>
+                <th 
+                  className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => handleSort('totalQuantity')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    ปริมาณรวม (ลิตร)
+                    {getSortIcon('totalQuantity')}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => handleSort('totalAmount')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    มูลค่ารวม
+                    {getSortIcon('totalAmount')}
+                  </div>
+                </th>
+                <HeaderWithFilter 
+                  label="สถานะ" 
+                  columnKey="status" 
+                  filterKey="status"
+                  options={filterOptions.status}
+                />
+                <th className="px-6 py-4 text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
+              {filteredPurchaseOrders.length === 0 ? (
                 <tr>
-                  <th className="px-6 py-4 text-left">เลขที่ใบสั่งซื้อ</th>
-                  <th className="px-6 py-4 text-left">วันที่สั่ง</th>
-                  <th className="px-6 py-4 text-left">วันที่ส่ง</th>
-                  <th className="px-6 py-4 text-left">จำนวนปั๊ม</th>
-                  <th className="px-6 py-4 text-right">ปริมาณรวม (ลิตร)</th>
-                  <th className="px-6 py-4 text-right">มูลค่ารวม</th>
-                  <th className="px-6 py-4 text-center">สถานะ</th>
-                  <th className="px-6 py-4 text-center">จัดการ</th>
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400 italic font-medium">
+                    <div className="flex flex-col items-center gap-2">
+                      <Search className="w-8 h-8 opacity-20" />
+                      ไม่พบรายการสั่งซื้อที่ค้นหา
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {filteredPurchaseOrders.map((order) => {
+              ) : (
+                filteredPurchaseOrders.map((order) => {
                   const totalOrderedQuantity = order.items.reduce((sum, item) => sum + item.quantity, 0);
                   const branchCount = order.branches.length;
                   const branchNames = order.branches.map((b) => b.branchName).join(", ");
@@ -456,35 +656,35 @@ export default function Orders() {
                   return (
                     <tr
                       key={order.orderNo}
-                      className="hover:bg-blue-50/30 dark:hover:bg-gray-700/30 transition-colors"
+                      className="group hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors font-medium"
                       onClick={() => setSelectedApprovedOrder(order)}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="font-semibold text-gray-900 dark:text-white">{order.orderNo}</div>
+                          <div className="font-bold text-gray-900 dark:text-white">{order.orderNo}</div>
                           {order.supplierOrderNo && (
                             <div className="text-xs text-gray-500 mt-0.5">Ref: {order.supplierOrderNo}</div>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-600 dark:text-gray-300">
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">
                         {order.orderDate}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-600 dark:text-gray-300">
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">
                         {order.deliveryDate}
                       </td>
                       <td className="px-6 py-4">
                         <div>
-                          <div className="text-gray-900 dark:text-white font-medium">{branchCount} ปั๊ม</div>
+                          <div className="font-bold text-gray-900 dark:text-white">{branchCount} ปั๊ม</div>
                           <div className="text-xs text-gray-500 truncate max-w-[150px]" title={branchNames}>
                             {branchNames}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right font-medium text-gray-900 dark:text-white">
+                      <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
                         {numberFormatter.format(totalOrderedQuantity)}
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-indigo-600 dark:text-indigo-400">
+                      <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
                         {currencyFormatter.format(order.totalAmount)}
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -492,212 +692,164 @@ export default function Orders() {
                           {order.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <TableActionMenu
-                          actions={[
-                            {
-                              label: "ดูรายละเอียด",
-                              icon: Eye,
-                              onClick: () => setSelectedApprovedOrder(order),
-                            },
-                          ]}
-                        />
+                      <td className="px-6 py-4">
+                        <div className="flex justify-center">
+                          <TableActionMenu
+                            actions={[
+                              {
+                                label: "ดูรายละเอียด",
+                                icon: Eye,
+                                onClick: () => setSelectedApprovedOrder(order),
+                              },
+                            ]}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-20">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">ไม่พบข้อมูลใบสั่งซื้อ</h3>
-            <p className="text-gray-500">ลองเปลี่ยนคำค้นหาหรือตัวกรองวันที่</p>
-          </div>
-        )}
-      </motion.div>
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
       {/* Modals will be rendered below */}
 
       {/* Truck Capacity Modal */}
       <AnimatePresence>
         {showTruckModal && (
-          <>
-            {/* Backdrop */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowTruckModal(false)}
-              className="fixed inset-0 bg-black/50 z-50"
-            />
-
-            {/* Modal */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-              >
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <Truck className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">จัดการความจุรถน้ำมัน</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">กรอกความจุจริงของรถที่จะมาในวันนี้</p>
-                    </div>
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500 rounded-xl">
+                    <Truck className="w-6 h-6 text-white" />
                   </div>
-                  <button
-                    onClick={() => setShowTruckModal(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
-                    aria-label="ปิด"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div>
+                    <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">จัดการความจุรถน้ำมัน</h2>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">กรอกความจุจริงของรถที่จะมาในวันนี้</p>
+                  </div>
                 </div>
-                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
-                  <div className="space-y-6">
-                    {/* Morning Shift */}
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">รอบเช้า</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <label className="text-sm text-gray-600 dark:text-gray-400 w-24">จำนวนรถ:</label>
-                          <input
-                            type="number"
-                            defaultValue={mockTruckCapacity.morning.truckCount}
-                            className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
-                          />
-                        </div>
-                        <div className="grid grid-cols-7 gap-2">
-                          {[1, 2, 3, 4, 5, 6, 7].map((chamber) => {
-                            const chamberData = mockTruckCapacity.morning.chambers.find((c) => c.chamber === chamber);
-                            return (
-                              <div key={chamber} className="space-y-1">
-                                <label className="text-xs text-gray-600 dark:text-gray-400 font-medium">ช่อง {chamber}</label>
-                                <input
-                                  type="number"
-                                  defaultValue={chamberData?.capacity || 0}
-                                  placeholder="0"
-                                  className="w-full px-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
+                <button onClick={() => setShowTruckModal(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-6">
+                {/* Morning Shift */}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">รอบเช้า</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm text-gray-600 dark:text-gray-400 w-24">จำนวนรถ:</label>
+                      <input
+                        type="number"
+                        defaultValue={mockTruckCapacity.morning.truckCount}
+                        className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
+                      />
                     </div>
-
-                    {/* Afternoon Shift */}
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">รอบบ่าย</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <label className="text-sm text-gray-600 dark:text-gray-400 w-24">จำนวนรถ:</label>
-                          <input
-                            type="number"
-                            defaultValue={mockTruckCapacity.afternoon.truckCount}
-                            className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
-                          />
-                        </div>
-                        <div className="grid grid-cols-7 gap-2">
-                          {[1, 2, 3, 4, 5, 6, 7].map((chamber) => {
-                            const chamberData = mockTruckCapacity.afternoon.chambers.find((c) => c.chamber === chamber);
-                            return (
-                              <div key={chamber} className="space-y-1">
-                                <label className="text-xs text-gray-600 dark:text-gray-400 font-medium">ช่อง {chamber}</label>
-                                <input
-                                  type="number"
-                                  defaultValue={chamberData?.capacity || 0}
-                                  placeholder="0"
-                                  className="w-full px-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-7 gap-2">
+                      {[1, 2, 3, 4, 5, 6, 7].map((chamber) => {
+                        const chamberData = mockTruckCapacity.morning.chambers.find((c) => c.chamber === chamber);
+                        return (
+                          <div key={chamber} className="space-y-1">
+                            <label className="text-xs text-gray-600 dark:text-gray-400 font-medium">ช่อง {chamber}</label>
+                            <input
+                              type="number"
+                              defaultValue={chamberData?.capacity || 0}
+                              placeholder="0"
+                              className="w-full px-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={() => setShowTruckModal(false)}
-                    className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                  >
-                    ยกเลิก
-                  </button>
-                  <button
-                    onClick={() => setShowTruckModal(false)}
-                    className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    บันทึก
-                  </button>
+                {/* Afternoon Shift */}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">รอบบ่าย</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm text-gray-600 dark:text-gray-400 w-24">จำนวนรถ:</label>
+                      <input
+                        type="number"
+                        defaultValue={mockTruckCapacity.afternoon.truckCount}
+                        className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
+                      />
+                    </div>
+                    <div className="grid grid-cols-7 gap-2">
+                      {[1, 2, 3, 4, 5, 6, 7].map((chamber) => {
+                        const chamberData = mockTruckCapacity.afternoon.chambers.find((c) => c.chamber === chamber);
+                        return (
+                          <div key={chamber} className="space-y-1">
+                            <label className="text-xs text-gray-600 dark:text-gray-400 font-medium">ช่อง {chamber}</label>
+                            <input
+                              type="number"
+                              defaultValue={chamberData?.capacity || 0}
+                              placeholder="0"
+                              className="w-full px-2 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-gray-800 dark:text-white"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </motion.div>
-            </div>
-          </>
+              </div>
+              <div className="p-6 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex gap-3">
+                <button
+                  onClick={() => setShowTruckModal(false)}
+                  className="flex-1 px-6 py-4 bg-white dark:bg-gray-800 text-gray-500 font-black rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest text-sm"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={() => setShowTruckModal(false)}
+                  className="flex-[2] px-6 py-4 bg-emerald-500 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/30 hover:bg-emerald-600 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                >
+                  <Save className="w-5 h-5" />
+                  บันทึก
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
       {/* Order Detail Modal */}
       <AnimatePresence>
         {selectedOrderDetail && (
-          <>
-            {/* Backdrop */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedOrderDetail(null)}
-              className="fixed inset-0 bg-black/50 z-50"
-            />
-
-            {/* Modal */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
-                      <MapPin className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                        รายละเอียดคำขอสั่งซื้อน้ำมัน
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {selectedOrderDetail?.branchName} - {selectedOrderDetail?.oilType}
-                      </p>
-                    </div>
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500 rounded-xl">
+                    <MapPin className="w-6 h-6 text-white" />
                   </div>
-                  <button
-                    onClick={() => setSelectedOrderDetail(null)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
-                    aria-label="ปิด"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div>
+                    <h2 className="text-xl font-black text-blue-800 dark:text-blue-400">รายละเอียดคำขอสั่งซื้อน้ำมัน</h2>
+                    <p className="text-xs text-blue-600 dark:text-blue-500 font-bold">{selectedOrderDetail?.branchName} - {selectedOrderDetail?.oilType}</p>
+                  </div>
                 </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
-                  <div className="space-y-6">
-                    {/* Status Badge */}
-                    <div className="flex items-center justify-between">
-                      <span className={`inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-full border ${getStatusColor(selectedOrderDetail?.status)}`}>
+                <button onClick={() => setSelectedOrderDetail(null)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-6">
+                {/* Status Badge */}
+                <div className="flex items-center justify-between">
+                  <span className={`inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-full border ${getStatusColor(selectedOrderDetail?.status)}`}>
                         {selectedOrderDetail?.status === "รออนุมัติ" && <Clock className="w-4 h-4" />}
                         {selectedOrderDetail?.status === "อนุมัติแล้ว" && <CheckCircle className="w-4 h-4" />}
                         {selectedOrderDetail?.status === "ส่งแล้ว" && <CheckCircle className="w-4 h-4" />}
@@ -863,8 +1015,8 @@ export default function Orders() {
                       </div>
                     </div>
 
-                    {/* Additional Info */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Additional Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
                         <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
                           <Info className="w-4 h-4" />
@@ -907,87 +1059,59 @@ export default function Orders() {
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={() => setSelectedOrderDetail(null)}
-                    className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                  >
-                    ปิด
+              </div>
+              <div className="p-6 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex gap-3">
+                <button
+                  onClick={() => setSelectedOrderDetail(null)}
+                  className="flex-1 px-6 py-4 bg-white dark:bg-gray-800 text-gray-500 font-black rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest text-sm"
+                >
+                  ปิดหน้าต่าง
+                </button>
+                {selectedOrderDetail?.status === "รออนุมัติ" && (
+                  <button className="flex-[2] px-6 py-4 bg-emerald-500 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/30 hover:bg-emerald-600 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-5 h-5" />
+                    อนุมัติ
                   </button>
-                  {selectedOrderDetail?.status === "รออนุมัติ" && (
-                    <>
-                      <button className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4" />
-                        อนุมัติ
-                      </button>
-                    </>
-                  )}
-                  {selectedOrderDetail?.orderNo && (
-                    <button className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 flex items-center gap-2">
-                      <Download className="w-4 h-4" />
-                      Export Excel
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            </div>
-          </>
+                )}
+                {selectedOrderDetail?.orderNo && (
+                  <button className="px-6 py-4 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-black rounded-2xl border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+                    <Download className="w-5 h-5" />
+                    Export Excel
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
       {/* Consolidate and Order Modal */}
       <AnimatePresence>
         {showConsolidateModal && (
-          <>
-            {/* Backdrop */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowConsolidateModal(false)}
-              className="fixed inset-0 bg-black/50 z-50"
-            />
-
-            {/* Modal */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
-                      <ShoppingCart className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                        รวบรวมและสั่งน้ำมัน
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        รายละเอียดคำขอจากทั้ง {new Set(editingOrders.map(o => o.branchId)).size} สาขา ({editingOrders.length} รายการ) - แก้ไขข้อมูลได้ทั้งหมด
-                      </p>
-                    </div>
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500 rounded-xl">
+                    <ShoppingCart className="w-6 h-6 text-white" />
                   </div>
-                  <button
-                    onClick={() => setShowConsolidateModal(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
-                    aria-label="ปิด"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div>
+                    <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">รวบรวมและสั่งน้ำมัน</h2>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">รายละเอียดคำขอจากทั้ง {new Set(editingOrders.map(o => o.branchId)).size} สาขา ({editingOrders.length} รายการ) - แก้ไขข้อมูลได้ทั้งหมด</p>
+                  </div>
                 </div>
-
-                {/* Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
-                  <div className="space-y-4">
-                    {editingOrders.map((order, index) => {
+                <button onClick={() => setShowConsolidateModal(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-6">
+                <div className="space-y-4">
+                  {editingOrders.map((order, index) => {
                       const handleUpdateOrder = (field: keyof typeof order, value: string | number | boolean) => {
                         const updated = [...editingOrders];
                         (updated[index] as unknown as Record<string, string | number | boolean>)[field] = value;
@@ -1368,37 +1492,30 @@ export default function Orders() {
                       </div>
                     )}
                   </div>
-                </div>
-
-                {/* Footer Actions */}
-                <div className="px-6 py-5 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    <p className="font-semibold">รวม {new Set(editingOrders.map(o => o.branchId)).size} สาขา ({editingOrders.length} รายการ)</p>
-                    <p className="text-xs">ยอดรวม {numberFormatter.format(editingOrders.reduce((sum, o) => sum + o.quantityOrdered, 0))} ลิตร</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setShowConsolidateModal(false)}
-                      className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                    >
-                      ยกเลิก
-                    </button>
-                    <button
-                      onClick={() => setShowTruckModal(true)}
-                      className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 flex items-center gap-2"
-                    >
-                      <Truck className="w-4 h-4" />
-                      จัดการรถ
-                    </button>
-                    <button
-                      onClick={() => setShowTruckOrderModal(true)}
-                      className="px-6 py-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 font-medium rounded-xl border border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 flex items-center gap-2"
-                    >
-                      <Truck className="w-4 h-4" />
-                      เลือกออเดอร์รถ ({selectedTruckOrders.length})
-                    </button>
-                    <button
-                      onClick={() => {
+              </div>
+              <div className="p-6 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex gap-3">
+                <button
+                  onClick={() => setShowConsolidateModal(false)}
+                  className="flex-1 px-6 py-4 bg-white dark:bg-gray-800 text-gray-500 font-black rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest text-sm"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={() => setShowTruckModal(true)}
+                  className="px-6 py-4 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-black rounded-2xl border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                >
+                  <Truck className="w-5 h-5" />
+                  จัดการรถ
+                </button>
+                <button
+                  onClick={() => setShowTruckOrderModal(true)}
+                  className="px-6 py-4 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-black rounded-2xl border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                >
+                  <Truck className="w-5 h-5" />
+                  เลือกออเดอร์รถ ({selectedTruckOrders.length})
+                </button>
+                <button
+                  onClick={() => {
                         // สร้างข้อมูลบิลจาก orders ที่อนุมัติ
                         const orderDate = new Date().toISOString().split('T')[0];
                         const deliveryDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // วันถัดไป
@@ -1581,64 +1698,45 @@ export default function Orders() {
                         setSelectedTrucksAndDrivers([]);
                         setOrderAttachments([]);
                       }}
-                      className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
+                      className="flex-[2] px-6 py-4 bg-emerald-500 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/30 hover:bg-emerald-600 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
                     >
-                      <CheckCircle2 className="w-4 h-4" />
+                      <CheckCircle2 className="w-5 h-5" />
                       อนุมัติและส่งออเดอร์
                     </button>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
       {/* Truck Order Selection Modal */}
       <AnimatePresence>
         {showTruckOrderModal && (
-          <>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowTruckOrderModal(false)}
-              className="fixed inset-0 bg-black/50 z-50"
-            />
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-              >
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
-                      <Truck className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                        เลือกออเดอร์รถน้ำมัน
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        เลือกออเดอร์รถที่ต้องการใช้ในการส่งน้ำมัน
-                      </p>
-                    </div>
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500 rounded-xl">
+                    <Truck className="w-6 h-6 text-white" />
                   </div>
-                  <button
-                    onClick={() => setShowTruckOrderModal(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div>
+                    <h2 className="text-xl font-black text-blue-800 dark:text-blue-400">เลือกออเดอร์รถน้ำมัน</h2>
+                    <p className="text-xs text-blue-600 dark:text-blue-500 font-bold">เลือกออเดอร์รถที่ต้องการใช้ในการส่งน้ำมัน</p>
+                  </div>
                 </div>
-
-                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
-                  <div className="space-y-3">
-                    {mockTruckOrders
-                      .filter((order) => order.status === "ready-to-pickup")
-                      .map((order) => {
+                <button onClick={() => setShowTruckOrderModal(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-3">
+                {mockTruckOrders
+                  .filter((order) => order.status === "ready-to-pickup")
+                  .map((order) => {
                         const isSelected = selectedTruckOrders.some((o) => o.id === order.id);
                         return (
                           <motion.div
@@ -1704,85 +1802,57 @@ export default function Orders() {
                         <p className="text-gray-600 dark:text-gray-400">ไม่มีออเดอร์รถที่พร้อมใช้งาน</p>
                       </div>
                     )}
-                  </div>
+              </div>
+              <div className="p-6 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex gap-3">
+                <div className="flex-1 flex items-center text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-bold">เลือกแล้ว {selectedTruckOrders.length} ออเดอร์</span>
                 </div>
-
-                <div className="flex items-center justify-between px-6 py-5 border-t border-gray-200 dark:border-gray-700">
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    เลือกแล้ว {selectedTruckOrders.length} ออเดอร์
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setShowTruckOrderModal(false)}
-                      className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700"
-                    >
-                      ยกเลิก
-                    </button>
-                    <button
-                      onClick={() => setShowTruckOrderModal(false)}
-                      className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      ยืนยัน ({selectedTruckOrders.length})
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </>
+                <button
+                  onClick={() => setShowTruckOrderModal(false)}
+                  className="flex-1 px-6 py-4 bg-white dark:bg-gray-800 text-gray-500 font-black rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest text-sm"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={() => setShowTruckOrderModal(false)}
+                  className="flex-[2] px-6 py-4 bg-emerald-500 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/30 hover:bg-emerald-600 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-5 h-5" />
+                  ยืนยัน ({selectedTruckOrders.length})
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
       {/* New Order Modal - สร้างใบสั่งซื้อใหม่สำหรับทุกสาขา */}
       <AnimatePresence>
         {showNewOrderModal && (
-          <>
-            {/* Backdrop */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowNewOrderModal(false)}
-              className="fixed inset-0 bg-black/50 z-50"
-            />
-
-            {/* Modal */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
-                      <Plus className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                        สร้างใบสั่งซื้อใหม่ - ทุกสาขา
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        สั่งน้ำมันได้จากทุกสาขาพร้อมกัน
-                      </p>
-                    </div>
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500 rounded-xl">
+                    <Plus className="w-6 h-6 text-white" />
                   </div>
-                  <button
-                    onClick={() => setShowNewOrderModal(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
-                    aria-label="ปิด"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div>
+                    <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">สร้างใบสั่งซื้อใหม่ - ทุกสาขา</h2>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">สั่งน้ำมันได้จากทุกสาขาพร้อมกัน</p>
+                  </div>
                 </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
-                  <div className="space-y-6">
-                    {/* Document Numbers (from Purchase Order) */}
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                <button onClick={() => setShowNewOrderModal(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-6">
+                {/* Document Numbers (from Purchase Order) */}
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
                       <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">
                         เลขอ้างอิงจากใบสั่งซื้อ (กรอกตามเอกสาร)
                       </h4>
@@ -1954,64 +2024,39 @@ export default function Orders() {
                         )}
                       </div>
                     </div>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
       {/* Approved Order Detail Modal */}
       <AnimatePresence>
         {selectedApprovedOrder && (
-          <>
-            {/* Backdrop */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedApprovedOrder(null)}
-              className="fixed inset-0 bg-black/50 z-50"
-            />
-
-            {/* Modal */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
-                      <Receipt className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                        รายละเอียดบิลรวมการสั่งซื้อ
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {selectedApprovedOrder?.orderNo} - {selectedApprovedOrder?.billNo}
-                      </p>
-                    </div>
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500 rounded-xl">
+                    <Receipt className="w-6 h-6 text-white" />
                   </div>
-                  <button
-                    onClick={() => setSelectedApprovedOrder(null)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
-                    aria-label="ปิด"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div>
+                    <h2 className="text-xl font-black text-blue-800 dark:text-blue-400">รายละเอียดบิลรวมการสั่งซื้อ</h2>
+                    <p className="text-xs text-blue-600 dark:text-blue-500 font-bold">{selectedApprovedOrder?.orderNo} - {selectedApprovedOrder?.billNo}</p>
+                  </div>
                 </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
-                  <div className="space-y-6">
-                    {/* Status Badge */}
-                    <div className="flex items-center justify-between">
+                <button onClick={() => setSelectedApprovedOrder(null)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-6">
+                {/* Status Badge */}
+                <div className="flex items-center justify-between">
                       <span className={`inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-full border ${getStatusColor(selectedApprovedOrder?.status)}`}>
                         {selectedApprovedOrder?.status === "ขนส่งสำเร็จ" && <CheckCircle className="w-4 h-4" />}
                         {selectedApprovedOrder?.status}
@@ -2277,79 +2322,59 @@ export default function Orders() {
                         )}
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={() => setSelectedApprovedOrder(null)}
-                    className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                  >
-                    ปิด
-                  </button>
-                  <button
-                    onClick={() => {
-                      setViewingAttachments(selectedApprovedOrder?.attachments || []);
-                      setShowAttachmentsModal(true);
-                    }}
-                    className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-all duration-200 font-medium flex items-center gap-2"
-                  >
-                    <Paperclip className="w-4 h-4" />
-                    ดูหลักฐาน {selectedApprovedOrder?.attachments && selectedApprovedOrder?.attachments.length > 0 && `(${selectedApprovedOrder?.attachments.length})`}
-                  </button>
-                  <button className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 flex items-center gap-2">
-                    <Download className="w-4 h-4" />
-                    Export Excel
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          </>
+              </div>
+              <div className="p-6 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex gap-3">
+                <button
+                  onClick={() => setSelectedApprovedOrder(null)}
+                  className="flex-1 px-6 py-4 bg-white dark:bg-gray-800 text-gray-500 font-black rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest text-sm"
+                >
+                  ปิดหน้าต่าง
+                </button>
+                <button
+                  onClick={() => {
+                    setViewingAttachments(selectedApprovedOrder?.attachments || []);
+                    setShowAttachmentsModal(true);
+                  }}
+                  className="px-6 py-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 font-black rounded-2xl border border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                >
+                  <Paperclip className="w-5 h-5" />
+                  ดูหลักฐาน ({selectedApprovedOrder?.attachments?.length || 0})
+                </button>
+                <button className="px-6 py-4 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-black rounded-2xl border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+                  <Download className="w-5 h-5" />
+                  Export Excel
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
       {/* Attachments View Modal */}
       <AnimatePresence>
         {showAttachmentsModal && (
-          <>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAttachmentsModal(false)}
-              className="fixed inset-0 bg-black/50 z-50"
-            />
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-              >
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <Paperclip className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                        หลักฐานใบเสนอราคา
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {viewingAttachments.length} ไฟล์
-                      </p>
-                    </div>
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-purple-50 dark:bg-purple-900/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-500 rounded-xl">
+                    <Paperclip className="w-6 h-6 text-white" />
                   </div>
-                  <button
-                    onClick={() => setShowAttachmentsModal(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
-                    aria-label="ปิด"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div>
+                    <h2 className="text-xl font-black text-purple-800 dark:text-purple-400">หลักฐานใบเสนอราคา</h2>
+                    <p className="text-xs text-purple-600 dark:text-purple-500 font-bold">{viewingAttachments.length} ไฟล์</p>
+                  </div>
                 </div>
-                <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
+                <button onClick={() => setShowAttachmentsModal(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {viewingAttachments.map((att) => (
                       <div
@@ -2418,18 +2443,17 @@ export default function Orders() {
                       <p className="text-gray-600 dark:text-gray-400">ไม่มีหลักฐาน</p>
                     </div>
                   )}
-                </div>
-                <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={() => setShowAttachmentsModal(false)}
-                    className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                  >
-                    ปิด
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          </>
+              </div>
+              <div className="p-6 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 flex gap-3">
+                <button
+                  onClick={() => setShowAttachmentsModal(false)}
+                  className="flex-1 px-6 py-4 bg-white dark:bg-gray-800 text-gray-500 font-black rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest text-sm"
+                >
+                  ปิดหน้าต่าง
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

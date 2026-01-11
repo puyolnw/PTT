@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Droplet, Plus, Search, X } from "lucide-react";
-import ChartCard from "@/components/ChartCard";
+import { Droplet, Plus, Search, X, Filter, ChevronUp, ChevronDown, ChevronsUpDown, Check, FileText, MapPin, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
 import type { OilType } from "@/types/gasStation";
@@ -107,6 +107,19 @@ export default function RecordSuctionOil() {
   );
 
   const [search, setSearch] = useState("");
+  const [columnFilters, setColumnFilters] = useState<{
+    mode: string;
+    branch: string;
+    oilType: string;
+  }>({
+    mode: "ทั้งหมด",
+    branch: "ทั้งหมด",
+    oilType: "ทั้งหมด"
+  });
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'createdAt', direction: 'desc' });
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [addOpen, setAddOpen] = useState(false);
 
   const [mode, setMode] = useState<SuctionMode>("sell");
@@ -116,9 +129,33 @@ export default function RecordSuctionOil() {
   const [quantity, setQuantity] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
 
+  const handleSort = (key: string) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        if (prev.direction === 'desc') return { key, direction: null };
+        return { key, direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+  };
+
+  const filterOptions = useMemo(() => {
+    return {
+      mode: ["ทั้งหมด", "ดูดขึ้นมาขาย", "ดูดเพื่อล้างถัง"],
+      branch: ["ทั้งหมด", ...new Set(logs.map(l => l.branchName))],
+      oilType: ["ทั้งหมด", ...new Set(logs.map(l => l.oilType))]
+    };
+  }, [logs]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return logs.filter((l) => {
+    let result = logs.filter((l) => {
       const matchSearch = !q ||
         l.branchName.toLowerCase().includes(q) ||
         l.oilType.toLowerCase().includes(q) ||
@@ -128,9 +165,136 @@ export default function RecordSuctionOil() {
 
       const matchBranch = selectedBranchIds.length === 0 || selectedBranchIds.includes(l.branchId);
 
-      return matchSearch && matchBranch;
+      // Column Filters
+      const matchesMode = columnFilters.mode === "ทั้งหมด" || 
+                         (columnFilters.mode === "ดูดขึ้นมาขาย" && l.mode === "sell") ||
+                         (columnFilters.mode === "ดูดเพื่อล้างถัง" && l.mode === "clean");
+      const matchesBranchFilter = columnFilters.branch === "ทั้งหมด" || l.branchName === columnFilters.branch;
+      const matchesOilType = columnFilters.oilType === "ทั้งหมด" || l.oilType === columnFilters.oilType;
+
+      const createdAt = new Date(l.createdAt);
+      const matchesDate = (!filterDateFrom || createdAt >= new Date(filterDateFrom)) && 
+                          (!filterDateTo || createdAt <= new Date(filterDateTo));
+
+      return matchSearch && matchBranch && matchesMode && matchesBranchFilter && matchesOilType && matchesDate;
     });
-  }, [logs, search, selectedBranchIds]);
+
+    if (sortConfig.key && sortConfig.direction) {
+      result.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortConfig.key) {
+          case 'createdAt':
+            aValue = new Date(a.createdAt).getTime();
+            bValue = new Date(b.createdAt).getTime();
+            break;
+          case 'quantity':
+            aValue = a.quantity;
+            bValue = b.quantity;
+            break;
+          default:
+            aValue = (a as any)[sortConfig.key];
+            bValue = (b as any)[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    return result;
+  }, [logs, search, selectedBranchIds, columnFilters, filterDateFrom, filterDateTo, sortConfig]);
+
+  const HeaderWithFilter = ({ label, columnKey, filterKey, options }: { 
+    label: string, 
+    columnKey?: string, 
+    filterKey?: keyof typeof columnFilters, 
+    options?: string[] 
+  }) => (
+    <th className="px-6 py-4 relative group">
+      <div className="flex items-center gap-2">
+        <div 
+          className={`flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors ${sortConfig.key === columnKey ? 'text-emerald-600' : ''}`}
+          onClick={() => columnKey && handleSort(columnKey)}
+        >
+          {label}
+          {columnKey && getSortIcon(columnKey)}
+        </div>
+        
+        {filterKey && options && (
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveDropdown(activeDropdown === filterKey ? null : filterKey);
+              }}
+              className={`p-1 rounded-md transition-all ${columnFilters[filterKey] !== "ทั้งหมด" ? "bg-emerald-500 text-white shadow-sm" : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"}`}
+            >
+              <Filter className="w-3 h-3" />
+            </button>
+            
+            <AnimatePresence>
+              {activeDropdown === filterKey && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setActiveDropdown(null)} 
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                  >
+                    {options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setColumnFilters(prev => ({ ...prev, [filterKey]: opt }));
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                          columnFilters[filterKey] === opt 
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        {opt}
+                        {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </th>
+  );
+
+  const isAnyFilterActive = useMemo(() => {
+    return columnFilters.mode !== "ทั้งหมด" || 
+           columnFilters.branch !== "ทั้งหมด" ||
+           columnFilters.oilType !== "ทั้งหมด" ||
+           filterDateFrom !== "" ||
+           filterDateTo !== "";
+  }, [columnFilters, filterDateFrom, filterDateTo]);
+
+  const clearFilters = () => {
+    setColumnFilters({
+      mode: "ทั้งหมด",
+      branch: "ทั้งหมด",
+      oilType: "ทั้งหมด"
+    });
+    setSearch("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+  };
 
   const summary = useMemo(() => {
     const sellLiters = filtered.filter((x) => x.mode === "sell").reduce((s, x) => s + x.quantity, 0);
@@ -201,209 +365,289 @@ export default function RecordSuctionOil() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-app text-2xl font-bold font-display">บันทึกการดูดน้ำมัน</div>
-          <div className="text-sm text-muted">
-            มี 2 แบบ: <span className="text-app font-semibold">ดูดขึ้นมาขาย</span> (จะเพิ่มเข้าสต็อกขาย) และ{" "}
-            <span className="text-app font-semibold">ดูดเพื่อล้างถัง</span> (บันทึกประวัติ)
+    <div className="space-y-6 pb-20">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200 dark:shadow-none">
+            <Droplet className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">บันทึกการดูดน้ำมัน</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">มี 2 แบบ: ดูดขึ้นมาขาย (จะเพิ่มเข้าสต็อกขาย) และ ดูดเพื่อล้างถัง (บันทึกประวัติ)</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
-            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
-            </span>
-          </div>
 
-          <button
-            type="button"
-            onClick={openAdd}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-ptt-blue text-white hover:brightness-110 transition shadow-lg shadow-blue-500/20 font-bold"
-          >
-            <Plus className="w-4 h-4" />
-            เพิ่มรายการดูดน้ำมัน
-          </button>
+        <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
+          </span>
         </div>
       </div>
 
-      <ChartCard
-        title="รายการบันทึกการดูดน้ำมัน"
-        subtitle={`ทั้งหมด: ${summary.count} • ดูดขึ้นมาขาย: ${numberFormatter.format(summary.sellLiters)} ลิตร • ดูดล้างถัง: ${numberFormatter.format(
-          summary.cleanLiters
-        )} ลิตร`}
-        icon={Droplet}
-      >
-        <div className="relative mb-4">
-          <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <FileText className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">รายการทั้งหมด</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{summary.count.toLocaleString()} รายการ</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+              <Droplet className="w-6 h-6 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ดูดขึ้นมาขาย</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{numberFormatter.format(summary.sellLiters)} ลิตร</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl">
+              <Droplet className="w-6 h-6 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ดูดล้างถัง</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{numberFormatter.format(summary.cleanLiters)} ลิตร</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
+            type="text"
+            placeholder="ค้นหา: สาขา / หลุม / ชนิดน้ำมัน / หมายเหตุ / ขาย / ล้าง"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="ค้นหา: สาขา / หลุม / ชนิดน้ำมัน / หมายเหตุ / ขาย / ล้าง"
-            className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
           />
         </div>
+        <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-2xl font-bold text-sm">
+          <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="bg-transparent outline-none" />
+          <span className="text-gray-400">-</span>
+          <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="bg-transparent outline-none" />
+        </div>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+            <MapPin className="w-4 h-4" />
+            <span className="text-sm font-bold whitespace-nowrap">
+              {selectedBranchIds.length === 0 ? "ทุกสาขา" : `สาขาที่เลือก (${selectedBranchIds.length})`}
+            </span>
+          </div>
+        </div>
+        <button
+          onClick={openAdd}
+          className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black shadow-lg shadow-emerald-600/20 transition-all active:scale-95 flex items-center gap-2"
+        >
+          <Plus className="w-5 h-5" />
+          เพิ่มรายการดูดน้ำมัน
+        </button>
+      </div>
 
-        {filtered.length === 0 ? (
-          <div className="text-sm text-muted">ไม่พบรายการ</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-xs text-muted">
-                <tr className="border-b border-app">
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">เวลา</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">ประเภท</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">สาขา</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">หลุม</th>
-                  <th className="text-left py-2 pr-3 whitespace-nowrap">ชนิดน้ำมัน</th>
-                  <th className="text-right py-2 pr-3 whitespace-nowrap">จำนวน (ลิตร)</th>
-                  <th className="text-left py-2 whitespace-nowrap">หมายเหตุ</th>
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                <HeaderWithFilter label="เวลา" columnKey="createdAt" />
+                <HeaderWithFilter label="ประเภท" columnKey="mode" filterKey="mode" options={filterOptions.mode} />
+                <HeaderWithFilter label="สาขา" columnKey="branchName" filterKey="branch" options={filterOptions.branch} />
+                <th className="px-6 py-4">หลุม</th>
+                <HeaderWithFilter label="ชนิดน้ำมัน" columnKey="oilType" filterKey="oilType" options={filterOptions.oilType} />
+                <th className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" onClick={() => handleSort('quantity')}>
+                  <div className="flex items-center justify-end gap-2">จำนวน (ลิตร) {getSortIcon('quantity')}</div>
+                </th>
+                <th className="px-6 py-4">หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 font-medium">
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <FileText className="w-12 h-12 text-gray-300" />
+                      <p className="text-sm font-bold">ไม่พบรายการ</p>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-app">
-                {filtered.map((l) => (
-                  <tr key={l.id} className="hover:bg-white/5 transition">
-                    <td className="py-2 pr-3 whitespace-nowrap text-muted">
-                      {new Date(l.createdAt).toLocaleString("th-TH")}
+              ) : (
+                filtered.map((l) => (
+                  <tr key={l.id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-gray-900 dark:text-white">
+                          {new Date(l.createdAt).toLocaleDateString('th-TH')}
+                        </span>
+                        <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(l.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                        </span>
+                      </div>
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <ModeBadge mode={l.mode} />
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap text-app">{l.branchName}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap text-app">{l.tankNumber ?? "-"}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap text-app">{l.oilType}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap text-right text-app font-semibold">
+                    <td className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">{l.branchName}</td>
+                    <td className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">{l.tankNumber ?? "-"}</td>
+                    <td className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">{l.oilType}</td>
+                    <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
                       {numberFormatter.format(l.quantity)}
                     </td>
-                    <td className="py-2 text-muted min-w-[260px]">{l.notes || "-"}</td>
+                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{l.notes || "-"}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </ChartCard>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-      {addOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 md:p-8 overflow-y-auto"
-          onClick={() => setAddOpen(false)}
-        >
-          <div
-            className="w-full max-w-2xl rounded-2xl border border-app bg-[var(--bg)] shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between gap-3 p-4 md:p-6 border-b border-app">
-              <div className="min-w-0">
-                <div className="text-app font-bold text-lg truncate">เพิ่มรายการดูดน้ำมัน</div>
-                <div className="text-xs text-muted">
-                  ถ้าเลือก “ดูดขึ้นมาขาย” ระบบจะเพิ่มเข้าสต็อกขายในหน้า “ขายน้ำมันภายในปั๊ม”
+      {/* Create Modal */}
+      <AnimatePresence>
+        {addOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500 rounded-xl">
+                    <Plus className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">เพิ่มรายการดูดน้ำมัน</h2>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">ถ้าเลือก "ดูดขึ้นมาขาย" ระบบจะเพิ่มเข้าสต็อกขายในหน้า "ขายน้ำมันภายในปั๊ม"</p>
+                  </div>
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAddOpen(false)}
-                className="p-2 rounded-xl border border-app hover:border-red-500/40 text-muted hover:text-app transition"
-                title="ปิด"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-4 md:p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted">ประเภทการดูด</label>
-                  <select
-                    value={mode}
-                    onChange={(e) => setMode(e.target.value as SuctionMode)}
-                    className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-                  >
-                    <option value="sell">ดูดขึ้นมาขาย</option>
-                    <option value="clean">ดูดเพื่อล้างถัง</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted">สาขา</label>
-                  <select
-                    value={branchId}
-                    onChange={(e) => setBranchId(parseInt(e.target.value, 10))}
-                    className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-                  >
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted">เลขหลุม (ถ้ามี)</label>
-                  <input
-                    value={tankNumber}
-                    onChange={(e) => setTankNumber(e.target.value)}
-                    className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-                    placeholder="เช่น 5"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted">ชนิดน้ำมัน</label>
-                  <select
-                    value={oilType}
-                    onChange={(e) => setOilType(e.target.value as OilType)}
-                    className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-                  >
-                    <option value="Premium Diesel">Premium Diesel</option>
-                    <option value="Diesel">Diesel</option>
-                    <option value="Premium Gasohol 95">Premium Gasohol 95</option>
-                    <option value="Gasohol 95">Gasohol 95</option>
-                    <option value="Gasohol 91">Gasohol 91</option>
-                    <option value="E20">E20</option>
-                    <option value="E85">E85</option>
-                    <option value="Gasohol E20">Gasohol E20</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted">จำนวนลิตร</label>
-                  <input
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-                    placeholder="เช่น 300"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted">หมายเหตุ</label>
-                  <input
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="mt-1 w-full px-3 py-2 rounded-xl bg-white/5 border border-app text-app focus:outline-none focus:ring-2 focus:ring-ptt-blue/30"
-                    placeholder="เช่น ดูดล้างถัง / ดูดจากหลุมผิด"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
                 <button
-                  type="button"
                   onClick={() => setAddOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-white/5 border border-app hover:border-ptt-blue/40 text-app transition"
+                  className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">ประเภทการดูด</label>
+                    <select
+                      value={mode}
+                      onChange={(e) => setMode(e.target.value as SuctionMode)}
+                      className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    >
+                      <option value="sell">ดูดขึ้นมาขาย</option>
+                      <option value="clean">ดูดเพื่อล้างถัง</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">สาขา</label>
+                    <select
+                      value={branchId}
+                      onChange={(e) => setBranchId(parseInt(e.target.value, 10))}
+                      className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    >
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">เลขหลุม (ถ้ามี)</label>
+                    <input
+                      value={tankNumber}
+                      onChange={(e) => setTankNumber(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+                      placeholder="เช่น 5"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">ชนิดน้ำมัน</label>
+                    <select
+                      value={oilType}
+                      onChange={(e) => setOilType(e.target.value as OilType)}
+                      className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    >
+                      <option value="Premium Diesel">Premium Diesel</option>
+                      <option value="Diesel">Diesel</option>
+                      <option value="Premium Gasohol 95">Premium Gasohol 95</option>
+                      <option value="Gasohol 95">Gasohol 95</option>
+                      <option value="Gasohol 91">Gasohol 91</option>
+                      <option value="E20">E20</option>
+                      <option value="E85">E85</option>
+                      <option value="Gasohol E20">Gasohol E20</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">จำนวนลิตร</label>
+                    <input
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+                      placeholder="เช่น 300"
+                    />
+                  </div>
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">หมายเหตุ</label>
+                    <input
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+                      placeholder="เช่น ดูดล้างถัง / ดูดจากหลุมผิด"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 sticky bottom-0 z-10">
+                <button
+                  onClick={() => setAddOpen(false)}
+                  className="px-10 py-3 bg-gray-900 dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 text-white rounded-2xl font-black transition-all shadow-lg active:scale-95"
                 >
                   ยกเลิก
                 </button>
                 <button
-                  type="button"
                   onClick={saveLog}
-                  className="px-4 py-2 rounded-xl bg-ptt-blue text-white hover:brightness-110 transition"
+                  className="px-10 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black transition-all shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2"
                 >
+                  <Plus className="w-5 h-5" />
                   บันทึก
                 </button>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

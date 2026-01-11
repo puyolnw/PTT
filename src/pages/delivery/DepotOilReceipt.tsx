@@ -18,7 +18,11 @@ import {
   Check,
   Navigation,
   ShoppingCart,
-  Eye
+  Eye,
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown
 } from "lucide-react";
 import { useGasStation } from "@/contexts/GasStationContext";
 import { useBranch } from "@/contexts/BranchContext";
@@ -33,6 +37,17 @@ export default function DepotOilReceipt() {
   const selectedBranchIds = useMemo(() => selectedBranches.map(id => Number(id)), [selectedBranches]);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [columnFilters, setColumnFilters] = useState<{
+    status: string;
+    billNo: string;
+  }>({
+    status: "ทั้งหมด",
+    billNo: "ทั้งหมด"
+  });
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'deliveryDate', direction: 'desc' });
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -356,19 +371,167 @@ export default function DepotOilReceipt() {
     }).sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
   }, [purchaseOrders, searchTerm, selectedBranchIds]);
 
+  const handleSort = (key: string) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        if (prev.direction === 'desc') return { key, direction: null };
+        return { key, direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+  };
+
+  const filterOptions = useMemo(() => {
+    const received = purchaseOrders.filter(o => o.status === "ขนส่งสำเร็จ");
+    return {
+      status: ["ทั้งหมด", "ขนส่งสำเร็จ"],
+      billNo: ["ทั้งหมด", ...new Set(received.map(o => o.billNo || "").filter(Boolean))]
+    };
+  }, [purchaseOrders]);
+
   // ประวัติการรับน้ำมัน
   const receiptHistory = useMemo(() => {
-    return purchaseOrders.filter(order => {
+    let result = purchaseOrders.filter(order => {
       const isReceived = order.status === "ขนส่งสำเร็จ";
-      const matchSearch = order.orderNo.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchSearch = order.orderNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (order.billNo || "").toLowerCase().includes(searchTerm.toLowerCase());
       
       // กรองตามสาขาที่เลือก หรือสาขาที่ผู้ใช้สังกัด
       const matchesBranch = selectedBranchIds.length === 0 || 
                            order.branches.some(b => selectedBranchIds.includes(b.branchId));
 
-      return isReceived && matchSearch && matchesBranch;
-    }).sort((a, b) => new Date(b.deliveryDate || b.orderDate).getTime() - new Date(a.deliveryDate || a.orderDate).getTime());
-  }, [purchaseOrders, searchTerm, selectedBranchIds]);
+      // Column Filters
+      const matchesStatus = columnFilters.status === "ทั้งหมด" || order.status === columnFilters.status;
+      const matchesBillNo = columnFilters.billNo === "ทั้งหมด" || (order.billNo || "") === columnFilters.billNo;
+      
+      const deliveryDate = order.deliveryDate || order.orderDate;
+      const deliveryDateObj = new Date(deliveryDate);
+      const matchesDate = (!filterDateFrom || deliveryDateObj >= new Date(filterDateFrom)) && 
+                          (!filterDateTo || deliveryDateObj <= new Date(filterDateTo));
+
+      return isReceived && matchSearch && matchesBranch && matchesStatus && matchesBillNo && matchesDate;
+    });
+
+    if (sortConfig.key && sortConfig.direction) {
+      result.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortConfig.key) {
+          case 'deliveryDate':
+            aValue = new Date(a.deliveryDate || a.orderDate).getTime();
+            bValue = new Date(b.deliveryDate || b.orderDate).getTime();
+            break;
+          case 'orderDate':
+            aValue = new Date(a.orderDate).getTime();
+            bValue = new Date(b.orderDate).getTime();
+            break;
+          default:
+            aValue = (a as any)[sortConfig.key];
+            bValue = (b as any)[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => new Date(b.deliveryDate || b.orderDate).getTime() - new Date(a.deliveryDate || a.orderDate).getTime());
+    }
+
+    return result;
+  }, [purchaseOrders, searchTerm, selectedBranchIds, columnFilters, filterDateFrom, filterDateTo, sortConfig]);
+
+  const HeaderWithFilter = ({ label, columnKey, filterKey, options }: { 
+    label: string, 
+    columnKey?: string, 
+    filterKey?: keyof typeof columnFilters, 
+    options?: string[] 
+  }) => (
+    <th className="px-6 py-4 relative group">
+      <div className="flex items-center gap-2">
+        <div 
+          className={`flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors ${sortConfig.key === columnKey ? 'text-emerald-600' : ''}`}
+          onClick={() => columnKey && handleSort(columnKey)}
+        >
+          {label}
+          {columnKey && getSortIcon(columnKey)}
+        </div>
+        
+        {filterKey && options && (
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveDropdown(activeDropdown === filterKey ? null : filterKey);
+              }}
+              className={`p-1 rounded-md transition-all ${columnFilters[filterKey] !== "ทั้งหมด" ? "bg-emerald-500 text-white shadow-sm" : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"}`}
+            >
+              <Filter className="w-3 h-3" />
+            </button>
+            
+            <AnimatePresence>
+              {activeDropdown === filterKey && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setActiveDropdown(null)} 
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                  >
+                    {options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setColumnFilters(prev => ({ ...prev, [filterKey]: opt }));
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                          columnFilters[filterKey] === opt 
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        {opt}
+                        {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </th>
+  );
+
+  const isAnyFilterActive = useMemo(() => {
+    return columnFilters.status !== "ทั้งหมด" || 
+           columnFilters.billNo !== "ทั้งหมด" ||
+           filterDateFrom !== "" ||
+           filterDateTo !== "";
+  }, [columnFilters, filterDateFrom, filterDateTo]);
+
+  const clearFilters = () => {
+    setColumnFilters({
+      status: "ทั้งหมด",
+      billNo: "ทั้งหมด"
+    });
+    setSearchTerm("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+  };
 
   const handleOpenReceiptModal = (order: PurchaseOrder) => {
     setSelectedOrder(order);
@@ -427,17 +590,39 @@ export default function DepotOilReceipt() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      {/* Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
             placeholder="ค้นหาเลขที่ PO ปตท., เลขที่บิล..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
           />
+        </div>
+        <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-2xl font-bold text-sm">
+          <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="bg-transparent outline-none" />
+          <span className="text-gray-400">-</span>
+          <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="bg-transparent outline-none" />
+        </div>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+            <MapPin className="w-4 h-4" />
+            <span className="text-sm font-bold whitespace-nowrap">
+              {selectedBranchIds.length === 0 ? "ทุกสาขา" : `สาขาที่เลือก (${selectedBranchIds.length})`}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -552,32 +737,63 @@ export default function DepotOilReceipt() {
             <h2 className="text-lg font-bold text-gray-800 dark:text-white">ประวัติการรับน้ำมันล่าสุด</h2>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 text-xs uppercase font-bold">
-                  <tr>
-                    <th className="px-6 py-4">เลขที่ PO ปตท.</th>
-                    <th className="px-6 py-4">เลขที่บิล</th>
-                    <th className="px-6 py-4">วันที่รับ</th>
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                    <HeaderWithFilter 
+                      label="เลขที่ PO ปตท." 
+                      columnKey="orderDate" 
+                    />
+                    <HeaderWithFilter 
+                      label="เลขที่บิล" 
+                      columnKey="billNo" 
+                      filterKey="billNo"
+                      options={filterOptions.billNo}
+                    />
+                    <HeaderWithFilter 
+                      label="วันที่รับ" 
+                      columnKey="deliveryDate" 
+                    />
                     <th className="px-6 py-4">รายการ</th>
-                    <th className="px-6 py-4 text-center">สถานะ</th>
+                    <HeaderWithFilter 
+                      label="สถานะ" 
+                      columnKey="status" 
+                      filterKey="status"
+                      options={filterOptions.status}
+                    />
                     <th className="px-6 py-4 text-center">จัดการ</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 font-medium">
                   {receiptHistory.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-gray-400 italic">ไม่พบประวัติการรับน้ำมัน</td>
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                        <div className="flex flex-col items-center gap-2">
+                          <FileText className="w-12 h-12 text-gray-300" />
+                          <p className="text-sm font-bold">ไม่พบประวัติการรับน้ำมัน</p>
+                        </div>
+                      </td>
                     </tr>
                   ) : (
                     receiptHistory.map((order) => (
-                      <tr key={order.orderNo} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                        <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">{order.orderNo}</td>
-                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{order.billNo || "-"}</td>
-                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
+                      <tr key={order.orderNo} className="group hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-gray-900 dark:text-white">
+                              {new Date(order.orderDate).toLocaleDateString('th-TH')}
+                            </span>
+                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
+                              <FileText className="w-3 h-3" />
+                              {order.orderNo}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">{order.billNo || "-"}</td>
+                        <td className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">
                           <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-1.5 text-blue-600 font-bold">
+                            <div className="flex items-center gap-1.5 text-emerald-600">
                               <Calendar className="w-3.5 h-3.5" />
                               {order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('th-TH') : "-"}
                             </div>

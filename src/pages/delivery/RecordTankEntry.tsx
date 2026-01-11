@@ -28,13 +28,16 @@ import {
     Eye,
     FileText,
     Truck,
-    Calendar,
     Download,
     X,
     Save,
     BookOpen,
     AlertTriangle,
     MapPin,
+    ChevronUp,
+    ChevronDown,
+    ChevronsUpDown,
+    Check
 } from "lucide-react";
 import { mockOilReceipts } from "@/data/gasStationReceipts";
 import { logActivity } from "@/types/gasStationActivity";
@@ -272,10 +275,21 @@ export default function RecordTankEntry() {
     const location = useLocation();
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState("");
-    const [filterStatus, setFilterStatus] = useState("ทั้งหมด");
-    const [filterSource, setFilterSource] = useState("ทั้งหมด");
-    const [filterTank] = useState("ทั้งหมด");
-    const [filterIncorrect, setFilterIncorrect] = useState<"ทั้งหมด" | "ปกติ" | "ผิด">("ทั้งหมด");
+    const [columnFilters, setColumnFilters] = useState<{
+        status: string;
+        source: string;
+        tank: string;
+        incorrect: string;
+    }>({
+        status: "ทั้งหมด",
+        source: "ทั้งหมด",
+        tank: "ทั้งหมด",
+        incorrect: "ทั้งหมด"
+    });
+    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'entryDate', direction: 'desc' });
+    const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+    const [filterDateTo, setFilterDateTo] = useState<string>("");
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showIncorrectEntryModal, setShowIncorrectEntryModal] = useState(false);
@@ -558,9 +572,34 @@ export default function RecordTankEntry() {
         }) || null;
     };
 
+    const handleSort = (key: string) => {
+        setSortConfig(prev => {
+            if (prev.key === key) {
+                if (prev.direction === 'asc') return { key, direction: 'desc' };
+                if (prev.direction === 'desc') return { key, direction: null };
+                return { key, direction: 'asc' };
+            }
+            return { key, direction: 'asc' };
+        });
+    };
+
+    const getSortIcon = (key: string) => {
+        if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+        return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+    };
+
+    const filterOptions = useMemo(() => {
+        return {
+            status: ["ทั้งหมด", "draft", "completed", "cancelled"],
+            source: ["ทั้งหมด", "PTT", "Branch", "Other"],
+            tank: ["ทั้งหมด", ...new Set(allRecords.map(r => r.tankNumber.toString()))],
+            incorrect: ["ทั้งหมด", "ปกติ", "ผิด"]
+        };
+    }, [allRecords]);
+
     // Filter records
     const filteredRecords = useMemo(() => {
-        return allRecords.filter((record) => {
+        let result = allRecords.filter((record) => {
             const matchesSearch =
                 record.receiptNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 record.purchaseOrderNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -568,22 +607,149 @@ export default function RecordTankEntry() {
                 record.oilType.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (record.isIncorrect && (record as IncorrectTankEntry).wrongTankCode?.toLowerCase().includes(searchTerm.toLowerCase()));
 
-            const matchesStatus = filterStatus === "ทั้งหมด" || record.status === filterStatus;
-            const matchesSource = filterSource === "ทั้งหมด" || record.source === filterSource;
-            const matchesTank = filterTank === "ทั้งหมด" || record.tankNumber.toString() === filterTank;
-            
-            // Filter by incorrect status
-            const matchesIncorrect = 
-                filterIncorrect === "ทั้งหมด" || 
-                (filterIncorrect === "ผิด" && record.isIncorrect) ||
-                (filterIncorrect === "ปกติ" && !record.isIncorrect);
-
             const matchesGlobalBranch = selectedBranchIds.length === 0 || 
                 (record.branchId ? selectedBranchIds.includes(record.branchId) : true);
 
-            return matchesSearch && matchesStatus && matchesSource && matchesTank && matchesIncorrect && matchesGlobalBranch;
+            // Column Filters
+            const matchesStatus = columnFilters.status === "ทั้งหมด" || record.status === columnFilters.status;
+            const matchesSource = columnFilters.source === "ทั้งหมด" || record.source === columnFilters.source;
+            const matchesTank = columnFilters.tank === "ทั้งหมด" || record.tankNumber.toString() === columnFilters.tank;
+            
+            // Filter by incorrect status
+            const matchesIncorrect = 
+                columnFilters.incorrect === "ทั้งหมด" || 
+                (columnFilters.incorrect === "ผิด" && record.isIncorrect) ||
+                (columnFilters.incorrect === "ปกติ" && !record.isIncorrect);
+
+            const entryDate = new Date(record.entryDate);
+            const matchesDate = (!filterDateFrom || entryDate >= new Date(filterDateFrom)) && 
+                              (!filterDateTo || entryDate <= new Date(filterDateTo));
+
+            return matchesSearch && matchesGlobalBranch && matchesStatus && matchesSource && matchesTank && matchesIncorrect && matchesDate;
         });
-    }, [searchTerm, filterStatus, filterSource, filterTank, filterIncorrect, allRecords, selectedBranchIds]);
+
+        if (sortConfig.key && sortConfig.direction) {
+            result.sort((a, b) => {
+                let aValue: any;
+                let bValue: any;
+
+                switch (sortConfig.key) {
+                    case 'entryDate':
+                        aValue = new Date(a.entryDate).getTime();
+                        bValue = new Date(b.entryDate).getTime();
+                        break;
+                    case 'quantity':
+                        aValue = a.quantity;
+                        bValue = b.quantity;
+                        break;
+                    case 'totalAmount':
+                        aValue = a.totalAmount;
+                        bValue = b.totalAmount;
+                        break;
+                    default:
+                        aValue = (a as any)[sortConfig.key];
+                        bValue = (b as any)[sortConfig.key];
+                }
+
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        } else {
+            result.sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
+        }
+
+        return result;
+    }, [searchTerm, columnFilters, filterDateFrom, filterDateTo, allRecords, selectedBranchIds, sortConfig]);
+
+    const HeaderWithFilter = ({ label, columnKey, filterKey, options }: { 
+        label: string, 
+        columnKey?: string, 
+        filterKey?: keyof typeof columnFilters, 
+        options?: string[] 
+    }) => (
+        <th className="px-6 py-4 relative group">
+            <div className="flex items-center gap-2">
+                <div 
+                    className={`flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors ${sortConfig.key === columnKey ? 'text-emerald-600' : ''}`}
+                    onClick={() => columnKey && handleSort(columnKey)}
+                >
+                    {label}
+                    {columnKey && getSortIcon(columnKey)}
+                </div>
+                
+                {filterKey && options && (
+                    <div className="relative">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveDropdown(activeDropdown === filterKey ? null : filterKey);
+                            }}
+                            className={`p-1 rounded-md transition-all ${columnFilters[filterKey] !== "ทั้งหมด" ? "bg-emerald-500 text-white shadow-sm" : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"}`}
+                        >
+                            <Filter className="w-3 h-3" />
+                        </button>
+                        
+                        <AnimatePresence>
+                            {activeDropdown === filterKey && (
+                                <>
+                                    <div 
+                                        className="fixed inset-0 z-10" 
+                                        onClick={() => setActiveDropdown(null)} 
+                                    />
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                                    >
+                                        {options.map((opt) => (
+                                            <button
+                                                key={opt}
+                                                onClick={() => {
+                                                    setColumnFilters(prev => ({ ...prev, [filterKey]: opt }));
+                                                    setActiveDropdown(null);
+                                                }}
+                                                className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                                                    columnFilters[filterKey] === opt 
+                                                        ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                                                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                                }`}
+                                            >
+                                                {opt}
+                                                {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                </>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                )}
+            </div>
+        </th>
+    );
+
+    const isAnyFilterActive = useMemo(() => {
+        return columnFilters.status !== "ทั้งหมด" || 
+               columnFilters.source !== "ทั้งหมด" || 
+               columnFilters.tank !== "ทั้งหมด" ||
+               columnFilters.incorrect !== "ทั้งหมด" ||
+               filterDateFrom !== "" ||
+               filterDateTo !== "";
+    }, [columnFilters, filterDateFrom, filterDateTo]);
+
+    const clearFilters = () => {
+        setColumnFilters({
+            status: "ทั้งหมด",
+            source: "ทั้งหมด",
+            tank: "ทั้งหมด",
+            incorrect: "ทั้งหมด"
+        });
+        setSearchTerm("");
+        setFilterDateFrom("");
+        setFilterDateTo("");
+    };
 
     // Summary stats
     const stats = useMemo(() => {
@@ -981,20 +1147,15 @@ export default function RecordTankEntry() {
     return (
         <div className="space-y-6 p-6">
             {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
-            >
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
-                        <Droplet className="w-8 h-8 text-teal-500" />
-                        บันทึกน้ำมันลงหลุม
-                    </h1>
-                    <p className="text-gray-600 dark:text-gray-400">
-                        บันทึกรายการน้ำมันที่ลงหลุมใต้ดิน แยกตามรหัสหลุม ประเภทน้ำมัน และหัวจ่าย
-                    </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200 dark:shadow-none">
+                        <Droplet className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">บันทึกน้ำมันลงหลุม</h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">บันทึกรายการน้ำมันที่ลงหลุมใต้ดิน แยกตามรหัสหลุม ประเภทน้ำมัน และหัวจ่าย</p>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm backdrop-blur-sm">
@@ -1002,139 +1163,130 @@ export default function RecordTankEntry() {
                         สาขาที่กำลังดู: {selectedBranches.length === 0 ? "ทั้งหมด" : selectedBranches.map(id => branches.find(b => String(b.id) === id)?.name || id).join(", ")}
                     </span>
                 </div>
-            </motion.div>
+            </div>
 
-            {/* Summary Cards */}
+            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                {[
-                    {
-                        title: "บันทึกวันนี้",
-                        value: stats.todayCount,
-                        subtitle: "รายการ",
-                        detail: `${numberFormatter.format(stats.todayQuantity)} ลิตร`,
-                        icon: BookOpen,
-                        iconColor: "bg-gradient-to-br from-blue-500 to-blue-600",
-                    },
-                    {
-                        title: "ปริมาณวันนี้",
-                        value: numberFormatter.format(stats.todayQuantity),
-                        subtitle: "ลิตร",
-                        icon: Droplet,
-                        iconColor: "bg-gradient-to-br from-cyan-500 to-cyan-600",
-                    },
-                    {
-                        title: "มูลค่าวันนี้",
-                        value: currencyFormatter.format(stats.todayAmount),
-                        subtitle: "บาท",
-                        icon: FileText,
-                        iconColor: "bg-gradient-to-br from-emerald-500 to-emerald-600",
-                    },
-                    {
-                        title: "รอดำเนินการ",
-                        value: stats.draft,
-                        subtitle: "รายการ",
-                        icon: Clock,
-                        iconColor: "bg-gradient-to-br from-orange-500 to-orange-600",
-                    },
-                    ...(stats.incorrect > 0 ? [{
-                        title: "ลงหลุมผิด",
-                        value: stats.incorrect,
-                        subtitle: "รายการ",
-                        icon: AlertTriangle,
-                        iconColor: "bg-gradient-to-br from-red-500 to-red-600",
-                    }] : []),
-                ].map((stat, index) => (
-                    <motion.div
-                        key={stat.title}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: index * 0.1 }}
-                        className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
-                    >
-                        <div className="p-4">
-                            <div className="flex items-center">
-                                <div className={`w-16 h-16 ${stat.iconColor} rounded-lg flex items-center justify-center shadow-lg mr-4`}>
-                                    <stat.icon className="w-8 h-8 text-white" />
-                                </div>
-                                <div className="flex-1">
-                                    <h6 className="text-gray-600 dark:text-gray-400 text-sm font-semibold mb-1">{stat.title}</h6>
-                                    <h6 className="text-gray-800 dark:text-white text-2xl font-extrabold mb-0">{stat.value}</h6>
-                                    <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
-                                        {stat.detail || stat.subtitle}
-                                    </p>
-                                </div>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+                            <BookOpen className="w-6 h-6 text-blue-500" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">บันทึกวันนี้</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.todayCount}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{numberFormatter.format(stats.todayQuantity)} ลิตร</p>
+                        </div>
+                    </div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-2xl">
+                            <Droplet className="w-6 h-6 text-cyan-500" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ปริมาณวันนี้</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white">{numberFormatter.format(stats.todayQuantity)}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">ลิตร</p>
+                        </div>
+                    </div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+                            <FileText className="w-6 h-6 text-emerald-500" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">มูลค่าวันนี้</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white">{currencyFormatter.format(stats.todayAmount)}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">บาท</p>
+                        </div>
+                    </div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-2xl">
+                            <Clock className="w-6 h-6 text-orange-500" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">รอดำเนินการ</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.draft}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">รายการ</p>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {stats.incorrect > 0 && (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-2xl">
+                                <AlertTriangle className="w-6 h-6 text-red-500" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ลงหลุมผิด</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-white">{stats.incorrect}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">รายการ</p>
                             </div>
                         </div>
                     </motion.div>
-                ))}
+                )}
             </div>
 
-            {/* Filters */}
+            {/* Filter Bar */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 flex flex-col md:flex-row gap-4 mb-6"
+                className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center"
             >
-                <div className="flex-1 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <div className="relative flex-1 w-full">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                         type="text"
                         placeholder="ค้นหาเลขที่ใบรับ, PO, รหัสหลุม, ประเภทน้ำมัน..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
+                        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
                     />
                 </div>
-                <div className="flex items-center gap-2">
-                    <Filter className="w-5 h-5 text-gray-400" />
-                    <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
-                    >
-                        <option>ทั้งหมด</option>
-                        <option value="draft">ร่าง</option>
-                        <option value="completed">เสร็จสมบูรณ์</option>
-                        <option value="cancelled">ยกเลิก</option>
-                    </select>
+                <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-2xl font-bold text-sm">
+                    <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="bg-transparent outline-none" />
+                    <span className="text-gray-400">-</span>
+                    <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="bg-transparent outline-none" />
                 </div>
-                <div className="flex items-center gap-2">
-                    <select
-                        value={filterSource}
-                        onChange={(e) => setFilterSource(e.target.value)}
-                        className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
-                    >
-                        <option>ทั้งหมด</option>
-                        <option value="PTT">ปตท.</option>
-                        <option value="Branch">สาขา</option>
-                        <option value="Other">อื่นๆ</option>
-                    </select>
-                </div>
-                <div className="flex items-center gap-2">
-                    <select
-                        value={filterIncorrect}
-                        onChange={(e) => setFilterIncorrect(e.target.value as "ทั้งหมด" | "ปกติ" | "ผิด")}
-                        className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 text-gray-800 dark:text-white transition-all duration-200"
-                    >
-                        <option value="ทั้งหมด">ทั้งหมด</option>
-                        <option value="ปกติ">บันทึกปกติ</option>
-                        <option value="ผิด">ลงหลุมผิด</option>
-                    </select>
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    {isAnyFilterActive && (
+                        <button
+                            onClick={clearFilters}
+                            className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+                        >
+                            <X className="w-4 h-4" />
+                            ล้างตัวกรอง
+                        </button>
+                    )}
+                    <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+                        <MapPin className="w-4 h-4" />
+                        <span className="text-sm font-bold whitespace-nowrap">
+                            {selectedBranchIds.length === 0 ? "ทุกสาขา" : `สาขาที่เลือก (${selectedBranchIds.length})`}
+                        </span>
+                    </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
+                        className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black shadow-lg shadow-emerald-600/20 transition-all active:scale-95 flex items-center gap-2"
                     >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-5 h-5" />
                         บันทึกใหม่
                     </button>
                     <button
                         onClick={() => setShowIncorrectEntryModal(true)}
-                        className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
+                        className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-2xl font-black shadow-lg shadow-orange-600/20 transition-all active:scale-95 flex items-center gap-2"
                     >
-                        <AlertTriangle className="w-4 h-4" />
+                        <AlertTriangle className="w-5 h-5" />
                         บันทึกการลงน้ำมันผิด
                     </button>
                 </div>
@@ -1152,55 +1304,57 @@ export default function RecordTankEntry() {
                         <BookOpen className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                         <p className="text-gray-500 dark:text-gray-400 text-lg">ไม่พบรายการบันทึก</p>
                         <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
-                            {searchTerm || filterStatus !== "ทั้งหมด" || filterSource !== "ทั้งหมด"
+                            {isAnyFilterActive
                                 ? "ลองเปลี่ยนเงื่อนไขการค้นหาหรือกรอง"
                                 : "คลิก 'บันทึกใหม่' เพื่อเริ่มต้น"}
                         </p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-left border-collapse text-sm">
                             <thead>
-                                <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                                        วันที่/เวลา
+                                <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                                    <HeaderWithFilter 
+                                        label="วันที่/เวลา" 
+                                        columnKey="entryDate" 
+                                    />
+                                    <HeaderWithFilter 
+                                        label="รหัสหลุม" 
+                                        columnKey="tankCode" 
+                                        filterKey="tank"
+                                        options={filterOptions.tank}
+                                    />
+                                    <th className="px-6 py-4">ประเภทน้ำมัน</th>
+                                    <th 
+                                        className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                        onClick={() => handleSort('quantity')}
+                                    >
+                                        <div className="flex items-center justify-end gap-2">
+                                            จำนวน (ลิตร)
+                                            {getSortIcon('quantity')}
+                                        </div>
                                     </th>
-                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                                        รหัสหลุม
-                                    </th>
-                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                                        ประเภทน้ำมัน
-                                    </th>
-                                    <th className="py-3 px-4 text-right font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                                        จำนวน (ลิตร)
-                                    </th>
-                                    <th className="py-3 px-4 text-right font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                                        ยอดก่อน/หลัง
-                                    </th>
-                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                                        ต้นทาง
-                                    </th>
-                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                                        ใบรับ/PO
-                                    </th>
-                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                                        รถ
-                                    </th>
-                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                                        กำลังส่งที่
-                                    </th>
-                                    <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                                        หัวจ่าย
-                                    </th>
-                                    <th className="py-3 px-4 text-center font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                                        สถานะ
-                                    </th>
-                                    <th className="py-3 px-4 text-center font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                                        การดำเนินการ
-                                    </th>
+                                    <th className="px-6 py-4 text-right">ยอดก่อน/หลัง</th>
+                                    <HeaderWithFilter 
+                                        label="ต้นทาง" 
+                                        columnKey="source" 
+                                        filterKey="source"
+                                        options={filterOptions.source}
+                                    />
+                                    <th className="px-6 py-4">ใบรับ/PO</th>
+                                    <th className="px-6 py-4">รถ</th>
+                                    <th className="px-6 py-4">กำลังส่งที่</th>
+                                    <th className="px-6 py-4">หัวจ่าย</th>
+                                    <HeaderWithFilter 
+                                        label="สถานะ" 
+                                        columnKey="status" 
+                                        filterKey="status"
+                                        options={filterOptions.status}
+                                    />
+                                    <th className="px-6 py-4 text-center">การดำเนินการ</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 font-medium">
                                 {filteredRecords.map((record, index) => {
                                     const isIncorrect = record.isIncorrect;
                                     const incorrectEntry = isIncorrect ? (record as IncorrectTankEntry) : null;
@@ -1211,20 +1365,17 @@ export default function RecordTankEntry() {
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ duration: 0.3, delay: index * 0.05 }}
-                                            className={`hover:bg-gray-50 dark:hover:bg-gray-900/40 ${
+                                            className={`group hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors ${
                                                 isIncorrect 
                                                     ? "bg-red-50/50 dark:bg-red-900/10 border-l-4 border-red-500" 
                                                     : ""
                                             }`}
                                         >
                                             {/* วันที่/เวลา */}
-                                            <td className="py-3 px-4 text-gray-800 dark:text-gray-200">
-                                                <div className="flex items-center gap-1">
-                                                    <Calendar className="w-4 h-4 text-gray-400" />
-                                                    <div>
-                                                        <div className="font-medium">{record.entryDate}</div>
-                                                        <div className="text-xs text-gray-500 dark:text-gray-400">{record.entryTime}</div>
-                                                    </div>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-gray-900 dark:text-white">{record.entryDate}</span>
+                                                    <span className="text-[10px] text-gray-400">{record.entryTime}</span>
                                                 </div>
                                             </td>
 
@@ -1443,19 +1594,17 @@ export default function RecordTankEntry() {
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                                 onClick={(e) => e.stopPropagation()}
-                                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+                                className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
                             >
                                 {/* Header */}
-                                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
+                                        <div className="p-2 bg-emerald-500 rounded-xl">
                                             <Plus className="w-6 h-6 text-white" />
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                                                บันทึกน้ำมันลงหลุม
-                                            </h3>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                            <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">บันทึกน้ำมันลงหลุม</h2>
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">
                                                 {pendingMeasurements.length > 0 
                                                     ? `บันทึกรายการที่ ${currentMeasurementIndex + 1} จาก ${pendingMeasurements.length}`
                                                     : "บันทึกรายการน้ำมันที่ลงหลุมใต้ดิน"
@@ -1468,9 +1617,9 @@ export default function RecordTankEntry() {
                                             setShowCreateModal(false);
                                             resetForm();
                                         }}
-                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
+                                        className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors"
                                     >
-                                        <X className="w-5 h-5" />
+                                        <X className="w-5 h-5 text-gray-400" />
                                     </button>
                                 </div>
 
@@ -2081,8 +2230,8 @@ export default function RecordTankEntry() {
                                 </div>
 
                                 {/* Footer Buttons */}
-                                <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                                <div className="p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center sticky bottom-0 z-10">
+                                    <div className="text-sm text-gray-600 dark:text-gray-400 font-bold">
                                         {pendingMeasurements.length > 0 && (
                                             <span>
                                                 รายการที่ {currentMeasurementIndex + 1} จาก {pendingMeasurements.length}
@@ -2095,7 +2244,7 @@ export default function RecordTankEntry() {
                                                 setShowCreateModal(false);
                                                 resetForm();
                                             }}
-                                            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl transition-colors font-semibold"
+                                            className="px-10 py-3 bg-gray-900 dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 text-white rounded-2xl font-black transition-all shadow-lg active:scale-95"
                                         >
                                             ยกเลิก
                                         </button>
@@ -2106,16 +2255,16 @@ export default function RecordTankEntry() {
                                                     const nextIndex = currentMeasurementIndex + 1;
                                                     fillMeasurementData(pendingMeasurements[nextIndex], nextIndex);
                                                 }}
-                                                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl transition-colors font-semibold"
+                                                className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-2xl font-black transition-all shadow-lg active:scale-95"
                                             >
                                                 ข้ามรายการนี้
                                             </button>
                                         )}
                                         <button
                                             onClick={handleSave}
-                                            className="px-6 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                                            className="px-10 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black transition-all shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2"
                                         >
-                                            <Save className="w-4 h-4" />
+                                            <Save className="w-5 h-5" />
                                             {pendingMeasurements.length > currentMeasurementIndex + 1 
                                                 ? "บันทึกและถัดไป" 
                                                 : "บันทึก"
@@ -2145,14 +2294,14 @@ export default function RecordTankEntry() {
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+                                className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
                             >
-                                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${
+                                        <div className={`p-2 rounded-xl ${
                                             selectedRecord.isIncorrect 
-                                                ? "bg-gradient-to-br from-red-500 to-red-600" 
-                                                : "bg-gradient-to-br from-teal-500 to-cyan-600"
+                                                ? "bg-red-500" 
+                                                : "bg-emerald-500"
                                         }`}>
                                             {selectedRecord.isIncorrect ? (
                                                 <AlertTriangle className="w-6 h-6 text-white" />
@@ -2161,13 +2310,13 @@ export default function RecordTankEntry() {
                                             )}
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
+                                            <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">
                                                 {selectedRecord.isIncorrect 
                                                     ? "รายละเอียดการลงน้ำมันผิด" 
                                                     : "รายละเอียดการบันทึกน้ำมันลงหลุม"
                                                 }
-                                            </h3>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                            </h2>
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-500 font-bold">
                                                 {selectedRecord.isIncorrect && (selectedRecord as IncorrectTankEntry).wrongTankCode
                                                     ? `${(selectedRecord as IncorrectTankEntry).wrongTankCode} - ${(selectedRecord as IncorrectTankEntry).wrongOilType} ❌`
                                                     : `${selectedRecord.tankCode} - ${selectedRecord.oilType}`
@@ -2177,10 +2326,10 @@ export default function RecordTankEntry() {
                                     </div>
                                     <button
                                         onClick={() => setShowDetailModal(false)}
-                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
+                                        className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors"
                                         aria-label="ปิด"
                                     >
-                                        <X className="w-5 h-5" />
+                                        <X className="w-5 h-5 text-gray-400" />
                                     </button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto px-6 py-6">
@@ -2553,15 +2702,15 @@ export default function RecordTankEntry() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3">
+                                <div className="p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 sticky bottom-0 z-10">
                                     <button
                                         onClick={() => setShowDetailModal(false)}
-                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl transition-colors font-semibold"
+                                        className="px-10 py-3 bg-gray-900 dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 text-white rounded-2xl font-black transition-all shadow-lg active:scale-95"
                                     >
-                                        ปิด
+                                        ปิดหน้าต่าง
                                     </button>
-                                    <button className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2">
-                                        <Download className="w-4 h-4" />
+                                    <button className="px-10 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black transition-all shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
+                                        <Download className="w-5 h-5" />
                                         Export
                                     </button>
                                 </div>
@@ -2587,28 +2736,24 @@ export default function RecordTankEntry() {
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+                                className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
                             >
-                                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-orange-50 dark:bg-orange-900/20">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
+                                        <div className="p-2 bg-orange-500 rounded-xl">
                                             <AlertTriangle className="w-6 h-6 text-white" />
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-                                                บันทึกการลงน้ำมันผิด
-                                            </h3>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                บันทึกรายการที่ลงน้ำมันผิดหลุมหรือผิดประเภท
-                                            </p>
+                                            <h2 className="text-xl font-black text-orange-800 dark:text-orange-400">บันทึกการลงน้ำมันผิด</h2>
+                                            <p className="text-xs text-orange-600 dark:text-orange-500 font-bold">บันทึกรายการที่ลงน้ำมันผิดหลุมหรือผิดประเภท</p>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => setShowIncorrectEntryModal(false)}
-                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
+                                        className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors"
                                         aria-label="ปิด"
                                     >
-                                        <X className="w-5 h-5" />
+                                        <X className="w-5 h-5 text-gray-400" />
                                     </button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto px-6 py-6">
@@ -2880,21 +3025,21 @@ export default function RecordTankEntry() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3">
+                                <div className="p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 sticky bottom-0 z-10">
                                     <button
                                         onClick={() => {
                                             setShowIncorrectEntryModal(false);
                                             resetIncorrectEntryForm();
                                         }}
-                                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl transition-colors font-semibold"
+                                        className="px-10 py-3 bg-gray-900 dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 text-white rounded-2xl font-black transition-all shadow-lg active:scale-95"
                                     >
                                         ยกเลิก
                                     </button>
                                     <button
                                         onClick={handleSaveIncorrectEntry}
-                                        className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                                        className="px-10 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-2xl font-black transition-all shadow-lg shadow-orange-600/20 active:scale-95 flex items-center justify-center gap-2"
                                     >
-                                        <AlertTriangle className="w-4 h-4" />
+                                        <AlertTriangle className="w-5 h-5" />
                                         บันทึกการลงน้ำมันผิด
                                     </button>
                                 </div>

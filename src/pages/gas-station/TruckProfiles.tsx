@@ -7,14 +7,20 @@ import {
   MapPin,
   Droplet,
   Activity,
-  Wrench,
-  AlertCircle,
-  CheckCircle,
   Plus,
   X,
   Eye,
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  History,
+  Check,
+  Clock,
+  FileText,
 } from "lucide-react";
 import TableActionMenu from "@/components/TableActionMenu";
+import StatusTag from "@/components/StatusTag";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
@@ -490,6 +496,15 @@ export default function TruckProfiles() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive" | "maintenance">("all");
   const [showCreateTruckModal, setShowCreateTruckModal] = useState(false);
+  const [columnFilters, setColumnFilters] = useState<{
+    status: string;
+  }>({
+    status: "ทั้งหมด"
+  });
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'plateNumber', direction: 'asc' });
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
 
 
   // Form state for creating new truck
@@ -524,15 +539,59 @@ export default function TruckProfiles() {
 
   // กรองข้อมูล
   const filteredTrucks = useMemo(() => {
-    return trucksWithTrailers.filter((truck) => {
+    let result = trucksWithTrailers.filter((truck) => {
       const matchesSearch =
         truck.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         truck.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
         truck.model.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = filterStatus === "all" || truck.status === filterStatus;
-      return matchesSearch && matchesStatus;
+      
+      // Column Filters
+      const matchesStatus = columnFilters.status === "ทั้งหมด" || truck.status === columnFilters.status;
+      const matchesFilterStatus = filterStatus === "all" || truck.status === filterStatus;
+
+      // Date Range Filter
+      const matchesDateFrom = !filterDateFrom || (truck.lastTripDate && new Date(truck.lastTripDate) >= new Date(filterDateFrom));
+      const matchesDateTo = !filterDateTo || (truck.lastTripDate && new Date(truck.lastTripDate) <= new Date(filterDateTo));
+
+      return matchesSearch && matchesStatus && matchesFilterStatus && matchesDateFrom && matchesDateTo;
     });
-  }, [trucksWithTrailers, searchTerm, filterStatus]);
+
+    // Sorting
+    if (sortConfig.key && sortConfig.direction) {
+      result.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortConfig.key) {
+          case 'plateNumber':
+            aValue = a.plateNumber;
+            bValue = b.plateNumber;
+            break;
+          case 'totalTrips':
+            aValue = a.totalTrips;
+            bValue = b.totalTrips;
+            break;
+          case 'totalDistance':
+            aValue = a.totalDistance;
+            bValue = b.totalDistance;
+            break;
+          case 'totalOilDelivered':
+            aValue = a.totalOilDelivered;
+            bValue = b.totalOilDelivered;
+            break;
+          default:
+            aValue = (a as any)[sortConfig.key];
+            bValue = (b as any)[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [trucksWithTrailers, searchTerm, filterStatus, columnFilters, sortConfig, filterDateFrom, filterDateTo]);
 
   // สรุปข้อมูล
   const summary = useMemo(() => {
@@ -549,30 +608,113 @@ export default function TruckProfiles() {
     };
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
-      case "inactive":
-        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
-      case "maintenance":
-        return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
-      default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
-    }
+  const handleSort = (key: string) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        if (prev.direction === 'desc') return { key, direction: null };
+        return { key, direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "active":
-        return <CheckCircle className="w-4 h-4" />;
-      case "inactive":
-        return <AlertCircle className="w-4 h-4" />;
-      case "maintenance":
-        return <Wrench className="w-4 h-4" />;
-      default:
-        return <AlertCircle className="w-4 h-4" />;
-    }
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+  };
+
+  // ดึงค่า Unique สำหรับ Filter Dropdowns
+  const filterOptions = useMemo(() => {
+    return {
+      status: ["ทั้งหมด", ...new Set(trucksWithTrailers.map(t => t.status))]
+    };
+  }, [trucksWithTrailers]);
+
+  const HeaderWithFilter = ({ label, columnKey, filterKey, options }: { 
+    label: string, 
+    columnKey?: string, 
+    filterKey?: keyof typeof columnFilters, 
+    options?: string[] 
+  }) => (
+    <th className="px-6 py-4 relative group">
+      <div className="flex items-center gap-2">
+        <div 
+          className={`flex items-center gap-1.5 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors ${sortConfig.key === columnKey ? 'text-emerald-600' : ''}`}
+          onClick={() => columnKey && handleSort(columnKey)}
+        >
+          {label}
+          {columnKey && getSortIcon(columnKey)}
+        </div>
+        
+        {filterKey && options && (
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveDropdown(activeDropdown === filterKey ? null : filterKey);
+              }}
+              className={`p-1 rounded-md transition-all ${columnFilters[filterKey] !== "ทั้งหมด" ? "bg-emerald-500 text-white shadow-sm" : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"}`}
+            >
+              <Filter className="w-3 h-3" />
+            </button>
+            
+            <AnimatePresence>
+              {activeDropdown === filterKey && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setActiveDropdown(null)} 
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                  >
+                    {options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setColumnFilters(prev => ({ ...prev, [filterKey]: opt }));
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                          columnFilters[filterKey] === opt 
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400" 
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        {opt === "active" ? "ใช้งาน" : opt === "inactive" ? "ไม่ใช้งาน" : opt === "maintenance" ? "ซ่อมบำรุง" : opt}
+                        {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </th>
+  );
+
+  const isAnyFilterActive = useMemo(() => {
+    return columnFilters.status !== "ทั้งหมด" ||
+           filterDateFrom !== "" ||
+           filterDateTo !== "" ||
+           searchTerm !== "" ||
+           filterStatus !== "all";
+  }, [columnFilters, filterDateFrom, filterDateTo, searchTerm, filterStatus]);
+
+  const clearFilters = () => {
+    setColumnFilters({
+      status: "ทั้งหมด"
+    });
+    setSearchTerm("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    setFilterStatus("all");
   };
 
 
@@ -599,52 +741,63 @@ export default function TruckProfiles() {
 
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-      >
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            โปรไฟล์รถส่งน้ำมัน
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            จัดการข้อมูลรถและหางส่งน้ำมัน รวมถึงประวัติการใช้งานและออเดอร์รถ
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+                <Truck className="w-8 h-8 text-white" />
+              </div>
+              โปรไฟล์รถส่งน้ำมัน
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
+              <History className="w-4 h-4" />
+              จัดการข้อมูลรถและหางส่งน้ำมัน รวมถึงประวัติการใช้งานและออเดอร์รถ
+            </p>
+          </div>
           <button
             onClick={() => setShowCreateTruckModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/20 transition-all font-bold"
           >
             <Plus className="w-5 h-5" />
             เพิ่มรถใหม่
           </button>
         </div>
-      </motion.div>
+      </header>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+              <Truck className="w-6 h-6 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">รถที่ใช้งาน</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{summary.activeTrucks} / {mockTrucks.length} คัน</p>
+            </div>
+          </div>
+        </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">รถที่ใช้งาน</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {summary.activeTrucks} / {mockTrucks.length}
-              </p>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl">
+              <Activity className="w-6 h-6 text-amber-500" />
             </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">จำนวนเที่ยวทั้งหมด</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{numberFormatter.format(summary.totalTrips)} เที่ยว</p>
             </div>
           </div>
         </motion.div>
@@ -653,17 +806,15 @@ export default function TruckProfiles() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">จำนวนเที่ยวทั้งหมด</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {numberFormatter.format(summary.totalTrips)}
-              </p>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-2xl">
+              <MapPin className="w-6 h-6 text-purple-500" />
             </div>
-            <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-              <Activity className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ระยะทางรวม</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{numberFormatter.format(summary.totalDistance)} กม.</p>
             </div>
           </div>
         </motion.div>
@@ -672,181 +823,180 @@ export default function TruckProfiles() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <Droplet className="w-6 h-6 text-emerald-500" />
+            </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">ระยะทางรวม</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {numberFormatter.format(summary.totalDistance)}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">กิโลเมตร</p>
-            </div>
-            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <MapPin className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">น้ำมันส่งรวม</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {numberFormatter.format(summary.totalOilDelivered)}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">ลิตร</p>
-            </div>
-            <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-              <Droplet className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">น้ำมันส่งรวม</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{numberFormatter.format(summary.totalOilDelivered)} ลิตร</p>
             </div>
           </div>
         </motion.div>
       </div>
 
 
-      {/* Search and Filter */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border border-gray-200 dark:border-gray-700"
-      >
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+      {/* Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="ค้นหาจากเลขทะเบียน, ยี่ห้อ, รุ่น..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
+          />
+        </div>
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="relative flex-1 md:flex-initial">
+            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
-              type="text"
-              placeholder="ค้นหาจากเลขทะเบียน, ยี่ห้อ, รุ่น..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              className="pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium text-sm"
+              placeholder="จากวันที่"
             />
           </div>
-          <div className="flex gap-2">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">สถานะทั้งหมด</option>
-              <option value="active">ใช้งาน</option>
-              <option value="inactive">ไม่ใช้งาน</option>
-              <option value="maintenance">ซ่อมบำรุง</option>
-            </select>
+          <span className="text-gray-400 font-bold">-</span>
+          <div className="relative flex-1 md:flex-initial">
+            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium text-sm"
+              placeholder="ถึงวันที่"
+            />
           </div>
         </div>
-      </motion.div>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+        </div>
+      </div>
 
 
 
       {/* Trucks Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
-      >
+      <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  เลขทะเบียน
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                <HeaderWithFilter 
+                  label="เลขทะเบียน" 
+                  columnKey="plateNumber" 
+                />
+                <th className="px-6 py-4">
+                  <div className="flex items-center gap-1.5">
+                    <Truck className="w-3 h-3" />
+                    ยี่ห้อ/รุ่น
+                  </div>
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  ยี่ห้อ/รุ่น
+                <th className="px-6 py-4">
+                  <div className="flex items-center gap-1.5">
+                    <Droplet className="w-3 h-3" />
+                    หางที่ใช้อยู่
+                  </div>
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  หางที่ใช้อยู่
-                </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  จำนวนเที่ยว
-                </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  ระยะทางรวม
-                </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  น้ำมันส่งรวม
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  สถานะ
-                </th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  การดำเนินการ
-                </th>
+                <HeaderWithFilter 
+                  label="จำนวนเที่ยว" 
+                  columnKey="totalTrips" 
+                />
+                <HeaderWithFilter 
+                  label="ระยะทางรวม" 
+                  columnKey="totalDistance" 
+                />
+                <HeaderWithFilter 
+                  label="น้ำมันส่งรวม" 
+                  columnKey="totalOilDelivered" 
+                />
+                <HeaderWithFilter 
+                  label="สถานะ" 
+                  filterKey="status"
+                  options={filterOptions.status}
+                />
+                <th className="px-6 py-4 text-center">การดำเนินการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
               {filteredTrucks.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                    ไม่พบข้อมูลรถ
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400 italic font-medium">
+                    <div className="flex flex-col items-center gap-2">
+                      <Search className="w-8 h-8 opacity-20" />
+                      ไม่พบข้อมูลรถ
+                    </div>
                   </td>
                 </tr>
               ) : (
                 filteredTrucks.map((truck) => (
                   <tr
                     key={truck.id}
-                    onClick={() => navigate(`/app/gas-station/truck-profiles/${truck.id}`)}
-                    className="hover:bg-blue-50/50 dark:hover:bg-gray-700/70 transition-colors cursor-pointer"
+                    className="group hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors font-medium"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <Truck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-gray-900 dark:text-white">
                           {truck.plateNumber}
-                        </div>
+                        </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        {truck.brand} {truck.model}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        ปี {truck.year}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-gray-700 dark:text-gray-300">
+                          {truck.brand} {truck.model}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          ปี {truck.year}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       {truck.currentTrailer ? (
-                        <div className="text-sm text-gray-900 dark:text-white">
+                        <span className="font-bold text-gray-700 dark:text-gray-300">
                           {truck.currentTrailer.plateNumber}
-                        </div>
+                        </span>
                       ) : (
-                        <span className="text-xs text-gray-400 dark:text-gray-500">-</span>
+                        <span className="text-gray-400 italic">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-gray-700 dark:text-gray-300">
                         {numberFormatter.format(truck.totalTrips)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-gray-700 dark:text-gray-300">
                         {numberFormatter.format(truck.totalDistance)} กม.
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-gray-700 dark:text-gray-300">
                         {numberFormatter.format(truck.totalOilDelivered)} ลิตร
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                          truck.status
-                        )}`}
-                      >
-                        {getStatusIcon(truck.status)}
+                    <td className="px-6 py-4">
+                      <StatusTag variant={
+                        truck.status === "active" ? "success" :
+                        truck.status === "maintenance" ? "warning" :
+                        "neutral"
+                      }>
                         {truck.status === "active" ? "ใช้งาน" : truck.status === "inactive" ? "ไม่ใช้งาน" : "ซ่อมบำรุง"}
-                      </span>
+                      </StatusTag>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <td className="px-6 py-4">
                       <div className="flex justify-center">
                         <TableActionMenu
                           actions={[
@@ -865,7 +1015,7 @@ export default function TruckProfiles() {
             </tbody>
           </table>
         </div>
-      </motion.div>
+      </div>
 
 
 
@@ -886,13 +1036,20 @@ export default function TruckProfiles() {
               className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">เพิ่มรถใหม่</h2>
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500 rounded-xl">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-emerald-800 dark:text-emerald-400">เพิ่มรถใหม่</h2>
+                  </div>
+                </div>
                 <button
                   onClick={() => setShowCreateTruckModal(false)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className="w-5 h-5 text-gray-400" />
                 </button>
               </div>
 
@@ -1029,17 +1186,17 @@ export default function TruckProfiles() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
                 <button
                   onClick={() => setShowCreateTruckModal(false)}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="px-6 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-2xl transition-colors font-bold"
                 >
                   ยกเลิก
                 </button>
                 <button
                   onClick={handleCreateTruck}
                   disabled={!newTruck.plateNumber || !newTruck.brand || !newTruck.model || !newTruck.engineNumber || !newTruck.chassisNumber}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl transition-colors font-bold shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   เพิ่มรถ
                 </button>

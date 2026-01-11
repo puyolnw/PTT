@@ -24,7 +24,8 @@ import {
   Check,
   ChevronUp,
   ChevronDown,
-  ChevronsUpDown
+  ChevronsUpDown,
+  Receipt,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGasStation } from "@/contexts/GasStationContext";
@@ -33,6 +34,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { InternalPumpSale, OilType } from "@/types/gasStation";
 import StatusTag, { getStatusVariant } from "@/components/StatusTag";
 import TableActionMenu from "@/components/TableActionMenu";
+import { convertNumberToThaiWords } from "@/utils/numberToThaiWords";
 
 export default function InternalPumpSales() {
   const {
@@ -358,6 +360,268 @@ export default function InternalPumpSales() {
     if (confirm(`คุณต้องการยกเลิกรายการขาย ${sale.saleNo} ใช่หรือไม่?`)) {
       cancelInternalPumpSale(sale.id, user?.name || "Unknown");
     }
+  };
+
+  const handleDownloadTaxInvoice = (sale: InternalPumpSale, invoice: { invoiceNo: string; date: string; amount: number }) => {
+    // หาข้อมูลสาขา
+    const buyerBranch = branches.find(b => b.id === sale.buyerBranchId);
+
+    const dateFormatter = new Intl.DateTimeFormat('th-TH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    const invoiceDate = new Date(invoice.date);
+    const formattedDate = dateFormatter.format(invoiceDate);
+
+    // คำนวณภาษีมูลค่าเพิ่ม (7%)
+    const vatRate = 0.07;
+    const amountBeforeVat = invoice.amount / (1 + vatRate);
+    const vatAmount = invoice.amount - amountBeforeVat;
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="th">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ใบกำกับภาษี - ${invoice.invoiceNo}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
+          * { box-sizing: border-box; -webkit-print-color-adjust: exact; margin: 0; padding: 0; }
+          @page { size: A4; margin: 15mm; }
+          body { 
+            font-family: 'Sarabun', sans-serif; 
+            padding: 0; 
+            color: #000; 
+            line-height: 1.4;
+            background-color: white;
+            font-size: 14px;
+          }
+          
+          .page-container {
+            padding: 15mm;
+            max-width: 210mm;
+            margin: 0 auto;
+          }
+
+          .header-section {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+          }
+          
+          .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          
+          .company-info {
+            font-size: 14px;
+            line-height: 1.6;
+          }
+
+          .document-title {
+            text-align: center;
+            margin: 15px 0;
+            font-size: 18px;
+            font-weight: bold;
+          }
+
+          .document-info {
+            text-align: right;
+            margin-bottom: 15px;
+            font-size: 14px;
+          }
+
+          .customer-info-section {
+            margin-bottom: 15px;
+            font-size: 14px;
+          }
+
+          .info-row {
+            margin-bottom: 4px;
+            line-height: 1.6;
+          }
+
+          .info-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 120px;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 14px;
+          }
+
+          th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+          }
+
+          th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+          }
+
+          .text-center {
+            text-align: center;
+          }
+
+          .text-right {
+            text-align: right;
+          }
+
+          .summary-section {
+            margin-top: 10px;
+            display: flex;
+            justify-content: flex-end;
+          }
+
+          .total-row {
+            font-weight: bold;
+            font-size: 16px;
+          }
+
+          .amount-in-words {
+            margin-top: 10px;
+            padding: 8px;
+            border: 1px solid #000;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .footer-section {
+            margin-top: 30px;
+            text-align: right;
+            font-size: 14px;
+          }
+
+          .signature-line {
+            border-top: 1px solid #000;
+            margin-top: 40px;
+            padding-top: 5px;
+            display: inline-block;
+            min-width: 200px;
+          }
+
+          @media print {
+            body { padding: 0; }
+            .page-container { padding: 15mm; }
+            @page { margin: 15mm; size: A4; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page-container">
+          <div class="header-section">
+            <div class="company-name">PTT STATION</div>
+            <div class="company-info">
+              1187 ถนน สุขาภิบาล 17 ตำบลบรบือ<br>
+              อำเภอบรบือ จังหวัดมหาสารคาม 44130<br>
+              โทร. 091-9535355 &nbsp; ทะเบียนพาณิชย์ 1350200036462
+            </div>
+          </div>
+
+          <div class="document-title">ใบกำกับภาษี / ใบเสร็จรับเงิน</div>
+
+          <div class="document-info">
+            <div>เลขที่ ${invoice.invoiceNo}</div>
+            <div>วันที่ ${formattedDate}</div>
+          </div>
+
+          <div class="customer-info-section">
+            <div class="info-row">
+              <span class="info-label">นามลูกค้า</span>
+              ${buyerBranch?.name || sale.buyerBranchName || sale.customerName || '-'}
+            </div>
+            <div class="info-row">
+              <span class="info-label">ที่อยู่</span>
+              ${buyerBranch?.address || sale.customerAddress || 'อำเภอบรบือ จังหวัดมหาสารคาม 44130'}
+            </div>
+            <div class="info-row">
+              <span class="info-label">เลขผู้เสียภาษี</span>
+              ${buyerBranch?.id === 1 ? '1350200036462' : (buyerBranch?.id === 2 ? '1350200036463' : (sale.customerTaxId || '............................................'))}
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 10%;">ลำดับ</th>
+                <th style="width: 50%;">รายการ</th>
+                <th style="width: 15%;">จำนวน</th>
+                <th style="width: 12%;">ราคา/ลิตร</th>
+                <th style="width: 13%;">รวมเงิน</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sale.items.map((item, idx) => {
+                const paymentRatio = invoice.amount / sale.totalAmount;
+                const paidQuantity = Math.round(item.quantity * paymentRatio);
+                const paidAmount = item.totalAmount * paymentRatio;
+                
+                return `
+                <tr>
+                  <td class="text-center">${idx + 1}</td>
+                  <td>${item.oilType}${paymentRatio < 1 ? ` (ชำระบางส่วน)` : ''}</td>
+                  <td class="text-right">${paymentRatio < 1 ? paidQuantity.toLocaleString('th-TH') : item.quantity.toLocaleString('th-TH')} ลิตร</td>
+                  <td class="text-right">${item.pricePerLiter.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td class="text-right">${(paymentRatio < 1 ? paidAmount : item.totalAmount).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+              `;
+              }).join('')}
+              <tr>
+                <td colspan="4" style="text-align: right; font-weight: bold;">รวมเงิน</td>
+                <td class="text-right">${amountBeforeVat.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              </tr>
+              <tr>
+                <td colspan="4" style="text-align: right; font-weight: bold;">ภาษีมูลค่าเพิ่ม (7%)</td>
+                <td class="text-right">${vatAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              </tr>
+              <tr class="total-row">
+                <td colspan="4" style="text-align: right; font-weight: bold;">จำนวนเงินสุทธิ</td>
+                <td class="text-right">${invoice.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="amount-in-words">
+            (${convertNumberToThaiWords(invoice.amount)})
+          </div>
+
+          <div class="footer-section">
+            <div class="signature-line">
+              ผู้รับเงิน
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ใบกำกับภาษี_${invoice.invoiceNo}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -1060,6 +1324,73 @@ export default function InternalPumpSales() {
                   </div>
                 </div>
 
+                {/* Timeline & Invoices */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-bold">
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-blue-500" />
+                      ประวัติการชำระเงิน
+                    </h3>
+                    <div className="space-y-3">
+                      {(!selectedSale.paymentHistory || selectedSale.paymentHistory.length === 0) ? (
+                        <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                          ไม่มีประวัติการชำระเงิน
+                        </div>
+                      ) : (
+                        selectedSale.paymentHistory.map((pay, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                                <Check className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-black text-gray-800 dark:text-gray-200">{pay.method || 'เงินโอน'}</p>
+                                <p className="text-[10px] font-bold text-gray-400">{new Date(pay.date).toLocaleDateString('th-TH')}</p>
+                              </div>
+                            </div>
+                            <span className="font-black text-emerald-600">+{currencyFormatter.format(pay.amount)}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <Receipt className="w-4 h-4 text-emerald-500" />
+                      ใบกำกับภาษี / เอกสารอ้างอิง
+                    </h3>
+                    <div className="space-y-3">
+                      {(!selectedSale.taxInvoices || selectedSale.taxInvoices.length === 0) ? (
+                        <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                          ยังไม่มีการออกใบกำกับภาษี
+                        </div>
+                      ) : (
+                        selectedSale.taxInvoices.map((inv, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800/50 shadow-sm">
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-600/20">
+                                <FileText className="w-4 h-4" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs font-black text-gray-800 dark:text-gray-200">{inv.invoiceNo}</p>
+                                <p className="text-[10px] font-bold text-gray-400">{new Date(inv.date).toLocaleDateString('th-TH')}</p>
+                                <p className="text-[10px] font-bold text-blue-600 mt-0.5">{currencyFormatter.format(inv.amount)}</p>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => handleDownloadTaxInvoice(selectedSale, inv)}
+                              className="p-2 hover:bg-white dark:hover:bg-gray-800 rounded-lg transition-colors text-blue-600"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Additional Info */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700">
@@ -1088,6 +1419,21 @@ export default function InternalPumpSales() {
                   className="flex-1 px-6 py-4 bg-white dark:bg-gray-800 text-gray-500 font-black rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest text-sm"
                 >
                   ปิดหน้าต่าง
+                </button>
+                <button
+                  onClick={() => {
+                    if (selectedSale && selectedSale.taxInvoices && selectedSale.taxInvoices.length > 0) {
+                      const latestInvoice = selectedSale.taxInvoices[selectedSale.taxInvoices.length - 1];
+                      handleDownloadTaxInvoice(selectedSale, latestInvoice);
+                    } else {
+                      alert("ยังไม่มีใบกำกับภาษีสำหรับรายการนี้");
+                    }
+                  }}
+                  className="flex-1 px-6 py-4 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-600/30 hover:bg-blue-700 transition-all active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                  disabled={!selectedSale || !selectedSale.taxInvoices || selectedSale.taxInvoices.length === 0}
+                >
+                  <Download className="w-5 h-5" />
+                  ดาวน์โหลดใบกำกับภาษี
                 </button>
                 {selectedSale.status === "ปกติ" && (
                   <button
