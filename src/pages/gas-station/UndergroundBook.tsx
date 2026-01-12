@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import React from "react";
 import {
   CheckCircle,
@@ -10,6 +10,13 @@ import {
   X,
   Info,
   Calendar,
+  History,
+  Droplet,
+  Search,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  Gauge,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -231,6 +238,13 @@ const getCurrentUserRole = () => {
 
 export default function UndergroundBook() {
   const [showImportModal, setShowImportModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [columnFilters, setColumnFilters] = useState<{
+    date: string;
+  }>({
+    date: "ทั้งหมด"
+  });
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'date', direction: 'desc' });
   // ใช้เดือนและปีปัจจุบัน
   const now = new Date();
   const currentMonth = now.getMonth() + 1; // 1-12
@@ -351,19 +365,111 @@ export default function UndergroundBook() {
   const pendingCount = availableData.filter((item) => item.status === "รอกรอก").length;
   const overdueCount = availableData.filter((item) => item.status === "เกินเวลา").length;
 
+  // Filter and sort logic
+  const filteredAndSortedData = useMemo(() => {
+    let result = [...groupedAndSortedData];
+
+    // Search filter
+    if (searchTerm) {
+      result = result.filter(item => 
+        item.date.includes(searchTerm) ||
+        (item.receive !== null && numberFormatter.format(item.receive).includes(searchTerm)) ||
+        (item.pay !== null && numberFormatter.format(item.pay).includes(searchTerm))
+      );
+    }
+
+    // Date filter
+    if (columnFilters.date !== "ทั้งหมด") {
+      // Can add more date filtering logic here if needed
+    }
+
+    // Sort
+    if (sortConfig.key && sortConfig.direction) {
+      result.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortConfig.key) {
+          case 'date': {
+            const [dayA, monthA, yearA] = a.date.split("/").map(Number);
+            const [dayB, monthB, yearB] = b.date.split("/").map(Number);
+            aValue = new Date(yearA - 543, monthA - 1, dayA).getTime();
+            bValue = new Date(yearB - 543, monthB - 1, dayB).getTime();
+            break;
+          }
+          case 'receive':
+            aValue = a.receive || 0;
+            bValue = b.receive || 0;
+            break;
+          case 'pay':
+            aValue = a.pay || 0;
+            bValue = b.pay || 0;
+            break;
+          case 'balance':
+            aValue = a.balance;
+            bValue = b.balance;
+            break;
+          case 'measured':
+            aValue = a.measured;
+            bValue = b.measured;
+            break;
+          case 'difference':
+            aValue = a.difference || 0;
+            bValue = b.difference || 0;
+            break;
+          default:
+            aValue = (a as any)[sortConfig.key];
+            bValue = (b as any)[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [groupedAndSortedData, searchTerm, columnFilters, sortConfig]);
+
+  const handleSort = (key: string) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        if (prev.direction === 'desc') return { key, direction: null };
+        return { key, direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key || !sortConfig.direction) return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 text-emerald-500" /> : <ChevronDown className="w-3 h-3 text-emerald-500" />;
+  };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setColumnFilters({ date: "ทั้งหมด" });
+    setSortConfig({ key: 'date', direction: 'desc' });
+  };
+
+  const isAnyFilterActive = searchTerm !== "" || columnFilters.date !== "ทั้งหมด" || (sortConfig.key && sortConfig.direction);
+
+
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6"
-      >
-        <div className="flex items-center justify-between flex-wrap gap-4">
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">สมุดใต้ดิน</h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+                <Droplet className="w-8 h-8 text-white" />
+              </div>
+              สมุดน้ำมันใต้ดิน
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
+              <History className="w-4 h-4" />
               {isBranchUser 
                 ? `บันทึกยอดน้ำมันใต้ดิน - ${userBranchName} (16:00-17:30 น.)`
                 : "บันทึกยอดน้ำมันใต้ดินทั้ง 5 สาขา (16:00-17:30 น.)"
@@ -373,36 +479,91 @@ export default function UndergroundBook() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowImportModal(true)}
-              className="px-6 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2"
+              className="px-6 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl font-bold transition-all active:scale-95 flex items-center gap-2"
             >
-              <Upload className="w-4 h-4" />
+              <Upload className="w-5 h-5" />
               Import ข้อมูล
             </button>
-            <button className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2">
-              <Plus className="w-4 h-4" />
+            <button className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-2">
+              <Plus className="w-5 h-5" />
               กรอกยอดใต้ดิน
             </button>
           </div>
         </div>
-      </motion.div>
+      </header>
 
-      {/* Date Filter */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 mb-6"
-      >
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">เลือกเดือน/ปี:</span>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <CheckCircle className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">กรอกแล้ว</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{completedCount} สาขา</p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl">
+              <Clock className="w-6 h-6 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">รอกรอก</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{pendingCount} สาขา</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-2xl">
+              <AlertTriangle className="w-6 h-6 text-red-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">เกินเวลา</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{overdueCount} สาขา</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="ค้นหาวันที่, รับ, จ่าย..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
+          />
+        </div>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-gray-400" />
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200 text-sm font-medium"
+              className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all duration-200 text-sm font-medium"
             >
               <option value={1}>มกราคม</option>
               <option value={2}>กุมภาพันธ์</option>
@@ -420,7 +581,7 @@ export default function UndergroundBook() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200 text-sm font-medium"
+              className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all duration-200 text-sm font-medium"
             >
               <option value={2565}>2565</option>
               <option value={2566}>2566</option>
@@ -429,108 +590,97 @@ export default function UndergroundBook() {
               <option value={2569}>2569</option>
             </select>
           </div>
-          <div className="ml-auto text-sm text-gray-600 dark:text-gray-400">
-            พบข้อมูล <span className="font-semibold text-gray-800 dark:text-white">{groupedAndSortedData.length}</span> วัน
+          {isAnyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+            <Gauge className="w-4 h-4" />
+            <span className="text-sm font-bold whitespace-nowrap">
+              พบ {filteredAndSortedData.length} วัน
+            </span>
           </div>
         </div>
-      </motion.div>
-
-      {/* Status Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {[
-          {
-            title: "กรอกแล้ว",
-            value: completedCount,
-            subtitle: "สาขา",
-            icon: CheckCircle,
-            iconColor: "bg-gradient-to-br from-emerald-500 to-emerald-600",
-            badge: "กรอกแล้ว",
-            badgeColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800",
-          },
-          {
-            title: "รอกรอก",
-            value: pendingCount,
-            subtitle: "สาขา",
-            icon: Clock,
-            iconColor: "bg-gradient-to-br from-orange-500 to-orange-600",
-            badge: "รอกรอก",
-            badgeColor: "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800",
-          },
-          {
-            title: "เกินเวลา",
-            value: overdueCount,
-            subtitle: "สาขา",
-            icon: AlertTriangle,
-            iconColor: "bg-gradient-to-br from-red-500 to-red-600",
-            badge: overdueCount > 0 ? "เกินเวลา" : undefined,
-            badgeColor: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800",
-          },
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
-          >
-            <div className="p-4">
-              <div className="flex items-center">
-                <div className={`w-16 h-16 ${stat.iconColor} rounded-lg flex items-center justify-center shadow-lg mr-4`}>
-                  <stat.icon className="w-8 h-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h6 className="text-gray-600 dark:text-gray-400 text-sm font-semibold mb-1">{stat.title}</h6>
-                  <h6 className="text-gray-800 dark:text-white text-2xl font-extrabold mb-0">{stat.value}</h6>
-                  <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">{stat.subtitle}</p>
-                </div>
-              </div>
-              {stat.badge && (
-                <div className="mt-3 flex items-center justify-end">
-                  <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${stat.badgeColor}`}>
-                    {stat.badge}
-                  </span>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        ))}
       </div>
 
 
-      {/* Underground Book Detail Table - ตารางรายละเอียดตามรูปภาพ */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6"
-      >
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
-            รายการสมุดใต้ดิน
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {isBranchUser 
-              ? `บันทึกยอดน้ำมันใต้ดิน - ${userBranchName}`
-              : "บันทึกยอดน้ำมันใต้ดินปั้มไฮโซ"
-            }
-          </p>
-        </div>
+      {/* Underground Book Detail Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50">
-                <th rowSpan={2} className="sticky left-0 z-10 text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50 dark:bg-gray-900/50 min-w-[90px]">ว/ด/ป</th>
-                <th rowSpan={2} className="sticky left-[90px] z-10 text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50 dark:bg-gray-900/50 min-w-[100px]">รับ</th>
-                <th rowSpan={2} className="sticky left-[190px] z-10 text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50 dark:bg-gray-900/50 min-w-[100px]">จ่าย</th>
-                <th rowSpan={2} className="sticky left-[290px] z-10 text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50 dark:bg-gray-900/50 min-w-[120px]">คงเหลือ</th>
-                <th rowSpan={2} className="sticky left-[410px] z-10 text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50 dark:bg-gray-900/50 min-w-[120px]">วัดจริง</th>
-                <th rowSpan={2} className="sticky left-[530px] z-10 text-center py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50 dark:bg-gray-900/50 min-w-[120px]">ขาด/เกิน<br/>(+/-)</th>
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                <th 
+                  rowSpan={2}
+                  className="sticky left-0 z-10 px-6 py-4 text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50/50 dark:bg-gray-900/50 min-w-[90px]"
+                  onClick={() => handleSort('date')}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    ว/ด/ป
+                    {getSortIcon('date')}
+                  </div>
+                </th>
+                <th 
+                  rowSpan={2}
+                  className="sticky left-[90px] z-10 px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50/50 dark:bg-gray-900/50 min-w-[100px]"
+                  onClick={() => handleSort('receive')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    รับ
+                    {getSortIcon('receive')}
+                  </div>
+                </th>
+                <th 
+                  rowSpan={2}
+                  className="sticky left-[190px] z-10 px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50/50 dark:bg-gray-900/50 min-w-[100px]"
+                  onClick={() => handleSort('pay')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    จ่าย
+                    {getSortIcon('pay')}
+                  </div>
+                </th>
+                <th 
+                  rowSpan={2}
+                  className="sticky left-[290px] z-10 px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50/50 dark:bg-gray-900/50 min-w-[120px]"
+                  onClick={() => handleSort('balance')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    คงเหลือ
+                    {getSortIcon('balance')}
+                  </div>
+                </th>
+                <th 
+                  rowSpan={2}
+                  className="sticky left-[410px] z-10 px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50/50 dark:bg-gray-900/50 min-w-[120px]"
+                  onClick={() => handleSort('measured')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    วัดจริง
+                    {getSortIcon('measured')}
+                  </div>
+                </th>
+                <th 
+                  rowSpan={2}
+                  className="sticky left-[530px] z-10 px-6 py-4 text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-r border-gray-200 dark:border-gray-700 align-middle bg-gray-50/50 dark:bg-gray-900/50 min-w-[120px]"
+                  onClick={() => handleSort('difference')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    ขาด/เกิน<br/>(+/-)
+                    {getSortIcon('difference')}
+                  </div>
+                </th>
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((num) =>
                   ["A", "B", "C", "D", "E", "F"].map((letter) => (
                     <th
                       key={`${num}${letter}`}
                       colSpan={2}
-                      className={`text-center py-2 px-1 text-xs font-semibold text-gray-600 dark:text-gray-400 ${
+                      className={`text-center py-2 px-1 ${
                         num === 10 && letter === "F" ? "" : "border-r border-gray-200 dark:border-gray-700"
                       }`}
                     >
@@ -539,17 +689,17 @@ export default function UndergroundBook() {
                   ))
                 )}
               </tr>
-              <tr className="border-b-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50">
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((num) =>
                   ["A", "B", "C", "D", "E", "F"].map((letter) => (
                     <React.Fragment key={`${num}${letter}`}>
                       <th
-                        className={`text-center py-2 px-1 text-xs font-semibold text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700`}
+                        className={`text-center py-2 px-1 border-r border-gray-200 dark:border-gray-700`}
                       >
                         เลข<br/>มิเตอร์
                       </th>
                       <th
-                        className={`text-center py-2 px-1 text-xs font-semibold text-gray-600 dark:text-gray-400 ${
+                        className={`text-center py-2 px-1 ${
                           num === 10 && letter === "F" ? "" : "border-r border-gray-200 dark:border-gray-700"
                         }`}
                       >
@@ -561,7 +711,7 @@ export default function UndergroundBook() {
               </tr>
             </thead>
             <tbody>
-              {groupedAndSortedData.map((row, index) => (
+              {filteredAndSortedData.map((row, index) => (
                 <tr
                   key={row.id}
                   className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
@@ -610,7 +760,7 @@ export default function UndergroundBook() {
             </tbody>
           </table>
         </div>
-      </motion.div>
+      </div>
 
       {/* Import Modal */}
       <AnimatePresence>
@@ -628,19 +778,19 @@ export default function UndergroundBook() {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col"
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-5 flex items-center justify-between z-10">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
                       <Upload className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
+                      <h3 className="text-xl font-black text-gray-900 dark:text-white">
                         Import ข้อมูลสมุดใต้ดิน
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
                         นำเข้าข้อมูลสมุดใต้ดินจากไฟล์ Excel
                       </p>
                     </div>
@@ -704,18 +854,18 @@ export default function UndergroundBook() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-200 dark:border-gray-700">
+                <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-5 flex items-center justify-end gap-3">
                   <button
                     onClick={() => setShowImportModal(false)}
-                    className="px-6 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                    className="px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-bold hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl"
                   >
                     ยกเลิก
                   </button>
                   <button
                     onClick={handleImportData}
-                    className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
+                    className="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-2"
                   >
-                    <Upload className="w-4 h-4" />
+                    <Upload className="w-5 h-5" />
                     Import ข้อมูล
                   </button>
                 </div>

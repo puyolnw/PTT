@@ -12,6 +12,7 @@ import {
   CheckCircle,
   XCircle,
   Activity,
+  History,
 } from "lucide-react";
 
 const currencyFormatter = new Intl.NumberFormat("th-TH", {
@@ -106,28 +107,40 @@ export default function GasStationDashboard() {
   ];
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6"
-      >
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">แดชบอร์ดระบบปั๊มน้ำมัน</h1>
-        <p className="text-gray-600 dark:text-gray-400">ภาพรวมการดำเนินงานปั๊มน้ำมันทั้ง 5 สาขา</p>
-      </motion.div>
+      <header className="mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+            <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+              <Fuel className="w-8 h-8 text-white" />
+            </div>
+            แดชบอร์ดระบบปั๊มน้ำมัน
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
+            <History className="w-4 h-4" />
+            ภาพรวมการดำเนินงานปั๊มน้ำมันทั้ง 5 สาขา
+          </p>
+        </div>
+      </header>
 
-      {/* Overview Stats - Mazer Style */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* Overview Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {overviewStats.map((stat, index) => {
-          const iconColors = [
-            "bg-gradient-to-br from-purple-500 to-purple-600",
-            "bg-gradient-to-br from-blue-500 to-blue-600",
-            "bg-gradient-to-br from-green-500 to-green-600",
-            "bg-gradient-to-br from-red-500 to-red-600",
+          const iconBgColors = [
+            "bg-blue-50 dark:bg-blue-900/20",
+            "bg-purple-50 dark:bg-purple-900/20",
+            "bg-emerald-50 dark:bg-emerald-900/20",
+            "bg-amber-50 dark:bg-amber-900/20",
           ];
-          const iconColor = iconColors[index % iconColors.length];
+          const iconTextColors = [
+            "text-blue-500",
+            "text-purple-500",
+            "text-emerald-500",
+            "text-amber-500",
+          ];
+          const iconBg = iconBgColors[index % iconBgColors.length];
+          const iconText = iconTextColors[index % iconTextColors.length];
           
           return (
             <motion.div
@@ -135,46 +148,44 @@ export default function GasStationDashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
+              className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
             >
-              <div className="p-4">
-                <div className="flex items-center">
-                  <div className={`w-16 h-16 ${iconColor} rounded-lg flex items-center justify-center shadow-lg mr-4`}>
-                    <stat.icon className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h6 className="text-gray-600 dark:text-gray-400 text-sm font-semibold mb-1">{stat.title}</h6>
-                    <h6 className="text-gray-800 dark:text-white text-2xl font-extrabold mb-0">{stat.value}</h6>
-                    <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">{stat.subtitle}</p>
-                  </div>
+              <div className="flex items-center gap-4">
+                <div className={`p-3 ${iconBg} rounded-2xl`}>
+                  <stat.icon className={`w-6 h-6 ${iconText}`} />
                 </div>
-                {(stat.change || stat.alert) && (
-                  <div className="mt-3 flex items-center justify-end">
-                    {stat.change && (
-                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded-full">
-                        {stat.change}
-                      </span>
-                    )}
-                    {stat.alert && (
-                      <AlertTriangle className="w-4 h-4 text-orange-500 ml-2" />
-                    )}
-                  </div>
-                )}
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{stat.title}</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white">{stat.value}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{stat.subtitle}</p>
+                </div>
               </div>
+              {(stat.change || stat.alert) && (
+                <div className="mt-3 flex items-center justify-end">
+                  {stat.change && (
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded-full">
+                      {stat.change}
+                    </span>
+                  )}
+                  {stat.alert && (
+                    <AlertTriangle className="w-4 h-4 text-orange-500 ml-2" />
+                  )}
+                </div>
+              )}
             </motion.div>
           );
         })}
       </div>
 
-      {/* Quick Actions - Mazer Style */}
+      {/* Quick Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6"
+        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 mb-6"
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">งานที่ต้องดำเนินการ</h2>
+          <h2 className="text-xl font-black text-gray-900 dark:text-white">งานที่ต้องดำเนินการ</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action, index) => {
@@ -235,47 +246,53 @@ export default function GasStationDashboard() {
         </div>
       </motion.div>
 
-      {/* Branch Status - Mazer Style */}
+      {/* Branch Status */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.6 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6"
+        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 mb-6 overflow-hidden"
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">สถานะสาขา</h2>
+          <h2 className="text-xl font-black text-gray-900 dark:text-white">สถานะสาขา</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-4 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">สาขา</th>
-                <th className="text-right py-4 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">ยอดขายวันนี้</th>
-                <th className="text-right py-4 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">สต็อก (ลิตร)</th>
-                <th className="text-center py-4 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">สถานะ</th>
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                <th className="px-6 py-4">สาขา</th>
+                <th className="px-6 py-4 text-right">ยอดขายวันนี้</th>
+                <th className="px-6 py-4 text-right">สต็อก (ลิตร)</th>
+                <th className="px-6 py-4 text-center">สถานะ</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
               {mockGasStationData.branches.map((branch) => (
-                <tr key={branch.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <td className="py-4 px-4 text-sm font-semibold text-gray-800 dark:text-white">{branch.name}</td>
-                  <td className="py-4 px-4 text-sm text-right text-gray-700 dark:text-gray-300">{currencyFormatter.format(branch.sales)}</td>
-                  <td className="py-4 px-4 text-sm text-right text-gray-700 dark:text-gray-300">{numberFormatter.format(branch.stock)}</td>
-                  <td className="py-4 px-4 text-center">
+                <tr key={branch.id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors font-medium">
+                  <td className="px-6 py-4">
+                    <span className="font-bold text-gray-700 dark:text-gray-300">{branch.name}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="font-bold text-gray-700 dark:text-gray-300">{currencyFormatter.format(branch.sales)}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="font-bold text-gray-700 dark:text-gray-300">{numberFormatter.format(branch.stock)}</span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
                     {branch.status === "normal" && (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-full">
                         <CheckCircle className="w-3.5 h-3.5" />
                         ปกติ
                       </span>
                     )}
                     {branch.status === "warning" && (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 px-3 py-1.5 rounded-full border border-orange-200 dark:border-orange-800">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 px-3 py-1.5 rounded-full">
                         <AlertTriangle className="w-3.5 h-3.5" />
                         เตือน
                       </span>
                     )}
                     {branch.status === "critical" && (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-3 py-1.5 rounded-full border border-red-200 dark:border-red-800">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-3 py-1.5 rounded-full">
                         <XCircle className="w-3.5 h-3.5" />
                         วิกฤต
                       </span>
@@ -288,23 +305,23 @@ export default function GasStationDashboard() {
         </div>
       </motion.div>
 
-      {/* Charts Section - Mazer Style */}
+      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Sales Chart Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.8 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6"
+          className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white">ยอดขายรายวัน</h2>
+            <h2 className="text-xl font-black text-gray-900 dark:text-white">ยอดขายรายวัน</h2>
             <BarChart3 className="w-5 h-5 text-gray-400" />
           </div>
-          <div className="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
+          <div className="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
             <div className="text-center">
               <Activity className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">กราฟยอดขายรายวัน</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">กราฟยอดขายรายวัน</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">จะแสดงข้อมูลเมื่อเชื่อมต่อ Chart Library</p>
             </div>
           </div>
@@ -315,10 +332,10 @@ export default function GasStationDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.9 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6"
+          className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white">การกระจายสต็อก</h2>
+            <h2 className="text-xl font-black text-gray-900 dark:text-white">การกระจายสต็อก</h2>
             <Droplet className="w-5 h-5 text-gray-400" />
           </div>
           <div className="space-y-4">
@@ -354,43 +371,43 @@ export default function GasStationDashboard() {
         </motion.div>
       </div>
 
-      {/* Underground Book Status - Mazer Style */}
+      {/* Underground Book Status */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 1.0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6"
+        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6"
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">สถานะสมุดใต้ดิน</h2>
+          <h2 className="text-xl font-black text-gray-900 dark:text-white">สถานะสมุดใต้ดิน</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex items-center gap-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
-            <div className="w-12 h-12 bg-emerald-500 rounded-lg flex items-center justify-center shadow-md">
+          <div className="flex items-center gap-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-200 dark:border-emerald-800">
+            <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-md">
               <CheckCircle className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">กรอกแล้ว</p>
-              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{mockGasStationData.undergroundBookStatus.completed} สาขา</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">กรอกแล้ว</p>
+              <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{mockGasStationData.undergroundBookStatus.completed} สาขา</p>
             </div>
           </div>
-          <div className="flex items-center gap-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800">
-            <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center shadow-md">
+          <div className="flex items-center gap-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-2xl border border-orange-200 dark:border-orange-800">
+            <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center shadow-md">
               <Clock className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">รอกรอก</p>
-              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{mockGasStationData.undergroundBookStatus.pending} สาขา</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">รอกรอก</p>
+              <p className="text-2xl font-black text-orange-600 dark:text-orange-400">{mockGasStationData.undergroundBookStatus.pending} สาขา</p>
             </div>
           </div>
           {mockGasStationData.undergroundBookStatus.overdue > 0 && (
-            <div className="flex items-center gap-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
-              <div className="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center shadow-md">
+            <div className="flex items-center gap-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-200 dark:border-red-800">
+              <div className="w-12 h-12 bg-red-500 rounded-2xl flex items-center justify-center shadow-md">
                 <AlertTriangle className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">เกินเวลา</p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{mockGasStationData.undergroundBookStatus.overdue} สาขา</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">เกินเวลา</p>
+                <p className="text-2xl font-black text-red-600 dark:text-red-400">{mockGasStationData.undergroundBookStatus.overdue} สาขา</p>
               </div>
             </div>
           )}

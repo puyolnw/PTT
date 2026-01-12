@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { X, ChevronDown, ChevronRight } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { SidebarConfig, SidebarProps, SidebarItem } from "./types";
@@ -21,6 +21,10 @@ export default function BaseSidebar({
 
     // State for expanded groups
     const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+    
+    // Track if user has manually toggled groups to prevent auto-expand from overriding
+    const manuallyToggledRef = useRef<Set<string>>(new Set());
+    const lastPathnameRef = useRef<string>(location.pathname);
 
     // Initialize visible items/groups
     const visibleItems = useMemo(() => 
@@ -34,19 +38,36 @@ export default function BaseSidebar({
     const showText = isMobile || isExpanded;
     const sidebarWidth = isMobile ? 'w-64' : (isExpanded ? 'w-64' : 'w-16');
 
-    // Auto-expand group if active item is inside
+    // Auto-expand group if active item is inside (only on pathname change, not on manual toggle)
     useEffect(() => {
+        // Reset manually toggled groups when pathname changes
+        if (location.pathname !== lastPathnameRef.current) {
+            manuallyToggledRef.current.clear();
+            lastPathnameRef.current = location.pathname;
+        }
+
         if (visibleGroups.length > 0) {
             const activeGroup = visibleGroups.find(group =>
-                group.items.some(item => location.pathname === item.to || location.pathname.startsWith(item.to + '/'))
+                group.items.some(item => {
+                    if (item.isHeader) return false;
+                    const itemPath = item.to;
+                    if (item.end) {
+                        return location.pathname === itemPath;
+                    }
+                    return location.pathname === itemPath || location.pathname.startsWith(itemPath + '/');
+                })
             );
-            if (activeGroup && !expandedGroups.includes(activeGroup.id)) {
+            if (activeGroup && !expandedGroups.includes(activeGroup.id) && !manuallyToggledRef.current.has(activeGroup.id)) {
                 setExpandedGroups(prev => [...prev, activeGroup.id]);
             }
         }
-    }, [location.pathname, visibleGroups, expandedGroups]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.pathname, visibleGroups]);
 
     const toggleGroup = (groupId: string) => {
+        // Mark this group as manually toggled
+        manuallyToggledRef.current.add(groupId);
+        
         setExpandedGroups(prev =>
             prev.includes(groupId)
                 ? prev.filter(id => id !== groupId)
