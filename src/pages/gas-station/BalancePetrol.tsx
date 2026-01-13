@@ -1,12 +1,16 @@
-import { motion } from "framer-motion";
-import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useMemo, useState } from "react";
 import {
   BookOpen,
   TrendingUp,
   TrendingDown,
   Droplet,
-  Calendar,
+  Search,
   Filter,
+  Check,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -232,22 +236,99 @@ const mockBalanceRows: BalanceRow[] = [
 ];
 
 export default function BalancePetrol() {
-  const [selectedDay, setSelectedDay] = useState<string>("");
-  const [selectedMonth, setSelectedMonth] = useState<string>("");
-  const [selectedYear, setSelectedYear] = useState<string>("");
+  const rows = useMemo(() => mockBalanceRows, []);
 
-  // กรองข้อมูลตามวัน เดือน ปี
-  const filteredRows = mockBalanceRows.filter((row) => {
-    const rowDay = row.fullDate.getDate();
-    const rowMonth = row.fullDate.getMonth() + 1; // 0-indexed
-    const rowYear = row.fullDate.getFullYear();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [columnFilters, setColumnFilters] = useState<{
+    date: string;
+    pump: PumpCode | "ทั้งหมด";
+    product: ProductCode | "ทั้งหมด";
+  }>({ date: "ทั้งหมด", pump: "ทั้งหมด", product: "ทั้งหมด" });
 
-    const matchesDay = !selectedDay || rowDay === parseInt(selectedDay);
-    const matchesMonth = !selectedMonth || rowMonth === parseInt(selectedMonth);
-    const matchesYear = !selectedYear || rowYear === parseInt(selectedYear);
+  type FilterKey = "date" | "pump" | "product";
+  type SortKey = "date" | "receive" | "pay" | "balance";
 
-    return matchesDay && matchesMonth && matchesYear;
+  const [activeHeaderDropdown, setActiveHeaderDropdown] = useState<FilterKey | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: "asc" | "desc" | null }>({
+    key: "date",
+    direction: "desc",
   });
+
+  const filterOptions = useMemo(() => {
+    const uniqueDates = Array.from(new Set(rows.map((r) => r.date))).sort((a, b) => {
+      const aRow = rows.find((x) => x.date === a);
+      const bRow = rows.find((x) => x.date === b);
+      const aT = aRow ? aRow.fullDate.getTime() : 0;
+      const bT = bRow ? bRow.fullDate.getTime() : 0;
+      return bT - aT;
+    });
+
+    return {
+      date: ["ทั้งหมด", ...uniqueDates],
+      pump: ["ทั้งหมด", ...pumpCodes],
+      product: ["ทั้งหมด", "D87", "B", "GSH95"] as const,
+    };
+  }, [rows]);
+
+  const handleSort = (key: SortKey) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        if (prev.direction === "asc") return { key, direction: "desc" };
+        if (prev.direction === "desc") return { key, direction: null };
+        return { key, direction: "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    if (sortConfig.key !== key || !sortConfig.direction) {
+      return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    }
+    return sortConfig.direction === "asc" ? (
+      <ChevronUp className="w-3 h-3 text-emerald-500" />
+    ) : (
+      <ChevronDown className="w-3 h-3 text-emerald-500" />
+    );
+  };
+
+  const filteredRows = useMemo(() => {
+    let result = rows.filter((row) => {
+      const term = searchTerm.trim().toLowerCase();
+      const matchesSearch =
+        term === "" ||
+        row.date.toLowerCase().includes(term) ||
+        String(row.receive).includes(term) ||
+        String(row.pay).includes(term) ||
+        String(row.balance).includes(term);
+
+      const matchesDate = columnFilters.date === "ทั้งหมด" || row.date === columnFilters.date;
+      const matchesPump =
+        columnFilters.pump === "ทั้งหมด" || (row.pumps[columnFilters.pump] ?? 0) > 0;
+      const matchesProduct =
+        columnFilters.product === "ทั้งหมด" || (row.products[columnFilters.product] ?? 0) > 0;
+
+      return matchesSearch && matchesDate && matchesPump && matchesProduct;
+    });
+
+    if (sortConfig.key && sortConfig.direction) {
+      const dir = sortConfig.direction === "asc" ? 1 : -1;
+      result = [...result].sort((a, b) => {
+        switch (sortConfig.key) {
+          case "date":
+            return (a.fullDate.getTime() - b.fullDate.getTime()) * dir;
+          case "receive":
+            return (a.receive - b.receive) * dir;
+          case "pay":
+            return (a.pay - b.pay) * dir;
+          case "balance":
+            return (a.balance - b.balance) * dir;
+        }
+      });
+    }
+
+    return result;
+  }, [rows, searchTerm, columnFilters, sortConfig]);
 
   const totalReceive = filteredRows.reduce((sum, r) => sum + r.receive, 0);
   const totalPay = filteredRows.reduce((sum, r) => sum + r.pay, 0);
@@ -256,231 +337,397 @@ export default function BalancePetrol() {
       ? filteredRows[filteredRows.length - 1].balance
       : 0;
 
-  return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-4"
+  const isAnyFilterActive = useMemo(() => {
+    return (
+      searchTerm !== "" ||
+      columnFilters.date !== "ทั้งหมด" ||
+      columnFilters.pump !== "ทั้งหมด" ||
+      columnFilters.product !== "ทั้งหมด"
+    );
+  }, [searchTerm, columnFilters]);
+
+  const HeaderWithFilter = ({
+    label,
+    columnKey,
+    filterKey,
+    options,
+    align = "left",
+    rowSpan,
+  }: {
+    label: string;
+    columnKey?: SortKey;
+    filterKey?: FilterKey;
+    options?: readonly string[];
+    align?: "left" | "right" | "center";
+    rowSpan?: number;
+  }) => {
+    const justify =
+      align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+
+    const getFilterValue = (key: FilterKey) => {
+      if (key === "date") return columnFilters.date;
+      if (key === "pump") return columnFilters.pump;
+      return columnFilters.product;
+    };
+
+    const setFilterValue = (key: FilterKey, value: string) => {
+      if (key === "date") {
+        setColumnFilters((prev) => ({ ...prev, date: value }));
+        return;
+      }
+      if (key === "pump") {
+        setColumnFilters((prev) => ({ ...prev, pump: value as PumpCode | "ทั้งหมด" }));
+        return;
+      }
+      setColumnFilters((prev) => ({ ...prev, product: value as ProductCode | "ทั้งหมด" }));
+    };
+
+    const currentFilterValue = filterKey ? getFilterValue(filterKey) : "ทั้งหมด";
+
+    return (
+      <th
+        rowSpan={rowSpan}
+        className={`px-3 py-3 relative ${align === "right" ? "text-right" : align === "center" ? "text-center" : ""}`}
       >
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
-          <BookOpen className="w-8 h-8 text-blue-500" />
-          สมุด Balance Petrol (หน้าลาน)
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 text-sm">
-          รูปแบบตารางเลียนแบบสมุดบัญชีควบคุมหน้าลาน ใช้บันทึก รับ-จ่าย-คงเหลือ เงินสด
-          และยอดขายแยกตามหัวจ่าย (P18, P26, …) และประเภทน้ำมัน (D87, B, GSH95)
-        </p>
-      </motion.div>
+        <div className={`flex items-center gap-2 ${justify}`}>
+          <button
+            type="button"
+            className={`flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors ${
+              sortConfig.key === columnKey ? "text-emerald-600" : ""
+            } ${columnKey ? "cursor-pointer" : "cursor-default"}`}
+            onClick={() => columnKey && handleSort(columnKey)}
+            aria-label={columnKey ? `เรียงข้อมูลคอลัมน์ ${label}` : label}
+            disabled={!columnKey}
+          >
+            <span>{label}</span>
+            {columnKey && getSortIcon(columnKey)}
+          </button>
 
-      {/* Date Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 mb-4"
-      >
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-blue-500" />
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              กรองตามวันที่:
-            </h3>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 flex-1">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-400" />
-              <label className="text-sm text-gray-600 dark:text-gray-400">วัน:</label>
-              <select
-                value={selectedDay}
-                onChange={(e) => setSelectedDay(e.target.value)}
-                className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm transition-all duration-200"
-              >
-                <option value="">ทั้งหมด</option>
-                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                  <option key={day} value={day}>
-                    {day}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 dark:text-gray-400">เดือน:</label>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm transition-all duration-200"
-              >
-                <option value="">ทั้งหมด</option>
-                <option value="1">มกราคม</option>
-                <option value="2">กุมภาพันธ์</option>
-                <option value="3">มีนาคม</option>
-                <option value="4">เมษายน</option>
-                <option value="5">พฤษภาคม</option>
-                <option value="6">มิถุนายน</option>
-                <option value="7">กรกฎาคม</option>
-                <option value="8">สิงหาคม</option>
-                <option value="9">กันยายน</option>
-                <option value="10">ตุลาคม</option>
-                <option value="11">พฤศจิกายน</option>
-                <option value="12">ธันวาคม</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 dark:text-gray-400">ปี:</label>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm transition-all duration-200"
-              >
-                <option value="">ทั้งหมด</option>
-                <option value="2024">2567</option>
-                <option value="2025">2568</option>
-                <option value="2026">2569</option>
-              </select>
-            </div>
-
-            {(selectedDay || selectedMonth || selectedYear) && (
+          {filterKey && options && (
+            <div className="relative">
               <button
-                onClick={() => {
-                  setSelectedDay("");
-                  setSelectedMonth("");
-                  setSelectedYear("");
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveHeaderDropdown(activeHeaderDropdown === filterKey ? null : filterKey);
                 }}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors duration-200"
+                className={`p-1 rounded-md transition-all ${
+                  currentFilterValue !== "ทั้งหมด"
+                    ? "bg-emerald-500 text-white shadow-sm"
+                    : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"
+                }`}
+                aria-label={`ตัวกรองคอลัมน์ ${label}`}
               >
-                ล้างตัวกรอง
+                <Filter className="w-3 h-3" />
               </button>
-            )}
-          </div>
 
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            แสดง: <span className="font-semibold text-blue-600 dark:text-blue-400">{filteredRows.length}</span> รายการ
+              <AnimatePresence>
+                {activeHeaderDropdown === filterKey && (
+                  <>
+                    <button
+                      type="button"
+                      className="fixed inset-0 z-10 bg-transparent"
+                      onClick={() => setActiveHeaderDropdown(null)}
+                      aria-label="ปิดตัวกรอง"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute left-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                    >
+                      {options.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => {
+                            setFilterValue(filterKey, opt);
+                            setActiveHeaderDropdown(null);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                            currentFilterValue === opt
+                              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          {opt}
+                          {currentFilterValue === opt && <Check className="w-3 h-3" />}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </th>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
+      {/* Header */}
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+                <BookOpen className="w-8 h-8 text-white" />
+              </div>
+              สมุด Balance Petrol (หน้าลาน)
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">
+              แสดงข้อมูลแบบตาราง และกรองข้อมูลได้จากหัวคอลัมน์ (วันที่/หัวจ่าย/ประเภทผลิตภัณฑ์)
+            </p>
           </div>
         </div>
-      </motion.div>
+      </header>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex items-center gap-3"
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
         >
-          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-            <TrendingUp className="w-6 h-6 text-emerald-500" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">รับสะสม (ช่วงที่แสดง)</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">
-              {numberFormatter.format(totalReceive)} บาท
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <TrendingUp className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">รับสะสม</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">
+                {numberFormatter.format(totalReceive)}
+              </p>
+            </div>
           </div>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.15 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex items-center gap-3"
+          transition={{ delay: 0.1 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
         >
-          <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-            <TrendingDown className="w-6 h-6 text-red-500" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">จ่ายสะสม (ช่วงที่แสดง)</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">
-              {numberFormatter.format(totalPay)} บาท
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-2xl">
+              <TrendingDown className="w-6 h-6 text-red-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">จ่ายสะสม</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">
+                {numberFormatter.format(totalPay)}
+              </p>
+            </div>
           </div>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex items-center gap-3"
+          transition={{ delay: 0.2 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
         >
-          <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-            <Droplet className="w-6 h-6 text-blue-500" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">คงเหลือสะสมล่าสุด</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">
-              {numberFormatter.format(lastBalance)} บาท
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <Droplet className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">คงเหลือล่าสุด</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">
+                {numberFormatter.format(lastBalance)}
+              </p>
+            </div>
           </div>
         </motion.div>
       </div>
 
-      {/* Balance Petrol Ledger Table */}
+      {/* Filter Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white dark:bg-gray-800 p-4 md:p-5 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6"
+      >
+        <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="ค้นหา: วันที่, รับ, จ่าย, คงเหลือ..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all duration-200"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            {isAnyFilterActive && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm("");
+                  setColumnFilters({ date: "ทั้งหมด", pump: "ทั้งหมด", product: "ทั้งหมด" });
+                  setActiveHeaderDropdown(null);
+                }}
+                className="px-5 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-2xl font-bold transition-all active:scale-95"
+              >
+                ล้างตัวกรอง
+              </button>
+            )}
+            <div className="text-sm font-bold text-gray-500 dark:text-gray-400">
+              แสดง {filteredRows.length} รายการ
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.25 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
       >
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-gray-800 dark:text-white">
-              สมุด Balance Petrol รายวัน (รูปแบบสมุด 302–305)
-            </h2>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              ซ้าย: รับ–จ่าย–คงเหลือ | กลาง: ยอดขายตามจุดจ่าย (P18…P99) | ขวา: รวมตามประเภทผลิตภัณฑ์ (D87, B, GSH95)
-            </p>
-          </div>
-        </div>
-
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               {/* แถวหัวข้อใหญ่ */}
-              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60">
-                <th
+              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                <HeaderWithFilter
+                  label="ด/ป/ว"
+                  columnKey="date"
+                  filterKey="date"
+                  options={filterOptions.date}
                   rowSpan={2}
-                  className="py-3 px-3 text-left font-semibold text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700"
-                >
-                  ด/ป/ว
-                </th>
-                <th
-                  rowSpan={2}
-                  className="py-3 px-3 text-right font-semibold text-gray-600 dark:text-gray-300"
-                >
-                  รับ
-                </th>
-                <th
-                  rowSpan={2}
-                  className="py-3 px-3 text-right font-semibold text-gray-600 dark:text-gray-300"
-                >
-                  จ่าย
-                </th>
-                <th
-                  rowSpan={2}
-                  className="py-3 px-3 text-right font-semibold text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700"
-                >
-                  คงเหลือ
-                </th>
+                />
+                <HeaderWithFilter label="รับ" columnKey="receive" align="right" rowSpan={2} />
+                <HeaderWithFilter label="จ่าย" columnKey="pay" align="right" rowSpan={2} />
+                <HeaderWithFilter label="คงเหลือ" columnKey="balance" align="right" rowSpan={2} />
                 <th
                   colSpan={pumpCodes.length}
-                  className="py-2 px-3 text-center font-semibold text-gray-700 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700"
+                  className="py-2 px-3 text-center border-r border-gray-200 dark:border-gray-700 relative"
                 >
-                  ยอดขายตามจุดจ่าย (P18–P99)
+                  <div className="flex items-center justify-center gap-2">
+                    <span>ยอดขายตามจุดจ่าย (P18–P99)</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveHeaderDropdown(activeHeaderDropdown === "pump" ? null : "pump");
+                      }}
+                      className={`p-1 rounded-md transition-all ${
+                        columnFilters.pump !== "ทั้งหมด"
+                          ? "bg-emerald-500 text-white shadow-sm"
+                          : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"
+                      }`}
+                      aria-label="ตัวกรองหัวจ่าย"
+                    >
+                      <Filter className="w-3 h-3" />
+                    </button>
+                  </div>
+
+                  <AnimatePresence>
+                    {activeHeaderDropdown === "pump" && (
+                      <>
+                        <button
+                          type="button"
+                          className="fixed inset-0 z-10 bg-transparent"
+                          onClick={() => setActiveHeaderDropdown(null)}
+                          aria-label="ปิดตัวกรอง"
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                        >
+                          {filterOptions.pump.map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => {
+                                setColumnFilters((prev) => ({ ...prev, pump: opt as PumpCode | "ทั้งหมด" }));
+                                setActiveHeaderDropdown(null);
+                              }}
+                              className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                                columnFilters.pump === opt
+                                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                              }`}
+                            >
+                              {opt}
+                              {columnFilters.pump === opt && <Check className="w-3 h-3" />}
+                            </button>
+                          ))}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
                 </th>
                 <th
                   colSpan={4}
-                  className="py-2 px-3 text-center font-semibold text-gray-700 dark:text-gray-200"
+                  className="py-2 px-3 text-center relative"
                 >
-                  ประเภทผลิตภัณฑ์ / ราคาน้ำมันต่อลิตร / คงเหลือ
+                  <div className="flex items-center justify-center gap-2">
+                    <span>ประเภทผลิตภัณฑ์ / ราคาน้ำมันต่อลิตร / คงเหลือ</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveHeaderDropdown(activeHeaderDropdown === "product" ? null : "product");
+                      }}
+                      className={`p-1 rounded-md transition-all ${
+                        columnFilters.product !== "ทั้งหมด"
+                          ? "bg-emerald-500 text-white shadow-sm"
+                          : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"
+                      }`}
+                      aria-label="ตัวกรองประเภทผลิตภัณฑ์"
+                    >
+                      <Filter className="w-3 h-3" />
+                    </button>
+                  </div>
+
+                  <AnimatePresence>
+                    {activeHeaderDropdown === "product" && (
+                      <>
+                        <button
+                          type="button"
+                          className="fixed inset-0 z-10 bg-transparent"
+                          onClick={() => setActiveHeaderDropdown(null)}
+                          aria-label="ปิดตัวกรอง"
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                        >
+                          {filterOptions.product.map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => {
+                                setColumnFilters((prev) => ({ ...prev, product: opt as ProductCode | "ทั้งหมด" }));
+                                setActiveHeaderDropdown(null);
+                              }}
+                              className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                                columnFilters.product === opt
+                                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                              }`}
+                            >
+                              {opt}
+                              {columnFilters.product === opt && <Check className="w-3 h-3" />}
+                            </button>
+                          ))}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
                 </th>
               </tr>
               {/* แถวหัวข้อย่อย */}
-              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60">
+              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
                 {pumpCodes.map((code, index) => (
                   <th
                     key={code}

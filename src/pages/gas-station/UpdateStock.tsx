@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
-import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Package,
@@ -11,7 +11,13 @@ import {
   Droplet,
   TrendingDown,
   History,
-  Building2,
+  Search,
+  Filter,
+  Check,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  X,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -118,10 +124,67 @@ const initialStockData = generateInitialStockData();
 export default function UpdateStock() {
   const navigate = useNavigate();
   const [stockItems, setStockItems] = useState<StockUpdateItem[]>(initialStockData);
-  const [selectedBranch, setSelectedBranch] = useState<string>("all"); // "all" หรือชื่อสาขา
+  const [searchTerm, setSearchTerm] = useState("");
   const [updateDate, setUpdateDate] = useState(new Date().toISOString().split("T")[0]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Column filters (match DepositSlips / Stock pattern)
+  const [columnFilters, setColumnFilters] = useState<{
+    branch: string;
+    oilType: string;
+    status: string; // "ทั้งหมด" | "pending" | "updated"
+  }>({
+    branch: "ทั้งหมด",
+    oilType: "ทั้งหมด",
+    status: "ทั้งหมด",
+  });
+
+  type FilterKey = "branch" | "oilType" | "status";
+  type SortKey =
+    | "branch"
+    | "tankNumber"
+    | "oilType"
+    | "currentStock"
+    | "usageAmount"
+    | "updatedStock"
+    | "status";
+
+  const [activeHeaderDropdown, setActiveHeaderDropdown] = useState<FilterKey | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: "asc" | "desc" | null }>({
+    key: "branch",
+    direction: null,
+  });
+
+  const filterOptions = useMemo(() => {
+    return {
+      branch: ["ทั้งหมด", ...new Set(stockItems.filter(i => i.branch !== "มายมาส").map((s) => s.branch))],
+      oilType: ["ทั้งหมด", ...new Set(stockItems.filter(i => i.branch !== "มายมาส").map((s) => s.oilType))],
+      status: ["ทั้งหมด", "pending", "updated"],
+    };
+  }, [stockItems]);
+
+  const handleSort = (key: SortKey) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        if (prev.direction === "asc") return { key, direction: "desc" };
+        if (prev.direction === "desc") return { key, direction: null };
+        return { key, direction: "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    if (sortConfig.key !== key || !sortConfig.direction) {
+      return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    }
+    return sortConfig.direction === "asc" ? (
+      <ChevronUp className="w-3 h-3 text-emerald-500" />
+    ) : (
+      <ChevronDown className="w-3 h-3 text-emerald-500" />
+    );
+  };
 
   const handleUsageChange = (id: string, usageAmount: number) => {
     setStockItems((prev) =>
@@ -142,24 +205,77 @@ export default function UpdateStock() {
     );
   };
 
-  // กรองข้อมูลตามสาขาที่เลือก และเรียงลำดับ
+  // กรองข้อมูลตาม filter ในหัวคอลัมน์ และเรียงลำดับ
   const filteredStockItems = useMemo(() => {
     // กรองออกมายมาส และกรองตามสาขาที่เลือก
     let filtered = stockItems.filter(item => item.branch !== "มายมาส");
-    
-    if (selectedBranch !== "all") {
-      filtered = filtered.filter(item => item.branch === selectedBranch);
-    }
-    
-    // เรียงตามสาขา (ไฮโซ -> ดินดำ -> หนองจิก -> ตักสิลา -> บายพาส) แล้วตามหลุม
-    return [...filtered].sort((a, b) => {
-      if (a.branch !== b.branch) {
-        const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
-        return branchOrder.indexOf(a.branch) - branchOrder.indexOf(b.branch);
-      }
-      return a.tankNumber - b.tankNumber;
+
+    const term = searchTerm.toLowerCase();
+    filtered = filtered.filter((item) => {
+      const matchesSearch =
+        item.oilType.toLowerCase().includes(term) ||
+        item.branch.toLowerCase().includes(term) ||
+        item.id.toLowerCase().includes(term) ||
+        item.tankNumber.toString().includes(searchTerm);
+
+      const matchesBranch = columnFilters.branch === "ทั้งหมด" || item.branch === columnFilters.branch;
+      const matchesOilType = columnFilters.oilType === "ทั้งหมด" || item.oilType === (columnFilters.oilType as OilType);
+      const matchesStatus =
+        columnFilters.status === "ทั้งหมด" || item.status === (columnFilters.status as StockUpdateItem["status"]);
+
+      return matchesSearch && matchesBranch && matchesOilType && matchesStatus;
     });
-  }, [stockItems, selectedBranch]);
+
+    // Default sort (old behavior)
+    if (!sortConfig.direction) {
+      const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
+      return [...filtered].sort((a, b) => {
+        if (a.branch !== b.branch) return branchOrder.indexOf(a.branch) - branchOrder.indexOf(b.branch);
+        return a.tankNumber - b.tankNumber;
+      });
+    }
+
+    // Active sort
+    return [...filtered].sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortConfig.key) {
+        case "branch":
+          aValue = a.branch;
+          bValue = b.branch;
+          break;
+        case "tankNumber":
+          aValue = a.tankNumber;
+          bValue = b.tankNumber;
+          break;
+        case "oilType":
+          aValue = a.oilType;
+          bValue = b.oilType;
+          break;
+        case "currentStock":
+          aValue = a.currentStock;
+          bValue = b.currentStock;
+          break;
+        case "usageAmount":
+          aValue = a.usageAmount;
+          bValue = b.usageAmount;
+          break;
+        case "updatedStock":
+          aValue = a.updatedStock;
+          bValue = b.updatedStock;
+          break;
+        case "status":
+          aValue = a.status;
+          bValue = b.status;
+          break;
+      }
+
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [stockItems, searchTerm, columnFilters, sortConfig]);
 
   // สรุปข้อมูลตามสาขา (ไม่รวมมายมาส)
   const branchSummary = useMemo(() => {
@@ -177,18 +293,151 @@ export default function UpdateStock() {
     return summary;
   }, [stockItems]);
 
+  const HeaderWithFilter = ({
+    label,
+    columnKey,
+    filterKey,
+    options,
+    align = "left",
+  }: {
+    label: string;
+    columnKey?: SortKey;
+    filterKey?: FilterKey;
+    options?: string[];
+    align?: "left" | "right" | "center";
+  }) => {
+    const justify =
+      align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+
+    return (
+      <th
+        className={`px-6 py-4 relative group text-[10px] uppercase tracking-widest font-black text-gray-400 ${
+          align === "right" ? "text-right" : align === "center" ? "text-center" : ""
+        }`}
+      >
+        <div className={`flex items-center gap-2 ${justify}`}>
+          <button
+            type="button"
+            className={`flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors ${
+              sortConfig.key === columnKey ? "text-emerald-600" : ""
+            } ${columnKey ? "cursor-pointer" : "cursor-default"}`}
+            onClick={() => columnKey && handleSort(columnKey)}
+            disabled={!columnKey}
+            aria-label={columnKey ? `เรียงข้อมูลคอลัมน์ ${label}` : label}
+          >
+            <span>{label}</span>
+            {columnKey && getSortIcon(columnKey)}
+          </button>
+
+          {filterKey && options && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveHeaderDropdown(activeHeaderDropdown === filterKey ? null : filterKey);
+                }}
+                className={`p-1 rounded-md transition-all ${
+                  (filterKey === "branch"
+                    ? columnFilters.branch
+                    : filterKey === "oilType"
+                      ? columnFilters.oilType
+                      : columnFilters.status) !== "ทั้งหมด"
+                    ? "bg-emerald-500 text-white shadow-sm"
+                    : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"
+                }`}
+                aria-label={`ตัวกรองคอลัมน์ ${label}`}
+              >
+                <Filter className="w-3 h-3" />
+              </button>
+
+              <AnimatePresence>
+                {activeHeaderDropdown === filterKey && (
+                  <>
+                    <button
+                      type="button"
+                      className="fixed inset-0 z-10 bg-transparent"
+                      onClick={() => setActiveHeaderDropdown(null)}
+                      aria-label="ปิดตัวกรอง"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute left-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                    >
+                      {options.map((opt) => {
+                        const current =
+                          filterKey === "branch"
+                            ? columnFilters.branch
+                            : filterKey === "oilType"
+                              ? columnFilters.oilType
+                              : columnFilters.status;
+                        const selected = current === opt;
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                              if (filterKey === "branch") {
+                                setColumnFilters((prev) => ({ ...prev, branch: opt }));
+                              } else if (filterKey === "oilType") {
+                                setColumnFilters((prev) => ({ ...prev, oilType: opt }));
+                              } else {
+                                setColumnFilters((prev) => ({ ...prev, status: opt }));
+                              }
+                              setActiveHeaderDropdown(null);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                              selected
+                                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            {opt}
+                            {selected && <Check className="w-3 h-3" />}
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </th>
+    );
+  };
+
+  const isAnyFilterActive = useMemo(() => {
+    return (
+      searchTerm !== "" ||
+      columnFilters.branch !== "ทั้งหมด" ||
+      columnFilters.oilType !== "ทั้งหมด" ||
+      columnFilters.status !== "ทั้งหมด" ||
+      sortConfig.direction !== null
+    );
+  }, [searchTerm, columnFilters, sortConfig.direction]);
+
   const handleReset = () => {
     setStockItems(initialStockData);
     setUpdateDate(new Date().toISOString().split("T")[0]);
     setSaveSuccess(false);
+    setSearchTerm("");
+    setColumnFilters({ branch: "ทั้งหมด", oilType: "ทั้งหมด", status: "ทั้งหมด" });
+    setActiveHeaderDropdown(null);
+    setSortConfig({ key: "branch", direction: null });
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     setSaveSuccess(false);
 
-    // ตรวจสอบว่ามีการกรอกข้อมูลหรือไม่ (เฉพาะสาขาที่เลือก)
-    const itemsToCheck = selectedBranch === "all" ? stockItems : filteredStockItems;
+    // ตรวจสอบว่ามีการกรอกข้อมูลหรือไม่ (เฉพาะสาขาที่เลือกใน filter branch)
+    const itemsToCheck = columnFilters.branch === "ทั้งหมด"
+      ? stockItems
+      : stockItems.filter((i) => i.branch === columnFilters.branch);
     const hasUpdates = itemsToCheck.some((item) => item.usageAmount > 0);
     if (!hasUpdates) {
       alert("กรุณากรอกจำนวนการใช้น้ำมันอย่างน้อย 1 รายการ");
@@ -231,76 +480,84 @@ export default function UpdateStock() {
   const updatedCount = filteredStockItems.filter((item) => item.usageAmount > 0).length;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6"
-      >
-        <div className="flex items-center justify-between mb-4">
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
-              <Package className="w-8 h-8 text-blue-500" />
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+                <Package className="w-8 h-8 text-white" />
+              </div>
               อัพเดตสต็อกน้ำมัน
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
+              <Droplet className="w-4 h-4" />
               อัพเดตการใช้น้ำมันในระหว่างวัน สำหรับแต่ละชนิดน้ำมัน
             </p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/app/gas-station/stock-update-history")}
-              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
+              className="px-6 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl font-bold transition-all active:scale-95 flex items-center gap-2"
             >
-              <History className="w-4 h-4" />
+              <History className="w-5 h-5" />
               ดูประวัติการอัปเดตน้ำมัน
             </button>
             <button
               onClick={() => navigate("/app/gas-station/stock")}
-              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors"
+              className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-2"
             >
               ← กลับไปหน้าสต็อก
             </button>
           </div>
         </div>
+      </header>
 
-        {/* Branch Selector and Date Picker */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
-            <Building2 className="w-5 h-5 text-gray-500" />
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">เลือกสาขา:</label>
-            <select
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
-            >
-              <option value="all">ทุกสาขา</option>
-              {branches
-                .sort((a, b) => {
-                  const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส"];
-                  return branchOrder.indexOf(a.name) - branchOrder.indexOf(b.name);
-                })
-                .map((branch) => (
-                  <option key={branch.id} value={branch.name}>
-                    {branch.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
-            <Calendar className="w-5 h-5 text-gray-500" />
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">วันที่อัพเดต:</label>
+      {/* Filter Bar (Search + Date + Clear + Count) */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="ค้นหาสาขา, ประเภทน้ำมัน, รหัสสต็อก..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
+          />
+        </div>
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="relative flex-1 md:flex-initial">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="date"
               value={updateDate}
               onChange={(e) => setUpdateDate(e.target.value)}
-              className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white"
+              className="pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium text-sm"
             />
           </div>
         </div>
-      </motion.div>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setColumnFilters({ branch: "ทั้งหมด", oilType: "ทั้งหมด", status: "ทั้งหมด" });
+                setActiveHeaderDropdown(null);
+                setSortConfig({ key: "branch", direction: null });
+              }}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+            <Package className="w-4 h-4" />
+            <span className="text-sm font-bold whitespace-nowrap">พบ {filteredStockItems.length} รายการ</span>
+          </div>
+        </div>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -308,10 +565,10 @@ export default function UpdateStock() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4"
+          className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6"
         >
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-12 h-12 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center">
               <Droplet className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -330,10 +587,10 @@ export default function UpdateStock() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4"
+          className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6"
         >
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
+            <div className="w-12 h-12 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center">
               <CheckCircle className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -349,10 +606,10 @@ export default function UpdateStock() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4"
+          className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6"
         >
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+            <div className="w-12 h-12 bg-amber-500 rounded-2xl shadow-lg shadow-amber-500/20 flex items-center justify-center">
               <TrendingDown className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -385,27 +642,27 @@ export default function UpdateStock() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
       >
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-2">
             <div>
               <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
                 อัพเดตการใช้น้ำมันรายวัน
-                {selectedBranch !== "all" && (
-                  <span className="ml-2 text-base font-normal text-blue-600 dark:text-blue-400">
-                    ({selectedBranch})
+                {columnFilters.branch !== "ทั้งหมด" && (
+                  <span className="ml-2 text-base font-normal text-emerald-600 dark:text-emerald-400">
+                    ({columnFilters.branch})
                   </span>
                 )}
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {selectedBranch === "all" 
+                {columnFilters.branch === "ทั้งหมด" 
                   ? "กรุณากรอกจำนวนน้ำมันที่ใช้ไปในระหว่างวันสำหรับแต่ละชนิดน้ำมันทุกสาขา"
-                  : `กรุณากรอกจำนวนน้ำมันที่ใช้ไปในระหว่างวันสำหรับแต่ละชนิดน้ำมัน - ${selectedBranch}`
+                  : `กรุณากรอกจำนวนน้ำมันที่ใช้ไปในระหว่างวันสำหรับแต่ละชนิดน้ำมัน - ${columnFilters.branch}`
                 }
               </p>
             </div>
-            {selectedBranch === "all" && (
+            {columnFilters.branch === "ทั้งหมด" && (
               <div className="text-right">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">สรุปทุกสาขา</p>
                 <div className="flex flex-wrap gap-2 justify-end">
@@ -414,7 +671,7 @@ export default function UpdateStock() {
                     return (
                       <div
                         key={branch.id}
-                        className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-700 dark:text-blue-300"
+                        className="px-2 py-1 bg-emerald-50 dark:bg-emerald-900/20 rounded text-xs text-emerald-700 dark:text-emerald-300"
                       >
                         {branch.name}: {summary.updatedCount}/{summary.totalItems}
                       </div>
@@ -427,32 +684,16 @@ export default function UpdateStock() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                {selectedBranch === "all" && (
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                    สาขา
-                  </th>
-                )}
-                <th className="text-center py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  หลุม
-                </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  ประเภทน้ำมัน
-                </th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  สต็อกปัจจุบัน
-                </th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  จำนวนที่ใช้ (ลิตร)
-                </th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  สต็อกหลังอัพเดต
-                </th>
-                <th className="text-center py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  สถานะ
-                </th>
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50">
+                <HeaderWithFilter label="สาขา" columnKey="branch" filterKey="branch" options={filterOptions.branch} />
+                <HeaderWithFilter label="หลุม" columnKey="tankNumber" align="center" />
+                <HeaderWithFilter label="ประเภทน้ำมัน" columnKey="oilType" filterKey="oilType" options={filterOptions.oilType} />
+                <HeaderWithFilter label="สต็อกปัจจุบัน" columnKey="currentStock" align="right" />
+                <HeaderWithFilter label="จำนวนที่ใช้ (ลิตร)" columnKey="usageAmount" align="right" />
+                <HeaderWithFilter label="สต็อกหลังอัพเดต" columnKey="updatedStock" align="right" />
+                <HeaderWithFilter label="สถานะ" columnKey="status" filterKey="status" options={filterOptions.status} align="center" />
               </tr>
             </thead>
             <tbody>
@@ -466,11 +707,9 @@ export default function UpdateStock() {
                     item.usageAmount > 0 ? "bg-blue-50/30 dark:bg-blue-900/10" : ""
                   }`}
                 >
-                  {selectedBranch === "all" && (
-                    <td className="py-4 px-6 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {item.branch}
-                    </td>
-                  )}
+                  <td className="py-4 px-6 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {item.branch}
+                  </td>
                   <td className="py-4 px-6 text-sm text-center font-semibold text-gray-800 dark:text-white">
                     {item.tankNumber}
                   </td>

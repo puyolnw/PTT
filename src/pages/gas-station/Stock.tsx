@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
-import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Droplet,
@@ -7,6 +7,10 @@ import {
   AlertTriangle,
   Search,
   Filter,
+  Check,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
   BarChart3,
   CheckCircle,
   XCircle,
@@ -628,34 +632,153 @@ const mockStockData: StockItem[] = [
 export default function Stock() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedBranch, setSelectedBranch] = useState("ทั้งหมด");
-  const [selectedOilType, setSelectedOilType] = useState("ทั้งหมด");
-  const [selectedStatus, setSelectedStatus] = useState<"ทั้งหมด" | StockStatus>("ทั้งหมด");
   const [showThresholdModal, setShowThresholdModal] = useState(false);
   const [editingThresholds, setEditingThresholds] = useState<Record<string, number>>({});
 
-  const filteredStock = mockStockData
-    .filter((item) => {
+  // Column filters (match DepositSlips pattern)
+  const [columnFilters, setColumnFilters] = useState<{
+    branch: string;
+    oilType: string;
+    status: string;
+  }>({
+    branch: "ทั้งหมด",
+    oilType: "ทั้งหมด",
+    status: "ทั้งหมด",
+  });
+
+  type FilterKey = "branch" | "oilType" | "status";
+  type SortKey =
+    | "branch"
+    | "tankNumber"
+    | "oilType"
+    | "currentStock"
+    | "minThreshold"
+    | "maxCapacity"
+    | "pricePerLiter"
+    | "totalValue"
+    | "averageDailySales"
+    | "daysRemaining"
+    | "status";
+
+  const [activeHeaderDropdown, setActiveHeaderDropdown] = useState<FilterKey | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: "asc" | "desc" | null }>({
+    key: "branch",
+    direction: null,
+  });
+
+  const filterOptions = useMemo(() => {
+    return {
+      branch: ["ทั้งหมด", ...new Set(mockStockData.map((s) => s.branch))],
+      oilType: ["ทั้งหมด", ...new Set(mockStockData.map((s) => s.oilType))],
+      status: ["ทั้งหมด", "normal", "warning", "critical"],
+    };
+  }, []);
+
+  const handleSort = (key: SortKey) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        if (prev.direction === "asc") return { key, direction: "desc" };
+        if (prev.direction === "desc") return { key, direction: null };
+        return { key, direction: "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    if (sortConfig.key !== key || !sortConfig.direction) {
+      return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    }
+    return sortConfig.direction === "asc" ? (
+      <ChevronUp className="w-3 h-3 text-emerald-500" />
+    ) : (
+      <ChevronDown className="w-3 h-3 text-emerald-500" />
+    );
+  };
+
+  const filteredStock = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    let result = mockStockData.filter((item) => {
       const matchesSearch =
-        item.oilType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.branch.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.oilType.toLowerCase().includes(term) ||
+        item.branch.toLowerCase().includes(term) ||
+        item.id.toLowerCase().includes(term) ||
         item.tankNumber.toString().includes(searchTerm);
 
-      const matchesBranch = selectedBranch === "ทั้งหมด" || item.branch === selectedBranch;
-      const matchesOilType = selectedOilType === "ทั้งหมด" || item.oilType === selectedOilType;
-      const matchesStatus = selectedStatus === "ทั้งหมด" || item.status === selectedStatus;
+      const matchesBranch = columnFilters.branch === "ทั้งหมด" || item.branch === columnFilters.branch;
+      const matchesOilType = columnFilters.oilType === "ทั้งหมด" || item.oilType === (columnFilters.oilType as OilType);
+      const matchesStatus =
+        columnFilters.status === "ทั้งหมด" || item.status === (columnFilters.status as StockStatus);
 
       return matchesSearch && matchesBranch && matchesOilType && matchesStatus;
-    })
-    .sort((a, b) => {
-      // เรียงตามสาขา (ไฮโซ -> ดินดำ -> หนองจิก -> ตักสิลา -> บายพาส -> มายมาส) แล้วตามหลุม
-      if (a.branch !== b.branch) {
-        const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส", "มายมาส"];
-        return branchOrder.indexOf(a.branch) - branchOrder.indexOf(b.branch);
-      }
-      return a.tankNumber - b.tankNumber;
     });
+
+    // Default order if no sorting selected (keep original behavior)
+    if (!sortConfig.direction) {
+      const branchOrder = ["ปั๊มไฮโซ", "ดินดำ", "หนองจิก", "ตักสิลา", "บายพาส", "มายมาส"];
+      return result.sort((a, b) => {
+        if (a.branch !== b.branch) return branchOrder.indexOf(a.branch) - branchOrder.indexOf(b.branch);
+        return a.tankNumber - b.tankNumber;
+      });
+    }
+
+    // Sorting when active
+    return result.sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortConfig.key) {
+        case "branch":
+          aValue = a.branch;
+          bValue = b.branch;
+          break;
+        case "tankNumber":
+          aValue = a.tankNumber;
+          bValue = b.tankNumber;
+          break;
+        case "oilType":
+          aValue = a.oilType;
+          bValue = b.oilType;
+          break;
+        case "currentStock":
+          aValue = a.currentStock;
+          bValue = b.currentStock;
+          break;
+        case "minThreshold":
+          aValue = a.minThreshold;
+          bValue = b.minThreshold;
+          break;
+        case "maxCapacity":
+          aValue = a.maxCapacity;
+          bValue = b.maxCapacity;
+          break;
+        case "pricePerLiter":
+          aValue = a.pricePerLiter;
+          bValue = b.pricePerLiter;
+          break;
+        case "totalValue":
+          aValue = a.totalValue;
+          bValue = b.totalValue;
+          break;
+        case "averageDailySales":
+          aValue = a.averageDailySales;
+          bValue = b.averageDailySales;
+          break;
+        case "daysRemaining":
+          aValue = a.daysRemaining;
+          bValue = b.daysRemaining;
+          break;
+        case "status":
+          aValue = a.status;
+          bValue = b.status;
+          break;
+      }
+
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [searchTerm, columnFilters, sortConfig]);
 
   const summary = {
     totalItems: mockStockData.length,
@@ -701,43 +824,166 @@ export default function Stock() {
     });
   };
 
-  return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6"
+  const HeaderWithFilter = ({
+    label,
+    columnKey,
+    filterKey,
+    options,
+    align = "left",
+  }: {
+    label: string;
+    columnKey?: SortKey;
+    filterKey?: FilterKey;
+    options?: string[];
+    align?: "left" | "right" | "center";
+  }) => {
+    const justify =
+      align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+
+    return (
+      <th
+        className={`px-6 py-4 relative group text-[10px] uppercase tracking-widest font-black text-gray-400 ${
+          align === "right" ? "text-right" : align === "center" ? "text-center" : ""
+        }`}
       >
-        <div className="flex items-start justify-between mb-4">
+        <div className={`flex items-center gap-2 ${justify}`}>
+          <button
+            type="button"
+            className={`flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors ${
+              sortConfig.key === columnKey ? "text-emerald-600" : ""
+            } ${columnKey ? "cursor-pointer" : "cursor-default"}`}
+            onClick={() => columnKey && handleSort(columnKey)}
+            disabled={!columnKey}
+            aria-label={columnKey ? `เรียงข้อมูลคอลัมน์ ${label}` : label}
+          >
+            <span>{label}</span>
+            {columnKey && getSortIcon(columnKey)}
+          </button>
+
+          {filterKey && options && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveHeaderDropdown(activeHeaderDropdown === filterKey ? null : filterKey);
+                }}
+                className={`p-1 rounded-md transition-all ${
+                  (filterKey === "branch"
+                    ? columnFilters.branch
+                    : filterKey === "oilType"
+                      ? columnFilters.oilType
+                      : columnFilters.status) !== "ทั้งหมด"
+                    ? "bg-emerald-500 text-white shadow-sm"
+                    : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"
+                }`}
+                aria-label={`ตัวกรองคอลัมน์ ${label}`}
+              >
+                <Filter className="w-3 h-3" />
+              </button>
+
+              <AnimatePresence>
+                {activeHeaderDropdown === filterKey && (
+                  <>
+                    <button
+                      type="button"
+                      className="fixed inset-0 z-10 bg-transparent"
+                      onClick={() => setActiveHeaderDropdown(null)}
+                      aria-label="ปิดตัวกรอง"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute left-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                    >
+                      {options.map((opt) => {
+                        const selected =
+                          (filterKey === "branch"
+                            ? columnFilters.branch
+                            : filterKey === "oilType"
+                              ? columnFilters.oilType
+                              : columnFilters.status) === opt;
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                              if (filterKey === "branch") {
+                                setColumnFilters((prev) => ({ ...prev, branch: opt }));
+                              } else if (filterKey === "oilType") {
+                                setColumnFilters((prev) => ({ ...prev, oilType: opt }));
+                              } else {
+                                setColumnFilters((prev) => ({ ...prev, status: opt }));
+                              }
+                              setActiveHeaderDropdown(null);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                              selected
+                                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            {opt}
+                            {selected && <Check className="w-3 h-3" />}
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </th>
+    );
+  };
+
+  const isAnyFilterActive = useMemo(() => {
+    return (
+      searchTerm !== "" ||
+      columnFilters.branch !== "ทั้งหมด" ||
+      columnFilters.oilType !== "ทั้งหมด" ||
+      columnFilters.status !== "ทั้งหมด"
+    );
+  }, [searchTerm, columnFilters]);
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
+      {/* Header */}
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
-              <Package className="w-8 h-8 text-blue-500" />
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+                <Package className="w-8 h-8 text-white" />
+              </div>
               สต็อกน้ำมัน
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
+              <Droplet className="w-4 h-4" />
               ตรวจสอบและจัดการสต็อกน้ำมันทั้ง 5 ปั๊ม แยกตามสาขาและประเภทน้ำมัน พร้อมแจ้งเตือนสต็อกต่ำ
             </p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowThresholdModal(true)}
-              className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 whitespace-nowrap"
+              className="px-6 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl font-bold transition-all active:scale-95 flex items-center gap-2"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-5 h-5" />
               ตั้งค่าเกณฑ์ต่ำสุด
             </button>
             <button
               onClick={() => navigate("/app/gas-station/update-stock")}
-              className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 whitespace-nowrap"
+              className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-2"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-5 h-5" />
               อัพเดตสต็อก
             </button>
           </div>
         </div>
-      </motion.div>
+      </header>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -777,11 +1023,11 @@ export default function Stock() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
+            className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
           >
             <div className="p-4">
               <div className="flex items-center">
-                <div className={`w-16 h-16 ${stat.iconColor} rounded-lg flex items-center justify-center shadow-lg mr-4`}>
+                <div className={`w-16 h-16 ${stat.iconColor} rounded-2xl flex items-center justify-center shadow-lg mr-4`}>
                   <stat.icon className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex-1">
@@ -805,58 +1051,38 @@ export default function Stock() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 flex flex-col md:flex-row gap-4 mb-6"
+        className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center"
       >
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
             placeholder="ค้นหาสาขา, ประเภทน้ำมัน, รหัสสต็อก..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-gray-400" />
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setColumnFilters({ branch: "ทั้งหมด", oilType: "ทั้งหมด", status: "ทั้งหมด" });
+                setActiveHeaderDropdown(null);
+                setSortConfig({ key: "branch", direction: null });
+              }}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+            <Package className="w-4 h-4" />
+            <span className="text-sm font-bold whitespace-nowrap">พบ {filteredStock.length} รายการ</span>
+          </div>
         </div>
-        <select
-          value={selectedBranch}
-          onChange={(e) => setSelectedBranch(e.target.value)}
-          className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
-        >
-          <option>ทั้งหมด</option>
-          <option>ปั๊มไฮโซ</option>
-          <option>ดินดำ</option>
-          <option>หนองจิก</option>
-          <option>ตักสิลา</option>
-          <option>บายพาส</option>
-          <option>มายมาส</option>
-        </select>
-        <select
-          value={selectedOilType}
-          onChange={(e) => setSelectedOilType(e.target.value)}
-          className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
-        >
-          <option>ทั้งหมด</option>
-          <option>Premium Diesel</option>
-          <option>Premium Gasohol 95</option>
-          <option>Diesel</option>
-          <option>E85</option>
-          <option>E20</option>
-          <option>Gasohol 91</option>
-          <option>Gasohol 95</option>
-        </select>
-        <select
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value as "ทั้งหมด" | StockStatus)}
-          className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white transition-all duration-200"
-        >
-          <option>ทั้งหมด</option>
-          <option value="normal">ปกติ</option>
-          <option value="warning">เตือน</option>
-          <option value="critical">วิกฤต</option>
-        </select>
       </motion.div>
 
       {/* Alert Section */}
@@ -930,7 +1156,7 @@ export default function Stock() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.5 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
       >
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">รายการสต็อกน้ำมันทั้ง 5 ปั๊ม</h2>
@@ -939,44 +1165,24 @@ export default function Stock() {
           </p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  สาขา
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50">
+                <HeaderWithFilter label="สาขา" columnKey="branch" filterKey="branch" options={filterOptions.branch} />
+                <HeaderWithFilter label="หลุม" columnKey="tankNumber" align="center" />
+                <HeaderWithFilter label="ประเภทน้ำมัน" columnKey="oilType" filterKey="oilType" options={filterOptions.oilType} />
+                <HeaderWithFilter label="สต็อกปัจจุบัน" columnKey="currentStock" align="right" />
+                <HeaderWithFilter label="เกณฑ์ต่ำสุด" columnKey="minThreshold" align="right" />
+                <HeaderWithFilter label="ความจุสูงสุด" columnKey="maxCapacity" align="right" />
+                <HeaderWithFilter label="ระดับสต็อก" align="center" />
+                <HeaderWithFilter label="ราคาต่อลิตร" columnKey="pricePerLiter" align="right" />
+                <HeaderWithFilter label="มูลค่า" columnKey="totalValue" align="right" />
+                <HeaderWithFilter label="ขายเฉลี่ย/วัน" columnKey="averageDailySales" align="right" />
+                <HeaderWithFilter label="เหลือ (วัน)" columnKey="daysRemaining" align="right" />
+                <HeaderWithFilter label="สถานะ" columnKey="status" filterKey="status" options={filterOptions.status} align="center" />
+                <th className="px-6 py-4 text-center text-[10px] uppercase tracking-widest font-black text-gray-400">
+                  จัดการ
                 </th>
-                <th className="text-center py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  หลุม
-                </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  ประเภทน้ำมัน
-                </th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  สต็อกปัจจุบัน
-                </th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  เกณฑ์ต่ำสุด
-                </th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  ความจุสูงสุด
-                </th>
-                <th className="text-center py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  ระดับสต็อก
-                </th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  ราคาต่อลิตร
-                </th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  มูลค่า
-                </th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  ขายเฉลี่ย/วัน
-                </th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                  เหลือ (วัน)
-                </th>
-                <th className="text-center py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">สถานะ</th>
-                <th className="text-center py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">จัดการ</th>
               </tr>
             </thead>
             <tbody>

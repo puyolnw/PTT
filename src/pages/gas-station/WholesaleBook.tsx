@@ -1,18 +1,19 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useMemo, useState } from "react";
 import {
   FileCheck,
   Search,
   Filter,
-  Calendar,
   DollarSign,
   Droplet,
   TrendingUp,
   ShoppingCart,
   Eye,
   X,
-  FileText,
-  Package,
+  Check,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -208,281 +209,416 @@ const mockLedgerData: LedgerEntry[] = [
 
 export default function WholesaleBook() {
   const [ledgerData] = useState<LedgerEntry[]>(mockLedgerData);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDateRange, setSelectedDateRange] = useState("ทั้งหมด");
   const [selectedItem, setSelectedItem] = useState<LedgerEntry | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredLedger = ledgerData.filter((item) => {
-    const matchesSearch =
-      item.date.includes(searchTerm) ||
-      item.remarks.toLowerCase().includes(searchTerm.toLowerCase());
+  const [columnFilters, setColumnFilters] = useState<{
+    date: string;
+    remarks: string;
+  }>({ date: "ทั้งหมด", remarks: "ทั้งหมด" });
 
-    return matchesSearch;
+  type FilterKey = "date" | "remarks";
+  type SortKey =
+    | "date"
+    | "hsdPurchase"
+    | "dieselPurchase"
+    | "lpgPurchase"
+    | "wholesaleSales"
+    | "retailSales"
+    | "totalSales";
+
+  const [activeHeaderDropdown, setActiveHeaderDropdown] = useState<FilterKey | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: "asc" | "desc" | null }>({
+    key: "date",
+    direction: "desc",
   });
 
-  const summary = {
-    totalEntries: ledgerData.length,
-    totalHsdPurchase: ledgerData.reduce((sum, item) => sum + item.hsdPurchase, 0),
-    totalDieselPurchase: ledgerData.reduce((sum, item) => sum + item.dieselPurchase, 0),
-    totalLpgPurchase: ledgerData.reduce((sum, item) => sum + item.lpgPurchase, 0),
-    totalWholesaleSales: ledgerData.reduce((sum, item) => sum + item.wholesaleSales, 0),
-    totalRetailSales: ledgerData.reduce((sum, item) => sum + item.retailSales, 0),
-    totalSales: ledgerData.reduce((sum, item) => sum + item.totalSales, 0),
+  const filterOptions = useMemo(() => {
+    const uniqueDates = ["ทั้งหมด", ...Array.from(new Set(ledgerData.map((d) => d.date)))].sort(
+      (a, b) => b.localeCompare(a)
+    );
+    const uniqueRemarks = [
+      "ทั้งหมด",
+      "มีหมายเหตุ",
+      "ไม่มีหมายเหตุ",
+      ...Array.from(new Set(ledgerData.map((d) => d.remarks).filter((r) => r.trim() !== ""))),
+    ];
+
+    return { dates: uniqueDates, remarks: uniqueRemarks };
+  }, [ledgerData]);
+
+  const handleSort = (key: SortKey) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        if (prev.direction === "asc") return { key, direction: "desc" };
+        if (prev.direction === "desc") return { key, direction: null };
+        return { key, direction: "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    if (sortConfig.key !== key || !sortConfig.direction) {
+      return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    }
+    return sortConfig.direction === "asc" ? (
+      <ChevronUp className="w-3 h-3 text-emerald-500" />
+    ) : (
+      <ChevronDown className="w-3 h-3 text-emerald-500" />
+    );
+  };
+
+  const filteredLedger = useMemo(() => {
+    let result = ledgerData.filter((item) => {
+      const term = searchTerm.trim().toLowerCase();
+      const matchesSearch =
+        term === "" ||
+        item.date.toLowerCase().includes(term) ||
+        item.remarks.toLowerCase().includes(term);
+
+      const matchesDate = columnFilters.date === "ทั้งหมด" || item.date === columnFilters.date;
+
+      const matchesRemarks =
+        columnFilters.remarks === "ทั้งหมด" ||
+        (columnFilters.remarks === "มีหมายเหตุ" ? item.remarks.trim() !== "" : item.remarks.trim() === "") ||
+        item.remarks === columnFilters.remarks;
+
+      return matchesSearch && matchesDate && matchesRemarks;
+    });
+
+    if (sortConfig.key && sortConfig.direction) {
+      const dir = sortConfig.direction === "asc" ? 1 : -1;
+      result = [...result].sort((a, b) => {
+        if (sortConfig.key === "date") return a.date.localeCompare(b.date) * dir;
+        return ((a[sortConfig.key] as number) - (b[sortConfig.key] as number)) * dir;
+      });
+    }
+
+    return result;
+  }, [ledgerData, searchTerm, columnFilters, sortConfig]);
+
+  const summary = useMemo(() => {
+    return {
+      totalEntries: filteredLedger.length,
+      totalHsdPurchase: filteredLedger.reduce((sum, item) => sum + item.hsdPurchase, 0),
+      totalDieselPurchase: filteredLedger.reduce((sum, item) => sum + item.dieselPurchase, 0),
+      totalLpgPurchase: filteredLedger.reduce((sum, item) => sum + item.lpgPurchase, 0),
+      totalWholesaleSales: filteredLedger.reduce((sum, item) => sum + item.wholesaleSales, 0),
+      totalRetailSales: filteredLedger.reduce((sum, item) => sum + item.retailSales, 0),
+      totalSales: filteredLedger.reduce((sum, item) => sum + item.totalSales, 0),
+    };
+  }, [filteredLedger]);
+
+  const isAnyFilterActive = useMemo(() => {
+    return (
+      searchTerm.trim() !== "" ||
+      columnFilters.date !== "ทั้งหมด" ||
+      columnFilters.remarks !== "ทั้งหมด"
+    );
+  }, [searchTerm, columnFilters]);
+
+  const HeaderWithFilter = ({
+    label,
+    columnKey,
+    filterKey,
+    options,
+    align = "left",
+  }: {
+    label: string;
+    columnKey?: SortKey;
+    filterKey?: FilterKey;
+    options?: string[];
+    align?: "left" | "right" | "center";
+  }) => {
+    const justify =
+      align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+
+    const getFilterValue = (key: FilterKey) => {
+      if (key === "date") return columnFilters.date;
+      return columnFilters.remarks;
+    };
+
+    const setFilterValue = (key: FilterKey, value: string) => {
+      if (key === "date") return setColumnFilters((prev) => ({ ...prev, date: value }));
+      return setColumnFilters((prev) => ({ ...prev, remarks: value }));
+    };
+
+    const current = filterKey ? getFilterValue(filterKey) : "ทั้งหมด";
+
+    return (
+      <th className={`px-6 py-4 relative ${align === "right" ? "text-right" : align === "center" ? "text-center" : ""}`}>
+        <div className={`flex items-center gap-2 ${justify}`}>
+          <button
+            type="button"
+            className={`flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors ${
+              sortConfig.key === columnKey ? "text-emerald-600" : ""
+            } ${columnKey ? "cursor-pointer" : "cursor-default"}`}
+            onClick={() => columnKey && handleSort(columnKey)}
+            aria-label={columnKey ? `เรียงข้อมูลคอลัมน์ ${label}` : label}
+            disabled={!columnKey}
+          >
+            <span>{label}</span>
+            {columnKey && getSortIcon(columnKey)}
+          </button>
+
+          {filterKey && options && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveHeaderDropdown(activeHeaderDropdown === filterKey ? null : filterKey);
+                }}
+                className={`p-1 rounded-md transition-all ${
+                  current !== "ทั้งหมด"
+                    ? "bg-emerald-500 text-white shadow-sm"
+                    : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"
+                }`}
+                aria-label={`ตัวกรองคอลัมน์ ${label}`}
+              >
+                <Filter className="w-3 h-3" />
+              </button>
+
+              <AnimatePresence>
+                {activeHeaderDropdown === filterKey && (
+                  <>
+                    <button
+                      type="button"
+                      className="fixed inset-0 z-10 bg-transparent"
+                      onClick={() => setActiveHeaderDropdown(null)}
+                      aria-label="ปิดตัวกรอง"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute left-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                    >
+                      {options.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => {
+                            setFilterValue(filterKey, opt);
+                            setActiveHeaderDropdown(null);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                            current === opt
+                              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          {opt}
+                          {current === opt && <Check className="w-3 h-3" />}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </th>
+    );
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6"
-      >
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
-          <FileCheck className="w-8 h-8 text-amber-500" />
-          สมุดบัญชีขายส่งขายปลีก
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          บันทึกรายการซื้อน้ำมันและยอดขายประจำวัน ทั้งขายส่งและขายปลีก
-        </p>
-      </motion.div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {[
-          {
-            title: "ขายส่งรวม",
-            value: currencyFormatter.format(summary.totalWholesaleSales),
-            subtitle: "บาท",
-            icon: ShoppingCart,
-            iconColor: "bg-gradient-to-br from-purple-500 to-purple-600",
-          },
-          {
-            title: "ขายปลีกรวม",
-            value: currencyFormatter.format(summary.totalRetailSales),
-            subtitle: "บาท",
-            icon: TrendingUp,
-            iconColor: "bg-gradient-to-br from-blue-500 to-blue-600",
-          },
-          {
-            title: "ยอดขายรวมทั้งหมด",
-            value: currencyFormatter.format(summary.totalSales),
-            subtitle: "บาท",
-            icon: DollarSign,
-            iconColor: "bg-gradient-to-br from-emerald-500 to-emerald-600",
-          },
-          {
-            title: "จำนวนรายการ",
-            value: summary.totalEntries.toString(),
-            subtitle: "รายการ",
-            icon: FileText,
-            iconColor: "bg-gradient-to-br from-amber-500 to-amber-600",
-          },
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
-          >
-            <div className="p-4">
-              <div className="flex items-center">
-                <div className={`w-16 h-16 ${stat.iconColor} rounded-lg flex items-center justify-center shadow-lg mr-4`}>
-                  <stat.icon className="w-8 h-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h6 className="text-gray-600 dark:text-gray-400 text-sm font-semibold mb-1">{stat.title}</h6>
-                  <h6 className="text-gray-800 dark:text-white text-2xl font-extrabold mb-0">{stat.value}</h6>
-                  <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">{stat.subtitle}</p>
-                </div>
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+                <FileCheck className="w-8 h-8 text-white" />
               </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+              สมุดขายส่งขายปลีก (Wholesale Book)
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">
+              แสดงข้อมูลเป็นตาราง และกรองข้อมูลได้ที่หัวคอลัมน์
+            </p>
+          </div>
+        </div>
+      </header>
 
-      {/* Purchase Summary */}
+      {/* Stats (match TankEntryBook style) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {[
-          {
-            title: "HSD ซื้อรวม",
-            value: numberFormatter.format(summary.totalHsdPurchase),
-            subtitle: "ลิตร",
-            icon: Droplet,
-            iconColor: "text-blue-500",
-            bgColor: "bg-blue-50 dark:bg-blue-900/20",
-            borderColor: "border-blue-200 dark:border-blue-800",
-          },
-          {
-            title: "ดีเซล ซื้อรวม",
-            value: numberFormatter.format(summary.totalDieselPurchase),
-            subtitle: "ลิตร",
-            icon: Droplet,
-            iconColor: "text-green-500",
-            bgColor: "bg-green-50 dark:bg-green-900/20",
-            borderColor: "border-green-200 dark:border-green-800",
-          },
-          {
-            title: "LPG ซื้อรวม",
-            value: numberFormatter.format(summary.totalLpgPurchase),
-            subtitle: "ลิตร",
-            icon: Package,
-            iconColor: "text-orange-500",
-            bgColor: "bg-orange-50 dark:bg-orange-900/20",
-            borderColor: "border-orange-200 dark:border-orange-800",
-          },
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
-            className={`${stat.bgColor} ${stat.borderColor} border rounded-xl p-4 flex items-center gap-3`}
-          >
-            <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}>
-              <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <ShoppingCart className="w-6 h-6 text-emerald-500" />
             </div>
             <div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{stat.title}</p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">{stat.value} {stat.subtitle}</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ขายส่งรวม</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">
+                {currencyFormatter.format(summary.totalWholesaleSales)}
+              </p>
             </div>
-          </motion.div>
-        ))}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <TrendingUp className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ขายปลีกรวม</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">
+                {currencyFormatter.format(summary.totalRetailSales)}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <DollarSign className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ยอดขายรวม</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">
+                {currencyFormatter.format(summary.totalSales)}
+              </p>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
-      {/* Filters */}
+      {/* Filter Bar (match TankEntryBook style) */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.5 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 flex flex-col md:flex-row gap-4 mb-6"
+        className="bg-white dark:bg-gray-800 p-4 md:p-5 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6"
       >
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="ค้นหาวันที่หรือหมายเหตุ..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 text-gray-800 dark:text-white transition-all duration-200"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-gray-400" />
-          <select
-            value={selectedDateRange}
-            onChange={(e) => setSelectedDateRange(e.target.value)}
-            className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 text-gray-800 dark:text-white transition-all duration-200"
-          >
-            <option>ทั้งหมด</option>
-            <option>7 วันล่าสุด</option>
-            <option>30 วันล่าสุด</option>
-            <option>เดือนนี้</option>
-          </select>
+        <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="ค้นหา: วันที่ หรือหมายเหตุ..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all duration-200"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            {isAnyFilterActive && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm("");
+                  setColumnFilters({ date: "ทั้งหมด", remarks: "ทั้งหมด" });
+                  setActiveHeaderDropdown(null);
+                }}
+                className="px-5 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-2xl font-bold transition-all active:scale-95"
+              >
+                ล้างตัวกรอง
+              </button>
+            )}
+            <div className="text-sm font-bold text-gray-500 dark:text-gray-400">
+              แสดง {filteredLedger.length} รายการ
+            </div>
+          </div>
         </div>
       </motion.div>
 
-      {/* Ledger Table */}
+      {/* Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
       >
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">รายการสมุดบัญชี</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            บันทึกรายการซื้อน้ำมันและยอดขายประจำวัน
-          </p>
-        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60">
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                  วันที่
-                </th>
-                <th className="text-right py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                  HSD ซื้อ (ลิตร)
-                </th>
-                <th className="text-right py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                  ดีเซล ซื้อ (ลิตร)
-                </th>
-                <th className="text-right py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                  LPG ซื้อ (ลิตร)
-                </th>
-                <th className="text-right py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                  ขายส่ง (บาท)
-                </th>
-                <th className="text-right py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                  ขายปลีก (บาท)
-                </th>
-                <th className="text-right py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                  รวมยอดขาย (บาท)
-                </th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                  หมายเหตุ
-                </th>
-                <th className="text-center py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                  จัดการ
-                </th>
+              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <HeaderWithFilter
+                  label="วันที่"
+                  columnKey="date"
+                  filterKey="date"
+                  options={filterOptions.dates}
+                />
+                <HeaderWithFilter label="HSD ซื้อ (ลิตร)" columnKey="hsdPurchase" align="right" />
+                <HeaderWithFilter label="ดีเซล ซื้อ (ลิตร)" columnKey="dieselPurchase" align="right" />
+                <HeaderWithFilter label="LPG ซื้อ (ลิตร)" columnKey="lpgPurchase" align="right" />
+                <HeaderWithFilter label="ขายส่ง (บาท)" columnKey="wholesaleSales" align="right" />
+                <HeaderWithFilter label="ขายปลีก (บาท)" columnKey="retailSales" align="right" />
+                <HeaderWithFilter label="รวมยอดขาย (บาท)" columnKey="totalSales" align="right" />
+                <HeaderWithFilter
+                  label="หมายเหตุ"
+                  filterKey="remarks"
+                  options={filterOptions.remarks}
+                />
+                <th className="px-6 py-4 text-center">ดู</th>
               </tr>
             </thead>
             <tbody>
               {filteredLedger.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="py-8 px-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                    ไม่พบข้อมูลที่ตรงกับเงื่อนไขค้นหา
+                  <td colSpan={9} className="py-12 text-center text-gray-400">
+                    ไม่พบข้อมูลที่ตรงกับเงื่อนไข
                   </td>
                 </tr>
               )}
               {filteredLedger.map((item, index) => (
                 <motion.tr
                   key={item.id}
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  transition={{ duration: 0.25, delay: index * 0.02 }}
+                  className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
                 >
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-semibold text-gray-800 dark:text-white">{item.date}</span>
-                    </div>
+                  <td className="px-6 py-4 text-sm font-semibold text-gray-800 dark:text-white whitespace-nowrap">
+                    {item.date}
                   </td>
-                  <td className="py-4 px-6 text-sm text-right font-semibold text-gray-800 dark:text-white">
+                  <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">
                     {item.hsdPurchase > 0 ? numberFormatter.format(item.hsdPurchase) : "-"}
                   </td>
-                  <td className="py-4 px-6 text-sm text-right font-semibold text-gray-800 dark:text-white">
+                  <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">
                     {item.dieselPurchase > 0 ? numberFormatter.format(item.dieselPurchase) : "-"}
                   </td>
-                  <td className="py-4 px-6 text-sm text-right font-semibold text-gray-800 dark:text-white">
+                  <td className="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">
                     {item.lpgPurchase > 0 ? numberFormatter.format(item.lpgPurchase) : "-"}
                   </td>
-                  <td className="py-4 px-6 text-sm text-right font-semibold text-purple-600 dark:text-purple-400">
+                  <td className="px-6 py-4 text-sm text-right font-semibold text-gray-800 dark:text-white whitespace-nowrap">
                     {item.wholesaleSales > 0 ? currencyFormatter.format(item.wholesaleSales) : "-"}
                   </td>
-                  <td className="py-4 px-6 text-sm text-right font-semibold text-blue-600 dark:text-blue-400">
+                  <td className="px-6 py-4 text-sm text-right font-semibold text-gray-800 dark:text-white whitespace-nowrap">
                     {item.retailSales > 0 ? currencyFormatter.format(item.retailSales) : "-"}
                   </td>
-                  <td className="py-4 px-6 text-sm text-right font-bold text-emerald-600 dark:text-emerald-400">
+                  <td className="px-6 py-4 text-sm text-right font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                     {item.totalSales > 0 ? currencyFormatter.format(item.totalSales) : "-"}
                   </td>
-                  <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {item.remarks || "-"}
                   </td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => setSelectedItem(item)}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
-                        title="ดูรายละเอียด"
-                      >
-                        <Eye className="w-4 h-4 text-gray-400 hover:text-amber-500" />
-                      </button>
-                    </div>
+                  <td className="px-6 py-4 text-center whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedItem(item)}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                      aria-label="ดูรายละเอียด"
+                    >
+                      <Eye className="w-4 h-4 text-gray-400 hover:text-emerald-500" />
+                    </button>
                   </td>
                 </motion.tr>
               ))}

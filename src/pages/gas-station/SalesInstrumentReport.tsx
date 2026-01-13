@@ -1,12 +1,16 @@
-import { motion } from "framer-motion";
-import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useMemo, useState } from "react";
 import {
   FileText,
   Download,
   Calendar,
   Search,
   Printer,
-  User,
+  Filter,
+  Check,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -56,28 +60,176 @@ const getCurrentThaiDate = () => {
   return `${day}/${month}/${year}`;
 };
 
-const getCurrentDateTime = () => {
-  const now = new Date();
-  const day = now.getDate();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear() + 543;
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const seconds = String(now.getSeconds()).padStart(2, "0");
-  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-};
-
 export default function SalesInstrumentReport() {
   const [startDate, setStartDate] = useState(getCurrentThaiDate());
   const [endDate, setEndDate] = useState(getCurrentThaiDate());
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredInstruments = mockSalesInstruments.filter((item) =>
-    item.type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const instruments = useMemo(() => mockSalesInstruments, []);
 
-  const totalAmount = mockSalesInstruments.reduce((sum, item) => sum + item.amount, 0);
-  const totalTransactions = mockSalesInstruments.reduce((sum, item) => sum + item.transactionCount, 0);
+  const [columnFilters, setColumnFilters] = useState<{ type: string }>(() => ({ type: "ทั้งหมด" }));
+  type FilterKey = "type";
+  type SortKey = "type" | "transactionCount" | "amount";
+  const [activeHeaderDropdown, setActiveHeaderDropdown] = useState<FilterKey | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: "asc" | "desc" | null }>({
+    key: "amount",
+    direction: "desc",
+  });
+
+  const filterOptions = useMemo(() => {
+    const types = ["ทั้งหมด", ...Array.from(new Set(instruments.map((i) => i.type)))];
+    return { types };
+  }, [instruments]);
+
+  const handleSort = (key: SortKey) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        if (prev.direction === "asc") return { key, direction: "desc" };
+        if (prev.direction === "desc") return { key, direction: null };
+        return { key, direction: "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    if (sortConfig.key !== key || !sortConfig.direction) {
+      return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    }
+    return sortConfig.direction === "asc" ? (
+      <ChevronUp className="w-3 h-3 text-emerald-500" />
+    ) : (
+      <ChevronDown className="w-3 h-3 text-emerald-500" />
+    );
+  };
+
+  const filteredInstruments = useMemo(() => {
+    let result = instruments.filter((item) => {
+      const term = searchTerm.trim().toLowerCase();
+      const matchesSearch = term === "" || item.type.toLowerCase().includes(term);
+      const matchesType = columnFilters.type === "ทั้งหมด" || item.type === columnFilters.type;
+      return matchesSearch && matchesType;
+    });
+
+    if (sortConfig.key && sortConfig.direction) {
+      const dir = sortConfig.direction === "asc" ? 1 : -1;
+      result = [...result].sort((a, b) => {
+        switch (sortConfig.key) {
+          case "type":
+            return a.type.localeCompare(b.type) * dir;
+          case "transactionCount":
+            return (a.transactionCount - b.transactionCount) * dir;
+          case "amount":
+            return (a.amount - b.amount) * dir;
+        }
+      });
+    }
+
+    return result;
+  }, [instruments, searchTerm, columnFilters, sortConfig]);
+
+  const totalAmount = filteredInstruments.reduce((sum, item) => sum + item.amount, 0);
+  const totalTransactions = filteredInstruments.reduce((sum, item) => sum + item.transactionCount, 0);
+
+  const isAnyFilterActive = useMemo(() => {
+    return searchTerm.trim() !== "" || columnFilters.type !== "ทั้งหมด";
+  }, [searchTerm, columnFilters]);
+
+  const HeaderWithFilter = ({
+    label,
+    columnKey,
+    filterKey,
+    options,
+    align = "left",
+  }: {
+    label: string;
+    columnKey?: SortKey;
+    filterKey?: FilterKey;
+    options?: string[];
+    align?: "left" | "right" | "center";
+  }) => {
+    const justify =
+      align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+
+    const current = filterKey ? columnFilters.type : "ทั้งหมด";
+
+    return (
+      <th className={`px-6 py-4 relative ${align === "right" ? "text-right" : align === "center" ? "text-center" : ""}`}>
+        <div className={`flex items-center gap-2 ${justify}`}>
+          <button
+            type="button"
+            className={`flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors ${
+              sortConfig.key === columnKey ? "text-emerald-600" : ""
+            } ${columnKey ? "cursor-pointer" : "cursor-default"}`}
+            onClick={() => columnKey && handleSort(columnKey)}
+            aria-label={columnKey ? `เรียงข้อมูลคอลัมน์ ${label}` : label}
+            disabled={!columnKey}
+          >
+            <span>{label}</span>
+            {columnKey && getSortIcon(columnKey)}
+          </button>
+
+          {filterKey && options && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveHeaderDropdown(activeHeaderDropdown === filterKey ? null : filterKey);
+                }}
+                className={`p-1 rounded-md transition-all ${
+                  current !== "ทั้งหมด"
+                    ? "bg-emerald-500 text-white shadow-sm"
+                    : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"
+                }`}
+                aria-label={`ตัวกรองคอลัมน์ ${label}`}
+              >
+                <Filter className="w-3 h-3" />
+              </button>
+
+              <AnimatePresence>
+                {activeHeaderDropdown === filterKey && (
+                  <>
+                    <button
+                      type="button"
+                      className="fixed inset-0 z-10 bg-transparent"
+                      onClick={() => setActiveHeaderDropdown(null)}
+                      aria-label="ปิดตัวกรอง"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                    >
+                      {options.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => {
+                            setColumnFilters({ type: opt });
+                            setActiveHeaderDropdown(null);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                            current === opt
+                              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          {opt}
+                          {current === opt && <Check className="w-3 h-3" />}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </th>
+    );
+  };
 
   const handlePrint = () => {
     window.print();
@@ -89,162 +241,202 @@ export default function SalesInstrumentReport() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6"
-      >
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
-          <FileText className="w-8 h-8 text-indigo-500" />
-          รายงานตราสารยอดขาย
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          รายงานสรุปยอดขายแยกตามประเภทตราสาร (วิธีการชำระเงิน) ตามวันที่ที่เลือก
-        </p>
-      </motion.div>
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+                <FileText className="w-8 h-8 text-white" />
+              </div>
+              รายงานตราสารยอดขาย
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">
+              ตารางสรุปยอดขายแยกตามประเภทตราสาร (วิธีการชำระเงิน)
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="px-5 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-2xl font-bold border border-gray-100 dark:border-gray-700 shadow-sm transition-all active:scale-95 flex items-center gap-2"
+            >
+              <Printer className="w-5 h-5" />
+              พิมพ์
+            </button>
+            <button
+              type="button"
+              onClick={handleExport}
+              className="px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-2"
+            >
+              <Download className="w-5 h-5" />
+              ส่งออก
+            </button>
+          </div>
+        </div>
+      </header>
 
-      {/* Filter Section */}
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <FileText className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">จำนวนรายการ</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">
+                {filteredInstruments.length}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <Printer className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">จำนวนฉบับรวม</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">
+                {numberFormatter.format(totalTransactions)}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <Download className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ยอดรวม</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">
+                {currencyFormatter.format(totalAmount)}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Filter Bar (match tank-entry-book style) */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6"
+        className="bg-white dark:bg-gray-800 p-4 md:p-5 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6"
       >
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-gray-400" />
-            <div className="flex-1">
-              <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">เริ่มต้น</label>
-              <input
-                type="text"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                placeholder="ด/ป/ว"
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm"
-              />
+        <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+          <div className="flex flex-col md:flex-row gap-3 flex-1">
+            <div className="flex items-center gap-2 flex-1">
+              <Calendar className="w-5 h-5 text-gray-400" />
+              <div className="flex-1">
+                <label htmlFor="sir-start" className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                  เริ่มต้น
+                </label>
+                <input
+                  id="sir-start"
+                  type="text"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  placeholder="ด/ป/ว"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all duration-200"
+                />
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-gray-400" />
-            <div className="flex-1">
-              <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">จนถึง</label>
-              <input
-                type="text"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                placeholder="ด/ป/ว"
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm"
-              />
+
+            <div className="flex items-center gap-2 flex-1">
+              <Calendar className="w-5 h-5 text-gray-400" />
+              <div className="flex-1">
+                <label htmlFor="sir-end" className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                  จนถึง
+                </label>
+                <input
+                  id="sir-end"
+                  type="text"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  placeholder="ด/ป/ว"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all duration-200"
+                />
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Search className="w-5 h-5 text-gray-400" />
-            <div className="flex-1">
-              <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">ค้นหา</label>
+
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="ค้นหาประเภทตราสาร..."
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 text-gray-800 dark:text-white text-sm"
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 text-gray-800 dark:text-white transition-all duration-200"
               />
             </div>
           </div>
-          <div className="flex items-end gap-2">
-            <button
-              onClick={handlePrint}
-              className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <Printer className="w-4 h-4" />
-              <span className="text-sm">พิมพ์</span>
-            </button>
-            <button
-              onClick={handleExport}
-              className="flex-1 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              <span className="text-sm">ส่งออก</span>
-            </button>
+
+          <div className="flex items-center gap-3">
+            {isAnyFilterActive && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm("");
+                  setColumnFilters({ type: "ทั้งหมด" });
+                  setActiveHeaderDropdown(null);
+                }}
+                className="px-5 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-2xl font-bold transition-all active:scale-95"
+              >
+                ล้างตัวกรอง
+              </button>
+            )}
+            <div className="text-sm font-bold text-gray-500 dark:text-gray-400">
+              แสดง {filteredInstruments.length} รายการ
+            </div>
           </div>
         </div>
       </motion.div>
 
-      {/* Report Content */}
+      {/* Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden print:shadow-none"
+        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
       >
-        {/* Report Header - เหมือนเอกสารจริง */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 print:border-b-2">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">รายงานตราสารยอดขาย</h2>
-            </div>
-            <div className="text-right text-sm text-gray-500 dark:text-gray-400">
-              <p>Export.</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 mb-1">รหัสสาขา</p>
-              <p className="font-semibold text-gray-800 dark:text-white">101612</p>
-            </div>
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 mb-1">ชื่อสาขา</p>
-              <p className="font-semibold text-gray-800 dark:text-white">
-                ห้างหุ้นส่วนสามัญนิติบุคคล อิสาณบริการ
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 mb-1">เริ่มต้น</p>
-              <p className="font-semibold text-gray-800 dark:text-white">{startDate}</p>
-            </div>
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 mb-1">จนถึง</p>
-              <p className="font-semibold text-gray-800 dark:text-white">{endDate}</p>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              <span>จัดทำโดย: นิดศรา ค่าใสสุข</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span>วันเวลาที่พิมพ์: {getCurrentDateTime()}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Report Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/60">
-                <th className="text-center py-4 px-4 font-bold text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">
-                  ลำดับ
-                </th>
-                <th className="text-left py-4 px-4 font-bold text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">
-                  ประเภทตราสาร
-                </th>
-                <th className="text-right py-4 px-4 font-bold text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">
-                  จำนวนฉบับ
-                </th>
-                <th className="text-right py-4 px-4 font-bold text-gray-700 dark:text-gray-300">
-                  จำนวนเงิน
-                </th>
+              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-4 text-center w-24">ลำดับ</th>
+                <HeaderWithFilter
+                  label="ประเภทตราสาร"
+                  columnKey="type"
+                  filterKey="type"
+                  options={filterOptions.types}
+                />
+                <HeaderWithFilter label="จำนวนฉบับ" columnKey="transactionCount" align="right" />
+                <HeaderWithFilter label="จำนวนเงิน" columnKey="amount" align="right" />
               </tr>
             </thead>
             <tbody>
               {filteredInstruments.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                    ไม่พบข้อมูลที่ตรงกับเงื่อนไขค้นหา
+                  <td colSpan={4} className="py-12 text-center text-gray-400">
+                    ไม่พบข้อมูลที่ตรงกับเงื่อนไข
                   </td>
                 </tr>
               ) : (
@@ -253,56 +445,39 @@ export default function SalesInstrumentReport() {
                     key={item.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.03 }}
-                    className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    transition={{ duration: 0.25, delay: index * 0.02 }}
+                    className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
                   >
-                    <td className="text-center py-3 px-4 text-gray-800 dark:text-white border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-6 py-4 text-center text-gray-600 dark:text-gray-400">
                       {item.id}
                     </td>
-                    <td className="py-3 px-4 text-gray-800 dark:text-white font-medium border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-800 dark:text-white">
                       {item.type}
                     </td>
-                    <td className="text-right py-3 px-4 text-gray-800 dark:text-white border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-6 py-4 text-right text-sm text-gray-600 dark:text-gray-400">
                       {numberFormatter.format(item.transactionCount)}
                     </td>
-                    <td className="text-right py-3 px-4 text-gray-800 dark:text-white font-semibold">
-                      {numberFormatter.format(item.amount)}
+                    <td className="px-6 py-4 text-right text-sm font-black text-emerald-600 dark:text-emerald-400">
+                      {currencyFormatter.format(item.amount)}
                     </td>
                   </motion.tr>
                 ))
               )}
             </tbody>
-            {/* Footer Total */}
             <tfoot>
-              <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/60">
-                <td colSpan={2} className="py-4 px-4 text-right font-bold text-gray-800 dark:text-white">
+              <tr className="border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
+                <td colSpan={2} className="px-6 py-4 text-right font-bold text-gray-800 dark:text-white">
                   รวม
                 </td>
-                <td className="py-4 px-4 text-right font-bold text-gray-800 dark:text-white border-r border-gray-200 dark:border-gray-700">
+                <td className="px-6 py-4 text-right font-bold text-gray-800 dark:text-white">
                   {numberFormatter.format(totalTransactions)}
                 </td>
-                <td className="py-4 px-4 text-right font-bold text-lg text-gray-800 dark:text-white">
-                  {numberFormatter.format(totalAmount)}
+                <td className="px-6 py-4 text-right font-black text-gray-800 dark:text-white">
+                  {currencyFormatter.format(totalAmount)}
                 </td>
               </tr>
             </tfoot>
           </table>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">จำนวนรายการทั้งหมด</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {numberFormatter.format(totalTransactions)} รายการ
-            </p>
-          </div>
-          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 border border-emerald-200 dark:border-emerald-800">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">ยอดรวมทั้งหมด</p>
-            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {currencyFormatter.format(totalAmount)}
-            </p>
-          </div>
         </div>
       </motion.div>
     </div>
