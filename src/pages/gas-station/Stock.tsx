@@ -1,6 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useBranch } from "@/contexts/BranchContext";
+import {
+  isAllNavbarBranchesSelected,
+  isInSelectedNavbarBranches,
+  selectedBranchNameSetFromNavbarIds,
+} from "@/utils/branchFilter";
 import {
   Droplet,
   Package,
@@ -112,30 +118,30 @@ const mockStockData: StockItem[] = [
     branch: "ตักสิลา",
     tankNumber: 4,
     oilType: "E85",
-    currentStock: 9000,
+    currentStock: 1500,
     minThreshold: 2000,
     maxCapacity: 10000,
-    status: "normal",
+    status: "critical",
     lastUpdated: "2024-12-15 18:30",
     pricePerLiter: 28.49,
-    totalValue: 256410,
-    averageDailySales: 1800,
-    daysRemaining: 5,
+    totalValue: 42735,
+    averageDailySales: 1700,
+    daysRemaining: 1,
   },
   {
     id: "STK-305",
     branch: "ตักสิลา",
     tankNumber: 5,
     oilType: "Premium Diesel", // HSP
-    currentStock: 7500,
+    currentStock: 3200,
     minThreshold: 2000,
     maxCapacity: 10000,
-    status: "normal",
+    status: "warning",
     lastUpdated: "2024-12-15 18:30",
     pricePerLiter: 33.49,
-    totalValue: 251175,
-    averageDailySales: 1500,
-    daysRemaining: 5,
+    totalValue: 107168,
+    averageDailySales: 1600,
+    daysRemaining: 2,
   },
   {
     id: "STK-306",
@@ -189,15 +195,15 @@ const mockStockData: StockItem[] = [
     branch: "ดินดำ",
     tankNumber: 2,
     oilType: "Gasohol 95", // G95
-    currentStock: 9600,
+    currentStock: 2200,
     minThreshold: 400,
     maxCapacity: 10000,
-    status: "normal",
+    status: "warning",
     lastUpdated: "2024-12-15 18:30",
     pricePerLiter: 41.49,
-    totalValue: 398304,
-    averageDailySales: 1920,
-    daysRemaining: 5,
+    totalValue: 91278,
+    averageDailySales: 1100,
+    daysRemaining: 2,
   },
   {
     id: "STK-103",
@@ -495,15 +501,15 @@ const mockStockData: StockItem[] = [
     branch: "หนองจิก",
     tankNumber: 2,
     oilType: "Premium Diesel", // HSP
-    currentStock: 7500,
+    currentStock: 900,
     minThreshold: 2000,
     maxCapacity: 10000,
-    status: "normal",
+    status: "critical",
     lastUpdated: "2024-12-15 18:30",
     pricePerLiter: 33.49,
-    totalValue: 251175,
-    averageDailySales: 1500,
-    daysRemaining: 5,
+    totalValue: 30141,
+    averageDailySales: 900,
+    daysRemaining: 1,
   },
   {
     id: "STK-203",
@@ -617,20 +623,25 @@ const mockStockData: StockItem[] = [
     branch: "บายพาส",
     tankNumber: 5,
     oilType: "Gasohol 91", // G91
-    currentStock: 19000,
+    currentStock: 6000,
     minThreshold: 4000,
     maxCapacity: 20000,
-    status: "normal",
+    status: "warning",
     lastUpdated: "2024-12-15 18:30",
     pricePerLiter: 38.49,
-    totalValue: 731310,
-    averageDailySales: 3800,
-    daysRemaining: 5,
+    totalValue: 230940,
+    averageDailySales: 3000,
+    daysRemaining: 2,
   },
 ];
 
 export default function Stock() {
   const navigate = useNavigate();
+  const { selectedBranches } = useBranch();
+  const selectedNavbarBranchSet = useMemo(
+    () => selectedBranchNameSetFromNavbarIds(selectedBranches),
+    [selectedBranches]
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [showThresholdModal, setShowThresholdModal] = useState(false);
   const [editingThresholds, setEditingThresholds] = useState<Record<string, number>>({});
@@ -699,6 +710,12 @@ export default function Stock() {
   const filteredStock = useMemo(() => {
     const term = searchTerm.toLowerCase();
     let result = mockStockData.filter((item) => {
+      const matchesNavbarBranch = isAllNavbarBranchesSelected(selectedBranches)
+        ? true
+        : selectedBranches.length === 0
+          ? false
+          : isInSelectedNavbarBranches(item.branch, selectedNavbarBranchSet);
+
       const matchesSearch =
         item.oilType.toLowerCase().includes(term) ||
         item.branch.toLowerCase().includes(term) ||
@@ -710,7 +727,7 @@ export default function Stock() {
       const matchesStatus =
         columnFilters.status === "ทั้งหมด" || item.status === (columnFilters.status as StockStatus);
 
-      return matchesSearch && matchesBranch && matchesOilType && matchesStatus;
+      return matchesNavbarBranch && matchesSearch && matchesBranch && matchesOilType && matchesStatus;
     });
 
     // Default order if no sorting selected (keep original behavior)

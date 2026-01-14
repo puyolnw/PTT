@@ -208,6 +208,7 @@ import EngineOil from "@/pages/gas-station/EngineOil";
 import StationProducts from "@/pages/gas-station/StationProducts";
 import POS from "@/pages/gas-station/POS";
 import PriceAdjustment from "@/pages/gas-station/PriceAdjustment";
+import PriceAdjustmentHistory from "@/pages/gas-station/PriceAdjustmentHistory";
 import Reports from "@/pages/gas-station/Reports";
 import GasStationSettings from "@/pages/gas-station/Settings";
 import Stock from "@/pages/gas-station/Stock";
@@ -216,7 +217,7 @@ import StockUpdateHistory from "@/pages/gas-station/StockUpdateHistory";
 import ProductSalesHistory from "@/pages/gas-station/ProductSalesHistory";
 import SalesInstrumentReport from "@/pages/gas-station/SalesInstrumentReport";
 import OilDeficitReport from "@/pages/gas-station/OilDeficitReport";
-import OilDeficitMonthly from "@/pages/gas-station/OilDeficitMonthly";
+import OilDeficitMonthly from "@/pages/gas-station/OilDeficitMonthlyV3";
 import TruckSales from "@/pages/gas-station/TruckSales";
 import TruckProfiles from "@/pages/gas-station/TruckProfiles";
 import TruckDashboard from "@/pages/gas-station/TruckDashboard";
@@ -1200,6 +1201,10 @@ const router = createBrowserRouter([
           {
             path: "price-adjustment",
             element: <PriceAdjustment />,
+          },
+          {
+            path: "price-adjustment-history",
+            element: <PriceAdjustmentHistory />,
           },
           {
             path: "stock",

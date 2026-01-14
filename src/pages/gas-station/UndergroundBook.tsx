@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import React from "react";
+import * as XLSX from "xlsx";
 import {
   CheckCircle,
   Clock,
@@ -65,6 +66,47 @@ const parseDate = (dateStr: string) => {
   return { day, month, year: year + 2500 }; // Convert Buddhist year to AD
 };
 
+
+
+const parseNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const cleaned = String(value).replace(/,/g, "").trim();
+  if (!cleaned) return null;
+  const num = parseFloat(cleaned);
+  return Number.isFinite(num) ? num : null;
+};
+
+const findColumnValue = (row: Record<string, any>, patterns: string[]): number | null => {
+  for (const [key, value] of Object.entries(row)) {
+    const normalizedKey = key.replace(/\s+/g, "").toLowerCase();
+    if (
+      patterns.some((p) =>
+        normalizedKey.includes(p.replace(/\s+/g, "").toLowerCase())
+      )
+    ) {
+      const num = parseNumber(value);
+      if (num !== null) return num;
+    }
+  }
+  return null;
+};
+
+const findColumnText = (row: Record<string, any>, patterns: string[]): string | null => {
+  for (const [key, value] of Object.entries(row)) {
+    const normalizedKey = key.replace(/\s+/g, "").toLowerCase();
+    if (
+      patterns.some((p) =>
+        normalizedKey.includes(p.replace(/\s+/g, "").toLowerCase())
+      )
+    ) {
+      const text = String(value ?? "").trim();
+      if (text) return text;
+    }
+  }
+  return null;
+};
+
 // Mock data - รายละเอียดสมุดใต้ดิน (หลายเดือน/ปี)
 const generateMockData = () => {
   const allData: Array<{
@@ -79,6 +121,24 @@ const generateMockData = () => {
     difference: number | null;
     nozzles: { [key: string]: { meter: number | null; liters: number | null } };
   }> = [];
+
+  // helper: ทำค่าเป็นทศนิยม 1 ตำแหน่ง (รองรับ null)
+  const round1 = (value: number | null) => {
+    if (value === null) return null;
+    return Math.round(value * 10) / 10;
+  };
+
+  // helper: สร้าง nozzles ตัวอย่าง (กระจายยอดตามหัวจ่าย 1A-1F)
+  const buildNozzlesFromTotal = (total: number) => {
+    const ratios = [0.22, 0.18, 0.16, 0.14, 0.12, 0.18]; // รวม = 1.00
+    const keys = ["1A", "1B", "1C", "1D", "1E", "1F"] as const;
+    const result: { [key: string]: { meter: number | null; liters: number | null } } = {};
+    keys.forEach((k, idx) => {
+      const liters = round1(total * ratios[idx]) ?? 0;
+      result[k] = { meter: liters, liters };
+    });
+    return result;
+  };
 
   // สร้างข้อมูลตามเดือนปัจจุบันและเดือนก่อนหน้า
 
@@ -127,8 +187,67 @@ const generateMockData = () => {
     { id: 33, date: getCurrentThaiDate(-64), receive: 32000.0, pay: null, balance: 44000.0, measured: 44000.0, difference: null, nozzles: {} },
   ];
 
+  // เพิ่ม mock data ให้เยอะขึ้น (ย้อนหลังเพิ่มอีกหลายสัปดาห์/หลายเดือน)
+  // - ช่วง -120..-68 (ก่อน prevMonth2Data)
+  // - ช่วง -32..-7 (ก่อน currentMonthData)
+  const extraData: Array<{
+    id: number;
+    date: string;
+    receive: number | null;
+    pay: number | null;
+    balance: number;
+    measured: number;
+    difference: number | null;
+    nozzles: { [key: string]: { meter: number | null; liters: number | null } };
+  }> = [];
+
+  let nextId = 34;
+  let runningBalance = 52000.0;
+
+  const addGeneratedRange = (startOffset: number, endOffset: number) => {
+    for (let offset = startOffset; offset <= endOffset; offset += 1) {
+      // สลับ pattern: บางวันรับ, บางวันจ่าย, บางวันเป็นยอดยกมา (receive/pay = null)
+      const isOpening = Math.abs(offset) % 10 === 0;
+      const isReceive = !isOpening && Math.abs(offset) % 3 === 0;
+
+      const receive = isOpening ? null : isReceive ? 15000 + (Math.abs(offset) % 7) * 1500 : null;
+      const pay = isOpening ? null : !isReceive ? 8000 + (Math.abs(offset) % 9) * 900 : null;
+
+      if (receive !== null) runningBalance += receive;
+      if (pay !== null) runningBalance -= pay;
+
+      // measured/diff ให้มีทั้ง 0, ขาด, เกิน แบบสมจริง (บางวัน null)
+      const diff =
+        isOpening || Math.abs(offset) % 4 === 0
+          ? null
+          : round1(((Math.abs(offset) % 5) - 2) * 7.5); // -15.0, -7.5, 0, 7.5, 15.0
+      const measured = round1(runningBalance + (diff ?? 0)) ?? runningBalance;
+
+      const nozzles =
+        pay !== null
+          ? buildNozzlesFromTotal(pay)
+          : isOpening
+            ? { "1A": { meter: round1(runningBalance) ?? runningBalance, liters: round1(runningBalance) ?? runningBalance } }
+            : {};
+
+      extraData.push({
+        id: nextId++,
+        date: getCurrentThaiDate(offset),
+        receive: receive !== null ? round1(receive) : null,
+        pay: pay !== null ? round1(pay) : null,
+        balance: round1(runningBalance) ?? runningBalance,
+        measured,
+        difference: diff,
+        nozzles,
+      });
+    }
+  };
+
+  addGeneratedRange(-120, -68);
+  addGeneratedRange(-32, -7);
+
   // รวมข้อมูลทั้งหมด
-  [...currentMonthData, ...prevMonthData, ...prevMonth2Data].forEach((item) => {
+  [...currentMonthData, ...prevMonthData, ...prevMonth2Data, ...extraData].forEach((item) => {
     const { month, year } = parseDate(item.date);
     // แปลง nozzles ให้เป็นรูปแบบที่ถูกต้อง
     const formattedNozzles: { [key: string]: { meter: number | null; liters: number | null } } = {};
@@ -154,6 +273,8 @@ const generateMockData = () => {
 };
 
 const mockUndergroundBookDetail = generateMockData();
+
+type UndergroundDetailItem = (typeof mockUndergroundBookDetail)[number];
 
 // Mock data - สรุปสถานะ
 const mockUndergroundBook = [
@@ -245,6 +366,10 @@ export default function UndergroundBook() {
     date: "ทั้งหมด"
   });
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({ key: 'date', direction: 'desc' });
+  const [detailData, setDetailData] = useState<UndergroundDetailItem[]>(mockUndergroundBookDetail);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importDay, setImportDay] = useState<number | "">("");
   // ใช้เดือนและปีปัจจุบัน
   const now = new Date();
   const currentMonth = now.getMonth() + 1; // 1-12
@@ -256,6 +381,8 @@ export default function UndergroundBook() {
   const userBranch = getCurrentUserRole();
   const isBranchUser = userBranch !== "admin" && userBranch !== null;
   const userBranchName = isBranchUser ? userBranch : null;
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const nextIdRef = useRef(detailData.length + 1);
 
   // กรองข้อมูลตาม role
   let availableData = mockUndergroundBook;
@@ -265,7 +392,7 @@ export default function UndergroundBook() {
   }
 
   // กรองข้อมูลรายละเอียดตามเดือน/ปีที่เลือก
-  const filteredDetailData = mockUndergroundBookDetail.filter(
+  const filteredDetailData = detailData.filter(
     (item) => item.month === selectedMonth && item.year === selectedYear
   );
 
@@ -354,10 +481,188 @@ export default function UndergroundBook() {
     return "text-emerald-600 dark:text-emerald-400";
   };
 
-  const handleImportData = () => {
-    // In real app, this would import data from Excel or API
-    console.log("Importing underground book data...");
-    setShowImportModal(false);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setSelectedFile(file);
+    setImportError(null);
+  };
+
+  const handleImportData = async () => {
+    if (!selectedFile) {
+      setImportError("กรุณาเลือกไฟล์สำหรับ Import ก่อน");
+      return;
+    }
+    if (!importDay) {
+      setImportError("กรุณาเลือกวันที่ที่จะนำเข้าข้อมูล");
+      return;
+    }
+    const targetDateStr = `${importDay}/${selectedMonth}/${selectedYear % 100}`;
+    try {
+      const importedRows: UndergroundDetailItem[] = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("ไม่สามารถอ่านไฟล์ได้"));
+        reader.onload = () => {
+          try {
+            const buffer = reader.result as ArrayBuffer;
+            const workbook = XLSX.read(buffer, { type: "array" });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const rowsRaw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+            if (!rowsRaw.length) {
+              resolve([]);
+              return;
+            }
+            const looksLikeHeader = (row: any[]) => {
+              const keywords = ["หัวจ่าย", "มิเตอร์", "ลิตร", "คงเหลือ", "วัด", "รายวัน"];
+              return row.some((cell) => {
+                const text = String(cell ?? "").trim();
+                if (!text) return false;
+                return keywords.some((k) => text.includes(k));
+              });
+            };
+            let headerRowIndex = looksLikeHeader(rowsRaw[0]) ? 0 : 1;
+            const headerRow = rowsRaw[headerRowIndex] || [];
+            const dataRows = rowsRaw.slice(headerRowIndex + 1);
+            const json: any[] = dataRows.map((row) => {
+              const obj: Record<string, any> = {};
+              headerRow.forEach((headerCell, idx) => {
+                const key = String(headerCell ?? "").trim();
+                if (!key) return;
+                obj[key] = row[idx];
+              });
+              return obj;
+            });
+            const items: UndergroundDetailItem[] = [];
+            let nextId = nextIdRef.current;
+            json.forEach((row) => {
+              const dateStr = targetDateStr;
+
+              const receive =
+                findColumnValue(row, ["รับ", "ยอดรับ", "รับเข้า", "receive"]) ??
+                parseNumber(
+                  row["รับ"] ??
+                    row["ยอดรับ"] ??
+                    row["รับเข้า"] ??
+                    row["receive"] ??
+                    row["Receive"]
+                );
+
+              const pay =
+                findColumnValue(row, ["จ่าย", "ขาย", "ลิตรจ่ายวันนี้", "ลิตรจ่าย", "ลิตรขาย", "pay"]) ??
+                parseNumber(
+                  row["จ่าย"] ??
+                    row["ขาย"] ??
+                    row["ลิตรจ่ายวันนี้"] ??
+                    row["ลิตรจ่าย"] ??
+                    row["ลิตรขาย"] ??
+                    row["pay"] ??
+                    row["Pay"]
+                );
+
+              const balanceValue =
+                findColumnValue(row, ["คงเหลือ", "ลิตรคงเหลือ", "ยอดคงเหลือ", "balance"]) ??
+                parseNumber(
+                  row["คงเหลือ"] ??
+                    row["ลิตรคงเหลือ"] ??
+                    row["ยอดคงเหลือ"] ??
+                    row["balance"] ??
+                    row["Balance"]
+                );
+
+              const measuredValue =
+                findColumnValue(row, ["วัดจริง", "วัดได้จริง", "ยอดวัดจริง", "measured"]) ??
+                parseNumber(
+                  row["วัดจริง"] ??
+                    row["วัดได้จริง"] ??
+                    row["ยอดวัดจริง"] ??
+                    row["measured"] ??
+                    row["Measured"]
+                );
+
+              const difference =
+                findColumnValue(row, ["ขาดเกิน", "ขาด/เกิน", "ส่วนต่าง", "difference"]) ??
+                parseNumber(
+                  row["ขาดเกิน"] ??
+                    row["ขาด/เกิน"] ??
+                    row["ส่วนต่าง"] ??
+                    row["difference"] ??
+                    row["Difference"]
+                );
+
+              const nozzleKeyRaw =
+                findColumnText(row, ["หัวจ่าย", "หัว", "nozzle"]) ??
+                row["หัวจ่าย"] ??
+                row["nozzle"] ??
+                row["หัว"] ??
+                null;
+
+              const nozzleMeter =
+                findColumnValue(row, ["เลขมิเตอร์", "มิเตอร์วันนี้", "มิเตอร์", "meter"]) ??
+                parseNumber(
+                  row["เลขมิเตอร์"] ??
+                    row["มิเตอร์วันนี้"] ??
+                    row["มิเตอร์"] ??
+                    row["meter"]
+                );
+
+              const nozzleLiters =
+                findColumnValue(row, ["จำนวนลิตร", "ลิตรจ่ายวันนี้", "ลิตร", "liters"]) ??
+                parseNumber(
+                  row["จำนวนลิตร"] ??
+                    row["ลิตรจ่ายวันนี้"] ??
+                    row["ลิตร"] ??
+                    row["liters"]
+                );
+              const normalizedDate = dateStr;
+              const { month, year } = parseDate(normalizedDate);
+              const nozzles: { [key: string]: { meter: number | null; liters: number | null } } = {};
+              if (typeof nozzleKeyRaw === "string" && nozzleKeyRaw.trim()) {
+                const key = nozzleKeyRaw.trim();
+                nozzles[key] = { meter: nozzleMeter, liters: nozzleLiters };
+              }
+              const finalBalance = balanceValue ?? 0;
+              const finalMeasured = measuredValue ?? finalBalance;
+              const item: UndergroundDetailItem = {
+                id: nextId++,
+                date: normalizedDate,
+                month,
+                year,
+                receive,
+                pay,
+                balance: finalBalance,
+                measured: finalMeasured,
+                difference,
+                nozzles: createNozzles(nozzles),
+              };
+              items.push(item);
+            });
+            nextIdRef.current += items.length;
+            resolve(items);
+          } catch (error) {
+            reject(new Error("ไฟล์ไม่อยู่ในรูปแบบที่รองรับ"));
+          }
+        };
+        reader.readAsArrayBuffer(selectedFile);
+      });
+      if (importedRows.length === 0) {
+        setImportError("ไม่พบข้อมูลสำหรับนำเข้าในไฟล์นี้");
+        return;
+      }
+      setDetailData((prev) => {
+        const dates = new Set(importedRows.map((i) => i.date));
+        return [...prev.filter((item) => !dates.has(item.date)), ...importedRows];
+      });
+      setShowImportModal(false);
+      setSelectedFile(null);
+      setImportError(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "ไม่สามารถนำเข้าข้อมูลได้";
+      setImportError(message);
+    }
   };
 
   // คำนวณ summary จากข้อมูลที่กรองแล้ว
@@ -839,9 +1144,37 @@ export default function UndergroundBook() {
 
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
                       <label className="text-sm font-semibold text-gray-800 dark:text-white mb-2 block">
+                        เลือกวันที่ที่จะนำเข้าข้อมูล
+                      </label>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span>
+                            เดือน {selectedMonth} ปี {selectedYear}
+                          </span>
+                        </div>
+                        <select
+                          value={importDay}
+                          onChange={(e) =>
+                            setImportDay(e.target.value ? Number(e.target.value) : "")
+                          }
+                          className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-medium text-gray-800 dark:text-white"
+                        >
+                          <option value="">เลือกวันที่</option>
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                            <option key={day} value={day}>
+                              {day}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl shadow-sm">
+                      <label className="text-sm font-semibold text-gray-800 dark:text-white mb-2 block">
                         เลือกไฟล์
                       </label>
-                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-blue-500 dark:hover:border-blue-500 transition-colors cursor-pointer">
+                      <label className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-blue-500 dark:hover:border-blue-500 transition-colors cursor-pointer block">
                         <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                           คลิกเพื่อเลือกไฟล์หรือลากไฟล์มาวางที่นี่
@@ -849,7 +1182,24 @@ export default function UndergroundBook() {
                         <p className="text-xs text-gray-500 dark:text-gray-500">
                           รองรับไฟล์ .xlsx, .xls, .csv
                         </p>
-                      </div>
+                        {selectedFile && (
+                          <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                            {selectedFile.name}
+                          </p>
+                        )}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".xlsx,.xls,.csv"
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
+                      </label>
+                      {importError && (
+                        <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                          {importError}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

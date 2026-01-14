@@ -1,5 +1,7 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   DollarSign,
   Fuel,
@@ -10,7 +12,15 @@ import {
   CheckCircle,
   AlertTriangle,
   History,
+  Search,
+  Filter,
+  Check,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  X,
 } from "lucide-react";
+import { addPriceAdjustmentHistoryEntry } from "@/utils/priceAdjustmentHistory";
 
 type OilTypeCode =
   | "PREMIUM_DIESEL"
@@ -118,8 +128,38 @@ const initialPrices: OilPrice[] = [
 ];
 
 export default function PriceAdjustment() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [branchFilter, setBranchFilter] = useState<string>("ปั๊มไฮโซ");
   const [oilPrices, setOilPrices] = useState<OilPrice[]>(initialPrices);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [columnFilters, setColumnFilters] = useState<{
+    status: string;
+    source: string;
+  }>({
+    status: "ทั้งหมด",
+    source: "ทั้งหมด",
+  });
+
+  type FilterKey = "status" | "source";
+  type SortKey =
+    | "oilTypeName"
+    | "currentPrice"
+    | "proposedPrice"
+    | "effectiveDate"
+    | "lastUpdated"
+    | "status";
+
+  const [activeHeaderDropdown, setActiveHeaderDropdown] = useState<FilterKey | null>(null);
+  const [sortConfig, setSortConfig] = useState<{
+    key: SortKey;
+    direction: "asc" | "desc" | null;
+  }>({
+    key: "oilTypeName",
+    direction: null,
+  });
 
   const [globalEffectiveDate, setGlobalEffectiveDate] = useState<string>(
     new Date().toISOString().split("T")[0]
@@ -127,18 +167,110 @@ export default function PriceAdjustment() {
   const [globalEffectiveTime, setGlobalEffectiveTime] = useState<string>("05:00");
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAdjustedBy, setConfirmAdjustedBy] = useState<string>(user?.name ?? "");
 
-  const filteredPrices = useMemo(
-    () =>
-      oilPrices
-        .filter((p) => p.branch === branchFilter)
-        .sort(
-          (a, b) =>
-            oilTypeDisplayOrder.indexOf(a.oilTypeCode) -
-            oilTypeDisplayOrder.indexOf(b.oilTypeCode)
-        ),
-    [oilPrices, branchFilter]
-  );
+  const employeeOptions = useMemo(() => {
+    const base = ["พนักงาน A", "พนักงาน B", "พนักงาน C", "ผู้จัดการสถานี"];
+    const current = (user?.name ?? "").trim();
+    if (current && !base.includes(current)) return [current, ...base];
+    return base;
+  }, [user?.name]);
+
+  const branchPrices = useMemo(() => oilPrices.filter((p) => p.branch === branchFilter), [oilPrices, branchFilter]);
+
+  const filterOptions = useMemo(() => {
+    return {
+      status: ["ทั้งหมด", ...new Set(branchPrices.map((p) => p.status))],
+      source: ["ทั้งหมด", ...new Set(branchPrices.map((p) => p.lastSource))],
+    };
+  }, [branchPrices]);
+
+  const handleSort = (key: SortKey) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        if (prev.direction === "asc") return { key, direction: "desc" };
+        if (prev.direction === "desc") return { key, direction: null };
+        return { key, direction: "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    if (sortConfig.key !== key || !sortConfig.direction) {
+      return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    }
+    return sortConfig.direction === "asc" ? (
+      <ChevronUp className="w-3 h-3 text-emerald-500" />
+    ) : (
+      <ChevronDown className="w-3 h-3 text-emerald-500" />
+    );
+  };
+
+  const filteredPrices = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    let result = branchPrices.filter((p) => {
+      const matchesSearch =
+        term === "" ||
+        p.oilTypeName.toLowerCase().includes(term) ||
+        p.oilTypeCode.toLowerCase().includes(term);
+
+      const matchesStatus = columnFilters.status === "ทั้งหมด" || p.status === (columnFilters.status as PriceStatus);
+      const matchesSource =
+        columnFilters.source === "ทั้งหมด" || p.lastSource === (columnFilters.source as OilPrice["lastSource"]);
+
+      return matchesSearch && matchesStatus && matchesSource;
+    });
+
+    // Default ordering: keep OilType display order when no explicit sort
+    if (!sortConfig.direction) {
+      result = [...result].sort(
+        (a, b) =>
+          oilTypeDisplayOrder.indexOf(a.oilTypeCode) -
+          oilTypeDisplayOrder.indexOf(b.oilTypeCode)
+      );
+      return result;
+    }
+
+    result = [...result].sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortConfig.key) {
+        case "oilTypeName":
+          aValue = a.oilTypeName;
+          bValue = b.oilTypeName;
+          break;
+        case "currentPrice":
+          aValue = a.currentPrice;
+          bValue = b.currentPrice;
+          break;
+        case "proposedPrice":
+          aValue = a.proposedPrice ?? -Infinity;
+          bValue = b.proposedPrice ?? -Infinity;
+          break;
+        case "effectiveDate":
+          aValue = (a.effectiveDate ?? "") + " " + (a.effectiveTime ?? "");
+          bValue = (b.effectiveDate ?? "") + " " + (b.effectiveTime ?? "");
+          break;
+        case "lastUpdated":
+          aValue = a.lastUpdated;
+          bValue = b.lastUpdated;
+          break;
+        case "status":
+          aValue = a.status;
+          bValue = b.status;
+          break;
+      }
+
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [branchPrices, searchTerm, columnFilters, sortConfig]);
 
   const pendingChanges = useMemo(
     () =>
@@ -203,7 +335,7 @@ export default function PriceAdjustment() {
           ? {
               ...p,
               effectiveDate: date,
-              status: p.proposedPrice && p.proposedPrice !== p.currentPrice ? "รอมีผล" : p.status,
+              status: p.proposedPrice != null && p.proposedPrice !== p.currentPrice ? "รอมีผล" : p.status,
             }
           : p
       )
@@ -217,7 +349,7 @@ export default function PriceAdjustment() {
           ? {
               ...p,
               effectiveTime: time,
-              status: p.proposedPrice && p.proposedPrice !== p.currentPrice ? "รอมีผล" : p.status,
+              status: p.proposedPrice != null && p.proposedPrice !== p.currentPrice ? "รอมีผล" : p.status,
             }
           : p
       )
@@ -226,6 +358,7 @@ export default function PriceAdjustment() {
 
   const handleApplyAll = () => {
     if (!hasPendingChanges) return;
+    setConfirmAdjustedBy((user?.name ?? "").trim());
     setShowConfirmModal(true);
   };
 
@@ -240,6 +373,22 @@ export default function PriceAdjustment() {
         minute: "2-digit",
       })
       .replace(",", "");
+
+    // Save history (based on pending changes at the time of confirmation)
+    addPriceAdjustmentHistoryEntry({
+      branch: branchFilter,
+      appliedAtISO: now.toISOString(),
+      appliedBy: confirmAdjustedBy || user?.name || "ระบบ",
+      source: "กรอกมือ",
+      changes: pendingChanges.map((p) => ({
+        oilTypeCode: p.oilTypeCode,
+        oilTypeName: p.oilTypeName,
+        oldPrice: p.currentPrice,
+        newPrice: p.proposedPrice ?? p.currentPrice,
+        effectiveDate: p.effectiveDate ?? globalEffectiveDate,
+        effectiveTime: p.effectiveTime ?? globalEffectiveTime,
+      })),
+    });
 
     setOilPrices((prev) =>
       prev.map((p) => {
@@ -275,30 +424,135 @@ export default function PriceAdjustment() {
     return "bg-gray-100 text-gray-600 border-gray-200";
   };
 
-  return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-4"
+  const HeaderWithFilter = ({
+    label,
+    columnKey,
+    filterKey,
+    options,
+    align = "left",
+  }: {
+    label: string;
+    columnKey?: SortKey;
+    filterKey?: FilterKey;
+    options?: string[];
+    align?: "left" | "right" | "center";
+  }) => {
+    const justify =
+      align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+
+    return (
+      <th
+        className={`px-6 py-4 relative group ${align === "right" ? "text-right" : align === "center" ? "text-center" : ""}`}
       >
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className={`flex items-center gap-2 ${justify}`}>
+          <button
+            type="button"
+            className={`flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors ${
+              sortConfig.key === columnKey ? "text-emerald-600" : ""
+            } ${columnKey ? "cursor-pointer" : "cursor-default"}`}
+            onClick={() => columnKey && handleSort(columnKey)}
+            aria-label={columnKey ? `เรียงข้อมูลคอลัมน์ ${label}` : label}
+            disabled={!columnKey}
+          >
+            <span>{label}</span>
+            {columnKey && getSortIcon(columnKey)}
+          </button>
+
+          {filterKey && options && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveHeaderDropdown(activeHeaderDropdown === filterKey ? null : filterKey);
+                }}
+                className={`p-1 rounded-md transition-all ${
+                  (filterKey === "status" ? columnFilters.status : columnFilters.source) !== "ทั้งหมด"
+                    ? "bg-emerald-500 text-white shadow-sm"
+                    : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"
+                }`}
+                aria-label={`ตัวกรองคอลัมน์ ${label}`}
+              >
+                <Filter className="w-3 h-3" />
+              </button>
+
+              <AnimatePresence>
+                {activeHeaderDropdown === filterKey && (
+                  <>
+                    <button
+                      type="button"
+                      className="fixed inset-0 z-10 bg-transparent"
+                      onClick={() => setActiveHeaderDropdown(null)}
+                      aria-label="ปิดตัวกรอง"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                    >
+                      {options.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => {
+                            if (filterKey === "status") {
+                              setColumnFilters((prev) => ({ ...prev, status: opt }));
+                            } else {
+                              setColumnFilters((prev) => ({ ...prev, source: opt }));
+                            }
+                            setActiveHeaderDropdown(null);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                            (filterKey === "status" ? columnFilters.status : columnFilters.source) === opt
+                              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          {opt}
+                          {(filterKey === "status" ? columnFilters.status : columnFilters.source) === opt && (
+                            <Check className="w-3 h-3" />
+                          )}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </th>
+    );
+  };
+
+  const isAnyFilterActive = useMemo(() => {
+    return searchTerm !== "" || columnFilters.status !== "ทั้งหมด" || columnFilters.source !== "ทั้งหมด";
+  }, [searchTerm, columnFilters]);
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
+      {/* Header */}
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
-              <DollarSign className="w-8 h-8 text-emerald-500" />
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+                <DollarSign className="w-8 h-8 text-white" />
+              </div>
               การปรับราคาน้ำมัน
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
-              จัดการราคาขายน้ำมันตามประเภทและสาขา รองรับการนำเข้าราคาจาก ปตท. และการปรับราคาเองของคุณนิด
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
+              <Fuel className="w-4 h-4" />
+              จัดการราคาขายน้ำมันตามประเภทและสาขา รองรับการนำเข้าราคาจาก ปตท. และการปรับราคาเอง
             </p>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <select
               value={branchFilter}
               onChange={(e) => setBranchFilter(e.target.value)}
-              className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              className="px-4 py-3 text-sm rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/40 font-bold"
             >
               <option value="ปั๊มไฮโซ">ปั๊มไฮโซ (สำนักงานใหญ่)</option>
               <option value="ดินดำ">ดินดำ</option>
@@ -306,21 +560,38 @@ export default function PriceAdjustment() {
               <option value="ตักสิลา">ตักสิลา</option>
               <option value="บายพาส">บายพาส</option>
             </select>
+
+            <button
+              type="button"
+              className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <Upload className="w-5 h-5" />
+              นำเข้าราคาจากไฟล์ ปตท.
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate("/app/gas-station/price-adjustment-history")}
+              className="px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-2xl font-bold border border-gray-100 dark:border-gray-700 shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <History className="w-5 h-5" />
+              ดูประวัติ
+            </button>
           </div>
         </div>
-      </motion.div>
+      </header>
 
       {/* Info banner */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+        className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-3xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6"
       >
         <div className="flex items-start gap-3">
           <CheckCircle className="w-6 h-6 text-emerald-500 mt-0.5" />
-          <div className="text-xs text-emerald-900 dark:text-emerald-100 space-y-1">
-            <p className="font-semibold">
+          <div className="text-sm text-emerald-900 dark:text-emerald-100 space-y-1">
+            <p className="font-bold">
               ขั้นตอนการปรับราคา: นำเข้าราคาจาก ปตท. → ตรวจสอบ/แก้ไข → ตั้งวัน-เวลามีผล → ยืนยันใช้ราคาใหม่
             </p>
             <p>
@@ -329,36 +600,29 @@ export default function PriceAdjustment() {
             </p>
           </div>
         </div>
-        <div className="flex flex-col md:items-end gap-2 text-xs">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-emerald-950 text-emerald-700 dark:text-emerald-100 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/60 text-xs font-medium"
-          >
-            <Upload className="w-4 h-4" />
-            นำเข้าราคาจากไฟล์ ปตท. (Excel)
-          </button>
-          <p className="text-[11px] text-emerald-800/80 dark:text-emerald-200/80">
-            * ในเวอร์ชันจริงปุ่มนี้จะเปิดฟอร์มอัปโหลดไฟล์ Excel ราคาน้ำมันจาก Back Office ปตท.
-          </p>
+        <div className="flex items-center gap-2 text-xs text-emerald-900/80 dark:text-emerald-100">
+          <AlertTriangle className="w-4 h-4" />
+          ตั้งวันและเวลามีผลได้ทั้งแบบ “รวม” และ “รายประเภทน้ำมัน”
         </div>
       </motion.div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.15 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex items-center gap-3"
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
         >
-          <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-            <Fuel className="w-6 h-6 text-blue-500" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">จำนวนประเภทน้ำมันในสาขานี้</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">
-              {summary.totalOilTypes} ประเภท
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <Fuel className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ประเภทน้ำมัน</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{summary.totalOilTypes} ประเภท</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">ในสาขา {branchFilter}</p>
+            </div>
           </div>
         </motion.div>
 
@@ -366,16 +630,17 @@ export default function PriceAdjustment() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex items-center gap-3"
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
         >
-          <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-            <Edit3 className="w-5 h-5 text-amber-500" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">รายการที่มีการแก้ไขราคาแต่ยังไม่ยืนยัน</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">
-              {summary.changedCount} รายการ
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl">
+              <Edit3 className="w-6 h-6 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">รออนุมัติ</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{summary.changedCount} รายการ</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">แก้ไขแล้ว ยังไม่ยืนยัน</p>
+            </div>
           </div>
         </motion.div>
 
@@ -383,16 +648,19 @@ export default function PriceAdjustment() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.25 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex items-center gap-3"
+          className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm"
         >
-          <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-            <History className="w-5 h-5 text-purple-500" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">ราคาขายเฉลี่ย (ทุกประเภทในสาขานี้)</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">
-              {currencyFormatter.format(summary.avgCurrentPrice)}
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gray-50 dark:bg-gray-900/20 rounded-2xl">
+              <History className="w-6 h-6 text-gray-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ราคาเฉลี่ย</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">
+                {currencyFormatter.format(summary.avgCurrentPrice)}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">ทุกประเภทในสาขานี้</p>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -402,18 +670,15 @@ export default function PriceAdjustment() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.25 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+        className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
       >
         <div className="flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-500" />
           <div className="text-xs text-gray-600 dark:text-gray-300 space-y-1">
-            <p className="font-semibold">
-              ตั้งวันและเวลาที่ราคาชุดนี้จะมีผลกับทุกประเภทน้ำมันในสาขานี้
+            <p className="font-bold">
+              ตั้งวันและเวลาที่ “ชุดราคาใหม่” จะมีผลกับทุกประเภทน้ำมันในสาขา (ปรับรายประเภทได้ในตาราง)
             </p>
-            <p>
-              ระบบจริงจะส่งราคานี้ไปยัง POS, Back Office ปตท., สมุดขายน้ำมัน และ Balance Petrol
-              เพื่อคำนวณต้นทุนและภาษีขายอัตโนมัติ
-            </p>
+            <p>เมื่อยืนยัน ระบบจะนำชุดราคาไปใช้เป็นราคาขายใหม่ (ตัวอย่างหน้าจอ)</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -424,7 +689,7 @@ export default function PriceAdjustment() {
                 type="date"
                 value={globalEffectiveDate}
                 onChange={(e) => setGlobalEffectiveDate(e.target.value)}
-                className="pl-9 pr-3 py-2 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="pl-10 pr-4 py-3 text-sm rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/40 font-medium"
               />
             </div>
             <div className="relative">
@@ -433,7 +698,7 @@ export default function PriceAdjustment() {
                 type="time"
                 value={globalEffectiveTime}
                 onChange={(e) => setGlobalEffectiveTime(e.target.value)}
-                className="pl-9 pr-3 py-2 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="pl-10 pr-4 py-3 text-sm rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/40 font-medium"
               />
             </div>
           </div>
@@ -441,54 +706,79 @@ export default function PriceAdjustment() {
             type="button"
             onClick={handleApplyAll}
             disabled={!hasPendingChanges}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <CheckCircle className="w-4 h-4" />
-            ยืนยันใช้ราคาใหม่ทั้งหมดในสาขานี้
+            ยืนยันใช้ราคาใหม่ (ตามที่แก้ไข)
           </button>
         </div>
       </motion.div>
+
+      {/* Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="ค้นหาประเภทน้ำมัน / code (เช่น DIESEL, GASOHOL_95)..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
+          />
+        </div>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setColumnFilters({ status: "ทั้งหมด", source: "ทั้งหมด" });
+                setActiveHeaderDropdown(null);
+              }}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+            <Fuel className="w-4 h-4" />
+            <span className="text-sm font-bold whitespace-nowrap">พบ {filteredPrices.length} รายการ</span>
+          </div>
+        </div>
+      </div>
 
       {/* Table of prices */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
       >
-        <div className="border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
+        <div className="border-b border-gray-200 dark:border-gray-700 p-6">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-              ตารางปรับราคาน้ำมัน – {branchFilter}
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              แก้ไขช่อง “ราคาขายใหม่” และถ้าต้องการกำหนดวัน-เวลามีผลเฉพาะแต่ละประเภท ให้ปรับในคอลัมน์ “วันที่/เวลาเริ่มใช้”
+            <h2 className="text-xl font-black text-gray-800 dark:text-white">ตารางปรับราคาน้ำมัน – {branchFilter}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              แก้ไข “ราคาขายใหม่” และถ้าต้องการกำหนดวัน-เวลามีผลรายประเภท ให้ปรับในคอลัมน์ “วันที่/เวลาเริ่มใช้”
             </p>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-900/40 border-b border-gray-200 dark:border-gray-700">
-              <tr>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  ประเภทน้ำมัน
-                </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  ราคาขายปัจจุบัน (บาท/ลิตร)
-                </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  ราคาขายใหม่ (บาท/ลิตร)
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  วันที่/เวลาเริ่มใช้
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  แหล่งที่มา / ล่าสุดแก้ไข
-                </th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  สถานะ
-                </th>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                <HeaderWithFilter label="ประเภทน้ำมัน" columnKey="oilTypeName" />
+                <HeaderWithFilter label="ราคาปัจจุบัน (บาท/ลิตร)" columnKey="currentPrice" align="right" />
+                <HeaderWithFilter label="ราคาขายใหม่ (บาท/ลิตร)" columnKey="proposedPrice" align="right" />
+                <HeaderWithFilter label="วันที่/เวลาเริ่มใช้" columnKey="effectiveDate" />
+                <HeaderWithFilter label="แหล่งที่มา / ล่าสุดแก้ไข" filterKey="source" options={filterOptions.source} />
+                <HeaderWithFilter
+                  label="สถานะ"
+                  columnKey="status"
+                  filterKey="status"
+                  options={filterOptions.status}
+                  align="center"
+                />
               </tr>
             </thead>
             <tbody>
@@ -496,7 +786,7 @@ export default function PriceAdjustment() {
                 <tr>
                   <td
                     colSpan={6}
-                    className="py-8 px-4 text-center text-xs text-gray-500 dark:text-gray-400"
+                    className="py-12 px-6 text-center text-sm text-gray-500 dark:text-gray-400"
                   >
                     ยังไม่มีการตั้งราคาน้ำมันสำหรับสาขานี้
                   </td>
@@ -519,29 +809,27 @@ export default function PriceAdjustment() {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.25, delay: index * 0.03 }}
-                    className={`border-b border-gray-100 dark:border-gray-700 ${
-                      hasChange ? "bg-emerald-50/40 dark:bg-emerald-900/10" : ""
-                    }`}
+                    className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                      index % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50/50 dark:bg-gray-900/30"
+                    } ${hasChange ? "ring-1 ring-emerald-200/60 dark:ring-emerald-700/40" : ""}`}
                   >
-                    <td className="py-3 px-4 align-top">
-                      <div className="flex items-center gap-2">
-                        <Fuel className="w-4 h-4 text-gray-500" />
+                    <td className="py-4 px-6 align-top">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-gray-50 dark:bg-gray-900/30 rounded-2xl">
+                          <Fuel className="w-4 h-4 text-gray-500" />
+                        </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {price.oilTypeName}
-                          </p>
-                          <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                            {price.oilTypeCode}
-                          </p>
+                          <p className="text-sm font-black text-gray-900 dark:text-white">{price.oilTypeName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{price.oilTypeCode}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-right align-top">
-                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                    <td className="py-4 px-6 text-right align-top">
+                      <p className="text-sm font-bold text-gray-800 dark:text-gray-100">
                         {currencyFormatter.format(price.currentPrice)}
                       </p>
                     </td>
-                    <td className="py-3 px-4 text-right align-top">
+                    <td className="py-4 px-6 text-right align-top">
                       <div className="flex flex-col items-end gap-1">
                         <input
                           type="number"
@@ -552,15 +840,15 @@ export default function PriceAdjustment() {
                               : ""
                           }
                           onChange={(e) => handleChangeProposedPrice(price.id, e.target.value)}
-                          className="w-28 px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-right text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                          className={`w-32 px-4 py-3 text-sm rounded-2xl border ${
+                            hasChange ? "border-emerald-300/60 dark:border-emerald-700/60" : "border-gray-200 dark:border-gray-700"
+                          } bg-white dark:bg-gray-800 text-right text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/40 font-medium`}
                           placeholder={price.currentPrice.toFixed(2)}
                         />
                         {hasChange && (
                           <p
-                            className={`text-[11px] ${
-                              diff > 0
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-red-500"
+                            className={`text-xs font-bold ${
+                              diff > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                             }`}
                           >
                             {diff > 0 ? "+" : ""}
@@ -569,48 +857,45 @@ export default function PriceAdjustment() {
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-4 align-top">
-                      <div className="flex flex-col sm:flex-row gap-2 text-xs">
+                    <td className="py-4 px-6 align-top">
+                      <div className="flex flex-col sm:flex-row gap-2 text-sm">
                         <div className="relative">
-                          <Calendar className="w-3.5 h-3.5 text-gray-400 absolute left-2 top-1/2 -translate-y-1/2" />
+                          <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                           <input
                             type="date"
                             value={price.effectiveDate ?? globalEffectiveDate}
                             onChange={(e) => handleChangeEffectiveDate(price.id, e.target.value)}
-                            className="pl-7 pr-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                            className="pl-10 pr-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/40 font-medium"
                           />
                         </div>
                         <div className="relative">
-                          <Clock className="w-3.5 h-3.5 text-gray-400 absolute left-2 top-1/2 -translate-y-1/2" />
+                          <Clock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                           <input
                             type="time"
                             value={price.effectiveTime ?? globalEffectiveTime}
                             onChange={(e) => handleChangeEffectiveTime(price.id, e.target.value)}
-                            className="pl-7 pr-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                            className="pl-10 pr-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/40 font-medium"
                           />
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 align-top text-xs text-gray-600 dark:text-gray-300">
-                      <p>
+                    <td className="py-4 px-6 align-top text-sm text-gray-600 dark:text-gray-300">
+                      <p className="font-medium">
                         แหล่งที่มา:{" "}
-                        <span className="font-semibold">
+                        <span className="font-black text-gray-800 dark:text-gray-100">
                           {price.lastSource === "ไฟล์ ปตท."
                             ? "ไฟล์ราคาจาก ปตท."
                             : price.lastSource === "กรอกมือ"
-                            ? "ปรับเองโดยคุณนิด"
-                            : "API/ระบบอัตโนมัติ"}
+                              ? "ปรับเอง (Manual)"
+                              : "API/ระบบอัตโนมัติ"}
                         </span>
                       </p>
-                      <p>แก้ไขล่าสุด: {price.lastUpdated}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                        แก้ไขล่าสุด: {price.lastUpdated}
+                      </p>
                     </td>
-                    <td className="py-3 px-4 align-top text-center">
-                      <span
-                        className={
-                          "inline-flex px-2 py-0.5 rounded-full border text-[11px] " +
-                          getStatusBadgeClasses(price.status)
-                        }
-                      >
+                    <td className="py-4 px-6 align-top text-center">
+                      <span className={"inline-flex px-3 py-1 rounded-full border text-xs font-bold " + getStatusBadgeClasses(price.status)}>
                         {price.status}
                       </span>
                     </td>
@@ -624,37 +909,49 @@ export default function PriceAdjustment() {
 
       {/* Confirm modal */}
       {showConfirmModal && hasPendingChanges && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-lg p-5"
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden"
           >
-            <div className="flex items-center gap-3 mb-3">
-              <AlertTriangle className="w-6 h-6 text-amber-500" />
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  ยืนยันใช้ราคาน้ำมันชุดใหม่ในสาขา {branchFilter}
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  เมื่อยืนยันแล้ว ระบบจะบันทึกเป็นราคาขายใหม่และเชื่อมต่อไปยัง POS / Back Office ปตท. /
-                  สมุด Balance Petrol และแดชบอร์ด เพื่อคำนวณต้นทุนและภาษีขาย
-                </p>
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-5 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-amber-500 rounded-2xl shadow-lg shadow-amber-500/20">
+                  <AlertTriangle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white">
+                    ยืนยันใช้ราคาน้ำมันชุดใหม่ในสาขา {branchFilter}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                    ตรวจสอบรายการที่เปลี่ยนแปลงก่อนยืนยัน
+                  </p>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:scale-110 active:scale-95"
+                aria-label="ปิด"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg mb-4">
-              <table className="w-full text-xs">
-                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <div className="px-6 py-6 bg-gray-50 dark:bg-gray-900/50">
+              <div className="max-h-72 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-2xl mb-4 bg-white dark:bg-gray-800">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-300">
+                    <th className="text-left py-3 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
                       ประเภทน้ำมัน
                     </th>
-                    <th className="text-right py-2 px-3 font-medium text-gray-600 dark:text-gray-300">
+                    <th className="text-right py-3 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
                       เดิม
                     </th>
-                    <th className="text-right py-2 px-3 font-medium text-gray-600 dark:text-gray-300">
+                    <th className="text-right py-3 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
                       ใหม่
                     </th>
                   </tr>
@@ -663,51 +960,77 @@ export default function PriceAdjustment() {
                   {pendingChanges.map((p) => (
                     <tr
                       key={p.id}
-                      className="border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                      className="border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                     >
-                      <td className="py-2 px-3">
-                        <span className="font-semibold text-gray-800 dark:text-gray-100">
+                      <td className="py-3 px-4">
+                        <span className="font-black text-gray-800 dark:text-gray-100">
                           {p.oilTypeName}
                         </span>
-                        <span className="block text-[10px] text-gray-500 dark:text-gray-400">
+                        <span className="block text-xs text-gray-500 dark:text-gray-400 font-medium">
                           {p.oilTypeCode}
                         </span>
                       </td>
-                      <td className="py-2 px-3 text-right text-gray-700 dark:text-gray-200">
+                      <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-200 font-bold">
                         {currencyFormatter.format(p.currentPrice)}
                       </td>
-                      <td className="py-2 px-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                      <td className="py-3 px-4 text-right font-black text-emerald-600 dark:text-emerald-400">
                         {currencyFormatter.format(p.proposedPrice ?? p.currentPrice)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
 
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-4">
-              วัน-เวลามีผลเริ่มต้นที่{" "}
-              <span className="font-semibold">
-                {globalEffectiveDate} {globalEffectiveTime}
-              </span>{" "}
-              (สามารถปรับรายประเภทได้ในตารางหลัก)
-            </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 font-medium">
+                วัน-เวลามีผลเริ่มต้นที่{" "}
+                <span className="font-black text-gray-800 dark:text-gray-100">
+                  {globalEffectiveDate} {globalEffectiveTime}
+                </span>{" "}
+                (สามารถปรับรายประเภทได้ในตารางหลัก)
+              </p>
 
-            <div className="flex items-center justify-between mt-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    ผู้ปรับราคา / ผู้ยืนยัน
+                  </label>
+                  <select
+                    value={confirmAdjustedBy}
+                    onChange={(e) => setConfirmAdjustedBy(e.target.value)}
+                    className="w-full px-4 py-3 text-sm rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/40 font-bold"
+                  >
+                    <option value="">-- เลือกพนักงาน --</option>
+                    {employeeOptions.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">
+                    * ชื่อนี้จะถูกบันทึกใน “ประวัติการปรับราคา”
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setShowConfirmModal(false)}
-                className="px-3 py-2 text-xs rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all duration-200 font-bold hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl"
               >
                 ยกเลิก
               </button>
               <button
                 type="button"
                 onClick={applyConfirmedChanges}
-                className="px-4 py-2 text-xs rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700"
+                disabled={!confirmAdjustedBy}
+                className="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
               >
+                <CheckCircle className="w-5 h-5" />
                 ยืนยันใช้ราคาน้ำมันชุดใหม่
               </button>
+            </div>
             </div>
           </motion.div>
         </div>

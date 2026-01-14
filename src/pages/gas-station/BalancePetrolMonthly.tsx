@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useState, useMemo } from "react";
 import {
   BookOpen,
@@ -8,6 +8,13 @@ import {
   Calendar,
   Download,
   ChevronDown,
+  Search,
+  Filter,
+  Check,
+  ChevronUp,
+  ChevronsUpDown,
+  X,
+  Info,
 } from "lucide-react";
 
 const numberFormatter = new Intl.NumberFormat("th-TH", {
@@ -71,9 +78,8 @@ const getBuddhistYear = (date: Date): number => {
   return date.getFullYear() + 543;
 };
 
-// Mock data ตามรูปภาพ - เก็บข้อมูลเป็น key-value โดยใช้ "year-month" เป็น key
 const mockMonthlyDataMap: Record<string, MonthlySummary> = {
-  "2565-0": {
+  "0": {
     month: "มกราคม",
     year: 2565,
     rows: [
@@ -236,7 +242,7 @@ const mockMonthlyDataMap: Record<string, MonthlySummary> = {
     totalMoneyDifference: -8834.19,
     totalAccumulatedMoney: 6144.71,
   },
-  "2565-1": {
+  "1": {
     month: "กุมภาพันธ์",
     year: 2565,
     rows: [
@@ -422,19 +428,20 @@ export default function BalancePetrolMonthly() {
   }, [currentBuddhistYear]);
 
   // ดึงข้อมูลตามเดือนและปีที่เลือก
-  const dataKey = `${selectedYear}-${selectedMonth}`;
-  const currentData = mockMonthlyDataMap[dataKey] || {
-    month: thaiMonths[selectedMonth],
-    year: selectedYear,
-    rows: [],
-    totalReceive: 0,
-    totalWithdraw: 0,
-    totalPay: 0,
-    totalDifference: 0,
-    totalAccumulatedDifference: 0,
-    totalMoneyDifference: 0,
-    totalAccumulatedMoney: 0,
-  };
+  const template = mockMonthlyDataMap[String(selectedMonth)];
+  const currentData: MonthlySummary =
+    template || {
+      month: thaiMonths[selectedMonth],
+      year: selectedYear,
+      rows: [],
+      totalReceive: 0,
+      totalWithdraw: 0,
+      totalPay: 0,
+      totalDifference: 0,
+      totalAccumulatedDifference: 0,
+      totalMoneyDifference: 0,
+      totalAccumulatedMoney: 0,
+    };
 
   const getGainLossColor = (value: number) => {
     if (value > 0) return "text-emerald-600 dark:text-emerald-400";
@@ -448,30 +455,285 @@ export default function BalancePetrolMonthly() {
     return "text-gray-600 dark:text-gray-400";
   };
 
-  return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6"
+  const [searchTerm, setSearchTerm] = useState("");
+  const [columnFilters, setColumnFilters] = useState<{
+    oilType: string;
+    tripNo: string;
+  }>({
+    oilType: "ทั้งหมด",
+    tripNo: "ทั้งหมด",
+  });
+
+  type FilterKey = "oilType" | "tripNo";
+  type SortKey =
+    | "date"
+    | "oilType"
+    | "receive"
+    | "withdraw"
+    | "pay"
+    | "balance"
+    | "measuredBalance"
+    | "difference"
+    | "tripNo"
+    | "accumulatedDifference"
+    | "pricePerLiter"
+    | "moneyDifference"
+    | "accumulatedMoney";
+
+  const [activeHeaderDropdown, setActiveHeaderDropdown] = useState<FilterKey | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: "asc" | "desc" | null }>({
+    key: "date",
+    direction: "asc",
+  });
+
+  const filterOptions = useMemo(() => {
+    const oilTypes = Array.from(new Set(currentData.rows.map((r) => r.oilType))).sort((a, b) =>
+      a.localeCompare(b)
+    );
+    const tripNos = Array.from(new Set(currentData.rows.map((r) => r.tripNo).filter(Boolean) as string[])).sort(
+      (a, b) => a.localeCompare(b)
+    );
+    return {
+      oilType: ["ทั้งหมด", ...oilTypes],
+      tripNo: ["ทั้งหมด", ...tripNos],
+    };
+  }, [currentData.rows]);
+
+  const handleSort = (key: SortKey) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        if (prev.direction === "asc") return { key, direction: "desc" };
+        if (prev.direction === "desc") return { key, direction: null };
+        return { key, direction: "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    if (sortConfig.key !== key || !sortConfig.direction) {
+      return <ChevronsUpDown className="w-3 h-3 opacity-30" />;
+    }
+    return sortConfig.direction === "asc" ? (
+      <ChevronUp className="w-3 h-3 text-emerald-500" />
+    ) : (
+      <ChevronDown className="w-3 h-3 text-emerald-500" />
+    );
+  };
+
+  const filteredRows = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    let rows = currentData.rows.filter((row) => {
+      const matchesSearch =
+        term === "" ||
+        String(row.date).includes(term) ||
+        row.oilType.toLowerCase().includes(term) ||
+        String(row.tripNo ?? "").toLowerCase().includes(term);
+
+      const matchesOilType = columnFilters.oilType === "ทั้งหมด" || row.oilType === columnFilters.oilType;
+      const matchesTripNo = columnFilters.tripNo === "ทั้งหมด" || row.tripNo === columnFilters.tripNo;
+
+      return matchesSearch && matchesOilType && matchesTripNo;
+    });
+
+    if (sortConfig.key && sortConfig.direction) {
+      const dir = sortConfig.direction === "asc" ? 1 : -1;
+      const compare = (a: string | number, b: string | number) => {
+        if (a < b) return -1 * dir;
+        if (a > b) return 1 * dir;
+        return 0;
+      };
+
+      rows = rows.slice().sort((a, b) => {
+        switch (sortConfig.key) {
+          case "date":
+            return compare(a.date, b.date);
+          case "oilType":
+            return compare(a.oilType, b.oilType);
+          case "receive":
+            return compare(a.receive, b.receive);
+          case "withdraw":
+            return compare(a.withdraw, b.withdraw);
+          case "pay":
+            return compare(a.pay, b.pay);
+          case "balance":
+            return compare(a.balance, b.balance);
+          case "measuredBalance":
+            return compare(a.measuredBalance, b.measuredBalance);
+          case "difference":
+            return compare(a.difference, b.difference);
+          case "tripNo":
+            return compare(a.tripNo ?? "", b.tripNo ?? "");
+          case "accumulatedDifference":
+            return compare(a.accumulatedDifference, b.accumulatedDifference);
+          case "pricePerLiter":
+            return compare(a.pricePerLiter, b.pricePerLiter);
+          case "moneyDifference":
+            return compare(a.moneyDifference, b.moneyDifference);
+          case "accumulatedMoney":
+            return compare(a.accumulatedMoney, b.accumulatedMoney);
+        }
+      });
+    }
+
+    return rows;
+  }, [currentData.rows, searchTerm, columnFilters, sortConfig]);
+
+  const isAnyFilterActive = useMemo(() => {
+    return searchTerm !== "" || columnFilters.oilType !== "ทั้งหมด" || columnFilters.tripNo !== "ทั้งหมด";
+  }, [searchTerm, columnFilters]);
+
+  const HeaderWithFilter = ({
+    label,
+    columnKey,
+    filterKey,
+    options,
+    align = "left",
+  }: {
+    label: string;
+    columnKey?: SortKey;
+    filterKey?: FilterKey;
+    options?: string[];
+    align?: "left" | "right" | "center";
+  }) => {
+    const justify =
+      align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+    const isActiveFilter = filterKey ? columnFilters[filterKey] !== "ทั้งหมด" : false;
+
+    return (
+      <th
+        className={`px-6 py-4 relative group ${
+          align === "right" ? "text-right" : align === "center" ? "text-center" : ""
+        }`}
       >
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-3">
-          <BookOpen className="w-8 h-8 text-blue-500" />
-          รายงานสรุปยอดน้ำมันคงเหลือและการตรวจสอบน้ำมันขาด/เกิน ประจำวัน
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          สรุปรายวันการเคลื่อนไหวของน้ำมันและการตรวจสอบสต็อกน้ำมัน แยกตามประเภทน้ำมัน
-        </p>
-      </motion.div>
+        <div className={`flex items-center gap-2 ${justify}`}>
+          <button
+            type="button"
+            className={`flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors ${
+              sortConfig.key === columnKey ? "text-emerald-600" : ""
+            } ${columnKey ? "cursor-pointer" : "cursor-default"}`}
+            onClick={() => columnKey && handleSort(columnKey)}
+            aria-label={columnKey ? `เรียงข้อมูลคอลัมน์ ${label}` : label}
+            disabled={!columnKey}
+          >
+            <span>{label}</span>
+            {columnKey && getSortIcon(columnKey)}
+          </button>
+
+          {filterKey && options && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveHeaderDropdown(activeHeaderDropdown === filterKey ? null : filterKey);
+                }}
+                className={`p-1 rounded-md transition-all ${
+                  isActiveFilter
+                    ? "bg-emerald-500 text-white shadow-sm"
+                    : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"
+                }`}
+                aria-label={`ตัวกรองคอลัมน์ ${label}`}
+              >
+                <Filter className="w-3 h-3" />
+              </button>
+
+              <AnimatePresence>
+                {activeHeaderDropdown === filterKey && (
+                  <>
+                    <button
+                      type="button"
+                      className="fixed inset-0 z-10 bg-transparent"
+                      onClick={() => setActiveHeaderDropdown(null)}
+                      aria-label="ปิดตัวกรอง"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute left-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-20 py-1 overflow-hidden"
+                    >
+                      {options.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => {
+                            setColumnFilters((prev) => ({ ...prev, [filterKey]: opt }));
+                            setActiveHeaderDropdown(null);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                            columnFilters[filterKey] === opt
+                              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          {opt}
+                          {columnFilters[filterKey] === opt && <Check className="w-3 h-3" />}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </th>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
+                <BookOpen className="w-8 h-8 text-white" />
+              </div>
+              Balance Petrol รายเดือน
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
+              <Droplet className="w-4 h-4" />
+              รายงานสรุปยอดน้ำมันคงเหลือและการตรวจสอบน้ำมันขาด/เกิน (คอลัมน์เดิมครบ)
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-2 justify-center"
+          >
+            <Download className="w-5 h-5" />
+            ส่งออก
+          </button>
+        </div>
+      </header>
+
+      {/* Info Box */}
+      <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-3xl p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Info className="w-6 h-6 text-emerald-500" />
+          <div>
+            <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
+              เพิ่มการค้นหา/กรองข้อมูลที่หัวคอลัมน์ (ชนิด/ใส่เที่ยว) และการเรียงข้อมูลเหมือนหน้า Master
+            </p>
+            <p className="text-xs text-emerald-800/80 dark:text-emerald-200/80 mt-1">
+              ตารางยังคงคอลัมน์เดิมครบทุกคอลัมน์
+            </p>
+          </div>
+        </div>
+        <div className="text-xs text-emerald-900/80 dark:text-emerald-100 font-bold">
+          {currentData.month} {currentData.year} • พบ {filteredRows.length} รายการ
+        </div>
+      </div>
 
       {/* Month & Year Selector */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4"
+        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-4"
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
@@ -487,7 +749,7 @@ export default function BalancePetrolMonthly() {
                   setShowYearDropdown(!showYearDropdown);
                   setShowMonthDropdown(false);
                 }}
-                className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 min-w-[120px] justify-between"
+                className="px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 min-w-[140px] justify-between"
               >
                 <span>{selectedYear}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showYearDropdown ? "rotate-180" : ""}`} />
@@ -498,7 +760,7 @@ export default function BalancePetrolMonthly() {
                     className="fixed inset-0 z-10"
                     onClick={() => setShowYearDropdown(false)}
                   />
-                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto min-w-[120px]">
+                  <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto min-w-[140px] overflow-hidden">
                     {availableYears.map((year) => (
                       <button
                         key={year}
@@ -506,10 +768,10 @@ export default function BalancePetrolMonthly() {
                           setSelectedYear(year);
                           setShowYearDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                        className={`w-full px-4 py-2 text-left text-xs font-bold transition-colors flex items-center justify-between ${
                           selectedYear === year
-                            ? "bg-blue-500 text-white hover:bg-blue-600"
-                            : "text-gray-700 dark:text-gray-300"
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
                         }`}
                       >
                         {year}
@@ -527,7 +789,7 @@ export default function BalancePetrolMonthly() {
                   setShowMonthDropdown(!showMonthDropdown);
                   setShowYearDropdown(false);
                 }}
-                className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 min-w-[150px] justify-between"
+                className="px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 min-w-[170px] justify-between"
               >
                 <span>{thaiMonths[selectedMonth]}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showMonthDropdown ? "rotate-180" : ""}`} />
@@ -538,7 +800,7 @@ export default function BalancePetrolMonthly() {
                     className="fixed inset-0 z-10"
                     onClick={() => setShowMonthDropdown(false)}
                   />
-                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto min-w-[150px]">
+                  <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto min-w-[170px] overflow-hidden">
                     {thaiMonths.map((month, index) => (
                       <button
                         key={index}
@@ -546,10 +808,10 @@ export default function BalancePetrolMonthly() {
                           setSelectedMonth(index);
                           setShowMonthDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                        className={`w-full px-4 py-2 text-left text-xs font-bold transition-colors flex items-center justify-between ${
                           selectedMonth === index
-                            ? "bg-blue-500 text-white hover:bg-blue-600"
-                            : "text-gray-700 dark:text-gray-300"
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
                         }`}
                       >
                         {month}
@@ -560,134 +822,198 @@ export default function BalancePetrolMonthly() {
               )}
             </div>
           </div>
-
-          <button className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-2">
-            <Download className="w-4 h-4" />
-            <span className="text-sm">ส่งออก</span>
-          </button>
         </div>
       </motion.div>
+
+      {/* Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="ค้นหา: วัน / ชนิด / เที่ยวขนส่ง..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white font-medium"
+          />
+        </div>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isAnyFilterActive && (
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setColumnFilters({ oilType: "ทั้งหมด", tripNo: "ทั้งหมด" });
+                setActiveHeaderDropdown(null);
+              }}
+              className="px-4 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl font-bold text-sm transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              ล้างตัวกรอง
+            </button>
+          )}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 shrink-0">
+            <Droplet className="w-4 h-4" />
+            <span className="text-sm font-bold whitespace-nowrap">พบ {filteredRows.length} รายการ</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+              <TrendingUp className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">รับรวม</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{numberFormatter.format(currentData.totalReceive)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">ลิตร</p>
+            </div>
+          </div>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-rose-50 dark:bg-rose-900/20 rounded-2xl">
+              <TrendingDown className="w-6 h-6 text-rose-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">จ่ายรวม</p>
+              <p className="text-2xl font-black text-gray-900 dark:text-white">{numberFormatter.format(currentData.totalPay)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">ลิตร</p>
+            </div>
+          </div>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gray-50 dark:bg-gray-900/20 rounded-2xl">
+              <Droplet className="w-6 h-6 text-gray-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ส่วนต่างลิตร</p>
+              <p className={`text-2xl font-black ${getDifferenceColor(currentData.totalDifference)}`}>
+                {currentData.totalDifference > 0 ? "+" : ""}
+                {numberFormatter.format(currentData.totalDifference)}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">รวม</p>
+            </div>
+          </div>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gray-50 dark:bg-gray-900/20 rounded-2xl">
+              <Droplet className="w-6 h-6 text-gray-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">สะสมเงิน</p>
+              <p className={`text-2xl font-black ${getGainLossColor(currentData.totalAccumulatedMoney)}`}>
+                {currentData.totalAccumulatedMoney > 0 ? "+" : ""}
+                {numberFormatter.format(currentData.totalAccumulatedMoney)}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">บาท</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
 
       {/* Monthly Summary Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden"
       >
-        {/* Month & Year Header */}
-        <div className="px-6 py-4 border-b-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/60">
-          <h2 className="text-2xl font-bold text-center text-gray-800 dark:text-white">
+        <div className="border-b border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-xl font-black text-gray-800 dark:text-white">
             ประจำเดือน {currentData.month} {currentData.year}
           </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            เรียง/กรองข้อมูลได้จากหัวคอลัมน์ (คอลัมน์เดิมครบเหมือนเดิม)
+          </p>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/60">
-                {/* ส่วนซ้าย - ข้อมูลการเคลื่อนไหวของน้ำมัน */}
-                <th className="text-center py-3 px-3 font-bold text-gray-700 dark:text-gray-300 border-r-2 border-gray-400 dark:border-gray-500">
-                  ว/ด/ป
-                </th>
-                <th className="text-left py-3 px-4 font-bold text-gray-700 dark:text-gray-300 border-r-2 border-gray-400 dark:border-gray-500">
-                  ชนิด
-                </th>
-                <th className="text-right py-3 px-4 font-bold text-gray-700 dark:text-gray-300 border-r-2 border-gray-400 dark:border-gray-500">
-                  รับ
-                </th>
-                <th className="text-right py-3 px-4 font-bold text-gray-700 dark:text-gray-300 border-r-2 border-gray-400 dark:border-gray-500">
-                  เบิกใช้
-                </th>
-                <th className="text-right py-3 px-4 font-bold text-gray-700 dark:text-gray-300 border-r-2 border-gray-400 dark:border-gray-500">
-                  จ่าย
-                </th>
-                <th className="text-right py-3 px-4 font-bold text-gray-700 dark:text-gray-300 border-r-2 border-gray-400 dark:border-gray-500">
-                  คงเหลือ
-                </th>
-                <th className="text-right py-3 px-4 font-bold text-gray-700 dark:text-gray-300 border-r-2 border-gray-400 dark:border-gray-500">
-                  วัดได้จริง
-                </th>
-                {/* ส่วนขวา - การตรวจสอบผลต่างและมูลค่า */}
-                <th className="text-right py-3 px-4 font-bold text-gray-700 dark:text-gray-300">
-                  ส่วนต่างลิตร
-                </th>
-                <th className="text-center py-3 px-4 font-bold text-gray-700 dark:text-gray-300">
-                  ใส่เที่ยว
-                </th>
-                <th className="text-right py-3 px-4 font-bold text-gray-700 dark:text-gray-300">
-                  สะสมลิตร
-                </th>
-                <th className="text-right py-3 px-4 font-bold text-gray-700 dark:text-gray-300">
-                  ราคา
-                </th>
-                <th className="text-right py-3 px-4 font-bold text-gray-700 dark:text-gray-300">
-                  เป็นเงินขาด/เกิน
-                </th>
-                <th className="text-right py-3 px-4 font-bold text-gray-700 dark:text-gray-300">
-                  สะสมเงิน
-                </th>
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] uppercase tracking-widest font-black text-gray-400">
+                <HeaderWithFilter label="ว/ด/ป" columnKey="date" align="center" />
+                <HeaderWithFilter label="ชนิด" columnKey="oilType" filterKey="oilType" options={filterOptions.oilType} />
+                <HeaderWithFilter label="รับ" columnKey="receive" align="right" />
+                <HeaderWithFilter label="เบิกใช้" columnKey="withdraw" align="right" />
+                <HeaderWithFilter label="จ่าย" columnKey="pay" align="right" />
+                <HeaderWithFilter label="คงเหลือ" columnKey="balance" align="right" />
+                <HeaderWithFilter label="วัดได้จริง" columnKey="measuredBalance" align="right" />
+                <HeaderWithFilter label="ส่วนต่างลิตร" columnKey="difference" align="right" />
+                <HeaderWithFilter
+                  label="ใส่เที่ยว"
+                  columnKey="tripNo"
+                  filterKey="tripNo"
+                  options={filterOptions.tripNo}
+                  align="center"
+                />
+                <HeaderWithFilter label="สะสมลิตร" columnKey="accumulatedDifference" align="right" />
+                <HeaderWithFilter label="ราคา" columnKey="pricePerLiter" align="right" />
+                <HeaderWithFilter label="เป็นเงินขาด/เกิน" columnKey="moneyDifference" align="right" />
+                <HeaderWithFilter label="สะสมเงิน" columnKey="accumulatedMoney" align="right" />
               </tr>
             </thead>
             <tbody>
-              {currentData.rows.map((row, index) => (
+              {filteredRows.length === 0 && (
+                <tr>
+                  <td colSpan={13} className="py-12 px-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                    ไม่พบข้อมูลที่ตรงกับเงื่อนไข
+                  </td>
+                </tr>
+              )}
+
+              {filteredRows.map((row, index) => (
                 <motion.tr
                   key={`${row.date}-${row.oilType}-${index}`}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.03 }}
-                  className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  transition={{ duration: 0.25, delay: index * 0.02 }}
+                  className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                    index % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50/50 dark:bg-gray-900/30"
+                  }`}
                 >
-                  {/* ส่วนซ้าย - ข้อมูลการเคลื่อนไหวของน้ำมัน */}
-                  <td className="text-center py-3 px-3 text-gray-800 dark:text-white border-r-2 border-gray-400 dark:border-gray-500">
+                  <td className="text-center py-4 px-6 text-sm font-bold text-gray-800 dark:text-white">
                     {row.date}
                   </td>
-                  <td className="py-3 px-4 font-semibold text-gray-800 dark:text-white border-r-2 border-gray-400 dark:border-gray-500">
-                    {row.oilType}
-                  </td>
-                  <td className="text-right py-3 px-4 text-gray-800 dark:text-white border-r-2 border-gray-400 dark:border-gray-500">
+                  <td className="py-4 px-6 text-sm font-bold text-gray-800 dark:text-white">{row.oilType}</td>
+                  <td className="text-right py-4 px-6 text-sm font-bold text-gray-800 dark:text-white">
                     {row.receive > 0 ? numberFormatter.format(row.receive) : "-"}
                   </td>
-                  <td className="text-right py-3 px-4 text-gray-800 dark:text-white border-r-2 border-gray-400 dark:border-gray-500">
+                  <td className="text-right py-4 px-6 text-sm font-bold text-gray-800 dark:text-white">
                     {row.withdraw > 0 ? numberFormatter.format(row.withdraw) : "-"}
                   </td>
-                  <td className="text-right py-3 px-4 text-gray-800 dark:text-white border-r-2 border-gray-400 dark:border-gray-500">
+                  <td className="text-right py-4 px-6 text-sm font-bold text-gray-800 dark:text-white">
                     {numberFormatter.format(row.pay)}
                   </td>
-                  <td className="text-right py-3 px-4 text-gray-800 dark:text-white border-r-2 border-gray-400 dark:border-gray-500">
+                  <td className="text-right py-4 px-6 text-sm font-bold text-gray-800 dark:text-white">
                     {numberFormatter.format(row.balance)}
                   </td>
-                  <td className="text-right py-3 px-4 text-gray-800 dark:text-white border-r-2 border-gray-400 dark:border-gray-500">
+                  <td className="text-right py-4 px-6 text-sm font-bold text-gray-800 dark:text-white">
                     {integerFormatter.format(row.measuredBalance)}
                   </td>
-                  {/* ส่วนขวา - การตรวจสอบผลต่างและมูลค่า */}
-                  <td className={`text-right py-3 px-4 font-semibold ${getDifferenceColor(
-                    row.difference
-                  )}`}>
+                  <td className={`text-right py-4 px-6 text-sm font-black ${getDifferenceColor(row.difference)}`}>
                     {row.difference > 0 ? "+" : ""}
                     {numberFormatter.format(row.difference)}
                   </td>
-                  <td className="text-center py-3 px-4 text-gray-800 dark:text-white">
+                  <td className="text-center py-4 px-6 text-sm font-bold text-gray-800 dark:text-white">
                     {row.tripNo || "-"}
                   </td>
-                  <td className={`text-right py-3 px-4 font-semibold ${getDifferenceColor(
-                    row.accumulatedDifference
-                  )}`}>
+                  <td className={`text-right py-4 px-6 text-sm font-black ${getDifferenceColor(row.accumulatedDifference)}`}>
                     {row.accumulatedDifference > 0 ? "+" : ""}
                     {numberFormatter.format(row.accumulatedDifference)}
                   </td>
-                  <td className="text-right py-3 px-4 text-gray-800 dark:text-white">
+                  <td className="text-right py-4 px-6 text-sm font-bold text-gray-800 dark:text-white">
                     {numberFormatter.format(row.pricePerLiter)}
                   </td>
-                  <td className={`text-right py-3 px-4 font-semibold ${getGainLossColor(
-                    row.moneyDifference
-                  )}`}>
+                  <td className={`text-right py-4 px-6 text-sm font-black ${getGainLossColor(row.moneyDifference)}`}>
                     {row.moneyDifference > 0 ? "+" : ""}
                     {numberFormatter.format(row.moneyDifference)}
                   </td>
-                  <td className={`text-right py-3 px-4 font-semibold ${getGainLossColor(
-                    row.accumulatedMoney
-                  )}`}>
+                  <td className={`text-right py-4 px-6 text-sm font-black ${getGainLossColor(row.accumulatedMoney)}`}>
                     {row.accumulatedMoney > 0 ? "+" : ""}
                     {numberFormatter.format(row.accumulatedMoney)}
                   </td>
@@ -696,49 +1022,41 @@ export default function BalancePetrolMonthly() {
             </tbody>
             {/* Footer Summary */}
             <tfoot>
-              <tr className="border-t-2 border-red-500 dark:border-red-400 bg-gray-50 dark:bg-gray-900/60">
-                <td colSpan={2} className="py-3 px-4 text-right font-bold text-gray-800 dark:text-white border-r-2 border-gray-400 dark:border-gray-500">
+              <tr className="bg-gray-50/50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+                <td colSpan={2} className="py-4 px-6 text-right text-sm font-black text-gray-800 dark:text-white">
                   รวม
                 </td>
-                <td className="py-3 px-4 text-right font-bold text-gray-800 dark:text-white border-r-2 border-gray-400 dark:border-gray-500">
+                <td className="py-4 px-6 text-right text-sm font-black text-gray-800 dark:text-white">
                   {numberFormatter.format(currentData.totalReceive)}
                 </td>
-                <td className="py-3 px-4 text-right font-bold text-gray-800 dark:text-white border-r-2 border-gray-400 dark:border-gray-500">
+                <td className="py-4 px-6 text-right text-sm font-black text-gray-800 dark:text-white">
                   {numberFormatter.format(currentData.totalWithdraw)}
                 </td>
-                <td className="py-3 px-4 text-right font-bold text-gray-800 dark:text-white border-r-2 border-gray-400 dark:border-gray-500">
+                <td className="py-4 px-6 text-right text-sm font-black text-gray-800 dark:text-white">
                   {numberFormatter.format(currentData.totalPay)}
                 </td>
-                <td colSpan={2} className="py-3 px-4 text-center text-gray-600 dark:text-gray-400 border-r-2 border-gray-400 dark:border-gray-500">
+                <td colSpan={2} className="py-4 px-6 text-center text-sm font-bold text-gray-500 dark:text-gray-400">
                   -
                 </td>
-                <td className={`py-3 px-4 text-right font-bold border-t-2 border-red-500 dark:border-red-400 ${getDifferenceColor(
-                  currentData.totalDifference
-                )}`}>
+                <td className={`py-4 px-6 text-right text-sm font-black ${getDifferenceColor(currentData.totalDifference)}`}>
                   {currentData.totalDifference > 0 ? "+" : ""}
                   {numberFormatter.format(currentData.totalDifference)}
                 </td>
-                <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">
+                <td className="py-4 px-6 text-center text-sm font-bold text-gray-500 dark:text-gray-400">
                   -
                 </td>
-                <td className={`py-3 px-4 text-right font-bold border-t-2 border-red-500 dark:border-red-400 ${getDifferenceColor(
-                  currentData.totalAccumulatedDifference
-                )}`}>
+                <td className={`py-4 px-6 text-right text-sm font-black ${getDifferenceColor(currentData.totalAccumulatedDifference)}`}>
                   {currentData.totalAccumulatedDifference > 0 ? "+" : ""}
                   {numberFormatter.format(currentData.totalAccumulatedDifference)}
                 </td>
-                <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-400">
+                <td className="py-4 px-6 text-center text-sm font-bold text-gray-500 dark:text-gray-400">
                   -
                 </td>
-                <td className={`py-3 px-4 text-right font-bold border-t-2 border-red-500 dark:border-red-400 ${getGainLossColor(
-                  currentData.totalMoneyDifference
-                )}`}>
+                <td className={`py-4 px-6 text-right text-sm font-black ${getGainLossColor(currentData.totalMoneyDifference)}`}>
                   {currentData.totalMoneyDifference > 0 ? "+" : ""}
                   {numberFormatter.format(currentData.totalMoneyDifference)}
                 </td>
-                <td className={`py-3 px-4 text-right font-bold border-t-2 border-red-500 dark:border-red-400 ${getGainLossColor(
-                  currentData.totalAccumulatedMoney
-                )}`}>
+                <td className={`py-4 px-6 text-right text-sm font-black ${getGainLossColor(currentData.totalAccumulatedMoney)}`}>
                   {currentData.totalAccumulatedMoney > 0 ? "+" : ""}
                   {numberFormatter.format(currentData.totalAccumulatedMoney)}
                 </td>
@@ -747,91 +1065,6 @@ export default function BalancePetrolMonthly() {
           </table>
         </div>
       </motion.div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">รับรวม</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">
-                {numberFormatter.format(currentData.totalReceive)} ลิตร
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.35 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-              <TrendingDown className="w-6 h-6 text-red-500" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">จ่ายรวม</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">
-                {numberFormatter.format(currentData.totalPay)} ลิตร
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 ${
-            currentData.totalDifference < 0 ? "border-l-4 border-red-500" : "border-l-4 border-emerald-500"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Droplet className="w-6 h-6 text-blue-500" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">ส่วนต่างลิตรรวม</p>
-              <p className={`text-lg font-bold ${getDifferenceColor(currentData.totalDifference)}`}>
-                {currentData.totalDifference > 0 ? "+" : ""}
-                {numberFormatter.format(currentData.totalDifference)} ลิตร
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.45 }}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 ${
-            currentData.totalAccumulatedMoney < 0 ? "border-l-4 border-red-500" : "border-l-4 border-emerald-500"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-              <Droplet className="w-6 h-6 text-purple-500" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">สะสมเงินขาด/เกิน</p>
-              <p className={`text-lg font-bold ${getGainLossColor(currentData.totalAccumulatedMoney)}`}>
-                {currentData.totalAccumulatedMoney > 0 ? "+" : ""}
-                {numberFormatter.format(currentData.totalAccumulatedMoney)} บาท
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
     </div>
   );
 }

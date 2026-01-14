@@ -3,7 +3,7 @@ import {
     FileSpreadsheet,
     LayoutDashboard, BarChart3, Warehouse, Gauge,
     Receipt, CreditCard, TrendingUp, AlertCircle,
-    DollarSign, Calculator, TestTube,
+    DollarSign, Calculator, TestTube, History,
     FileSpreadsheet as FileSpreadsheetIcon
 } from "lucide-react";
 import { SidebarConfig } from "../types";
@@ -51,13 +51,10 @@ export const gasStationSidebarConfig: SidebarConfig = {
         //     roles: ["admin", "manager", "gas-station"]
         // },
         {
-            id: "stock",
-            label: "สต็อก",
+            id: "record",
+            label: "สมุดบันทึก",
             icon: Warehouse,
             items: [
-                { to: "/app/gas-station/stock", icon: Warehouse, label: "สต็อก" },
-                { to: "/app/gas-station/update-stock", icon: TrendingUp, label: "อัปเดตสต็อก" },
-                { to: "/app/gas-station/stock-update-history", icon: FileText, label: "ประวัติการอัปเดตสต็อก" },
                 { to: "/app/gas-station/underground-book", icon: Droplet, label: "สมุดน้ำมันใต้ดิน" },
                 { to: "/app/gas-station/underground-measurement", icon: Gauge, label: "วัดน้ำมันใต้ดิน" },
                 { to: "/app/gas-station/tank-entry-book", icon: FileText, label: "สมุดบันทึกน้ำมันลงหลุม" },
@@ -94,7 +91,6 @@ export const gasStationSidebarConfig: SidebarConfig = {
                 { to: "/app/gas-station/lubricants", icon: Droplet, label: "น้ำมันหล่อลื่น" },
                 { to: "/app/gas-station/lubricants-dashboard", icon: LayoutDashboard, label: "แดชบอร์ดน้ำมันหล่อลื่น" },
                 { to: "/app/gas-station/engine-oil", icon: Droplet, label: "น้ำมันเครื่อง" },
-                { to: "/app/gas-station/price-adjustment", icon: TrendingUp, label: "ปรับราคา" },
             ],
             roles: ["admin", "manager", "gas-station"]
         },
@@ -125,6 +121,19 @@ export const gasStationSidebarConfig: SidebarConfig = {
         //     roles: ["admin", "manager", "gas-station"]
         // },
         {
+            id: "stock",
+            label: "สต็อก",
+            icon: Warehouse,
+            items: [
+                { to: "/app/gas-station/stock", icon: Warehouse, label: "สต็อก" },
+                { to: "/app/gas-station/update-stock", icon: TrendingUp, label: "อัปเดตสต็อก" },
+                { to: "/app/gas-station/stock-update-history", icon: FileText, label: "ประวัติการอัปเดตสต็อก" },
+                { to: "/app/gas-station/price-adjustment", icon: TrendingUp, label: "ปรับราคาน้ำมัน" },
+                { to: "/app/gas-station/price-adjustment-history", icon: History, label: "ประวัติการปรับราคาน้ำมัน" },
+            ],
+            roles: ["admin", "manager", "gas-station"]
+        },
+        {
             id: "quality",
             label: "คุณภาพ",
             icon: TestTube,
@@ -135,10 +144,10 @@ export const gasStationSidebarConfig: SidebarConfig = {
         },
         {
             id: "payments",
-            label: "การชำระเงิน",
+            label: "ใบฝาก",
             icon: CreditCard,
             items: [
-                { to: "/app/gas-station/payments", icon: CreditCard, label: "การชำระเงิน" },
+                // { to: "/app/gas-station/payments", icon: CreditCard, label: "การชำระเงิน" },
                 { to: "/app/gas-station/deposit-slips", icon: Receipt, label: "ใบฝากเงิน" },
             ],
             roles: ["admin", "manager", "gas-station", "cashier"]

@@ -1,6 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useBranch } from "@/contexts/BranchContext";
+import {
+  isAllNavbarBranchesSelected,
+  isInSelectedNavbarBranches,
+  selectedBranchNameSetFromNavbarIds,
+} from "@/utils/branchFilter";
 import {
   Package,
   Save,
@@ -123,6 +129,11 @@ const initialStockData = generateInitialStockData();
 
 export default function UpdateStock() {
   const navigate = useNavigate();
+  const { selectedBranches } = useBranch();
+  const selectedNavbarBranchSet = useMemo(
+    () => selectedBranchNameSetFromNavbarIds(selectedBranches),
+    [selectedBranches]
+  );
   const [stockItems, setStockItems] = useState<StockUpdateItem[]>(initialStockData);
   const [searchTerm, setSearchTerm] = useState("");
   const [updateDate, setUpdateDate] = useState(new Date().toISOString().split("T")[0]);
@@ -210,6 +221,13 @@ export default function UpdateStock() {
     // กรองออกมายมาส และกรองตามสาขาที่เลือก
     let filtered = stockItems.filter(item => item.branch !== "มายมาส");
 
+    // Navbar branch filter (global)
+    if (!isAllNavbarBranchesSelected(selectedBranches)) {
+      filtered = filtered.filter((item) =>
+        selectedBranches.length === 0 ? false : isInSelectedNavbarBranches(item.branch, selectedNavbarBranchSet)
+      );
+    }
+
     const term = searchTerm.toLowerCase();
     filtered = filtered.filter((item) => {
       const matchesSearch =
@@ -275,7 +293,7 @@ export default function UpdateStock() {
       if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
-  }, [stockItems, searchTerm, columnFilters, sortConfig]);
+  }, [stockItems, searchTerm, columnFilters, sortConfig, selectedBranches, selectedNavbarBranchSet]);
 
   // สรุปข้อมูลตามสาขา (ไม่รวมมายมาส)
   const branchSummary = useMemo(() => {

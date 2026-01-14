@@ -1,6 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useBranch } from "@/contexts/BranchContext";
+import {
+  isAllNavbarBranchesSelected,
+  isInSelectedNavbarBranches,
+  selectedBranchNameSetFromNavbarIds,
+} from "@/utils/branchFilter";
 import {
   History,
   Filter,
@@ -30,6 +36,7 @@ type StockUpdateHistoryItem = {
   id: string;
   updateDate: string; // วันที่อัพเดต
   updateTime: string; // เวลาอัพเดต
+  branch: string; // สาขา (รองรับการกรองจาก navbar)
   oilType: OilType;
   previousStock: number; // สต็อกก่อนอัพเดต
   usageAmount: number; // จำนวนที่ใช้ไป
@@ -43,6 +50,7 @@ const mockHistoryData: StockUpdateHistoryItem[] = [
     id: "HIS-001",
     updateDate: "2024-12-15",
     updateTime: "18:30",
+    branch: "ปั๊มไฮโซ",
     oilType: "Premium Diesel",
     previousStock: 48000,
     usageAmount: 3000,
@@ -53,6 +61,7 @@ const mockHistoryData: StockUpdateHistoryItem[] = [
     id: "HIS-002",
     updateDate: "2024-12-15",
     updateTime: "18:30",
+    branch: "ปั๊มไฮโซ",
     oilType: "Premium Gasohol 95",
     previousStock: 41000,
     usageAmount: 3000,
@@ -63,6 +72,7 @@ const mockHistoryData: StockUpdateHistoryItem[] = [
     id: "HIS-003",
     updateDate: "2024-12-15",
     updateTime: "18:30",
+    branch: "ดินดำ",
     oilType: "Diesel",
     previousStock: 55000,
     usageAmount: 3000,
@@ -73,6 +83,7 @@ const mockHistoryData: StockUpdateHistoryItem[] = [
     id: "HIS-004",
     updateDate: "2024-12-14",
     updateTime: "18:00",
+    branch: "ดินดำ",
     oilType: "Premium Diesel",
     previousStock: 51000,
     usageAmount: 3000,
@@ -83,6 +94,7 @@ const mockHistoryData: StockUpdateHistoryItem[] = [
     id: "HIS-005",
     updateDate: "2024-12-14",
     updateTime: "18:00",
+    branch: "หนองจิก",
     oilType: "E85",
     previousStock: 18000,
     usageAmount: 3000,
@@ -93,6 +105,7 @@ const mockHistoryData: StockUpdateHistoryItem[] = [
     id: "HIS-006",
     updateDate: "2024-12-13",
     updateTime: "18:15",
+    branch: "หนองจิก",
     oilType: "Gasohol 95",
     previousStock: 38000,
     usageAmount: 3000,
@@ -103,6 +116,7 @@ const mockHistoryData: StockUpdateHistoryItem[] = [
     id: "HIS-007",
     updateDate: "2024-12-13",
     updateTime: "18:15",
+    branch: "ตักสิลา",
     oilType: "E20",
     previousStock: 31000,
     usageAmount: 3000,
@@ -113,6 +127,7 @@ const mockHistoryData: StockUpdateHistoryItem[] = [
     id: "HIS-008",
     updateDate: "2024-12-12",
     updateTime: "18:45",
+    branch: "ตักสิลา",
     oilType: "Gasohol 91",
     previousStock: 25000,
     usageAmount: 3000,
@@ -123,6 +138,7 @@ const mockHistoryData: StockUpdateHistoryItem[] = [
     id: "HIS-009",
     updateDate: "2024-12-11",
     updateTime: "19:00",
+    branch: "บายพาส",
     oilType: "Premium Diesel",
     previousStock: 54000,
     usageAmount: 3000,
@@ -133,6 +149,7 @@ const mockHistoryData: StockUpdateHistoryItem[] = [
     id: "HIS-010",
     updateDate: "2024-12-10",
     updateTime: "18:30",
+    branch: "บายพาส",
     oilType: "Diesel",
     previousStock: 58000,
     usageAmount: 3000,
@@ -144,23 +161,31 @@ const mockHistoryData: StockUpdateHistoryItem[] = [
 export default function StockUpdateHistory() {
   const navigate = useNavigate();
   const historyItems = useMemo(() => mockHistoryData, []);
+  const { selectedBranches } = useBranch();
+  const selectedNavbarBranchSet = useMemo(
+    () => selectedBranchNameSetFromNavbarIds(selectedBranches),
+    [selectedBranches]
+  );
 
   const [searchTerm, setSearchTerm] = useState("");
   const [columnFilters, setColumnFilters] = useState<{
     updateDate: string;
+    branch: string;
     oilType: string;
     updatedBy: string;
   }>({
     updateDate: "ทั้งหมด",
+    branch: "ทั้งหมด",
     oilType: "ทั้งหมด",
     updatedBy: "ทั้งหมด",
   });
 
-  type FilterKey = "updateDate" | "oilType" | "updatedBy";
+  type FilterKey = "updateDate" | "branch" | "oilType" | "updatedBy";
   type SortKey =
     | "id"
     | "updateDate"
     | "updateTime"
+    | "branch"
     | "oilType"
     | "previousStock"
     | "usageAmount"
@@ -177,6 +202,9 @@ export default function StockUpdateHistory() {
     const uniqueDates = Array.from(new Set(historyItems.map((h) => h.updateDate))).sort((a, b) =>
       b.localeCompare(a)
     );
+    const uniqueBranches = Array.from(new Set(historyItems.map((h) => h.branch))).sort((a, b) =>
+      a.localeCompare(b)
+    );
     const uniqueOilTypes = Array.from(new Set(historyItems.map((h) => h.oilType))).sort((a, b) =>
       a.localeCompare(b)
     );
@@ -186,6 +214,7 @@ export default function StockUpdateHistory() {
 
     return {
       updateDate: ["ทั้งหมด", ...uniqueDates],
+      branch: ["ทั้งหมด", ...uniqueBranches],
       oilType: ["ทั้งหมด", ...uniqueOilTypes],
       updatedBy: ["ทั้งหมด", ...uniqueUpdaters],
     };
@@ -316,18 +345,27 @@ export default function StockUpdateHistory() {
   const filteredHistory = useMemo(() => {
     let result = historyItems.filter((item) => {
       const term = searchTerm.toLowerCase();
+
+      const matchesNavbarBranch = isAllNavbarBranchesSelected(selectedBranches)
+        ? true
+        : selectedBranches.length === 0
+          ? false
+          : isInSelectedNavbarBranches(item.branch, selectedNavbarBranchSet);
+
       const matchesSearch =
         item.id.toLowerCase().includes(term) ||
+        item.branch.toLowerCase().includes(term) ||
         item.oilType.toLowerCase().includes(term) ||
         item.updatedBy.toLowerCase().includes(term) ||
         item.updateDate.toLowerCase().includes(term) ||
         item.updateTime.toLowerCase().includes(term);
 
       const matchesDate = columnFilters.updateDate === "ทั้งหมด" || item.updateDate === columnFilters.updateDate;
+      const matchesBranch = columnFilters.branch === "ทั้งหมด" || item.branch === columnFilters.branch;
       const matchesOilType = columnFilters.oilType === "ทั้งหมด" || item.oilType === columnFilters.oilType;
       const matchesUpdatedBy = columnFilters.updatedBy === "ทั้งหมด" || item.updatedBy === columnFilters.updatedBy;
 
-      return matchesSearch && matchesDate && matchesOilType && matchesUpdatedBy;
+      return matchesNavbarBranch && matchesSearch && matchesDate && matchesBranch && matchesOilType && matchesUpdatedBy;
     });
 
     if (sortConfig.key && sortConfig.direction) {
@@ -350,6 +388,8 @@ export default function StockUpdateHistory() {
           }
           case "updateTime":
             return compare(a.updateTime, b.updateTime);
+          case "branch":
+            return compare(a.branch, b.branch);
           case "oilType":
             return compare(a.oilType, b.oilType);
           case "previousStock":
@@ -365,7 +405,7 @@ export default function StockUpdateHistory() {
     }
 
     return result;
-  }, [historyItems, searchTerm, columnFilters, sortConfig]);
+  }, [historyItems, searchTerm, columnFilters, sortConfig, selectedBranches, selectedNavbarBranchSet]);
 
   // สรุปข้อมูล
   const summary = {
@@ -480,7 +520,7 @@ export default function StockUpdateHistory() {
               type="button"
               onClick={() => {
                 setSearchTerm("");
-                setColumnFilters({ updateDate: "ทั้งหมด", oilType: "ทั้งหมด", updatedBy: "ทั้งหมด" });
+                setColumnFilters({ updateDate: "ทั้งหมด", branch: "ทั้งหมด", oilType: "ทั้งหมด", updatedBy: "ทั้งหมด" });
                 setActiveHeaderDropdown(null);
               }}
               className="px-5 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-2xl font-bold transition-all active:scale-95"
@@ -529,6 +569,12 @@ export default function StockUpdateHistory() {
                     columnKey="updateTime"
                   />
                   <HeaderWithFilter
+                    label="สาขา"
+                    columnKey="branch"
+                    filterKey="branch"
+                    options={filterOptions.branch}
+                  />
+                  <HeaderWithFilter
                     label="ประเภทน้ำมัน"
                     columnKey="oilType"
                     filterKey="oilType"
@@ -574,6 +620,9 @@ export default function StockUpdateHistory() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
                       {item.updateTime}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                      {item.branch}
                     </td>
                     <td className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-white whitespace-nowrap">
                       {item.oilType}
