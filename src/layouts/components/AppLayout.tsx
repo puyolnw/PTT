@@ -27,8 +27,8 @@ export default function AppLayout({ SidebarComponent, ContentWrapper, NavbarComp
     useEffect(() => {
         if (!user) return; // Protected route will handle redirect if no user
 
-        // Admin access everything
-        if (user.role === "admin") return;
+        // Admin and Superadmin access everything
+        if (user.role === "admin" || user.role === "superadmin") return;
 
         if (requiredRoles && requiredRoles.length > 0) {
             const hasPermission = requiredRoles.includes(user.role);
