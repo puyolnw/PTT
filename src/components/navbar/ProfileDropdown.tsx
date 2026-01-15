@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Settings, LogOut, ChevronDown } from "lucide-react";
-import { logout } from "@/lib/auth";
+import { useAuth } from "@/contexts/AuthContext";
 import ThemeSelector from "./ThemeSelector";
 import { UserProfile } from "./types";
 
@@ -14,6 +14,8 @@ export default function ProfileDropdown({ user }: ProfileDropdownProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "system");
     const ref = useRef<HTMLDivElement>(null);
+
+    const { logout } = useAuth();
 
     const handleLogout = () => {
         logout();

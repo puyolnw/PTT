@@ -18,7 +18,12 @@ export default function NavbarShop({ onMenuClick }: NavbarShopProps) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [selectedBranches, setSelectedBranches] = useState<string[]>(branches.map(b => b.id));
 
-    const currentUser = user || {
+    const currentUser: import("./types").UserProfile = user ? {
+        name: user.username || "User",
+        email: user.email || "user@ptt.com",
+        role: user.role as string || "employee",
+        avatar: undefined
+    } : {
         name: "PTT User",
         email: "user@ptt.com",
         role: "employee"
