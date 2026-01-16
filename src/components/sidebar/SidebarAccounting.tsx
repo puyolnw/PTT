@@ -1,6 +1,6 @@
-import BaseSidebar from "./sidebar/BaseSidebar";
-import { accountingSidebarConfig } from "./sidebar/configs/accountingConfig";
-import { SidebarProps } from "./sidebar/types";
+import BaseSidebar from "./BaseSidebar";
+import { accountingSidebarConfig } from "./configs/accountingConfig";
+import { SidebarProps } from "./types";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function SidebarAccounting(props: SidebarProps) {

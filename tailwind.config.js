@@ -20,8 +20,8 @@ export default {
       },
       fontFamily: {
         sans: [
-          "IBM Plex Sans Thai",
           "Prompt",
+          "IBM Plex Sans Thai",
           "-apple-system",
           "BlinkMacSystemFont",
           "Segoe UI",

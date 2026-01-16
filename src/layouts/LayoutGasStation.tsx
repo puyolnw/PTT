@@ -1,5 +1,5 @@
 import AppLayout from "./components/AppLayout";
-import SidebarGasStation from "@/components/SidebarGasStation";
+import SidebarGasStation from "@/components/sidebar/SidebarGasStation";
 import { GasStationProvider } from "@/contexts/GasStationContext";
 
 export default function LayoutGasStation() {

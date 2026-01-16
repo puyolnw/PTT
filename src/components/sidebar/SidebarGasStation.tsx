@@ -1,6 +1,6 @@
-import BaseSidebar from "./sidebar/BaseSidebar";
-import { gasStationSidebarConfig } from "./sidebar/configs/gasStationConfig";
-import { SidebarProps } from "./sidebar/types";
+import BaseSidebar from "./BaseSidebar";
+import { gasStationSidebarConfig } from "./configs/gasStationConfig";
+import { SidebarProps } from "./types";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function SidebarGasStation(props: SidebarProps) {

@@ -1,54 +1,60 @@
-import { Users, PiggyBank, BarChart3, FileText, Store, Building, Calculator, Fuel } from "lucide-react";
+import { Users, PiggyBank, BarChart3, FileText, Store, Building, Calculator, Fuel, Settings } from "lucide-react";
 import { Module, Branch } from "./types";
 
 export const modules: Module[] = [
     {
-        name: "ระบบพนักงาน",
+        name: "พนักงาน",
         path: "/app/hr",
         icon: Users,
         roles: ["admin", "hr", "manager"] // เฉพาะ admin, hr, manager
     },
     {
-        name: "ระบบกองทุน",
+        name: "กองทุน",
         path: "/app/fund",
         icon: PiggyBank,
         roles: ["admin", "finance", "manager"]
     },
     {
-        name: "ระบบงานเอกสาร",
+        name: "งานเอกสาร",
         path: "/app/documents",
         icon: FileText
         // ไม่ระบุ roles = ทุกคนเห็น
     },
     {
-        name: "รายงานและสถิติ",
+        name: "รายงาน",
         path: "/app/reports",
         icon: BarChart3,
         roles: ["admin", "manager", "finance"]
     },
     {
-        name: "ร้านค้าพื้นที่ปั้ม",
+        name: "ร้านค้า",
         path: "/app/shops",
         icon: Store,
         roles: ["admin", "manager", "shop"]
     },
     {
-        name: "จัดการพื้นที่เช่า",
+        name: "พื้นที่เช่า",
         path: "/app/rental",
         icon: Building,
         roles: ["admin", "manager", "property"]
     },
     {
-        name: "ระบบบัญชี",
+        name: "บัญชี",
         path: "/app/accounting",
         icon: Calculator,
         roles: ["admin", "finance", "accountant"]
     },
     {
-        name: "ระบบปั๊มน้ำมัน",
+        name: "ปั๊มน้ำมัน",
         path: "/app/gas-station",
         icon: Fuel,
         roles: ["admin", "manager", "gas-station"]
+    },
+    {
+        name: "จัดการข้อมูล",
+        path: "/app/data-management",
+        icon: Settings,
+        roles: ["admin", "superadmin"]
     },
 ];
 
@@ -64,8 +70,8 @@ export const branches: Branch[] = [
  * Filter modules based on user role
  */
 export function getModulesForRole(userRole: string): Module[] {
-    // Admin เห็นทุกอย่าง
-    if (userRole === "admin") return modules;
+    // Admin and Superadmin see everything
+    if (userRole === "admin" || userRole === "superadmin") return modules;
 
     return modules.filter(module => {
         // ถ้าไม่ระบุ roles หมายถึงทุกคนเห็นได้

@@ -1,5 +1,5 @@
 import AppLayout from "./components/AppLayout";
-import SidebarHR from "@/components/SidebarHR";
+import SidebarHR from "@/components/sidebar/SidebarHR";
 
 export default function LayoutHR() {
   return (

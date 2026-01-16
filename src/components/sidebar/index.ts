@@ -1,0 +1,9 @@
+export { default as SidebarHR } from "./SidebarHR";
+export { default as SidebarFund } from "./SidebarFund";
+export { default as SidebarDocuments } from "./SidebarDocuments";
+export { default as SidebarReports } from "./SidebarReports";
+export { default as SidebarShops } from "./SidebarShops";
+export { default as SidebarRental } from "./SidebarRental";
+export { default as SidebarAccounting } from "./SidebarAccounting";
+export { default as SidebarGasStation } from "./SidebarGasStation";
+export { default as SidebarDataManagement } from "./SidebarDataManagement";

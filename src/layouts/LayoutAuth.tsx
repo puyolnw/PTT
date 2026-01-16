@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -5,7 +6,7 @@ import { Lock, User, Building2 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import AppVersion from "@/components/AppVersion";
 import { useAuth } from "@/contexts/AuthContext";
-import { handleError } from "@/utils/errorHandler";
+// import { handleError } from "@/utils/errorHandler";
 
 export default function LayoutAuth() {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export default function LayoutAuth() {
       navigate("/app");
     } catch (error) {
       console.error("Login failed", error);
-      handleError(error, "เข้าสู่ระบบไม่สำเร็จ");
+      toast.error("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
     } finally {
       setIsLoading(false);
     }

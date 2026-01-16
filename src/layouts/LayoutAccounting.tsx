@@ -1,5 +1,5 @@
 import AppLayout from "./components/AppLayout";
-import SidebarAccounting from "@/components/SidebarAccounting";
+import SidebarAccounting from "@/components/sidebar/SidebarAccounting";
 
 export default function LayoutAccounting() {
   return (

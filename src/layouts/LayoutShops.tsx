@@ -1,5 +1,5 @@
 import AppLayout from "./components/AppLayout";
-import SidebarShops from "@/components/SidebarShops";
+import SidebarShops from "@/components/sidebar/SidebarShops";
 import NavbarShop from "@/components/navbar/NavbarShop";
 import { ShopProvider } from "@/contexts/ShopContext";
 
