@@ -32,7 +32,7 @@ type SlipTimelineEvent = {
   at: string; // "YYYY-MM-DD HH:mm"
   title: string;
   detail?: string;
-  amountChange?: number; // ใช้คูปอง = ติดลบ, ฝากเพิ่ม = บวก (ถ้ามีในอนาคต)
+  amountChange?: number; // ใช้ = ติดลบ, ฝากเพิ่ม = บวก (ถ้ามีในอนาคต)
   balanceAfter?: number;
   kind: "issue" | "use" | "renew" | "expire" | "note";
 };
@@ -134,7 +134,7 @@ const initialSlips: DepositSlip[] = (() => {
       {
         id: `t-issue-${i}`,
         at: formatDateTime(issueAt),
-        title: "ออกใบฝากคูปอง",
+        title: "ออกใบฝาก",
         detail: `มูลค่า ${currencyFormatter.format(amount)} ที่สาขา ${branches[i % branches.length]}`,
         amountChange: amount,
         balanceAfter: amount,
@@ -146,7 +146,7 @@ const initialSlips: DepositSlip[] = (() => {
       timeline.push({
         id: `t-use-${i}`,
         at: formatDateTime(useAt),
-        title: "ใช้คูปอง",
+        title: "ใช้",
         detail: `ใช้ ${currencyFormatter.format(used)}`,
         amountChange: -used,
         balanceAfter: balance,
@@ -162,7 +162,7 @@ const initialSlips: DepositSlip[] = (() => {
       issue,
       expiry,
       status: "ใช้งานอยู่",
-      lastAction: used > 0 ? `ใช้คูปอง ${currencyFormatter.format(used)} เหลือ ${currencyFormatter.format(balance)}` : "ออกใบฝากครั้งแรก",
+      lastAction: used > 0 ? `ใช้ ${currencyFormatter.format(used)} เหลือ ${currencyFormatter.format(balance)}` : "ออกใบฝากครั้งแรก",
       timeline,
     });
   }
@@ -182,7 +182,7 @@ const initialSlips: DepositSlip[] = (() => {
       {
         id: `t-issue-soon-${i}`,
         at: formatDateTime(issueAt),
-        title: "ออกใบฝากคูปอง",
+        title: "ออกใบฝาก",
         detail: `มูลค่า ${currencyFormatter.format(amount)} ที่สาขา ${branches[(i + 2) % branches.length]}`,
         amountChange: amount,
         balanceAfter: amount,
@@ -191,7 +191,7 @@ const initialSlips: DepositSlip[] = (() => {
       {
         id: `t-use-soon-${i}`,
         at: formatDateTime(addDays(issueAt, 30)),
-        title: "ใช้คูปอง",
+        title: "ใช้",
         detail: `ใช้ ${currencyFormatter.format(used)} เหลือ ${currencyFormatter.format(balance)}`,
         amountChange: -used,
         balanceAfter: balance,
@@ -232,7 +232,7 @@ const initialSlips: DepositSlip[] = (() => {
       {
         id: `t-issue-exp-${i}`,
         at: formatDateTime(issueAt),
-        title: "ออกใบฝากคูปอง",
+        title: "ออกใบฝาก",
         detail: `มูลค่า ${currencyFormatter.format(amount)} ที่สาขา ${branches[(i + 1) % branches.length]}`,
         amountChange: amount,
         balanceAfter: amount,
@@ -242,7 +242,7 @@ const initialSlips: DepositSlip[] = (() => {
         id: `t-exp-${i}`,
         at: formatDateTime(expireAt),
         title: "หมดอายุ",
-        detail: `ใบคูปองหมดอายุวันที่ ${formatDate(expiry)}`,
+        detail: `ใบหมดอายุวันที่ ${formatDate(expiry)}`,
         kind: "expire",
       },
     ];
@@ -272,7 +272,7 @@ const initialSlips: DepositSlip[] = (() => {
       {
         id: `t-issue-used-${i}`,
         at: formatDateTime(issueAt),
-        title: "ออกใบฝากคูปอง",
+        title: "ออกใบฝาก",
         detail: `มูลค่า ${currencyFormatter.format(amount)} ที่สาขา ${branches[(i + 4) % branches.length]}`,
         amountChange: amount,
         balanceAfter: amount,
@@ -281,7 +281,7 @@ const initialSlips: DepositSlip[] = (() => {
       {
         id: `t-use-used-${i}`,
         at: formatDateTime(useAt),
-        title: "ใช้คูปองครบ",
+        title: "ใช้ครบ",
         detail: `ใช้ ${currencyFormatter.format(amount)} ครบแล้ว`,
         amountChange: -amount,
         balanceAfter: 0,
@@ -296,7 +296,7 @@ const initialSlips: DepositSlip[] = (() => {
       issue,
       expiry,
       status: "ใช้ครบแล้ว",
-      lastAction: `ใช้คูปองครบ ${currencyFormatter.format(amount)} แล้ว`,
+      lastAction: `ใช้ครบ ${currencyFormatter.format(amount)} แล้ว`,
       timeline,
     });
   }
@@ -356,7 +356,7 @@ export default function DepositSlips() {
   const [amount, setAmount] = useState<number | "">("");
   const [issueDate, setIssueDate] = useState(formatDate(new Date()));
 
-  // Modal ใช้คูปอง
+  // Modal ใช้
   const [activeSlip, setActiveSlip] = useState<DepositSlip | null>(null);
   const [useAmount, setUseAmount] = useState<number | "">("");
 
@@ -494,7 +494,7 @@ export default function DepositSlips() {
         {
           id: `t-issue-${newSlipNo}`,
           at: `${issueDate} 16:00`,
-          title: "ออกใบฝากคูปอง",
+          title: "ออกใบฝาก",
           detail: `มูลค่า ${currencyFormatter.format(Number(amount))} ที่สาขา ${branch}`,
           amountChange: Number(amount),
           balanceAfter: Number(amount),
@@ -555,7 +555,7 @@ export default function DepositSlips() {
           {
             id: `t-renew-${newSlipNo}`,
             at: `${renewDate} 16:30`,
-            title: "ต่ออายุใบคูปอง",
+            title: "ต่ออายุใบ",
             detail: `ต่ออายุจากใบเก่า ${oldSlip.slipNo} (+6 เดือน)`,
             kind: "renew",
           },
@@ -588,13 +588,13 @@ export default function DepositSlips() {
             ...slip,
             balance: 0,
             status: "ใช้ครบแล้ว",
-            lastAction: `ใช้คูปองครบ ${currencyFormatter.format(slip.amount)} แล้ว`,
+            lastAction: `ใช้ครบ ${currencyFormatter.format(slip.amount)} แล้ว`,
             timeline: [
               ...(slip.timeline || []),
               {
                 id: `t-use-${slip.id}-${Date.now()}`,
                 at,
-                title: "ใช้คูปองครบ",
+                title: "ใช้ครบ",
                 detail: `ใช้ ${currencyFormatter.format(useValue)} (ครบแล้ว)`,
                 amountChange: -useValue,
                 balanceAfter: 0,
@@ -608,13 +608,13 @@ export default function DepositSlips() {
           ...slip,
           balance: newBalance,
           status: "ใช้งานอยู่",
-          lastAction: `ใช้คูปอง ${currencyFormatter.format(useValue)} เหลือ ${currencyFormatter.format(newBalance)}`,
+          lastAction: `ใช้ ${currencyFormatter.format(useValue)} เหลือ ${currencyFormatter.format(newBalance)}`,
           timeline: [
             ...(slip.timeline || []),
             {
               id: `t-use-${slip.id}-${Date.now()}`,
               at,
-              title: "ใช้คูปอง",
+              title: "ใช้",
               detail: `ใช้ ${currencyFormatter.format(useValue)} เหลือ ${currencyFormatter.format(newBalance)}`,
               amountChange: -useValue,
               balanceAfter: newBalance,
@@ -792,11 +792,11 @@ export default function DepositSlips() {
               <div className="p-2 bg-emerald-500 rounded-2xl shadow-lg shadow-emerald-500/20">
                 <Receipt className="w-8 h-8 text-white" />
               </div>
-          การจัดการใบฝากคูปองน้ำมัน
+          การจัดการใบฝากน้ำมัน
         </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium flex items-center gap-2">
               <FileCheck className="w-4 h-4" />
-          ออกใบฝากคูปองให้ลูกค้า ต่ออายุใบคูปอง และฝากต่อจากยอดคงเหลือ (อายุใบคูปอง 6 เดือน)
+          ออกใบฝากให้ลูกค้า ต่ออายุใบ และฝากต่อจากยอดคงเหลือ (อายุใบ 6 เดือน)
         </p>
           </div>
         <div className="flex items-center gap-3">
@@ -891,16 +891,16 @@ export default function DepositSlips() {
           <Info className="w-6 h-6 text-emerald-500" />
               <div>
             <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
-              ลำดับขั้นตอน: ลูกค้า ➝ พนักงานออกใบฝากคูปอง (ใบสี / ใบเหลืองสำเนา) ➝ พนักงานสแกนใบฝากคูปองเข้าสู่ระบบ
+              ลำดับขั้นตอน: ลูกค้า ➝ พนักงานออกใบฝาก (ใบสี / ใบเหลืองสำเนา) ➝ พนักงานสแกนใบฝากเข้าสู่ระบบ
             </p>
             <p className="text-xs text-emerald-800/80 dark:text-emerald-200/80 mt-1">
-              ใบฝากถือเป็นคูปองเงินสดสำหรับเติมน้ำมัน สามารถต่ออายุได้ 6 เดือน และฝากต่อจากยอดคงเหลือได้
+              ใบฝากถือเป็นเงินสดสำหรับเติมน้ำมัน สามารถต่ออายุได้ 6 เดือน และฝากต่อจากยอดคงเหลือได้
                 </p>
                 </div>
               </div>
         <div className="flex items-center gap-2 text-xs text-emerald-900/80 dark:text-emerald-100">
           <ScanLine className="w-4 h-4" />
-          รองรับการสแกนเลขที่ใบฝาก/คูปอง
+          รองรับการสแกนเลขที่ใบฝาก/
               </div>
             </div>
 
@@ -948,10 +948,10 @@ export default function DepositSlips() {
       >
         <div className="border-b border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-xl font-black text-gray-800 dark:text-white">
-              รายการใบฝากคูปองน้ำมัน
+              รายการใบฝากน้ำมัน
             </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              ค้นหาใบฝากคูปองตามเลขที่ใบฝาก ชื่อลูกค้า หรือสาขา คลิกที่ชื่อเพื่อใช้คูปอง และใช้ปุ่มด้านขวาในการใช้คูปองหรือฝากต่อ/ฝากเพิ่ม
+              ค้นหาใบฝากตามเลขที่ใบฝาก ชื่อลูกค้า หรือสาขา คลิกที่ชื่อเพื่อใช้ และใช้ปุ่มด้านขวาในการใช้หรือฝากต่อ/ฝากเพิ่ม
             </p>
         </div>
 
@@ -995,7 +995,7 @@ export default function DepositSlips() {
                     colSpan={9}
                     className="py-12 px-6 text-center text-sm text-gray-500 dark:text-gray-400"
                   >
-                    ไม่มีข้อมูลใบฝากคูปองที่ตรงกับเงื่อนไขค้นหา
+                    ไม่มีข้อมูลใบฝากที่ตรงกับเงื่อนไขค้นหา
                   </td>
                 </tr>
               )}
@@ -1148,7 +1148,7 @@ export default function DepositSlips() {
                 className="w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-sm border-b border-gray-100 dark:border-gray-700"
               >
                 <CreditCard className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span className="text-gray-700 dark:text-gray-300 font-medium">ใช้คูปอง</span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">ใช้</span>
                         </button>
                         <button
                           type="button"
@@ -1195,10 +1195,10 @@ export default function DepositSlips() {
                     </div>
                     <div>
                       <h3 className="text-xl font-black text-gray-900 dark:text-white">
-                        ออกใบฝากคูปองน้ำมันใหม่
+                        ออกใบฝากน้ำมันใหม่
             </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                        กรอกข้อมูลเพื่อออกใบฝากคูปองให้ลูกค้า
+                        กรอกข้อมูลเพื่อออกใบฝากให้ลูกค้า
                       </p>
                     </div>
                   </div>
@@ -1302,7 +1302,7 @@ export default function DepositSlips() {
                     <div className="flex items-start gap-3 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-4 py-3">
                       <FileText className="w-5 h-5 text-emerald-500 mt-0.5" />
                       <div className="text-sm text-emerald-900/90 dark:text-emerald-100 space-y-1">
-                        <p className="font-bold">รูปแบบเอกสารใบฝากคูปอง</p>
+                        <p className="font-bold">รูปแบบเอกสารใบฝาก</p>
                         <p>
                           ใบสี (ฉบับจริง){" "}
                           <span className="font-bold">ให้ลูกค้าเก็บไว้</span> และใบเหลือง{" "}
@@ -1315,7 +1315,7 @@ export default function DepositSlips() {
                       <ArrowRight className="w-4 h-4" />
                       <span>
                         เมื่อบันทึกแล้ว ระบบจะสร้างเลขที่ใบฝากและรอให้{" "}
-                        <span className="font-bold">สแกนใบคูปองเข้าระบบ</span>
+                        <span className="font-bold">สแกนใบเข้าระบบ</span>
                   </span>
               </div>
                   </form>
@@ -1335,7 +1335,7 @@ export default function DepositSlips() {
                     className="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-2"
               >
                     <FileCheck className="w-5 h-5" />
-                    บันทึกออกใบฝากคูปอง
+                    บันทึกออกใบฝาก
               </button>
             </div>
           </motion.div>
@@ -1370,7 +1370,7 @@ export default function DepositSlips() {
                     </div>
                     <div>
                       <h3 className="text-xl font-black text-gray-900 dark:text-white">
-                        ไทม์ไลน์การใช้งานใบคูปอง
+                        ไทม์ไลน์การใช้งานใบ
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
                         {viewSlip.slipNo} • {viewSlip.customerName} • {viewSlip.branch}
@@ -1502,7 +1502,7 @@ export default function DepositSlips() {
         )}
       </AnimatePresence>
 
-      {/* Modal ใช้คูปอง */}
+      {/* Modal ใช้ */}
       <AnimatePresence>
       {activeSlip && (
           <>
@@ -1528,7 +1528,7 @@ export default function DepositSlips() {
                     </div>
                     <div>
                       <h3 className="text-xl font-black text-gray-900 dark:text-white">
-              ใช้คูปองจากใบฝาก
+              ใช้จากใบฝาก
             </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
                         {activeSlip.slipNo} - {activeSlip.customerName}
@@ -1582,7 +1582,7 @@ export default function DepositSlips() {
 
                     <div className="text-sm text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 space-y-2">
                       <div className="flex justify-between">
-                        <span className="font-medium">ยอดคูปองเดิม</span>
+                        <span className="font-medium">ยอดเดิม</span>
                         <span className="font-bold text-gray-900 dark:text-white">
                     {currencyFormatter.format(activeSlip.balance)}
                   </span>
@@ -1624,7 +1624,7 @@ export default function DepositSlips() {
                     className="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-2"
               >
                     <FileCheck className="w-5 h-5" />
-                บันทึกการใช้คูปอง
+                บันทึกการใช้
               </button>
             </div>
           </motion.div>
